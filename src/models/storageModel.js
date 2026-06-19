@@ -106,7 +106,6 @@ export const storageModel = {
         const remoteHistory = Array.isArray(data) ? data.map(normalizeMockExamAttempt) : [];
         if (remoteHistory.length) {
           await writeMockHistoryCache(key, remoteHistory);
-          localStorage.removeItem(MOCK_EXAM_HISTORY_KEY);
           return remoteHistory;
         }
       } catch (e) {
@@ -114,21 +113,23 @@ export const storageModel = {
       }
     }
 
-    const parsed = await readMockHistoryCache(key);
-    if (userId && Array.isArray(parsed) && parsed.length) {
-      if (supabase) await this.setMockExamHistory(parsed, userId);
+    // Check user-specific local cache first
+    let parsed = await readMockHistoryCache(key);
+    if (Array.isArray(parsed) && parsed.length) {
+      if (supabase && userId) await this.setMockExamHistory(parsed, userId);
       return parsed;
     }
 
-    if (!userId) return [];
+    // If no user-specific, check legacy key
+    if (userId) {
+      const legacyKey = MOCK_EXAM_HISTORY_KEY;
+      const legacy = await readMockHistoryCache(legacyKey);
 
-    const legacyKey = MOCK_EXAM_HISTORY_KEY;
-    const legacy = await readMockHistoryCache(legacyKey);
-
-    if (Array.isArray(legacy) && legacy.length) {
-      await this.setMockExamHistory(legacy, userId);
-      localStorage.removeItem(legacyKey);
-      return legacy;
+      if (Array.isArray(legacy) && legacy.length) {
+        await writeMockHistoryCache(key, legacy); // Save to user-specific key
+        if (supabase) await this.setMockExamHistory(legacy, userId); // Sync to Supabase
+        return legacy;
+      }
     }
 
     return [];
@@ -316,13 +317,13 @@ export const storageModel = {
           .select('*')
           .order('created_at', { ascending: true });
         
-        if (!error && data) {
+        if (!error) {
           // Map database snake_case back to camelCase for the app
-          const mappedData = data.map(q => ({
+          const mappedData = data ? data.map(q => ({
             ...q,
             solutionDraw: q.solution_draw, // Map back
             dateAdded: q.created_at
-          }));
+          })) : [];
 
           let local = [];
           try {
@@ -364,15 +365,26 @@ export const storageModel = {
               continue;
             }
 
-            if (!remoteIds.has(q.id)) continue;
+            if (!remoteIds.has(q.id)) {
+              // If we have local questions that aren't in remote, add them to merged
+              merged.set(q.id, q);
+              continue;
+            }
 
             const remote = merged.get(q.id);
             if (remote && parseTime(q.dateAdded) > parseTime(remote.dateAdded)) merged.set(q.id, q);
           }
 
-          return JSON.stringify(Array.from(merged.values()));
+          const finalArray = Array.from(merged.values());
+          // Only return empty if both remote and local are empty!
+          if (finalArray.length === 0 && local.length === 0) {
+            // Don't return anything, let it fall back to window.storage or localStorage
+          } else {
+            return JSON.stringify(finalArray);
+          }
+        } else {
+          console.error("Supabase fetch error:", error);
         }
-        console.error("Supabase fetch error:", error);
       } catch (e) {
         console.warn("Supabase get failed:", e);
       }
