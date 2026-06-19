@@ -13,17 +13,24 @@ const MOCK_EXAM_ATTEMPTS_TABLE = "mock_exam_attempts";
 const MOCK_EXAM_HISTORY_LIMIT = 12;
 
 const readMockHistoryCache = async (key) => {
+  console.log('[readMockHistoryCache] Reading cache for key:', key);
   if (window.storage && typeof window.storage.get === 'function') {
+    console.log('[readMockHistoryCache] Trying window.storage...');
     try {
       const result = await window.storage.get(key);
+      console.log('[readMockHistoryCache] window.storage result:', result);
       return JSON.parse(result?.value || "[]");
     } catch (e) {
-      console.warn(`window.storage.get failed for key ${key}:`, e);
+      console.warn(`[readMockHistoryCache] window.storage.get failed for key ${key}:`, e);
     }
   }
+  console.log('[readMockHistoryCache] Trying localStorage...');
   try {
-    return JSON.parse(localStorage.getItem(key) || "[]");
-  } catch {
+    const value = localStorage.getItem(key);
+    console.log('[readMockHistoryCache] localStorage value:', value);
+    return JSON.parse(value || "[]");
+  } catch (e) {
+    console.warn('[readMockHistoryCache] Failed to parse localStorage value:', e);
     return [];
   }
 };
