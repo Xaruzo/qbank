@@ -113,7 +113,26 @@ const serializeMockExamAttempt = (attempt, userId) => ({
   questions: Array.isArray(attempt.questions) ? attempt.questions : [],
 });
 
+const cleanupLocalStorage = () => {
+  try {
+    // Clear legacy and unnecessary items
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && !key.startsWith('cse-')) {
+        // Keep only cse- prefixed items
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    console.log('[storageModel] Cleaned up localStorage, removed', keysToRemove.length, 'items');
+  } catch (e) {
+    console.warn('[storageModel] Failed to cleanup localStorage:', e);
+  }
+};
+
 export const storageModel = {
+  cleanupLocalStorage,
   async getMockExamHistory(userId = null) {
     console.log('[storageModel] getMockExamHistory called with userId:', userId);
     const key = userId ? `${MOCK_EXAM_HISTORY_KEY}:${userId}` : MOCK_EXAM_HISTORY_KEY;

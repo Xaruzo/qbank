@@ -32,6 +32,8 @@ const shuffleIds = (ids) => {
 
 export default function App() {
   console.log('[App] Initializing, window.storage:', !!window.storage, typeof window?.storage?.get);
+  // Clean up localStorage to free up space on load
+  storageModel.cleanupLocalStorage();
   const { 
     qs, loading, search, setSearch, topicFilter, setTopicFilter, sortBy, setSortBy,
     saveQuestion, deleteQuestion, toggleFavorite, counts, filteredQuestions 
