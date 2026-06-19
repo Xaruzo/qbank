@@ -122,8 +122,20 @@ export default function App() {
     };
 
     loadMockHistory();
+    
+    // Subscribe to real-time mock exam attempt changes
+    let unsubscribeRealTime = () => {};
+    if (isAuthenticated && user?.id) {
+      unsubscribeRealTime = storageModel.subscribeToMockExamAttempts(user.id, async () => {
+        console.log('[App] Real-time mock exam attempt change detected, refreshing history');
+        const history = await storageModel.getMockExamHistory(user.id);
+        if (active) setMockHistory(Array.isArray(history) ? history : []);
+      });
+    }
+    
     return () => {
       active = false;
+      unsubscribeRealTime();
     };
   }, [isAuthenticated, user?.id, isAuthLoading]);
 

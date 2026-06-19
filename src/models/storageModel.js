@@ -119,8 +119,77 @@ const cleanupLocalStorage = () => {
   }
 };
 
+// Global subscription trackers
+let questionSubscription = null;
+let mockExamAttemptSubscription = null;
+
 export const storageModel = {
   cleanupLocalStorage,
+  
+  // Subscribe to real-time changes for questions
+  subscribeToQuestions(callback) {
+    if (!supabase) return () => {};
+    
+    console.log('[storageModel] Subscribing to questions real-time updates');
+    
+    // Unsubscribe any existing subscription
+    if (questionSubscription) {
+      questionSubscription.unsubscribe();
+    }
+    
+    questionSubscription = supabase
+      .channel('public:questions')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'questions' 
+      }, (payload) => {
+        console.log('[storageModel] Question real-time event:', payload);
+        if (callback) callback(payload);
+      })
+      .subscribe();
+      
+    // Return unsubscribe function
+    return () => {
+      if (questionSubscription) {
+        questionSubscription.unsubscribe();
+        questionSubscription = null;
+      }
+    };
+  },
+  
+  // Subscribe to real-time changes for mock exam attempts
+  subscribeToMockExamAttempts(userId, callback) {
+    if (!supabase || !userId) return () => {};
+    
+    console.log('[storageModel] Subscribing to mock_exam_attempts real-time updates for user:', userId);
+    
+    // Unsubscribe any existing subscription
+    if (mockExamAttemptSubscription) {
+      mockExamAttemptSubscription.unsubscribe();
+    }
+    
+    mockExamAttemptSubscription = supabase
+      .channel('public:mock_exam_attempts')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'mock_exam_attempts',
+        filter: `user_id=eq.${userId}` 
+      }, (payload) => {
+        console.log('[storageModel] Mock exam attempt real-time event:', payload);
+        if (callback) callback(payload);
+      })
+      .subscribe();
+      
+    // Return unsubscribe function
+    return () => {
+      if (mockExamAttemptSubscription) {
+        mockExamAttemptSubscription.unsubscribe();
+        mockExamAttemptSubscription = null;
+      }
+    };
+  },
   async getMockExamHistory(userId = null) {
     const key = userId ? `${MOCK_EXAM_HISTORY_KEY}:${userId}` : MOCK_EXAM_HISTORY_KEY;
 
