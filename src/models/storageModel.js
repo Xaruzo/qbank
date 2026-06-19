@@ -90,9 +90,12 @@ const serializeMockExamAttempt = (attempt, userId) => ({
 
 export const storageModel = {
   async getMockExamHistory(userId = null) {
+    console.log('[storageModel] getMockExamHistory called with userId:', userId);
     const key = userId ? `${MOCK_EXAM_HISTORY_KEY}:${userId}` : MOCK_EXAM_HISTORY_KEY;
+    console.log('[storageModel] Using key:', key);
 
     if (supabase && userId) {
+      console.log('[storageModel] Loading from Supabase...');
       try {
         const { data, error } = await supabase
           .from(MOCK_EXAM_ATTEMPTS_TABLE)
@@ -101,20 +104,27 @@ export const storageModel = {
           .order('completed_at', { ascending: false })
           .limit(MOCK_EXAM_HISTORY_LIMIT);
 
+        console.log('[storageModel] Supabase response:', { data, error });
+
         if (error) throw error;
 
         const remoteHistory = Array.isArray(data) ? data.map(normalizeMockExamAttempt) : [];
+        console.log('[storageModel] Normalized remote history:', remoteHistory);
         if (remoteHistory.length) {
           await writeMockHistoryCache(key, remoteHistory);
           return remoteHistory;
         }
       } catch (e) {
-        console.error("Failed to load mock exam history from Supabase:", e);
+        console.error("[storageModel] Failed to load mock exam history from Supabase:", e);
       }
+    } else {
+      console.log('[storageModel] Supabase not available or userId missing:', { supabase: !!supabase, userId });
     }
 
     // Check user-specific local cache first
+    console.log('[storageModel] Checking user-specific local cache...');
     let parsed = await readMockHistoryCache(key);
+    console.log('[storageModel] User-specific local cache:', parsed);
     if (Array.isArray(parsed) && parsed.length) {
       if (supabase && userId) await this.setMockExamHistory(parsed, userId);
       return parsed;
@@ -122,8 +132,10 @@ export const storageModel = {
 
     // If no user-specific, check legacy key
     if (userId) {
+      console.log('[storageModel] Checking legacy cache...');
       const legacyKey = MOCK_EXAM_HISTORY_KEY;
       const legacy = await readMockHistoryCache(legacyKey);
+      console.log('[storageModel] Legacy cache:', legacy);
 
       if (Array.isArray(legacy) && legacy.length) {
         await writeMockHistoryCache(key, legacy); // Save to user-specific key
@@ -132,29 +144,41 @@ export const storageModel = {
       }
     }
 
+    console.log('[storageModel] No history found, returning empty array');
     return [];
   },
 
   async setMockExamHistory(history, userId = null) {
+    console.log('[storageModel] setMockExamHistory called with:', { history, userId });
     const key = userId ? `${MOCK_EXAM_HISTORY_KEY}:${userId}` : MOCK_EXAM_HISTORY_KEY;
     const nextHistory = Array.isArray(history) ? history.slice(0, MOCK_EXAM_HISTORY_LIMIT) : [];
+    console.log('[storageModel] Next history to save:', nextHistory);
 
     if (supabase && userId) {
+      console.log('[storageModel] Saving to Supabase...');
       try {
         const rows = nextHistory.map((attempt) => serializeMockExamAttempt(attempt, userId));
+        console.log('[storageModel] Serialized rows for Supabase:', rows);
         if (rows.length) {
-          const { error } = await supabase
+          const { data, error } = await supabase
             .from(MOCK_EXAM_ATTEMPTS_TABLE)
             .upsert(rows, { onConflict: 'id' });
+          console.log('[storageModel] Supabase upsert response:', { data, error });
           if (error) throw error;
         }
       } catch (e) {
-        console.error("Failed to save mock exam history to Supabase:", e);
+        console.error("[storageModel] Failed to save mock exam history to Supabase:", e);
       }
+    } else {
+      console.log('[storageModel] Supabase not available or userId missing, not saving to remote');
     }
 
+    console.log('[storageModel] Saving to local cache with key:', key);
     await writeMockHistoryCache(key, nextHistory);
-    if (userId) localStorage.removeItem(MOCK_EXAM_HISTORY_KEY);
+    if (userId) {
+      console.log('[storageModel] Removing legacy history from localStorage');
+      localStorage.removeItem(MOCK_EXAM_HISTORY_KEY);
+    }
   },
 
   async getFavoriteIds() {
