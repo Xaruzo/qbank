@@ -99,9 +99,12 @@ export default function App() {
 
   useEffect(() => {
     let active = true;
-    console.log('[App] Mock history effect triggered:', { isAuthenticated, user });
+    console.log('[App] Mock history effect triggered:', { isAuthenticated, user, isAuthLoading });
 
     const loadMockHistory = async () => {
+      // If auth is still loading, wait
+      if (isAuthLoading) return;
+
       setIsMockHistoryLoading(true);
       try {
         if (!isAuthenticated || !user?.id) {
@@ -122,7 +125,7 @@ export default function App() {
     return () => {
       active = false;
     };
-  }, [isAuthenticated, user?.id]);
+  }, [isAuthenticated, user?.id, isAuthLoading]);
 
   useEffect(() => {
     if (loading) return;

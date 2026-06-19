@@ -131,12 +131,16 @@ export const storageModel = {
           .from(MOCK_EXAM_ATTEMPTS_TABLE)
           .select('id, completed_at, score_percent, correct_count, wrong_count, unanswered_count, total_count, time_spent_ms, topic_stats, questions')
           .eq('user_id', userId)
-          .order('completed_at', { ascending: false })
-          .limit(MOCK_EXAM_HISTORY_LIMIT);
+          .order('completed_at', { ascending: false });
+        // Removed .limit() to get all history!
 
+        console.log('[storageModel] Supabase raw mock history data count:', data?.length);
+        
         if (error) throw error;
 
         remoteHistory = Array.isArray(data) ? data.map(normalizeMockExamAttempt).filter(Boolean) : [];
+        console.log('[storageModel] Normalized remote history count:', remoteHistory.length);
+        
         if (remoteHistory.length) {
           // Try to write to cache, but don't fail if we can't
           try {
@@ -179,7 +183,7 @@ export const storageModel = {
 
   async setMockExamHistory(history, userId = null) {
     const key = userId ? `${MOCK_EXAM_HISTORY_KEY}:${userId}` : MOCK_EXAM_HISTORY_KEY;
-    const nextHistory = Array.isArray(history) ? history.slice(0, MOCK_EXAM_HISTORY_LIMIT) : [];
+    const nextHistory = Array.isArray(history) ? history : []; // Removed slice to keep all history!
 
     if (supabase && userId) {
       try {
@@ -195,9 +199,19 @@ export const storageModel = {
       }
     }
 
-    await writeMockHistoryCache(key, nextHistory);
+    // Try to write to cache, but don't fail if we can't (due to quota)
+    try {
+      await writeMockHistoryCache(key, nextHistory);
+    } catch (cacheError) {
+      console.warn('[storageModel] Could not write to local cache (quota exceeded?), but continuing:', cacheError);
+    }
+    
     if (userId) {
-      localStorage.removeItem(MOCK_EXAM_HISTORY_KEY);
+      try {
+        localStorage.removeItem(MOCK_EXAM_HISTORY_KEY);
+      } catch (e) {
+        console.warn('[storageModel] Could not remove legacy history key:', e);
+      }
     }
   },
 
