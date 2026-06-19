@@ -27,28 +27,22 @@ export function useAuthController() {
   const [session, setSession] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(!!supabase);
 
-  console.log('[useAuthController] Initializing, supabase available:', !!supabase);
-
   useEffect(() => {
     if (!supabase) {
-      console.log('[useAuthController] No supabase available, setting isAuthLoading to false');
       setIsAuthLoading(false);
       return undefined;
     }
 
     let active = true;
 
-    console.log('[useAuthController] Calling supabase.auth.getSession()');
     supabase.auth.getSession().then(({ data, error }) => {
       if (!active) return;
-      console.log('[useAuthController] getSession() result:', { data, error, sessionExists: !!data?.session });
       if (error) console.error("Failed to get auth session:", error);
       setSession(data?.session || null);
       setIsAuthLoading(false);
     });
 
     const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      console.log('[useAuthController] onAuthStateChange:', { _event, nextSession });
       setSession(nextSession || null);
       setIsAuthLoading(false);
     });

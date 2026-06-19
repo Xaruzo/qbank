@@ -27,24 +27,6 @@ export function useQuestionsController() {
 
   useEffect(() => {
     init();
-    
-    // Subscribe to real-time question changes
-    const unsubscribe = storageModel.subscribeToQuestions(async () => {
-      console.log('[useQuestionsController] Real-time question change detected, refreshing questions');
-      try {
-        const r = await storageModel.get(KEY);
-        const favoriteIds = new Set(await storageModel.getFavoriteIds());
-        if (r) {
-          const parsed = JSON.parse(r);
-          const normalized = parsed.map(q => normalizeQuestion(q, favoriteIds));
-          setQs(normalized);
-        }
-      } catch (e) {
-        console.error('[useQuestionsController] Failed to refresh questions on real-time event:', e);
-      }
-    });
-    
-    return unsubscribe;
   }, []);
 
   useEffect(() => {

@@ -8,7 +8,6 @@ export default function MockExam({
   totalQuestions,
   onStartProfessional,
   history = [],
-  isHistoryLoading = false,
   onReviewAttempt,
   onOpenAttempt,
   isAuthenticated,
@@ -128,12 +127,7 @@ export default function MockExam({
             <span className="qb-exam-progress">{sortedHistory.length} total</span>
           </div>
 
-          {isHistoryLoading ? (
-            <div className="qb-empty" style={{ padding: "48px 16px" }}>
-              <div className="qb-loading-spinner" aria-hidden="true" style={{ margin: "0 auto" }} />
-              <div className="qb-loading-text" style={{ marginTop: 16 }}>Loading history...</div>
-            </div>
-          ) : !isAuthenticated && authAvailable ? (
+          {!isAuthenticated && authAvailable ? (
             <div className="qb-empty" style={{ padding: "48px 16px" }}>
               <div className="qb-empty-text">Sign in to view saved history</div>
               <div className="qb-empty-s" style={{ marginTop: 8 }}>

@@ -31,9 +31,6 @@ const shuffleIds = (ids) => {
 };
 
 export default function App() {
-  console.log('[App] Initializing, window.storage:', !!window.storage, typeof window?.storage?.get);
-  // Clean up localStorage to free up space on load
-  storageModel.cleanupLocalStorage();
   const { 
     qs, loading, search, setSearch, topicFilter, setTopicFilter, sortBy, setSortBy,
     saveQuestion, deleteQuestion, toggleFavorite, counts, filteredQuestions 
@@ -59,7 +56,6 @@ export default function App() {
   const [navOpen, setNavOpen] = useState(false);
   const [exam, setExam] = useState(null);
   const [mockHistory, setMockHistory] = useState([]);
-  const [isMockHistoryLoading, setIsMockHistoryLoading] = useState(false);
   const [selectedMockAttemptId, setSelectedMockAttemptId] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
   const mainRef = useRef(null);
@@ -99,45 +95,25 @@ export default function App() {
 
   useEffect(() => {
     let active = true;
-    console.log('[App] Mock history effect triggered:', { isAuthenticated, user, isAuthLoading });
 
     const loadMockHistory = async () => {
-      // If auth is still loading, wait
-      if (isAuthLoading) return;
-
-      setIsMockHistoryLoading(true);
       try {
         if (!isAuthenticated || !user?.id) {
           if (active) setMockHistory([]);
           return;
         }
-
         const history = await storageModel.getMockExamHistory(user.id);
         if (active) setMockHistory(Array.isArray(history) ? history : []);
       } catch (e) {
-        console.error("[App] Failed to load mock exam history:", e);
-      } finally {
-        if (active) setIsMockHistoryLoading(false);
+        console.error("Failed to load mock exam history:", e);
       }
     };
 
     loadMockHistory();
-    
-    // Subscribe to real-time mock exam attempt changes
-    let unsubscribeRealTime = () => {};
-    if (isAuthenticated && user?.id) {
-      unsubscribeRealTime = storageModel.subscribeToMockExamAttempts(user.id, async () => {
-        console.log('[App] Real-time mock exam attempt change detected, refreshing history');
-        const history = await storageModel.getMockExamHistory(user.id);
-        if (active) setMockHistory(Array.isArray(history) ? history : []);
-      });
-    }
-    
     return () => {
       active = false;
-      unsubscribeRealTime();
     };
-  }, [isAuthenticated, user?.id, isAuthLoading]);
+  }, [isAuthenticated, user?.id]);
 
   useEffect(() => {
     if (loading) return;
@@ -517,7 +493,6 @@ export default function App() {
                 totalQuestions={Math.min(qs.length, PRO_EXAM_TOTAL)}
                 onStartProfessional={handleStartProfessional}
                 history={mockHistory}
-                isHistoryLoading={isMockHistoryLoading}
                 onReviewAttempt={handleReviewAttempt}
                 onOpenAttempt={handleOpenMockAttempt}
                 isAuthenticated={isAuthenticated}

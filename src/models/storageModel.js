@@ -18,74 +18,60 @@ const readMockHistoryCache = async (key) => {
       const result = await window.storage.get(key);
       return JSON.parse(result?.value || "[]");
     } catch (e) {
-      console.warn(`[readMockHistoryCache] window.storage.get failed for key ${key}:`, e);
+      console.warn(`window.storage.get failed for key ${key}:`, e);
     }
   }
   try {
-    const value = localStorage.getItem(key);
-    return JSON.parse(value || "[]");
-  } catch (e) {
-    console.warn('[readMockHistoryCache] Failed to parse localStorage value:', e);
+    return JSON.parse(localStorage.getItem(key) || "[]");
+  } catch {
     return [];
   }
 };
 
 const writeMockHistoryCache = async (key, history) => {
   const value = JSON.stringify(history);
-  
   if (window.storage && typeof window.storage.set === 'function') {
     try {
       await window.storage.set(key, value);
       return;
     } catch (e) {
-      console.warn(`[writeMockHistoryCache] window.storage.set failed for key ${key}:`, e);
+      console.warn(`window.storage.set failed for key ${key}:`, e);
     }
   }
-  
-  try {
-    localStorage.setItem(key, value);
-  } catch (e) {
-    console.warn(`[writeMockHistoryCache] localStorage.setItem failed (quota exceeded?) for key ${key}:`, e);
-    // If we can't write to localStorage, don't block anything
-  }
+  localStorage.setItem(key, value);
 };
 
 const normalizeMockExamAttempt = (row) => {
-  try {
-    const topicStats = Array.isArray(row?.topic_stats) ? row.topic_stats : [];
-    const questions = Array.isArray(row?.questions) ? row.questions : [];
-    const correctCount = row?.correct_count ?? 0;
-    const wrongCount = row?.wrong_count ?? 0;
-    const unansweredCount = row?.unanswered_count ?? Math.max(0, (row?.total_count ?? questions.length) - correctCount - wrongCount);
-    const timeSpentMs = row?.time_spent_ms ?? 0;
-    const completedAt = row?.completed_at || new Date().toISOString();
-    const startedAt = new Date(completedAt).getTime() - timeSpentMs;
+  const topicStats = Array.isArray(row?.topic_stats) ? row.topic_stats : [];
+  const questions = Array.isArray(row?.questions) ? row.questions : [];
+  const correctCount = row?.correct_count ?? 0;
+  const wrongCount = row?.wrong_count ?? 0;
+  const unansweredCount = row?.unanswered_count ?? Math.max(0, (row?.total_count ?? questions.length) - correctCount - wrongCount);
+  const timeSpentMs = row?.time_spent_ms ?? 0;
+  const completedAt = row?.completed_at || new Date().toISOString();
+  const startedAt = new Date(completedAt).getTime() - timeSpentMs;
 
-    return {
-      id: row?.id,
-      sessionId: row?.id || null,
-      mode: "professional",
-      startedAt: Number.isFinite(startedAt) ? startedAt : Date.now(),
-      completedAt,
-      durationMs: timeSpentMs,
-      timeSpentMs,
-      timeLeftMs: 0,
-      totalCount: row?.total_count ?? questions.length,
-      answeredCount: correctCount + wrongCount,
-      reviewCount: 0,
-      correctCount,
-      wrongCount,
-      unansweredCount,
-      scorePercent: row?.score_percent ?? 0,
-      topicStats,
-      strongestTopic: topicStats[0] || null,
-      weakestTopic: topicStats.length > 1 ? topicStats[topicStats.length - 1] : topicStats[0] || null,
-      questions,
-    };
-  } catch (e) {
-    console.error('[normalizeMockExamAttempt] Error normalizing row:', e);
-    return null;
-  }
+  return {
+    id: row?.id,
+    sessionId: row?.id || null,
+    mode: "professional",
+    startedAt: Number.isFinite(startedAt) ? startedAt : Date.now(),
+    completedAt,
+    durationMs: timeSpentMs,
+    timeSpentMs,
+    timeLeftMs: 0,
+    totalCount: row?.total_count ?? questions.length,
+    answeredCount: correctCount + wrongCount,
+    reviewCount: 0,
+    correctCount,
+    wrongCount,
+    unansweredCount,
+    scorePercent: row?.score_percent ?? 0,
+    topicStats,
+    strongestTopic: topicStats[0] || null,
+    weakestTopic: topicStats.length > 1 ? topicStats[topicStats.length - 1] : topicStats[0] || null,
+    questions,
+  };
 };
 
 const serializeMockExamAttempt = (attempt, userId) => ({
@@ -102,149 +88,47 @@ const serializeMockExamAttempt = (attempt, userId) => ({
   questions: Array.isArray(attempt.questions) ? attempt.questions : [],
 });
 
-const cleanupLocalStorage = () => {
-  try {
-    // Clear legacy and unnecessary items
-    const keysToRemove = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && !key.startsWith('cse-')) {
-        // Keep only cse- prefixed items
-        keysToRemove.push(key);
-      }
-    }
-    keysToRemove.forEach(key => localStorage.removeItem(key));
-  } catch (e) {
-    console.warn('[storageModel] Failed to cleanup localStorage:', e);
-  }
-};
-
-// Global subscription trackers
-let questionSubscription = null;
-let mockExamAttemptSubscription = null;
-
 export const storageModel = {
-  cleanupLocalStorage,
-  
-  // Subscribe to real-time changes for questions
-  subscribeToQuestions(callback) {
-    if (!supabase) return () => {};
-    
-    console.log('[storageModel] Subscribing to questions real-time updates');
-    
-    // Unsubscribe any existing subscription
-    if (questionSubscription) {
-      questionSubscription.unsubscribe();
-    }
-    
-    questionSubscription = supabase
-      .channel('public:questions')
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'questions' 
-      }, (payload) => {
-        console.log('[storageModel] Question real-time event:', payload);
-        if (callback) callback(payload);
-      })
-      .subscribe();
-      
-    // Return unsubscribe function
-    return () => {
-      if (questionSubscription) {
-        questionSubscription.unsubscribe();
-        questionSubscription = null;
-      }
-    };
-  },
-  
-  // Subscribe to real-time changes for mock exam attempts
-  subscribeToMockExamAttempts(userId, callback) {
-    if (!supabase || !userId) return () => {};
-    
-    console.log('[storageModel] Subscribing to mock_exam_attempts real-time updates for user:', userId);
-    
-    // Unsubscribe any existing subscription
-    if (mockExamAttemptSubscription) {
-      mockExamAttemptSubscription.unsubscribe();
-    }
-    
-    mockExamAttemptSubscription = supabase
-      .channel('public:mock_exam_attempts')
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'mock_exam_attempts',
-        filter: `user_id=eq.${userId}` 
-      }, (payload) => {
-        console.log('[storageModel] Mock exam attempt real-time event:', payload);
-        if (callback) callback(payload);
-      })
-      .subscribe();
-      
-    // Return unsubscribe function
-    return () => {
-      if (mockExamAttemptSubscription) {
-        mockExamAttemptSubscription.unsubscribe();
-        mockExamAttemptSubscription = null;
-      }
-    };
-  },
   async getMockExamHistory(userId = null) {
     const key = userId ? `${MOCK_EXAM_HISTORY_KEY}:${userId}` : MOCK_EXAM_HISTORY_KEY;
 
     if (supabase && userId) {
-      let remoteHistory = [];
       try {
         const { data, error } = await supabase
           .from(MOCK_EXAM_ATTEMPTS_TABLE)
           .select('id, completed_at, score_percent, correct_count, wrong_count, unanswered_count, total_count, time_spent_ms, topic_stats, questions')
           .eq('user_id', userId)
-          .order('completed_at', { ascending: false });
-        // Removed .limit() to get all history!
+          .order('completed_at', { ascending: false })
+          .limit(MOCK_EXAM_HISTORY_LIMIT);
 
-        console.log('[storageModel] Supabase raw mock history data count:', data?.length);
-        
         if (error) throw error;
 
-        remoteHistory = Array.isArray(data) ? data.map(normalizeMockExamAttempt).filter(Boolean) : [];
-        console.log('[storageModel] Normalized remote history count:', remoteHistory.length);
-        
+        const remoteHistory = Array.isArray(data) ? data.map(normalizeMockExamAttempt) : [];
         if (remoteHistory.length) {
-          // Try to write to cache, but don't fail if we can't
-          try {
-            await writeMockHistoryCache(key, remoteHistory);
-          } catch (cacheError) {
-            console.warn('[storageModel] Could not write to local cache, but returning remote history anyway:', cacheError);
-          }
+          await writeMockHistoryCache(key, remoteHistory);
+          localStorage.removeItem(MOCK_EXAM_HISTORY_KEY);
           return remoteHistory;
         }
       } catch (e) {
-        console.error("[storageModel] Failed to load mock exam history from Supabase:", e);
-        // If we have remoteHistory even after an error, return it
-        if (remoteHistory.length) {
-          return remoteHistory;
-        }
+        console.error("Failed to load mock exam history from Supabase:", e);
       }
     }
 
-    // Check user-specific local cache first
-    let parsed = await readMockHistoryCache(key);
-    if (Array.isArray(parsed) && parsed.length) {
-      if (supabase && userId) await this.setMockExamHistory(parsed, userId);
+    const parsed = await readMockHistoryCache(key);
+    if (userId && Array.isArray(parsed) && parsed.length) {
+      if (supabase) await this.setMockExamHistory(parsed, userId);
       return parsed;
     }
 
-    // If no user-specific, check legacy key
-    if (userId) {
-      const legacyKey = MOCK_EXAM_HISTORY_KEY;
-      const legacy = await readMockHistoryCache(legacyKey);
+    if (!userId) return [];
 
-      if (Array.isArray(legacy) && legacy.length) {
-        await writeMockHistoryCache(key, legacy); // Save to user-specific key
-        if (supabase) await this.setMockExamHistory(legacy, userId); // Sync to Supabase
-        return legacy;
-      }
+    const legacyKey = MOCK_EXAM_HISTORY_KEY;
+    const legacy = await readMockHistoryCache(legacyKey);
+
+    if (Array.isArray(legacy) && legacy.length) {
+      await this.setMockExamHistory(legacy, userId);
+      localStorage.removeItem(legacyKey);
+      return legacy;
     }
 
     return [];
@@ -252,7 +136,7 @@ export const storageModel = {
 
   async setMockExamHistory(history, userId = null) {
     const key = userId ? `${MOCK_EXAM_HISTORY_KEY}:${userId}` : MOCK_EXAM_HISTORY_KEY;
-    const nextHistory = Array.isArray(history) ? history : []; // Removed slice to keep all history!
+    const nextHistory = Array.isArray(history) ? history.slice(0, MOCK_EXAM_HISTORY_LIMIT) : [];
 
     if (supabase && userId) {
       try {
@@ -264,24 +148,12 @@ export const storageModel = {
           if (error) throw error;
         }
       } catch (e) {
-        console.error("[storageModel] Failed to save mock exam history to Supabase:", e);
+        console.error("Failed to save mock exam history to Supabase:", e);
       }
     }
 
-    // Try to write to cache, but don't fail if we can't (due to quota)
-    try {
-      await writeMockHistoryCache(key, nextHistory);
-    } catch (cacheError) {
-      console.warn('[storageModel] Could not write to local cache (quota exceeded?), but continuing:', cacheError);
-    }
-    
-    if (userId) {
-      try {
-        localStorage.removeItem(MOCK_EXAM_HISTORY_KEY);
-      } catch (e) {
-        console.warn('[storageModel] Could not remove legacy history key:', e);
-      }
-    }
+    await writeMockHistoryCache(key, nextHistory);
+    if (userId) localStorage.removeItem(MOCK_EXAM_HISTORY_KEY);
   },
 
   async getFavoriteIds() {
@@ -444,13 +316,13 @@ export const storageModel = {
           .select('*')
           .order('created_at', { ascending: true });
         
-        if (!error) {
+        if (!error && data) {
           // Map database snake_case back to camelCase for the app
-          const mappedData = data ? data.map(q => ({
+          const mappedData = data.map(q => ({
             ...q,
             solutionDraw: q.solution_draw, // Map back
             dateAdded: q.created_at
-          })) : [];
+          }));
 
           let local = [];
           try {
@@ -492,26 +364,15 @@ export const storageModel = {
               continue;
             }
 
-            if (!remoteIds.has(q.id)) {
-              // If we have local questions that aren't in remote, add them to merged
-              merged.set(q.id, q);
-              continue;
-            }
+            if (!remoteIds.has(q.id)) continue;
 
             const remote = merged.get(q.id);
             if (remote && parseTime(q.dateAdded) > parseTime(remote.dateAdded)) merged.set(q.id, q);
           }
 
-          const finalArray = Array.from(merged.values());
-          // Only return empty if both remote and local are empty!
-          if (finalArray.length === 0 && local.length === 0) {
-            // Don't return anything, let it fall back to window.storage or localStorage
-          } else {
-            return JSON.stringify(finalArray);
-          }
-        } else {
-          console.error("Supabase fetch error:", error);
+          return JSON.stringify(Array.from(merged.values()));
         }
+        console.error("Supabase fetch error:", error);
       } catch (e) {
         console.warn("Supabase get failed:", e);
       }
