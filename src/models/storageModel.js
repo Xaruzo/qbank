@@ -49,36 +49,44 @@ const writeMockHistoryCache = async (key, history) => {
 };
 
 const normalizeMockExamAttempt = (row) => {
-  const topicStats = Array.isArray(row?.topic_stats) ? row.topic_stats : [];
-  const questions = Array.isArray(row?.questions) ? row.questions : [];
-  const correctCount = row?.correct_count ?? 0;
-  const wrongCount = row?.wrong_count ?? 0;
-  const unansweredCount = row?.unanswered_count ?? Math.max(0, (row?.total_count ?? questions.length) - correctCount - wrongCount);
-  const timeSpentMs = row?.time_spent_ms ?? 0;
-  const completedAt = row?.completed_at || new Date().toISOString();
-  const startedAt = new Date(completedAt).getTime() - timeSpentMs;
+  console.log('[normalizeMockExamAttempt] Normalizing row:', row);
+  try {
+    const topicStats = Array.isArray(row?.topic_stats) ? row.topic_stats : [];
+    const questions = Array.isArray(row?.questions) ? row.questions : [];
+    const correctCount = row?.correct_count ?? 0;
+    const wrongCount = row?.wrong_count ?? 0;
+    const unansweredCount = row?.unanswered_count ?? Math.max(0, (row?.total_count ?? questions.length) - correctCount - wrongCount);
+    const timeSpentMs = row?.time_spent_ms ?? 0;
+    const completedAt = row?.completed_at || new Date().toISOString();
+    const startedAt = new Date(completedAt).getTime() - timeSpentMs;
 
-  return {
-    id: row?.id,
-    sessionId: row?.id || null,
-    mode: "professional",
-    startedAt: Number.isFinite(startedAt) ? startedAt : Date.now(),
-    completedAt,
-    durationMs: timeSpentMs,
-    timeSpentMs,
-    timeLeftMs: 0,
-    totalCount: row?.total_count ?? questions.length,
-    answeredCount: correctCount + wrongCount,
-    reviewCount: 0,
-    correctCount,
-    wrongCount,
-    unansweredCount,
-    scorePercent: row?.score_percent ?? 0,
-    topicStats,
-    strongestTopic: topicStats[0] || null,
-    weakestTopic: topicStats.length > 1 ? topicStats[topicStats.length - 1] : topicStats[0] || null,
-    questions,
-  };
+    const result = {
+      id: row?.id,
+      sessionId: row?.id || null,
+      mode: "professional",
+      startedAt: Number.isFinite(startedAt) ? startedAt : Date.now(),
+      completedAt,
+      durationMs: timeSpentMs,
+      timeSpentMs,
+      timeLeftMs: 0,
+      totalCount: row?.total_count ?? questions.length,
+      answeredCount: correctCount + wrongCount,
+      reviewCount: 0,
+      correctCount,
+      wrongCount,
+      unansweredCount,
+      scorePercent: row?.score_percent ?? 0,
+      topicStats,
+      strongestTopic: topicStats[0] || null,
+      weakestTopic: topicStats.length > 1 ? topicStats[topicStats.length - 1] : topicStats[0] || null,
+      questions,
+    };
+    console.log('[normalizeMockExamAttempt] Normalized result:', result);
+    return result;
+  } catch (e) {
+    console.error('[normalizeMockExamAttempt] Error normalizing row:', e);
+    return null;
+  }
 };
 
 const serializeMockExamAttempt = (attempt, userId) => ({
@@ -115,8 +123,8 @@ export const storageModel = {
 
         if (error) throw error;
 
-        const remoteHistory = Array.isArray(data) ? data.map(normalizeMockExamAttempt) : [];
-        console.log('[storageModel] Normalized remote history:', remoteHistory);
+        const remoteHistory = Array.isArray(data) ? data.map(normalizeMockExamAttempt).filter(Boolean) : [];
+        console.log('[storageModel] Normalized remote history (filtered nulls):', remoteHistory);
         if (remoteHistory.length) {
           await writeMockHistoryCache(key, remoteHistory);
           return remoteHistory;
@@ -337,6 +345,33 @@ export const storageModel = {
       }
     }
     localStorage.setItem(key, value);
+  },
+
+  // Debug function to directly test Supabase
+  async debugFetchMockHistory(userId) {
+    console.log('[storageModel] debugFetchMockHistory called with userId:', userId);
+    console.log('[storageModel] Supabase client available:', !!supabase);
+    if (!supabase || !userId) return null;
+
+    try {
+      // First check auth
+      const { data: authData, error: authError } = await supabase.auth.getSession();
+      console.log('[storageModel] Current auth session:', authData, authError);
+
+      // Then run query
+      const { data, error } = await supabase
+        .from(MOCK_EXAM_ATTEMPTS_TABLE)
+        .select('*')
+        .eq('user_id', userId);
+
+      console.log('[storageModel] Raw Supabase response:', { data, error });
+
+      if (error) throw error;
+      return data;
+    } catch (e) {
+      console.error('[storageModel] debugFetchMockHistory error:', e);
+      return null;
+    }
   },
 
   async get(key) {

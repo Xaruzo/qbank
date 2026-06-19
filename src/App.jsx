@@ -105,6 +105,12 @@ export default function App() {
           if (active) setMockHistory([]);
           return;
         }
+
+        // Run debug fetch first
+        console.log('[App] Running debug fetch...');
+        const debugData = await storageModel.debugFetchMockHistory(user.id);
+        console.log('[App] Debug fetch result:', debugData);
+
         console.log('[App] Loading mock history for user:', user.id);
         const history = await storageModel.getMockExamHistory(user.id);
         console.log('[App] Got history:', history);
