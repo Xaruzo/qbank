@@ -422,7 +422,7 @@ body {
 .qb-mock-topic-main { display:flex; align-items:center; gap:10px; min-width:0; }
 .qb-mock-topic-dot { width:10px; height:10px; border-radius:999px; flex-shrink:0; }
 .qb-mock-topic-name { color:var(--text-heading); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.qb-mock-topic-bar { height:10px; border-radius:999px; background:rgba(0,0,0,.08); overflow:hidden; }
+.qb-mock-topic-bar { height:10px; border-radius:999px; background:rgba(255,255,255,.08); overflow:hidden; }
 .light .qb-mock-topic-bar { background:rgba(0,0,0,.10); }
 .qb-mock-topic-bar > span { display:block; height:100%; border-radius:999px; }
 .qb-mock-topic-meta { font-family:'Fira Mono',monospace; font-size:11px; color:var(--text-muted); }
