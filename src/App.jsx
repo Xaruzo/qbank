@@ -105,14 +105,11 @@ export default function App() {
       setIsMockHistoryLoading(true);
       try {
         if (!isAuthenticated || !user?.id) {
-          console.log('[App] Not authenticated or no user ID, setting empty history');
           if (active) setMockHistory([]);
           return;
         }
 
-        console.log('[App] Loading mock history for user:', user.id);
         const history = await storageModel.getMockExamHistory(user.id);
-        console.log('[App] Got history:', history);
         if (active) setMockHistory(Array.isArray(history) ? history : []);
       } catch (e) {
         console.error("[App] Failed to load mock exam history:", e);

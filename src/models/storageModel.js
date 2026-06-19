@@ -13,21 +13,16 @@ const MOCK_EXAM_ATTEMPTS_TABLE = "mock_exam_attempts";
 const MOCK_EXAM_HISTORY_LIMIT = 12;
 
 const readMockHistoryCache = async (key) => {
-  console.log('[readMockHistoryCache] Reading cache for key:', key);
   if (window.storage && typeof window.storage.get === 'function') {
-    console.log('[readMockHistoryCache] Trying window.storage...');
     try {
       const result = await window.storage.get(key);
-      console.log('[readMockHistoryCache] window.storage result:', result);
       return JSON.parse(result?.value || "[]");
     } catch (e) {
       console.warn(`[readMockHistoryCache] window.storage.get failed for key ${key}:`, e);
     }
   }
-  console.log('[readMockHistoryCache] Trying localStorage...');
   try {
     const value = localStorage.getItem(key);
-    console.log('[readMockHistoryCache] localStorage value:', value);
     return JSON.parse(value || "[]");
   } catch (e) {
     console.warn('[readMockHistoryCache] Failed to parse localStorage value:', e);
@@ -36,13 +31,11 @@ const readMockHistoryCache = async (key) => {
 };
 
 const writeMockHistoryCache = async (key, history) => {
-  console.log('[writeMockHistoryCache] Writing to key:', key);
   const value = JSON.stringify(history);
   
   if (window.storage && typeof window.storage.set === 'function') {
     try {
       await window.storage.set(key, value);
-      console.log('[writeMockHistoryCache] Successfully wrote to window.storage');
       return;
     } catch (e) {
       console.warn(`[writeMockHistoryCache] window.storage.set failed for key ${key}:`, e);
@@ -51,7 +44,6 @@ const writeMockHistoryCache = async (key, history) => {
   
   try {
     localStorage.setItem(key, value);
-    console.log('[writeMockHistoryCache] Successfully wrote to localStorage');
   } catch (e) {
     console.warn(`[writeMockHistoryCache] localStorage.setItem failed (quota exceeded?) for key ${key}:`, e);
     // If we can't write to localStorage, don't block anything
@@ -59,7 +51,6 @@ const writeMockHistoryCache = async (key, history) => {
 };
 
 const normalizeMockExamAttempt = (row) => {
-  console.log('[normalizeMockExamAttempt] Normalizing row:', row);
   try {
     const topicStats = Array.isArray(row?.topic_stats) ? row.topic_stats : [];
     const questions = Array.isArray(row?.questions) ? row.questions : [];
@@ -70,7 +61,7 @@ const normalizeMockExamAttempt = (row) => {
     const completedAt = row?.completed_at || new Date().toISOString();
     const startedAt = new Date(completedAt).getTime() - timeSpentMs;
 
-    const result = {
+    return {
       id: row?.id,
       sessionId: row?.id || null,
       mode: "professional",
@@ -91,8 +82,6 @@ const normalizeMockExamAttempt = (row) => {
       weakestTopic: topicStats.length > 1 ? topicStats[topicStats.length - 1] : topicStats[0] || null,
       questions,
     };
-    console.log('[normalizeMockExamAttempt] Normalized result:', result);
-    return result;
   } catch (e) {
     console.error('[normalizeMockExamAttempt] Error normalizing row:', e);
     return null;
@@ -125,7 +114,6 @@ const cleanupLocalStorage = () => {
       }
     }
     keysToRemove.forEach(key => localStorage.removeItem(key));
-    console.log('[storageModel] Cleaned up localStorage, removed', keysToRemove.length, 'items');
   } catch (e) {
     console.warn('[storageModel] Failed to cleanup localStorage:', e);
   }
@@ -134,12 +122,9 @@ const cleanupLocalStorage = () => {
 export const storageModel = {
   cleanupLocalStorage,
   async getMockExamHistory(userId = null) {
-    console.log('[storageModel] getMockExamHistory called with userId:', userId);
     const key = userId ? `${MOCK_EXAM_HISTORY_KEY}:${userId}` : MOCK_EXAM_HISTORY_KEY;
-    console.log('[storageModel] Using key:', key);
 
     if (supabase && userId) {
-      console.log('[storageModel] Loading from Supabase...');
       let remoteHistory = [];
       try {
         const { data, error } = await supabase
@@ -149,12 +134,9 @@ export const storageModel = {
           .order('completed_at', { ascending: false })
           .limit(MOCK_EXAM_HISTORY_LIMIT);
 
-        console.log('[storageModel] Supabase response:', { data, error });
-
         if (error) throw error;
 
         remoteHistory = Array.isArray(data) ? data.map(normalizeMockExamAttempt).filter(Boolean) : [];
-        console.log('[storageModel] Normalized remote history (filtered nulls):', remoteHistory);
         if (remoteHistory.length) {
           // Try to write to cache, but don't fail if we can't
           try {
@@ -171,14 +153,10 @@ export const storageModel = {
           return remoteHistory;
         }
       }
-    } else {
-      console.log('[storageModel] Supabase not available or userId missing:', { supabase: !!supabase, userId });
     }
 
     // Check user-specific local cache first
-    console.log('[storageModel] Checking user-specific local cache...');
     let parsed = await readMockHistoryCache(key);
-    console.log('[storageModel] User-specific local cache:', parsed);
     if (Array.isArray(parsed) && parsed.length) {
       if (supabase && userId) await this.setMockExamHistory(parsed, userId);
       return parsed;
@@ -186,10 +164,8 @@ export const storageModel = {
 
     // If no user-specific, check legacy key
     if (userId) {
-      console.log('[storageModel] Checking legacy cache...');
       const legacyKey = MOCK_EXAM_HISTORY_KEY;
       const legacy = await readMockHistoryCache(legacyKey);
-      console.log('[storageModel] Legacy cache:', legacy);
 
       if (Array.isArray(legacy) && legacy.length) {
         await writeMockHistoryCache(key, legacy); // Save to user-specific key
@@ -198,39 +174,29 @@ export const storageModel = {
       }
     }
 
-    console.log('[storageModel] No history found, returning empty array');
     return [];
   },
 
   async setMockExamHistory(history, userId = null) {
-    console.log('[storageModel] setMockExamHistory called with:', { history, userId });
     const key = userId ? `${MOCK_EXAM_HISTORY_KEY}:${userId}` : MOCK_EXAM_HISTORY_KEY;
     const nextHistory = Array.isArray(history) ? history.slice(0, MOCK_EXAM_HISTORY_LIMIT) : [];
-    console.log('[storageModel] Next history to save:', nextHistory);
 
     if (supabase && userId) {
-      console.log('[storageModel] Saving to Supabase...');
       try {
         const rows = nextHistory.map((attempt) => serializeMockExamAttempt(attempt, userId));
-        console.log('[storageModel] Serialized rows for Supabase:', rows);
         if (rows.length) {
-          const { data, error } = await supabase
+          const { error } = await supabase
             .from(MOCK_EXAM_ATTEMPTS_TABLE)
             .upsert(rows, { onConflict: 'id' });
-          console.log('[storageModel] Supabase upsert response:', { data, error });
           if (error) throw error;
         }
       } catch (e) {
         console.error("[storageModel] Failed to save mock exam history to Supabase:", e);
       }
-    } else {
-      console.log('[storageModel] Supabase not available or userId missing, not saving to remote');
     }
 
-    console.log('[storageModel] Saving to local cache with key:', key);
     await writeMockHistoryCache(key, nextHistory);
     if (userId) {
-      console.log('[storageModel] Removing legacy history from localStorage');
       localStorage.removeItem(MOCK_EXAM_HISTORY_KEY);
     }
   },
@@ -384,33 +350,6 @@ export const storageModel = {
       }
     }
     localStorage.setItem(key, value);
-  },
-
-  // Debug function to directly test Supabase
-  async debugFetchMockHistory(userId) {
-    console.log('[storageModel] debugFetchMockHistory called with userId:', userId);
-    console.log('[storageModel] Supabase client available:', !!supabase);
-    if (!supabase || !userId) return null;
-
-    try {
-      // First check auth
-      const { data: authData, error: authError } = await supabase.auth.getSession();
-      console.log('[storageModel] Current auth session:', authData, authError);
-
-      // Then run query
-      const { data, error } = await supabase
-        .from(MOCK_EXAM_ATTEMPTS_TABLE)
-        .select('*')
-        .eq('user_id', userId);
-
-      console.log('[storageModel] Raw Supabase response:', { data, error });
-
-      if (error) throw error;
-      return data;
-    } catch (e) {
-      console.error('[storageModel] debugFetchMockHistory error:', e);
-      return null;
-    }
   },
 
   async get(key) {
