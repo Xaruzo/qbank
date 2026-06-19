@@ -36,16 +36,26 @@ const readMockHistoryCache = async (key) => {
 };
 
 const writeMockHistoryCache = async (key, history) => {
+  console.log('[writeMockHistoryCache] Writing to key:', key);
   const value = JSON.stringify(history);
+  
   if (window.storage && typeof window.storage.set === 'function') {
     try {
       await window.storage.set(key, value);
+      console.log('[writeMockHistoryCache] Successfully wrote to window.storage');
       return;
     } catch (e) {
-      console.warn(`window.storage.set failed for key ${key}:`, e);
+      console.warn(`[writeMockHistoryCache] window.storage.set failed for key ${key}:`, e);
     }
   }
-  localStorage.setItem(key, value);
+  
+  try {
+    localStorage.setItem(key, value);
+    console.log('[writeMockHistoryCache] Successfully wrote to localStorage');
+  } catch (e) {
+    console.warn(`[writeMockHistoryCache] localStorage.setItem failed (quota exceeded?) for key ${key}:`, e);
+    // If we can't write to localStorage, don't block anything
+  }
 };
 
 const normalizeMockExamAttempt = (row) => {
@@ -111,6 +121,7 @@ export const storageModel = {
 
     if (supabase && userId) {
       console.log('[storageModel] Loading from Supabase...');
+      let remoteHistory = [];
       try {
         const { data, error } = await supabase
           .from(MOCK_EXAM_ATTEMPTS_TABLE)
@@ -123,14 +134,23 @@ export const storageModel = {
 
         if (error) throw error;
 
-        const remoteHistory = Array.isArray(data) ? data.map(normalizeMockExamAttempt).filter(Boolean) : [];
+        remoteHistory = Array.isArray(data) ? data.map(normalizeMockExamAttempt).filter(Boolean) : [];
         console.log('[storageModel] Normalized remote history (filtered nulls):', remoteHistory);
         if (remoteHistory.length) {
-          await writeMockHistoryCache(key, remoteHistory);
+          // Try to write to cache, but don't fail if we can't
+          try {
+            await writeMockHistoryCache(key, remoteHistory);
+          } catch (cacheError) {
+            console.warn('[storageModel] Could not write to local cache, but returning remote history anyway:', cacheError);
+          }
           return remoteHistory;
         }
       } catch (e) {
         console.error("[storageModel] Failed to load mock exam history from Supabase:", e);
+        // If we have remoteHistory even after an error, return it
+        if (remoteHistory.length) {
+          return remoteHistory;
+        }
       }
     } else {
       console.log('[storageModel] Supabase not available or userId missing:', { supabase: !!supabase, userId });
