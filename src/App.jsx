@@ -59,6 +59,7 @@ export default function App() {
   const [navOpen, setNavOpen] = useState(false);
   const [exam, setExam] = useState(null);
   const [mockHistory, setMockHistory] = useState([]);
+  const [isMockHistoryLoading, setIsMockHistoryLoading] = useState(false);
   const [selectedMockAttemptId, setSelectedMockAttemptId] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
   const mainRef = useRef(null);
@@ -101,6 +102,7 @@ export default function App() {
     console.log('[App] Mock history effect triggered:', { isAuthenticated, user });
 
     const loadMockHistory = async () => {
+      setIsMockHistoryLoading(true);
       try {
         if (!isAuthenticated || !user?.id) {
           console.log('[App] Not authenticated or no user ID, setting empty history');
@@ -108,17 +110,14 @@ export default function App() {
           return;
         }
 
-        // Run debug fetch first
-        console.log('[App] Running debug fetch...');
-        const debugData = await storageModel.debugFetchMockHistory(user.id);
-        console.log('[App] Debug fetch result:', debugData);
-
         console.log('[App] Loading mock history for user:', user.id);
         const history = await storageModel.getMockExamHistory(user.id);
         console.log('[App] Got history:', history);
         if (active) setMockHistory(Array.isArray(history) ? history : []);
       } catch (e) {
         console.error("[App] Failed to load mock exam history:", e);
+      } finally {
+        if (active) setIsMockHistoryLoading(false);
       }
     };
 
@@ -506,6 +505,7 @@ export default function App() {
                 totalQuestions={Math.min(qs.length, PRO_EXAM_TOTAL)}
                 onStartProfessional={handleStartProfessional}
                 history={mockHistory}
+                isHistoryLoading={isMockHistoryLoading}
                 onReviewAttempt={handleReviewAttempt}
                 onOpenAttempt={handleOpenMockAttempt}
                 isAuthenticated={isAuthenticated}
