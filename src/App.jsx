@@ -30,6 +30,15 @@ const shuffleIds = (ids) => {
   return a;
 };
 
+const isResumableMockExam = (candidate) => (
+  !!candidate
+  && !candidate.finished
+  && !candidate.isReviewSession
+  && !!candidate.sessionId
+  && Array.isArray(candidate.orderIds)
+  && candidate.orderIds.length > 0
+);
+
 export default function App() {
   const { 
     qs, loading, search, setSearch, topicFilter, setTopicFilter, sortBy, setSortBy,
@@ -56,10 +65,15 @@ export default function App() {
   const [navOpen, setNavOpen] = useState(false);
   const [exam, setExam] = useState(null);
   const [mockHistory, setMockHistory] = useState([]);
+  const [isMockHistoryLoading, setIsMockHistoryLoading] = useState(false);
+  const [savedActiveMockExam, setSavedActiveMockExam] = useState(null);
+  const [isActiveMockExamLoading, setIsActiveMockExamLoading] = useState(false);
+  const [hasLoadedActiveMockExam, setHasLoadedActiveMockExam] = useState(false);
   const [selectedMockAttemptId, setSelectedMockAttemptId] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
   const mainRef = useRef(null);
   const qsRef = useRef(qs);
+  const examRef = useRef(exam);
   const mockHistoryRef = useRef([]);
   const savedExamSessionsRef = useRef(new Set());
   const qMap = useMemo(() => new Map(qs.map(q => [q.id, q])), [qs]);
@@ -90,22 +104,74 @@ export default function App() {
   }, [qs]);
 
   useEffect(() => {
+    examRef.current = exam;
+  }, [exam]);
+
+  useEffect(() => {
     mockHistoryRef.current = mockHistory;
   }, [mockHistory]);
 
   useEffect(() => {
     let active = true;
 
+    const loadActiveMockExam = async () => {
+      try {
+        if (isAuthLoading) return;
+        if (!isAuthenticated || !user?.id) {
+          if (active) {
+            setSavedActiveMockExam(null);
+            setHasLoadedActiveMockExam(true);
+          }
+          return;
+        }
+
+        if (active) setIsActiveMockExamLoading(true);
+        const savedExam = await storageModel.getActiveMockExam(user.id);
+        const resumableExam = isResumableMockExam(savedExam) ? savedExam : null;
+        if (savedExam && !resumableExam) {
+          await storageModel.clearActiveMockExam(user.id);
+        }
+
+        if (!active) return;
+
+        setSavedActiveMockExam(resumableExam);
+        setHasLoadedActiveMockExam(true);
+
+        const page = new URLSearchParams(window.location.search).get("page");
+        if (page === "mock-run" && resumableExam && !isResumableMockExam(examRef.current)) {
+          setExam(resumableExam);
+        }
+      } catch (e) {
+        console.error("Failed to load active mock exam:", e);
+        if (active) setHasLoadedActiveMockExam(true);
+      } finally {
+        if (active) setIsActiveMockExamLoading(false);
+      }
+    };
+
+    loadActiveMockExam();
+    return () => {
+      active = false;
+    };
+  }, [isAuthLoading, isAuthenticated, user?.id]);
+
+  useEffect(() => {
+    let active = true;
+
     const loadMockHistory = async () => {
       try {
+        if (isAuthLoading) return;
         if (!isAuthenticated || !user?.id) {
           if (active) setMockHistory([]);
           return;
         }
+        if (active) setIsMockHistoryLoading(true);
         const history = await storageModel.getMockExamHistory(user.id);
         if (active) setMockHistory(Array.isArray(history) ? history : []);
       } catch (e) {
         console.error("Failed to load mock exam history:", e);
+      } finally {
+        if (active) setIsMockHistoryLoading(false);
       }
     };
 
@@ -113,10 +179,56 @@ export default function App() {
     return () => {
       active = false;
     };
-  }, [isAuthenticated, user?.id]);
+  }, [isAuthLoading, isAuthenticated, user?.id]);
 
   useEffect(() => {
-    if (loading) return;
+    if (isAuthLoading || !isAuthenticated || !user?.id) return undefined;
+
+    const syncMockHistory = async () => {
+      try {
+        const syncedAny = await storageModel.flushPendingMockExamAttempts(user.id);
+        if (!syncedAny) return;
+        const history = await storageModel.getMockExamHistory(user.id);
+        setMockHistory(Array.isArray(history) ? history : []);
+      } catch (e) {
+        console.error("Failed to sync pending mock exam attempts:", e);
+      }
+    };
+
+    const onOnline = () => {
+      syncMockHistory();
+    };
+
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, [isAuthLoading, isAuthenticated, user?.id]);
+
+  useEffect(() => {
+    if (isAuthLoading || !isAuthenticated || !user?.id || !hasLoadedActiveMockExam) return undefined;
+
+    if (exam && exam.finished && !exam.isReviewSession) {
+      setSavedActiveMockExam(null);
+      storageModel.clearActiveMockExam(user.id).catch((e) => {
+        console.error("Failed to clear active mock exam:", e);
+      });
+      return undefined;
+    }
+
+    if (!isResumableMockExam(exam)) return undefined;
+
+    const timeoutId = window.setTimeout(() => {
+      storageModel.setActiveMockExam(exam, user.id)
+        .then(() => setSavedActiveMockExam(exam))
+        .catch((e) => {
+          console.error("Failed to autosave active mock exam:", e);
+        });
+    }, 200);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [exam, hasLoadedActiveMockExam, isAuthLoading, isAuthenticated, user?.id]);
+
+  useEffect(() => {
+    if (loading || isAuthLoading) return;
 
     const syncFromUrl = () => {
       const params = new URLSearchParams(window.location.search);
@@ -189,7 +301,7 @@ export default function App() {
     syncFromUrl();
     window.addEventListener("popstate", syncFromUrl);
     return () => window.removeEventListener("popstate", syncFromUrl);
-  }, [loading, isAuthenticated]);
+  }, [loading, isAuthLoading, isAuthenticated]);
 
   useEffect(() => {
     const el = mainRef.current;
@@ -307,7 +419,7 @@ export default function App() {
       mode: "professional",
       startedAt: Date.now(),
       durationMs: PRO_EXAM_DURATION_MS,
-      totalCount: PRO_EXAM_TOTAL,
+      totalCount: orderIds.length,
       orderIds,
       answers: {},
       review: {},
@@ -317,6 +429,21 @@ export default function App() {
       historySaved: false,
     };
     setExam(nextExam);
+    setSavedActiveMockExam(nextExam);
+    storageModel.setActiveMockExam(nextExam, user.id).catch((e) => {
+      console.error("Failed to save active mock exam:", e);
+    });
+    window.history.pushState({}, "", `?page=mock-run`);
+    setView("mockRun");
+  };
+
+  const handleResumeActiveMockExam = () => {
+    if (!isResumableMockExam(savedActiveMockExam)) return;
+    setEditId(null);
+    setSelectedId(null);
+    setSelectedMockAttemptId(null);
+    setDeepLinkShowSol(false);
+    setExam(savedActiveMockExam);
     window.history.pushState({}, "", `?page=mock-run`);
     setView("mockRun");
   };
@@ -492,7 +619,11 @@ export default function App() {
               <MockExam
                 totalQuestions={Math.min(qs.length, PRO_EXAM_TOTAL)}
                 onStartProfessional={handleStartProfessional}
+                activeExam={savedActiveMockExam}
+                isActiveExamLoading={isActiveMockExamLoading}
+                onResumeActiveExam={handleResumeActiveMockExam}
                 history={mockHistory}
+                isHistoryLoading={isMockHistoryLoading}
                 onReviewAttempt={handleReviewAttempt}
                 onOpenAttempt={handleOpenMockAttempt}
                 isAuthenticated={isAuthenticated}
@@ -510,7 +641,11 @@ export default function App() {
                 <MockExam
                   totalQuestions={Math.min(qs.length, PRO_EXAM_TOTAL)}
                   onStartProfessional={handleStartProfessional}
+                  activeExam={savedActiveMockExam}
+                  isActiveExamLoading={isActiveMockExamLoading}
+                  onResumeActiveExam={handleResumeActiveMockExam}
                   history={mockHistory}
+                  isHistoryLoading={isMockHistoryLoading}
                   onReviewAttempt={handleReviewAttempt}
                   onOpenAttempt={handleOpenMockAttempt}
                   isAuthenticated={isAuthenticated}
@@ -526,11 +661,20 @@ export default function App() {
                   onUpdateExam={setExam}
                   onExit={handleGoMockExam}
                 />
+              ) : isActiveMockExamLoading ? (
+                <div className="qb-loading">
+                  <div className="qb-loading-spinner" aria-hidden="true" />
+                  <div className="qb-loading-text">Restoring active mock exam...</div>
+                </div>
               ) : (
                 <MockExam
                   totalQuestions={qs.length}
                   onStartProfessional={handleStartProfessional}
+                  activeExam={savedActiveMockExam}
+                  isActiveExamLoading={isActiveMockExamLoading}
+                  onResumeActiveExam={handleResumeActiveMockExam}
                   history={mockHistory}
+                  isHistoryLoading={isMockHistoryLoading}
                   onReviewAttempt={handleReviewAttempt}
                   onOpenAttempt={handleOpenMockAttempt}
                   isAuthenticated={isAuthenticated}

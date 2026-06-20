@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { ArrowUpRight, PlayCircle } from "lucide-react";
+import { ArrowUpRight, PlayCircle, RotateCcw } from "lucide-react";
 import { formatAttemptDate, formatExamDuration } from "../../utils/mockExamAnalytics";
 
 const DURATION_MS = (3 * 60 * 60 + 20 * 60) * 1000;
@@ -7,7 +7,11 @@ const DURATION_MS = (3 * 60 * 60 + 20 * 60) * 1000;
 export default function MockExam({
   totalQuestions,
   onStartProfessional,
+  activeExam = null,
+  isActiveExamLoading = false,
+  onResumeActiveExam,
   history = [],
+  isHistoryLoading = false,
   onReviewAttempt,
   onOpenAttempt,
   isAuthenticated,
@@ -31,6 +35,7 @@ export default function MockExam({
   const improvement = latestAttempt && previousAttempt
     ? (latestAttempt.scorePercent || 0) - (previousAttempt.scorePercent || 0)
     : null;
+  const resumableAnsweredCount = Object.keys(activeExam?.answers || {}).length;
 
   return (
     <div className="fu">
@@ -62,6 +67,12 @@ export default function MockExam({
                 <PlayCircle size={16} />
                 {isAuthenticated || !authAvailable ? "Start Mock Exam" : "Sign In to Start"}
               </button>
+              {isAuthenticated && activeExam && (
+                <button type="button" className="qb-mock-secondary-btn" onClick={onResumeActiveExam} disabled={isActiveExamLoading}>
+                  <RotateCcw size={16} />
+                  Resume Active Exam
+                </button>
+              )}
               {isAuthenticated && latestAttempt && (
                 <button type="button" className="qb-mock-secondary-btn" onClick={() => onOpenAttempt(latestAttempt.id)}>
                   <ArrowUpRight size={16} />
@@ -69,6 +80,11 @@ export default function MockExam({
                 </button>
               )}
             </div>
+            {isAuthenticated && activeExam && (
+              <div className="qb-mock-hero-note">
+                {resumableAnsweredCount}/{activeExam.totalCount || activeExam.orderIds?.length || 0} answered, resume from question {(activeExam.currentIndex || 0) + 1}.
+              </div>
+            )}
           </div>
         </div>
 
@@ -124,7 +140,7 @@ export default function MockExam({
               <div className="qb-mock-section-kicker">Saved Attempts</div>
               <div className="qb-mock-section-title">History</div>
             </div>
-            <span className="qb-exam-progress">{sortedHistory.length} total</span>
+            <span className="qb-exam-progress">{isHistoryLoading ? "Loading..." : `${sortedHistory.length} total`}</span>
           </div>
 
           {!isAuthenticated && authAvailable ? (
@@ -137,6 +153,11 @@ export default function MockExam({
                 <ArrowUpRight size={16} />
                 Sign In
               </button>
+            </div>
+          ) : isHistoryLoading ? (
+            <div className="qb-loading" style={{ minHeight: 220 }}>
+              <div className="qb-loading-spinner" aria-hidden="true" />
+              <div className="qb-loading-text">Loading mock exam history...</div>
             </div>
           ) : !sortedHistory.length ? (
             <div className="qb-empty" style={{ padding: "48px 16px" }}>
