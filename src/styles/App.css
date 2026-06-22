@@ -2,6 +2,10 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
+button, a, [role="button"], input, select, textarea {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
 
 :root {
   --bg:#070c18; --surface:#0d1625; --surface-h:#101e38;
@@ -929,4 +933,118 @@ body {
   }
   .qb-list-meta-left { flex-direction:column; align-items:flex-start; gap:4px; }
   .qb-list-add-btn { width:100%; }
+}
+
+@media (hover:none), (pointer:coarse) {
+  .qb-logo:hover { opacity:1; }
+
+  .qb-hdr-menu-btn:hover { background:none; }
+
+  .qb-auth-btn:hover,
+  .qb-account-btn:hover {
+    background:var(--surface);
+    border-color:var(--border);
+    color:var(--text);
+  }
+
+  .qb-profile-menu-item:hover {
+    background:none;
+    border-color:transparent;
+    color:var(--text-muted);
+  }
+
+  .qb-profile-menu-item.danger:hover {
+    background:none;
+    border-color:transparent;
+    color:#fb7185;
+  }
+
+  .qb-settings-close:hover,
+  .qb-mnav-close:hover,
+  .qb-side-toggle:hover {
+    border-color:var(--border);
+  }
+
+  .qb-pill:hover { color:var(--text-muted); border-color:var(--border); }
+
+  .qb-nav-item:hover {
+    background:none;
+    border-color:transparent;
+    color:var(--text-muted);
+  }
+
+  .qb-exam-navbtn:hover:not(:disabled),
+  .qb-mock-secondary-btn:hover,
+  .qb-back:hover,
+  .qb-fcancel:hover {
+    background:var(--surface);
+    border-color:var(--border);
+    color:var(--text);
+  }
+
+  .qb-mock-inline-btn:hover,
+  .qb-exam-mark:hover,
+  .qb-edit-btn:hover,
+  .qb-reveal:hover {
+    background:rgba(245,166,35,.10);
+  }
+
+  .qb-share-btn:hover {
+    background:rgba(96,165,250,.10);
+  }
+
+  .qb-del-btn:hover {
+    background:rgba(251,113,133,.08);
+  }
+
+  .qb-select-btn:hover,
+  .draw-tb:hover:not(:disabled) {
+    border-color:var(--border);
+    color:var(--text);
+  }
+
+  .qb-select-item:hover {
+    background:none;
+    color:var(--text-muted);
+  }
+
+  .sol-tab:hover { color:var(--text-muted); }
+
+  .qb-add-btn:hover,
+  .qb-exam-start:hover:not(:disabled),
+  .qb-scroll-bottom:hover,
+  .qb-next-btn:hover:not(:disabled),
+  .qb-fsave:hover {
+    background:#f5a623;
+    transform:none;
+    box-shadow:none;
+  }
+
+  .qb-qcard:hover,
+  .qb-mock-attempt-card:hover {
+    background:var(--surface);
+    border-color:var(--border);
+    transform:none;
+  }
+
+  .qb-fav-btn:hover,
+  .qb-det-fav-btn:hover {
+    border-color:var(--border);
+    color:var(--text-faint);
+    background:var(--surface);
+  }
+
+  .qb-fav-btn:hover .qb-fav-ico,
+  .qb-det-fav-btn:hover .qb-fav-ico,
+  .qb-qcard:hover .qb-qarrow {
+    transform:none;
+  }
+
+  .qb-fav-btn:hover {
+    border-color:var(--border);
+    color:var(--text-faint);
+    background:var(--input-bg);
+  }
+
+  .qb-qcard:hover .qb-qarrow { color:var(--text-muted); }
 }
