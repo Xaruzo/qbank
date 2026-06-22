@@ -453,7 +453,7 @@ export default function App() {
     setEditId(null);
     setSelectedId(null);
     setDeepLinkShowSol(false);
-    setExam(buildReviewExamFromAttempt(attempt, questionId));
+    setExam(buildReviewExamFromAttempt(attempt, qMap, questionId));
     window.history.pushState({}, "", `?page=mock-run`);
     setView("mockRun");
   };
@@ -634,6 +634,7 @@ export default function App() {
               selectedMockAttempt ? (
                 <MockAttemptDetail
                   attempt={selectedMockAttempt}
+                  qMap={qMap}
                   onBack={handleGoMockExam}
                   onReviewAttempt={handleReviewAttempt}
                 />

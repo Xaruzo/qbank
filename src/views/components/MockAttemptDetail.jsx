@@ -1,12 +1,22 @@
 import React from "react";
 import { AlertTriangle, ArrowUpRight, ChevronLeft, Clock3, Trophy, TrendingUp } from "lucide-react";
 import { LETTERS } from "../../constants/appConstants";
-import { formatAttemptDate, formatExamDuration } from "../../utils/mockExamAnalytics";
+import { buildQuestionLookup, formatAttemptDate, formatExamDuration } from "../../utils/mockExamAnalytics";
 
-export default function MockAttemptDetail({ attempt, onBack, onReviewAttempt }) {
+export default function MockAttemptDetail({ attempt, qMap, onBack, onReviewAttempt }) {
   if (!attempt) return null;
 
-  const answeredQuestions = (attempt.questions || []).filter((question) => question.wasAnswered);
+  const questionLookup = buildQuestionLookup(qMap);
+  const answeredQuestions = (attempt.questions || [])
+    .filter((question) => question.wasAnswered)
+    .map((question) => {
+      const liveQuestion = questionLookup.get(question.id);
+      return {
+        ...question,
+        question: liveQuestion?.question || question.question || "",
+        correct: Number.isInteger(liveQuestion?.correct) ? liveQuestion.correct : question.correct,
+      };
+    });
 
   return (
     <div className="qb-mock-attempt-detail fu">

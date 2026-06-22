@@ -140,11 +140,7 @@ export const buildMockExamAttempt = (exam, qMap, completedAt = Date.now()) => {
       index,
       id,
       topic: question?.topic || "other",
-      question: question?.question || "",
-      choices: Array.isArray(question?.choices) ? question.choices : [],
       correct: Number.isInteger(question?.correct) ? question.correct : null,
-      solution: question?.solution || "",
-      solutionDraw: question?.solutionDraw || null,
       userAnswer: userAnswer ?? null,
       isCorrect: userAnswer !== undefined && userAnswer === question?.correct,
       wasAnswered: userAnswer !== undefined,
@@ -174,24 +170,26 @@ export const buildMockExamAttempt = (exam, qMap, completedAt = Date.now()) => {
   };
 };
 
-export const buildReviewExamFromAttempt = (attempt, startQuestionId = null) => {
+export const buildReviewExamFromAttempt = (attempt, qMap, startQuestionId = null) => {
   const orderIds = (attempt?.questions || []).map((question) => question.id);
   const answers = {};
   const questionSnapshots = {};
+  const questionLookup = buildQuestionLookup(qMap);
 
   (attempt?.questions || []).forEach((question) => {
     if (question?.userAnswer !== null && question?.userAnswer !== undefined) {
       answers[question.id] = question.userAnswer;
     }
 
+    const liveQuestion = questionLookup.get(question.id);
     questionSnapshots[question.id] = {
       id: question.id,
-      topic: question.topic,
-      question: question.question,
-      choices: question.choices,
-      correct: question.correct,
-      solution: question.solution,
-      solutionDraw: question.solutionDraw,
+      topic: liveQuestion?.topic || question.topic || "other",
+      question: liveQuestion?.question || "Question text unavailable",
+      choices: Array.isArray(liveQuestion?.choices) ? liveQuestion.choices : [],
+      correct: Number.isInteger(liveQuestion?.correct) ? liveQuestion.correct : question.correct,
+      solution: liveQuestion?.solution || "",
+      solutionDraw: liveQuestion?.solutionDraw || null,
     };
   });
 

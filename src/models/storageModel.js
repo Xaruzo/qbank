@@ -137,7 +137,17 @@ const serializeMockExamAttempt = (attempt, userId) => ({
   total_count: attempt.totalCount ?? 0,
   time_spent_ms: attempt.timeSpentMs ?? 0,
   topic_stats: Array.isArray(attempt.topicStats) ? attempt.topicStats : [],
-  questions: Array.isArray(attempt.questions) ? attempt.questions : [],
+  questions: Array.isArray(attempt.questions)
+    ? attempt.questions.map((question, index) => ({
+        index: Number.isInteger(question?.index) ? question.index : index,
+        id: question?.id || null,
+        topic: question?.topic || "other",
+        correct: Number.isInteger(question?.correct) ? question.correct : null,
+        userAnswer: question?.userAnswer ?? null,
+        isCorrect: !!question?.isCorrect,
+        wasAnswered: !!question?.wasAnswered,
+      }))
+    : [],
 });
 
 const fetchRemoteMockExamHistory = async (userId) => {

@@ -7,7 +7,7 @@ const getProfileDetails = (user) => {
     user?.user_metadata?.full_name ||
     user?.user_metadata?.name ||
     fallbackName;
-  const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null;
+  const avatarUrl = null;
   const initials = fullName
     .split(" ")
     .filter(Boolean)

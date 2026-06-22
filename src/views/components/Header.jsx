@@ -18,7 +18,6 @@ export default function Header({
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [avatarFailed, setAvatarFailed] = useState(false);
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -41,10 +40,6 @@ export default function Header({
     };
   }, [menuOpen]);
 
-  useEffect(() => {
-    setAvatarFailed(false);
-  }, [profile.avatarUrl, isAuthenticated]);
-
   const openSettings = () => {
     setMenuOpen(false);
     setSettingsOpen(true);
@@ -54,6 +49,12 @@ export default function Header({
     setMenuOpen(false);
     await onSignOut();
   };
+
+  const accountIcon = (
+    <span className="qb-account-avatar" aria-hidden="true">
+      <UserCircle2 size={22} strokeWidth={1.9} />
+    </span>
+  );
 
   return (
     <>
@@ -98,33 +99,13 @@ export default function Header({
                 aria-haspopup="menu"
                 title={profile.email || profile.fullName}
               >
-                {profile.avatarUrl && !avatarFailed ? (
-                  <img
-                    className="qb-account-avatar-img"
-                    src={profile.avatarUrl}
-                    alt={profile.fullName}
-                    referrerPolicy="no-referrer"
-                    onError={() => setAvatarFailed(true)}
-                  />
-                ) : (
-                  <span className="qb-account-avatar">{profile.initials}</span>
-                )}
+                {accountIcon}
               </button>
 
               {menuOpen && (
                 <div className="qb-profile-menu" role="menu">
                   <div className="qb-profile-menu-head">
-                    {profile.avatarUrl && !avatarFailed ? (
-                      <img
-                        className="qb-account-avatar-img"
-                        src={profile.avatarUrl}
-                        alt={profile.fullName}
-                        referrerPolicy="no-referrer"
-                        onError={() => setAvatarFailed(true)}
-                      />
-                    ) : (
-                      <span className="qb-account-avatar">{profile.initials}</span>
-                    )}
+                    {accountIcon}
                     <div className="qb-profile-meta">
                       <div className="qb-profile-name">{profile.fullName}</div>
                       <div className="qb-profile-email">{profile.email}</div>
