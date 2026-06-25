@@ -7,12 +7,16 @@ export function useQuestionsController() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [topicFilter, setTopicFilter] = useState("all");
+  const [labelFilter, setLabelFilter] = useState("all");
   const [sortBy, setSortBy] = useState("favorites");
+
+  const getLabelValue = (q) => typeof q.label === "string" ? q.label.trim() : "";
 
   const normalizeQuestion = (q, favoriteIds = new Set()) => ({
     ...q,
     question: typeof q.question === "string" ? q.question : "",
     choices: Array.isArray(q.choices) ? q.choices.map(choice => typeof choice === "string" ? choice : "") : [],
+    label: getLabelValue(q),
     solution: typeof q.solution === "string" ? q.solution : "",
     favorite: favoriteIds.has(q.id) || !!q.favorite,
   });
@@ -23,6 +27,20 @@ export function useQuestionsController() {
     const idTime = Number(q.id);
     if (Number.isFinite(idTime)) return idTime;
     return index;
+  };
+
+  const compareByLabel = (a, b, direction = "asc") => {
+    const left = getLabelValue(a.q).toLowerCase();
+    const right = getLabelValue(b.q).toLowerCase();
+
+    if (!left && !right) return a.q.question.localeCompare(b.q.question) || a.index - b.index;
+    if (!left) return 1;
+    if (!right) return -1;
+
+    const comparison = left.localeCompare(right);
+    if (comparison !== 0) return direction === "asc" ? comparison : -comparison;
+
+    return a.q.question.localeCompare(b.q.question) || a.index - b.index;
   };
 
   useEffect(() => {
@@ -142,20 +160,38 @@ export function useQuestionsController() {
     [t.id]: qs.filter(q => q.topic === t.id).length
   }), {});
 
+  const labelCounts = qs.reduce((acc, q) => {
+    const label = getLabelValue(q);
+    if (!label) return acc;
+    acc[label] = (acc[label] || 0) + 1;
+    return acc;
+  }, {});
+
+  const labelOptions = Object.keys(labelCounts)
+    .sort((a, b) => a.localeCompare(b))
+    .map(label => ({
+      value: label,
+      label,
+      count: labelCounts[label],
+    }));
+
   const filteredQuestions = qs
     .map((q, index) => ({ q, index }))
     .filter(({ q }) => {
       const matchesTopic = topicFilter === "all" || q.topic === topicFilter;
-      const matchesSearch = !search || [q.question, ...q.choices, q.solution].some(s =>
+      const matchesLabel = labelFilter === "all" || getLabelValue(q) === labelFilter;
+      const matchesSearch = !search || [q.question, q.label, ...q.choices, q.solution].some(s =>
         s.toLowerCase().includes(search.toLowerCase())
       );
-      return matchesTopic && matchesSearch;
+      return matchesTopic && matchesLabel && matchesSearch;
     })
     .sort((a, b) => {
       if (sortBy === "newest") return getSortTimestamp(b) - getSortTimestamp(a) || b.index - a.index;
       if (sortBy === "oldest") return getSortTimestamp(a) - getSortTimestamp(b) || a.index - b.index;
       if (sortBy === "a-z") return a.q.question.localeCompare(b.q.question) || a.index - b.index;
       if (sortBy === "z-a") return b.q.question.localeCompare(a.q.question) || a.index - b.index;
+      if (sortBy === "label-a-z") return compareByLabel(a, b, "asc");
+      if (sortBy === "label-z-a") return compareByLabel(a, b, "desc");
       return Number(b.q.favorite) - Number(a.q.favorite) || a.index - b.index;
     })
     .map(({ q }) => q);
@@ -167,12 +203,15 @@ export function useQuestionsController() {
     setSearch,
     topicFilter,
     setTopicFilter,
+    labelFilter,
+    setLabelFilter,
     sortBy,
     setSortBy,
     saveQuestion,
     deleteQuestion,
     toggleFavorite,
     counts,
+    labelOptions,
     filteredQuestions,
   };
 }

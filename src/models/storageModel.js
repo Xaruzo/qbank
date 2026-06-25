@@ -504,6 +504,7 @@ export const storageModel = {
           // Map database snake_case back to camelCase for the app
           const mappedData = data.map(q => ({
             ...q,
+            label: typeof q.label === "string" ? q.label : "",
             solutionDraw: q.solution_draw, // Map back
             dateAdded: q.created_at
           }));
@@ -587,6 +588,7 @@ export const storageModel = {
         .upsert({
           id: q.id,
           topic: q.topic,
+          label: typeof q.label === "string" ? q.label : "",
           question: q.question,
           choices: q.choices,
           correct: q.correct,

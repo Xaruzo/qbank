@@ -41,8 +41,8 @@ const isResumableMockExam = (candidate) => (
 
 export default function App() {
   const { 
-    qs, loading, search, setSearch, topicFilter, setTopicFilter, sortBy, setSortBy,
-    saveQuestion, deleteQuestion, toggleFavorite, counts, filteredQuestions 
+    qs, loading, search, setSearch, topicFilter, setTopicFilter, labelFilter, setLabelFilter,
+    sortBy, setSortBy, saveQuestion, deleteQuestion, toggleFavorite, counts, labelOptions, filteredQuestions 
   } = useQuestionsController();
   
   const { isDark, toggleTheme } = useThemeController();
@@ -584,6 +584,9 @@ export default function App() {
                   onSearchChange={setSearch} 
                   topicFilter={topicFilter} 
                   onTopicChange={setTopicFilter} 
+                  labelFilter={labelFilter}
+                  onLabelChange={setLabelFilter}
+                  labelOptions={labelOptions}
                   total={qs.length} 
                   counts={counts} 
                 />

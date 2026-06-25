@@ -49,10 +49,14 @@ export default function QuestionList({
       ) : (
         questions.map((q, i) => {
           const t = getTopic(q.topic);
+          const label = typeof q.label === "string" ? q.label.trim() : "";
           return (
             <div key={q.id} className={`qb-qcard${q.favorite ? " qb-qcard-fav" : ""}`} onClick={() => onSelect(q.id)}>
               <span className="qb-qnum">#{String(i+1).padStart(3,"0")}</span>
-              <span className="qb-badge" style={{ color:t.color, background:`${t.color}20` }}>{t.short}</span>
+              <div className="qb-qmeta-badges">
+                <span className="qb-badge" style={{ color:t.color, background:`${t.color}20` }}>{t.short}</span>
+                {label && <span className="qb-badge qb-badge-neutral">{label}</span>}
+              </div>
               <span className="qb-qtext"><MathText text={q.question} /></span>
               <button
                 type="button"

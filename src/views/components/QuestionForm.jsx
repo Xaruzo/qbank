@@ -6,13 +6,17 @@ import { handleSymbolShortcuts } from "../../utils/symbolShortcuts";
 import { ChevronLeft, ChevronDown, Type, Pencil } from "lucide-react";
 
 export default function QuestionForm({ initialData, onSave, onCancel, layersHost }) {
-  const [form, setForm] = useState(initialData || {
+  const [form, setForm] = useState(initialData ? {
+    ...initialData,
+    label: typeof initialData.label === "string" ? initialData.label : "",
+  } : {
     question: "",
     choices: ["", "", "", ""],
     correct: 0,
     solution: "",
     solutionDraw: null,
-    topic: "numerical"
+    topic: "numerical",
+    label: "",
   });
   const [solMode, setSolMode] = useState(form.solutionDraw ? "draw" : "text");
   const [error, setError] = useState("");
@@ -176,6 +180,19 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
             </div>
           )}
         </div>
+      </div>
+
+      <div className="qb-fsec">
+        <label className="qb-flabel">
+          Label{" "}
+          <span style={{ textTransform:"none", letterSpacing:0, fontFamily:"DM Sans,sans-serif", fontSize:11, color:"var(--text-faint)" }}>(optional)</span>
+        </label>
+        <input
+          className="qb-finput"
+          placeholder="e.g. Age Problem, Sentence Error"
+          value={form.label}
+          onChange={e => setForm(f => ({ ...f, label: e.target.value }))}
+        />
       </div>
 
       {error && <p className="qb-ferr">{error}</p>}

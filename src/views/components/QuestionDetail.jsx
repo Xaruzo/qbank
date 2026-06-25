@@ -31,6 +31,7 @@ export default function QuestionDetail({
   const suppressPointerTapRef = useRef(false);
 
   const topic = TOPICS.find(t => t.id === question.topic) || TOPICS[0];
+  const label = typeof question.label === "string" ? question.label.trim() : "";
   const solImg = question.solutionDraw ? (typeof question.solutionDraw === 'string' ? question.solutionDraw : question.solutionDraw.dataURL) : null;
 
   useEffect(() => {
@@ -222,6 +223,7 @@ export default function QuestionDetail({
         <span className="qb-badge" style={{ color:topic.color, background:`${topic.color}20`, padding:"4px 10px", borderRadius:5 }}>
           {topic.label}
         </span>
+        {label && <span className="qb-badge qb-badge-neutral" style={{ padding:"4px 10px", borderRadius:5 }}>{label}</span>}
         <div className="qb-det-actions">
           <span className="qb-timer">{answerTimeText}</span>
           <button
