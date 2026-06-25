@@ -223,7 +223,6 @@ export default function QuestionDetail({
         <span className="qb-badge" style={{ color:topic.color, background:`${topic.color}20`, padding:"4px 10px", borderRadius:5 }}>
           {topic.label}
         </span>
-        {label && <span className="qb-badge qb-badge-neutral" style={{ padding:"4px 10px", borderRadius:5 }}>{label}</span>}
         <div className="qb-det-actions">
           <span className="qb-timer">{answerTimeText}</span>
           <button
@@ -261,6 +260,7 @@ export default function QuestionDetail({
         </div>
       </div>
       <div className="qb-det-card">
+        {label && <div className="qb-det-label">{label}</div>}
         <div className="qb-det-q">
           <MarkdownText text={question.question} />
         </div>

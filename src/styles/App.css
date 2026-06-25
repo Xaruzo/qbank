@@ -256,7 +256,6 @@ body {
 .qb-qcard.qb-qcard-fav { border-color:rgba(245,166,35,.35); }
 .qb-qcard:hover { border-color:var(--border-h); background:var(--surface-h); transform:translateX(3px); }
 .qb-qnum { font-family:'Fira Mono',monospace; font-size:11px; color:var(--text-faint); min-width:36px; flex-shrink:0; }
-.qb-qmeta-badges { display:flex; align-items:center; gap:8px; flex-wrap:wrap; flex-shrink:0; }
 .qb-badge { font-family:'Fira Mono',monospace; font-size:9px; padding:3px 7px; border-radius:4px; flex-shrink:0; letter-spacing:.8px; font-weight:500; }
 .qb-badge-neutral { color:var(--text-low); background:var(--input-bg); border:1px solid var(--border); }
 .qb-qtext { flex:1; font-family:var(--font-input); font-size:15px; font-weight:500; color:var(--text-mid); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -572,6 +571,7 @@ body {
 .qb-del-cancel { background:none; border:1px solid var(--border); color:var(--text-low); font-family:'DM Sans',sans-serif; font-size:12px; padding:6px 13px; border-radius:6px; cursor:pointer; }
 
 .qb-det-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:28px; }
+.qb-det-label { display:inline-flex; align-items:center; margin-bottom:12px; padding:6px 10px; border-radius:999px; border:1px solid var(--border); background:var(--input-bg); color:var(--text-low); font-family:'Fira Mono',monospace; font-size:11px; letter-spacing:.6px; text-transform:uppercase; }
 .qb-det-q { font-family:var(--font-input); font-size:16px; font-weight:500; color:var(--text-q); line-height:1.68; margin-bottom:24px; overflow-wrap:anywhere; word-break:break-word; }
 
 .qb-banner { padding:10px 16px; border-radius:8px; text-align:center; font-size:14px; font-weight:500; margin-bottom:14px; }
