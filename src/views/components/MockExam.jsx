@@ -38,25 +38,54 @@ export default function MockExam({
   const resumableAnsweredCount = Object.keys(activeExam?.answers || {}).length;
 
   return (
-    <div className="fu">
-      <div className="qb-det-hdr">
-        <span className="qb-badge" style={{ padding: "6px 12px", borderRadius: 8, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)" }}>
-          Mock Exams
-        </span>
+    <div className="fu qb-mock-page">
+      <div className="qb-section-head qb-mock-page-head">
+        <div>
+          <div className="qb-section-kicker">Mock Exam Center</div>
+          <h1 className="qb-section-title qb-section-title-lg">Launch a full-length session and review your progress trail.</h1>
+        </div>
+        <span className="qb-exam-progress">{sortedHistory.length} saved attempts</span>
       </div>
 
       <div className="qb-mock-grid">
-        <div className="qb-det-card">
+        <div className="qb-det-card qb-mock-hero-card">
           <div className="qb-exam-card">
-            <div className="qb-exam-title">Professional</div>
-            <div className="qb-exam-meta">
-              <span>Time: {formatExamDuration(DURATION_MS)}</span>
-              <span>Questions: {totalQuestions}</span>
-              <span>Order: randomized</span>
+            <div className="qb-mock-hero-top">
+              <div>
+                <div className="qb-exam-title">Professional Session</div>
+                <div className="qb-mock-hero-copy">
+                  Simulate a focused exam run, keep your momentum with resume support, and return later for detailed attempt breakdowns.
+                </div>
+              </div>
+              <div className="qb-exam-meta">
+                <span>Time: {formatExamDuration(DURATION_MS)}</span>
+                <span>Questions: {totalQuestions}</span>
+                <span>Order: randomized</span>
+              </div>
             </div>
-            <div className="qb-mock-hero-copy">
-              Train with a full-length exam, then review saved attempts to track which subjects are improving and which topics still need work.
+
+            <div className="qb-mock-blueprint">
+              <div className="qb-mock-blueprint-card">
+                <span className="qb-mock-blueprint-label">Format</span>
+                <strong>Full-length practice</strong>
+                <p>Timed experience designed for realistic review flow.</p>
+              </div>
+              <div className="qb-mock-blueprint-card">
+                <span className="qb-mock-blueprint-label">Continuity</span>
+                <strong>{activeExam ? "Resume available" : "Fresh start"}</strong>
+                <p>
+                  {activeExam
+                    ? `${resumableAnsweredCount}/${activeExam.totalCount || activeExam.orderIds?.length || 0} answered so far.`
+                    : "Jump in whenever you are ready to test retention."}
+                </p>
+              </div>
+              <div className="qb-mock-blueprint-card">
+                <span className="qb-mock-blueprint-label">Analytics</span>
+                <strong>{latestAttempt ? `${latestAttempt.scorePercent}% latest` : "Awaiting first run"}</strong>
+                <p>Review attempt history, score movement, and post-exam patterns.</p>
+              </div>
             </div>
+
             {!isAuthenticated && authAvailable && (
               <div className="qb-mock-hero-note">
                 Sign in with Google to start a mock exam and save your personal attempt history.
@@ -82,7 +111,7 @@ export default function MockExam({
             </div>
             {isAuthenticated && activeExam && (
               <div className="qb-mock-hero-note">
-                {resumableAnsweredCount}/{activeExam.totalCount || activeExam.orderIds?.length || 0} answered, resume from question {(activeExam.currentIndex || 0) + 1}.
+                Resume from question {(activeExam.currentIndex || 0) + 1} with your previous answers preserved.
               </div>
             )}
           </div>
@@ -139,6 +168,7 @@ export default function MockExam({
             <div>
               <div className="qb-mock-section-kicker">Saved Attempts</div>
               <div className="qb-mock-section-title">History</div>
+              <div className="qb-mock-section-copy">Open past sessions to inspect score changes, unanswered items, and pacing over time.</div>
             </div>
             <span className="qb-exam-progress">{isHistoryLoading ? "Loading..." : `${sortedHistory.length} total`}</span>
           </div>

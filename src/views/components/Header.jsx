@@ -68,17 +68,32 @@ export default function Header({
               aria-label={navOpen ? "Close menu" : "Open menu"}
               title={navOpen ? "Close menu" : "Open menu"}
             >
-              <Menu size={20} />
+              {navOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
           )}
-          <button type="button" className="qb-logo" onClick={onHome} title="Go to question list">
-            <img className="qb-logo-img" src={brandLogo} alt="QBank logo" />
-            <span>QBANK</span>
-            <span className="qb-logo-tag">CSE REVIEWER</span>
-          </button>
+          <div className="qb-logo-block">
+            <button type="button" className="qb-logo" onClick={onHome} title="Go to question list">
+              <img className="qb-logo-img" src={brandLogo} alt="QBank logo" />
+              <span>QBANK</span>
+              <span className="qb-logo-tag">CSE REVIEWER</span>
+            </button>
+            <div className="qb-hdr-meta-stack" aria-hidden="true">
+              <span className="qb-hdr-meta-label">Study Workspace</span>
+              <span className="qb-hdr-meta-value">Questions, progress, and mock exams</span>
+            </div>
+          </div>
         </div>
         <div className="qb-spacer" />
         <div className="qb-hdr-right">
+          <button
+            type="button"
+            className="qb-theme-btn"
+            onClick={onToggleTheme}
+            title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {isDark ? <Sun size={16} /> : <Moon size={16} />}
+            <span className="qb-theme-btn-text">{isDark ? "Light" : "Dark"}</span>
+          </button>
           {!authAvailable ? (
             <button
               type="button"

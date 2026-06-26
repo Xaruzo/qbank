@@ -17,11 +17,11 @@ export default function QuestionList({
   const getTopic = id => TOPICS.find(t => t.id===id) || TOPICS[0];
 
   return (
-    <>
+    <section className="qb-question-section">
       <div className="qb-list-meta">
         <div className="qb-list-meta-left">
-          <span className="qb-list-label">Questions</span>
-          <span className="qb-list-label">{questions.length} shown</span>
+          <span className="qb-list-label">Question Feed</span>
+          <span className="qb-list-value">{questions.length} shown</span>
         </div>
         <button type="button" className="qb-add-btn qb-list-add-btn" onClick={onAddQuestion}>
           {canManageQuestions || !authAvailable ? <Plus size={16} /> : <LogIn size={16} />}
@@ -40,6 +40,7 @@ export default function QuestionList({
           </label>
         </div>
       </div>
+      <div className="qb-question-stack">
       {questions.length === 0 ? (
         <div className="qb-empty">
           <ClipboardList size={48} className="qb-empty-ico" style={{ margin: "0 auto 14px", opacity: 0.2 }} />
@@ -51,26 +52,45 @@ export default function QuestionList({
           const t = getTopic(q.topic);
           return (
             <div key={q.id} className={`qb-qcard${q.favorite ? " qb-qcard-fav" : ""}`} onClick={() => onSelect(q.id)}>
-              <span className="qb-qnum">#{String(i+1).padStart(3,"0")}</span>
-              <span className="qb-badge" style={{ color:t.color, background:`${t.color}20` }}>{t.short}</span>
-              <span className="qb-qtext"><MathText text={q.question} /></span>
-              <button
-                type="button"
-                className={`qb-fav-btn${q.favorite ? " on" : ""}`}
-                aria-label={q.favorite ? "Remove from favorites" : "Add to favorites"}
-                title={q.favorite ? "Unfavorite question" : "Favorite question"}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggleFavorite(q.id);
-                }}
-              >
-                <Star size={16} className="qb-fav-ico" fill={q.favorite ? "currentColor" : "none"} />
-              </button>
-              <ChevronRight size={18} className="qb-qarrow" />
+              <div className="qb-qcard-top">
+                <div className="qb-qcard-top-left">
+                  <span className="qb-qnum">Question {String(i+1).padStart(3,"0")}</span>
+                  <span className="qb-badge" style={{ color:t.color, background:`${t.color}20` }}>{t.short}</span>
+                </div>
+                <button
+                  type="button"
+                  className={`qb-fav-btn${q.favorite ? " on" : ""}`}
+                  aria-label={q.favorite ? "Remove from favorites" : "Add to favorites"}
+                  title={q.favorite ? "Unfavorite question" : "Favorite question"}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleFavorite(q.id);
+                  }}
+                >
+                  <Star size={16} className="qb-fav-ico" fill={q.favorite ? "currentColor" : "none"} />
+                </button>
+              </div>
+              <div className="qb-qcard-body">
+                <div className="qb-qcard-heading">
+                  <span className="qb-qcard-label">{q.label || "General Review"}</span>
+                </div>
+                <span className="qb-qtext"><MathText text={q.question} /></span>
+              </div>
+              <div className="qb-qcard-foot">
+                <div className="qb-qcard-meta">
+                  <span className="qb-qcard-meta-chip">{t.label}</span>
+                  {q.favorite && <span className="qb-qcard-meta-chip qb-qcard-meta-chip-fav">Starred</span>}
+                </div>
+                <span className="qb-qcard-open">
+                  Open
+                  <ChevronRight size={18} className="qb-qarrow" />
+                </span>
+              </div>
             </div>
           );
         })
       )}
-    </>
+      </div>
+    </section>
   );
 }

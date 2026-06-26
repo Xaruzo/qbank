@@ -6,6 +6,13 @@ export default function SideNav({ open, active, onHome, onMockExam }) {
   return (
     <aside className={`qb-side${open ? "" : " qb-side-collapsed"}`}>
       <div className="qb-side-inner">
+        {open && (
+          <div className="qb-side-block qb-side-intro">
+            <span className="qb-side-kicker">Navigation</span>
+            <strong className="qb-side-title">Review Center</strong>
+            <p className="qb-side-copy">Move between your question dashboard and timed mock exam workspace.</p>
+          </div>
+        )}
         <nav className="qb-side-nav">
           <button
             type="button"
@@ -26,6 +33,14 @@ export default function SideNav({ open, active, onHome, onMockExam }) {
             <span className="qb-nav-text">Mock Exam</span>
           </button>
         </nav>
+        {open && (
+          <div className="qb-side-block qb-side-foot">
+            <span className="qb-side-foot-label">Focus Mode</span>
+            <span className="qb-side-foot-text">
+              Use Mock Exam for a full timed run and return to Home for targeted review.
+            </span>
+          </div>
+        )}
       </div>
     </aside>
   );

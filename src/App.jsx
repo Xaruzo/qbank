@@ -78,6 +78,12 @@ export default function App() {
   const savedExamSessionsRef = useRef(new Set());
   const qMap = useMemo(() => new Map(qs.map(q => [q.id, q])), [qs]);
   const canManageQuestions = isAuthenticated || !authAvailable;
+  const favoriteCount = useMemo(() => qs.filter((q) => q.favorite).length, [qs]);
+  const labeledCount = useMemo(() => qs.filter((q) => `${q.label || ""}`.trim().length > 0).length, [qs]);
+  const activeTopicCount = useMemo(
+    () => Object.values(counts || {}).filter((value) => Number(value) > 0).length,
+    [counts]
+  );
 
   useEffect(() => {
     if (window.matchMedia && window.matchMedia("(max-width: 600px)").matches) setNavOpen(false);
@@ -577,7 +583,33 @@ export default function App() {
                 <div className="qb-loading-text">Loading questions...</div>
               </div>
             ) : view === "list" ? (
-              <div className="fu">
+              <div className="fu qb-dashboard">
+                <section className="qb-list-hero">
+                  <div className="qb-list-hero-main">
+                    <span className="qb-section-kicker">Study Dashboard</span>
+                    <h1 className="qb-list-hero-title">Review smarter with a sharper question workflow.</h1>
+                    <p className="qb-list-hero-copy">
+                      Explore your question bank with clearer structure, faster filtering, and a cleaner path from daily practice to full mock exam review.
+                    </p>
+                    <div className="qb-list-hero-chips">
+                      <span className="qb-list-hero-chip">{filteredQuestions.length} ready to review</span>
+                      <span className="qb-list-hero-chip">{activeTopicCount} active topics</span>
+                      <span className="qb-list-hero-chip">{favoriteCount} favorites saved</span>
+                    </div>
+                  </div>
+                  <div className="qb-list-hero-side">
+                    <div className="qb-list-hero-panel">
+                      <span className="qb-list-hero-panel-label">Question Bank</span>
+                      <strong>{qs.length}</strong>
+                      <p>Total prompts available across your current collection.</p>
+                    </div>
+                    <div className="qb-list-hero-panel">
+                      <span className="qb-list-hero-panel-label">Structured Review</span>
+                      <strong>{labeledCount}</strong>
+                      <p>Questions already tagged with labels for faster scanning.</p>
+                    </div>
+                  </div>
+                </section>
                 <Stats total={qs.length} counts={counts} />
                 <SearchAndFilter 
                   search={search} 
@@ -589,6 +621,8 @@ export default function App() {
                   labelOptions={labelOptions}
                   total={qs.length} 
                   counts={counts} 
+                  filteredCount={filteredQuestions.length}
+                  favoriteCount={favoriteCount}
                 />
                 <QuestionList 
                   questions={filteredQuestions} 
