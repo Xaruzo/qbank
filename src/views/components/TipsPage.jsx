@@ -52,7 +52,7 @@ export default function TipsPage({
             <span className="qb-list-label">Pick a Question</span>
             <span className="qb-list-value">{filteredQuestions.length} shown</span>
           </div>
-          <label className="qb-search-box" style={{ maxWidth: 440 }}>
+          <label className="qb-search-box" style={{ maxWidth: 580 }}>
             <span className="qb-search-icon" aria-hidden="true">
               <Search size={18} />
             </span>
