@@ -1154,24 +1154,41 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       const isTextbox = obj?.type === "textbox" && !obj.isGuide;
       if ((isTextObj(obj) || isHrLine(obj)) && !obj.isGuide) obj.__scaleCorner = corner;
       if (isHrLine(obj) && obj.type === "line" && !obj.isGuide) {
-        obj.set({ scaleY: 1 });
-        const sx = Math.abs(obj.scaleX || 1);
-        if (sx > 1.001 || sx < 0.999) {
-          const anchorOriginX = corner.includes("l") || corner === "ml" ? "right" : "left";
-          const anchor = obj.getPointByOrigin(anchorOriginX, "center");
-          const baseLen = Math.abs((obj.x2 || 0) - (obj.x1 || 0));
-          const nextLen = Math.max(20, baseLen * sx);
-          obj.set({ x1: 0, y1: 0, x2: nextLen, y2: 0, scaleX: 1, scaleY: 1 });
-          obj.setPositionByOrigin(anchor, anchorOriginX, "center");
-          obj.setCoords();
-        } else {
-          obj.set({ scaleX: 1, scaleY: 1 });
+        if (obj.shapeKind === "hrLine") {
+          obj.set({ scaleY: 1 });
+          const sx = Math.abs(obj.scaleX || 1);
+          if (sx > 1.001 || sx < 0.999) {
+            const anchorOriginX = corner.includes("l") || corner === "ml" ? "right" : "left";
+            const anchor = obj.getPointByOrigin(anchorOriginX, "center");
+            const baseLen = Math.abs((obj.x2 || 0) - (obj.x1 || 0));
+            const nextLen = Math.max(20, baseLen * sx);
+            obj.set({ x1: 0, y1: 0, x2: nextLen, y2: 0, scaleX: 1, scaleY: 1 });
+            obj.setPositionByOrigin(anchor, anchorOriginX, "center");
+            obj.setCoords();
+          } else {
+            obj.set({ scaleX: 1, scaleY: 1 });
+          }
+        } else if (obj.shapeKind === "vrLine") {
+          obj.set({ scaleX: 1 });
+          const sy = Math.abs(obj.scaleY || 1);
+          if (sy > 1.001 || sy < 0.999) {
+            const anchorOriginY = corner.includes("t") || corner === "mt" ? "bottom" : "top";
+            const anchor = obj.getPointByOrigin("center", anchorOriginY);
+            const baseLen = Math.abs((obj.y2 || 0) - (obj.y1 || 0));
+            const nextLen = Math.max(20, baseLen * sy);
+            obj.set({ x1: 0, y1: 0, x2: 0, y2: nextLen, scaleX: 1, scaleY: 1 });
+            obj.setPositionByOrigin(anchor, "center", anchorOriginY);
+            obj.setCoords();
+          } else {
+            obj.set({ scaleX: 1, scaleY: 1 });
+          }
         }
         configureHrLine(obj);
         refreshUI();
         return;
       }
-      if (isHrLine(obj)) obj.set({ scaleY: 1 });
+      if (isHrLine(obj) && obj.shapeKind === "hrLine") obj.set({ scaleY: 1 });
+      if (isHrLine(obj) && obj.shapeKind === "vrLine") obj.set({ scaleX: 1 });
       const snapRight = corner.includes("r") || corner === "mr";
       const snapLeft = corner.includes("l") || corner === "ml";
       const snapBottom = !isTextbox && (corner.includes("b") || corner === "mb");
