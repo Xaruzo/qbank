@@ -75,11 +75,11 @@ export default function Header({
             <button type="button" className="qb-logo" onClick={onHome} title="Go to question list">
               <img className="qb-logo-img" src={brandLogo} alt="QBank logo" />
               <span>QBANK</span>
-              <span className="qb-logo-tag">CSE REVIEWER</span>
+              <span className="qb-logo-tag">REVIEW WORKSPACE</span>
             </button>
             <div className="qb-hdr-meta-stack" aria-hidden="true">
-              <span className="qb-hdr-meta-label">Study Workspace</span>
-              <span className="qb-hdr-meta-value">Questions, progress, and mock exams</span>
+              <span className="qb-hdr-meta-label">Dashboard</span>
+              <span className="qb-hdr-meta-value">Questions, practice history, and mock exams</span>
             </div>
           </div>
         </div>

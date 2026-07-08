@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { TOPICS, LETTERS } from "../../constants/appConstants";
-import { ChevronLeft, X, Check, Search, ChevronDown, ChevronRight, Star, Link2 } from "lucide-react";
+import { ChevronLeft, X, Check, Search, ChevronDown, ChevronRight, Star, Link2, Lightbulb } from "lucide-react";
 import MarkdownText from "./MarkdownText";
 
 export default function QuestionDetail({
@@ -9,6 +9,7 @@ export default function QuestionDetail({
   onEdit,
   onDelete,
   onToggleFavorite,
+  onTips,
   hasNext,
   onNext,
   forceShowSolution,
@@ -235,6 +236,18 @@ export default function QuestionDetail({
             <Link2 size={16} />
             {shareLabel}
           </button>
+          {onTips && (
+            <button
+              type="button"
+              className="qb-share-btn"
+              aria-label="Open tips and tricks"
+              title="Open tips and tricks"
+              onClick={onTips}
+            >
+              <Lightbulb size={16} />
+              Tips
+            </button>
+          )}
           <button
             type="button"
             className={`qb-det-fav-btn${question.favorite ? " on" : ""}`}

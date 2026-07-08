@@ -42,7 +42,7 @@ export default function MockExam({
       <div className="qb-section-head qb-mock-page-head">
         <div>
           <div className="qb-section-kicker">Mock Exam Center</div>
-          <h1 className="qb-section-title qb-section-title-lg">Launch a full-length session and review your progress trail.</h1>
+          <h1 className="qb-section-title qb-section-title-lg">Run a timed mock exam and review your saved attempts.</h1>
         </div>
         <span className="qb-exam-progress">{sortedHistory.length} saved attempts</span>
       </div>
@@ -54,7 +54,7 @@ export default function MockExam({
               <div>
                 <div className="qb-exam-title">Professional Session</div>
                 <div className="qb-mock-hero-copy">
-                  Simulate a focused exam run, keep your momentum with resume support, and return later for detailed attempt breakdowns.
+                  Start a full practice session, resume when needed, and return later for a detailed performance review.
                 </div>
               </div>
               <div className="qb-exam-meta">
@@ -68,7 +68,7 @@ export default function MockExam({
               <div className="qb-mock-blueprint-card">
                 <span className="qb-mock-blueprint-label">Format</span>
                 <strong>Full-length practice</strong>
-                <p>Timed experience designed for realistic review flow.</p>
+                <p>A timed session designed to mirror exam-style practice.</p>
               </div>
               <div className="qb-mock-blueprint-card">
                 <span className="qb-mock-blueprint-label">Continuity</span>
@@ -76,13 +76,13 @@ export default function MockExam({
                 <p>
                   {activeExam
                     ? `${resumableAnsweredCount}/${activeExam.totalCount || activeExam.orderIds?.length || 0} answered so far.`
-                    : "Jump in whenever you are ready to test retention."}
+                    : "Start when you are ready to measure current retention."}
                 </p>
               </div>
               <div className="qb-mock-blueprint-card">
                 <span className="qb-mock-blueprint-label">Analytics</span>
                 <strong>{latestAttempt ? `${latestAttempt.scorePercent}% latest` : "Awaiting first run"}</strong>
-                <p>Review attempt history, score movement, and post-exam patterns.</p>
+                <p>Review attempt history, score movement, and post-exam trends.</p>
               </div>
             </div>
 

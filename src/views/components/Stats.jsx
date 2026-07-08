@@ -26,9 +26,9 @@ export default function Stats({ total, counts }) {
       <div className="qb-section-head">
         <div>
           <div className="qb-section-kicker">Coverage Overview</div>
-          <h2 className="qb-section-title">Track your study mix at a glance.</h2>
+          <h2 className="qb-section-title">See your topic coverage at a glance.</h2>
         </div>
-        <div className="qb-section-note">Balanced review becomes easier when topic volume is visible.</div>
+        <div className="qb-section-note">Use this section to spot gaps and keep revision balanced.</div>
       </div>
       <div className="qb-stats">
         {statItems.map((item) => (

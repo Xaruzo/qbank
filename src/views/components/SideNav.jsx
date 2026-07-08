@@ -1,16 +1,16 @@
 import React from "react";
-import { Home, ClipboardList } from "lucide-react";
+import { Home, ClipboardList, Lightbulb } from "lucide-react";
 
-export default function SideNav({ open, active, onHome, onMockExam }) {
+export default function SideNav({ open, active, onHome, onMockExam, onTips }) {
   const iconSize = open ? 18 : 26;
   return (
     <aside className={`qb-side${open ? "" : " qb-side-collapsed"}`}>
       <div className="qb-side-inner">
         {open && (
           <div className="qb-side-block qb-side-intro">
-            <span className="qb-side-kicker">Navigation</span>
-            <strong className="qb-side-title">Review Center</strong>
-            <p className="qb-side-copy">Move between your question dashboard and timed mock exam workspace.</p>
+            <span className="qb-side-kicker">Workspace</span>
+            <strong className="qb-side-title">Study Center</strong>
+            <p className="qb-side-copy">Switch between your main bank, mock exam area, and study tips.</p>
           </div>
         )}
         <nav className="qb-side-nav">
@@ -32,12 +32,21 @@ export default function SideNav({ open, active, onHome, onMockExam }) {
             <ClipboardList size={iconSize} />
             <span className="qb-nav-text">Mock Exam</span>
           </button>
+          <button
+            type="button"
+            className={`qb-nav-item${active === "tips" ? " on" : ""}`}
+            onClick={onTips}
+            title="Tips & Tricks"
+          >
+            <Lightbulb size={iconSize} />
+            <span className="qb-nav-text">Tips</span>
+          </button>
         </nav>
         {open && (
           <div className="qb-side-block qb-side-foot">
-            <span className="qb-side-foot-label">Focus Mode</span>
+            <span className="qb-side-foot-label">Quick Note</span>
             <span className="qb-side-foot-text">
-              Use Mock Exam for a full timed run and return to Home for targeted review.
+              Use Mock Exam for timed practice and return to Home for targeted review.
             </span>
           </div>
         )}

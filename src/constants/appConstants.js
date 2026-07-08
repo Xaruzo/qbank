@@ -19,6 +19,7 @@ export const SORT_OPTIONS = [
 export const LETTERS = ["A", "B", "C", "D"];
 export const KEY = "cse-qbank-v1";
 export const FAVORITES_KEY = "cse-qbank-favorites-v1";
+export const TIPS_KEY = "cse-qbank-tips-v1";
 export const THEME_KEY = "cse-theme";
 export const MOCK_EXAM_HISTORY_KEY = "cse-mock-exam-history-v1";
 

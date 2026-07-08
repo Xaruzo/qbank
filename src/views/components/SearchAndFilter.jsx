@@ -23,7 +23,7 @@ export default function SearchAndFilter({
       <div className="qb-section-head qb-section-head-compact">
         <div>
           <div className="qb-section-kicker">Search and Filter</div>
-          <h2 className="qb-section-title">Refine the list without losing context.</h2>
+          <h2 className="qb-section-title">Find questions quickly and narrow the list.</h2>
         </div>
         <div className="qb-control-summary">
           <span>{filteredCount} shown</span>

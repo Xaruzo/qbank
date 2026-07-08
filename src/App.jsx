@@ -9,12 +9,14 @@ import SideNav from "./views/components/SideNav";
 import MockExam from "./views/components/MockExam";
 import MockAttemptDetail from "./views/components/MockAttemptDetail";
 import MockExamRunner from "./views/components/MockExamRunner";
+import TipsPage from "./views/components/TipsPage";
+import TipDetailPage from "./views/components/TipDetailPage";
 import { useAuthController } from "./controllers/useAuthController";
 import { useQuestionsController } from "./controllers/useQuestionsController";
 import { useThemeController } from "./controllers/useThemeController";
 import { storageModel } from "./models/storageModel";
 import { buildMockExamAttempt, buildReviewExamFromAttempt } from "./utils/mockExamAnalytics";
-import { ArrowDown, Home, ClipboardList } from "lucide-react";
+import { ArrowDown, Home, ClipboardList, Lightbulb } from "lucide-react";
 
 const PRO_EXAM_DURATION_MS = (3 * 60 * 60 + 20 * 60) * 1000;
 const PRO_EXAM_TOTAL = 170;
@@ -289,6 +291,31 @@ export default function App() {
         return;
       }
 
+      if (page === "tips") {
+        setSelectedMockAttemptId(null);
+        setDeepLinkShowSol(false);
+        setEditId(null);
+        setExam(null);
+        setSelectedId(null);
+        setView("tips");
+        return;
+      }
+
+      if (page === "tip") {
+        setSelectedMockAttemptId(null);
+        setDeepLinkShowSol(false);
+        setEditId(null);
+        setExam(null);
+        if (id && qsRef.current.some(q => q.id === id)) {
+          setSelectedId(id);
+          setView("tipDetail");
+          return;
+        }
+        setSelectedId(null);
+        setView("tips");
+        return;
+      }
+
       if (id && qsRef.current.some(q => q.id === id)) {
         setSelectedId(id);
         setSelectedMockAttemptId(null);
@@ -400,6 +427,27 @@ export default function App() {
     setExam(null);
     window.history.pushState({}, "", `?page=mock`);
     setView("mock");
+  };
+
+  const handleGoTips = (questionId = null) => {
+    setEditId(null);
+    setSelectedMockAttemptId(null);
+    setDeepLinkShowSol(false);
+    setExam(null);
+    setSelectedId(null);
+    window.history.pushState({}, "", `?page=tips`);
+    setView("tips");
+  };
+
+  const handleOpenTipDetail = (questionId) => {
+    if (!questionId) return;
+    setSelectedId(questionId);
+    setEditId(null);
+    setSelectedMockAttemptId(null);
+    setDeepLinkShowSol(false);
+    setExam(null);
+    window.history.pushState({}, "", `?page=tip&q=${encodeURIComponent(questionId)}`);
+    setView("tipDetail");
   };
 
   const handleOpenMockAttempt = (attemptId) => {
@@ -544,7 +592,7 @@ export default function App() {
             <div className="qb-mnav-card" onClick={(e) => e.stopPropagation()}>
               <button
                 type="button"
-                className={`qb-nav-item${view === "mock" || view === "mockRun" || view === "mockAttempt" ? "" : " on"}`}
+                className={`qb-nav-item${view === "mock" || view === "mockRun" || view === "mockAttempt" || view === "tips" || view === "tipDetail" ? "" : " on"}`}
                 onClick={() => { setNavOpen(false); handleGoHome(); }}
               >
                 <Home size={18} />
@@ -558,6 +606,14 @@ export default function App() {
                 <ClipboardList size={18} />
                 <span>Mock Exam</span>
               </button>
+              <button
+                type="button"
+                className={`qb-nav-item${view === "tips" || view === "tipDetail" ? " on" : ""}`}
+                onClick={() => { setNavOpen(false); handleGoTips(); }}
+              >
+                <Lightbulb size={18} />
+                <span>Tips</span>
+              </button>
             </div>
           </div>
         )}
@@ -566,9 +622,10 @@ export default function App() {
           {!isMobile && (
             <SideNav
               open={navOpen}
-              active={view === "mock" || view === "mockRun" || view === "mockAttempt" ? "mock" : "home"}
+              active={view === "mock" || view === "mockRun" || view === "mockAttempt" ? "mock" : view === "tips" || view === "tipDetail" ? "tips" : "home"}
               onHome={handleGoHome}
               onMockExam={handleGoMockExam}
+              onTips={() => handleGoTips()}
             />
           )}
           <main ref={mainRef} className={`qb-main${view === "mockRun" ? " qb-main-exam" : ""}`}>
@@ -586,27 +643,27 @@ export default function App() {
               <div className="fu qb-dashboard">
                 <section className="qb-list-hero">
                   <div className="qb-list-hero-main">
-                    <span className="qb-section-kicker">Study Dashboard</span>
-                    <h1 className="qb-list-hero-title">Review smarter with a sharper question workflow.</h1>
+                    <span className="qb-section-kicker">Question Bank</span>
+                    <h1 className="qb-list-hero-title">A clean workspace for daily review and exam practice.</h1>
                     <p className="qb-list-hero-copy">
-                      Explore your question bank with clearer structure, faster filtering, and a cleaner path from daily practice to full mock exam review.
+                      Manage your question bank, filter by topic, and move into mock exam mode without the visual noise.
                     </p>
                     <div className="qb-list-hero-chips">
-                      <span className="qb-list-hero-chip">{filteredQuestions.length} ready to review</span>
-                      <span className="qb-list-hero-chip">{activeTopicCount} active topics</span>
-                      <span className="qb-list-hero-chip">{favoriteCount} favorites saved</span>
+                      <span className="qb-list-hero-chip">{filteredQuestions.length} questions available</span>
+                      <span className="qb-list-hero-chip">{activeTopicCount} topics in use</span>
+                      <span className="qb-list-hero-chip">{favoriteCount} starred items</span>
                     </div>
                   </div>
                   <div className="qb-list-hero-side">
                     <div className="qb-list-hero-panel">
-                      <span className="qb-list-hero-panel-label">Question Bank</span>
+                      <span className="qb-list-hero-panel-label">Questions</span>
                       <strong>{qs.length}</strong>
-                      <p>Total prompts available across your current collection.</p>
+                      <p>Total items currently stored in your bank.</p>
                     </div>
                     <div className="qb-list-hero-panel">
-                      <span className="qb-list-hero-panel-label">Structured Review</span>
+                      <span className="qb-list-hero-panel-label">Labeled</span>
                       <strong>{labeledCount}</strong>
-                      <p>Questions already tagged with labels for faster scanning.</p>
+                      <p>Questions already organized with labels.</p>
                     </div>
                   </div>
                 </section>
@@ -643,6 +700,7 @@ export default function App() {
                 onEdit={handleEditQuestionAction} 
                 onDelete={handleDelete} 
                 onToggleFavorite={toggleFavorite}
+                onTips={() => handleOpenTipDetail(selectedQuestion.id)}
                 forceShowSolution={deepLinkShowSol}
                 hasNext={!!nextQuestion}
                 canManageQuestions={canManageQuestions}
@@ -651,6 +709,18 @@ export default function App() {
                   if (nextQuestion) handleSelectQuestion(nextQuestion.id);
                   else handleGoHome();
                 }}
+              />
+            ) : view === "tips" ? (
+              <TipsPage
+                questions={qs}
+                onBack={handleGoHome}
+                onSelectQuestion={handleOpenTipDetail}
+              />
+            ) : view === "tipDetail" && selectedQuestion ? (
+              <TipDetailPage
+                question={selectedQuestion}
+                onBack={handleGoTips}
+                onOpenQuestion={handleSelectQuestion}
               />
             ) : view === "mock" ? (
               <MockExam
