@@ -48,14 +48,16 @@ export default function SearchAndFilter({
         {labelOptions.length > 0 && (
           <label className="qb-filter-wrap qb-filter-card">
             <span className="qb-filter-label">Problem Label</span>
-            <select className="qb-filter-select" value={labelFilter} onChange={e => onLabelChange(e.target.value)}>
-              <option value="all">All Labels</option>
-              {labelOptions.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label} ({option.count})
-                </option>
-              ))}
-            </select>
+            <div className="qb-filter-select-wrap">
+              <select className="qb-filter-select" value={labelFilter} onChange={e => onLabelChange(e.target.value)}>
+                <option value="all">All Labels</option>
+                {labelOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label} ({option.count})
+                  </option>
+                ))}
+              </select>
+            </div>
           </label>
         )}
       </div>
