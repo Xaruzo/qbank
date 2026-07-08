@@ -190,25 +190,27 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
         </label>
         {!useCustomLabel ? (
           <>
-            <select
-              className="qb-filter-select"
-              value={form.label}
-              onChange={e => {
-                const val = e.target.value;
-                if (val === "other") {
-                  setUseCustomLabel(true);
-                  setForm(f => ({ ...f, label: "" }));
-                } else {
-                  setForm(f => ({ ...f, label: val }));
-                }
-              }}
-            >
-              <option value="">Select a label...</option>
-              {PROBLEM_LABELS.map(label => (
-                <option key={label} value={label}>{label}</option>
-              ))}
-              <option value="other">Other (custom)</option>
-            </select>
+            <div className="qb-filter-select-wrap">
+              <select
+                className="qb-filter-select"
+                value={form.label}
+                onChange={e => {
+                  const val = e.target.value;
+                  if (val === "other") {
+                    setUseCustomLabel(true);
+                    setForm(f => ({ ...f, label: "" }));
+                  } else {
+                    setForm(f => ({ ...f, label: val }));
+                  }
+                }}
+              >
+                <option value="">Select a label...</option>
+                {PROBLEM_LABELS.map(label => (
+                  <option key={label} value={label}>{label}</option>
+                ))}
+                <option value="other">Other (custom)</option>
+              </select>
+            </div>
           </>
         ) : (
           <>

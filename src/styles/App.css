@@ -261,13 +261,18 @@ body {
 .qb-filter-wrap { display:flex; align-items:center; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
 .qb-filter-card { min-height:60px; margin-bottom:0; padding:10px 14px; border-radius:18px; border:1px solid var(--border); background:var(--input-bg); justify-content:space-between; position:relative; }
 .qb-filter-label { font-family:'Fira Mono',monospace; font-size:10px; color:var(--text-faint); letter-spacing:.9px; text-transform:uppercase; }
+.qb-filter-select-wrap {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
 .qb-filter-select {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
   background-color: var(--surface);
   min-width: 220px;
-  max-width: 100%;
+  width: 100%;
   border: 1px solid var(--border);
   border-radius: 12px;
   color: var(--text);
@@ -280,7 +285,8 @@ body {
 .qb-filter-select::-ms-expand {
   display: none;
 }
-.qb-filter-card::after {
+.qb-filter-card::after,
+.qb-filter-select-wrap::after {
   content: '';
   position: absolute;
   right: 27px;
@@ -293,7 +299,8 @@ body {
   background-repeat: no-repeat;
   pointer-events: none;
 }
-.light .qb-filter-card::after {
+.light .qb-filter-card::after,
+.light .qb-filter-select-wrap::after {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14' fill='none'%3E%3Cpath d='M3 5L7 10L11 5' stroke='%235f6a80' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 .qb-filter-select:hover,
