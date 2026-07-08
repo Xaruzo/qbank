@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { TOPICS, LETTERS } from "../../constants/appConstants";
+import { TOPICS, LETTERS, PROBLEM_LABELS } from "../../constants/appConstants";
 import DrawCanvas from "./DrawCanvas";
 import SymbolToolbar from "./SymbolToolbar";
 import { handleSymbolShortcuts } from "../../utils/symbolShortcuts";
@@ -27,6 +27,7 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
   const activeChoiceRef = useRef(null);
   const solutionRef = useRef(null);
   const [activeChoice, setActiveChoice] = useState(null);
+  const [useCustomLabel, setUseCustomLabel] = useState(!initialData?.label || !PROBLEM_LABELS.includes(initialData.label));
 
   const topicLabel = useMemo(() => TOPICS.find(t => t.id === form.topic)?.label || "Topic", [form.topic]);
 
@@ -187,12 +188,49 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
           Label{" "}
           <span style={{ textTransform:"none", letterSpacing:0, fontFamily:"DM Sans,sans-serif", fontSize:11, color:"var(--text-faint)" }}>(optional)</span>
         </label>
-        <input
-          className="qb-finput"
-          placeholder="e.g. Age Problem, Sentence Error"
-          value={form.label}
-          onChange={e => setForm(f => ({ ...f, label: e.target.value }))}
-        />
+        {!useCustomLabel ? (
+          <>
+            <select
+              className="qb-filter-select"
+              value={form.label}
+              onChange={e => {
+                const val = e.target.value;
+                if (val === "other") {
+                  setUseCustomLabel(true);
+                  setForm(f => ({ ...f, label: "" }));
+                } else {
+                  setForm(f => ({ ...f, label: val }));
+                }
+              }}
+            >
+              <option value="">Select a label...</option>
+              {PROBLEM_LABELS.map(label => (
+                <option key={label} value={label}>{label}</option>
+              ))}
+              <option value="other">Other (custom)</option>
+            </select>
+          </>
+        ) : (
+          <>
+            <input
+              className="qb-finput"
+              placeholder="e.g. Age Problem, Sentence Error"
+              value={form.label}
+              onChange={e => setForm(f => ({ ...f, label: e.target.value }))}
+            />
+            <button
+              type="button"
+              className="qb-fcancel"
+              style={{ marginTop: 8, padding: "6px 12px", fontSize: 12 }}
+              onClick={() => {
+                setUseCustomLabel(false);
+                setForm(f => ({ ...f, label: "" }));
+              }}
+            >
+              Use preset label
+            </button>
+          </>
+        )}
       </div>
 
       {error && <p className="qb-ferr">{error}</p>}

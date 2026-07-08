@@ -17,6 +17,16 @@ export const SORT_OPTIONS = [
 ];
 
 export const LETTERS = ["A", "B", "C", "D"];
+export const PROBLEM_LABELS = [
+  "Age Problem",
+  "Percentage",
+  "Ratio",
+  "Decimal",
+  "Reading Comprehension",
+  "Vocabulary",
+  "Logical Reasoning",
+];
+
 export const KEY = "cse-qbank-v1";
 export const FAVORITES_KEY = "cse-qbank-favorites-v1";
 export const TIPS_KEY = "cse-qbank-tips-v1";
