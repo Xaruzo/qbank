@@ -6,6 +6,7 @@
 import { supabase } from '../utils/supabaseClient';
 import { FAVORITES_KEY, MOCK_EXAM_HISTORY_KEY } from '../constants/appConstants';
 
+const QUESTIONS_KEY_BASE = "cse-qbank-v1";
 const PENDING_UPSERTS_KEY = "cse-qbank-pending-upserts-v1";
 const SYNCED_ONCE_KEY = "cse-qbank-synced-once-v1";
 const REMOTE_DELETED_KEY = "cse-qbank-remote-deleted-v1";
@@ -63,6 +64,11 @@ const mergeMockExamHistory = (...sources) => {
 
 const getMockExamPendingKey = (userId) => `${MOCK_EXAM_PENDING_KEY}:${userId}`;
 const getActiveMockExamKey = (userId) => `${ACTIVE_MOCK_EXAM_KEY}:${userId}`;
+const getFavoritesKey = (userId) => (userId ? `${FAVORITES_KEY}:${userId}` : FAVORITES_KEY);
+const getPendingUpsertsKey = (userId) => (userId ? `${PENDING_UPSERTS_KEY}:${userId}` : PENDING_UPSERTS_KEY);
+const getSyncedOnceKey = (userId) => (userId ? `${SYNCED_ONCE_KEY}:${userId}` : SYNCED_ONCE_KEY);
+const getRemoteDeletedKey = (userId) => (userId ? `${REMOTE_DELETED_KEY}:${userId}` : REMOTE_DELETED_KEY);
+const isQuestionsKey = (key) => (key === QUESTIONS_KEY_BASE || key.startsWith(`${QUESTIONS_KEY_BASE}:`));
 
 const readMockHistoryCache = async (key) => {
   if (window.storage && typeof window.storage.get === 'function') {
@@ -340,8 +346,8 @@ export const storageModel = {
     }
   },
 
-  async getFavoriteIds() {
-    const key = FAVORITES_KEY;
+  async getFavoriteIds(userId = null) {
+    const key = getFavoritesKey(userId);
     if (window.storage && typeof window.storage.get === 'function') {
       try {
         const result = await window.storage.get(key);
@@ -357,8 +363,8 @@ export const storageModel = {
     }
   },
 
-  async setFavoriteIds(ids) {
-    const key = FAVORITES_KEY;
+  async setFavoriteIds(ids, userId = null) {
+    const key = getFavoritesKey(userId);
     const value = JSON.stringify(ids);
     if (window.storage && typeof window.storage.set === 'function') {
       try {
@@ -371,8 +377,8 @@ export const storageModel = {
     localStorage.setItem(key, value);
   },
 
-  async getPendingUpsertsMap() {
-    const key = PENDING_UPSERTS_KEY;
+  async getPendingUpsertsMap(userId = null) {
+    const key = getPendingUpsertsKey(userId);
     if (window.storage && typeof window.storage.get === 'function') {
       try {
         const result = await window.storage.get(key);
@@ -389,8 +395,8 @@ export const storageModel = {
     }
   },
 
-  async setPendingUpsertsMap(map) {
-    const key = PENDING_UPSERTS_KEY;
+  async setPendingUpsertsMap(map, userId = null) {
+    const key = getPendingUpsertsKey(userId);
     const value = JSON.stringify(map);
     if (window.storage && typeof window.storage.set === 'function') {
       try {
@@ -403,27 +409,27 @@ export const storageModel = {
     localStorage.setItem(key, value);
   },
 
-  async listPendingUpserts() {
-    const map = await this.getPendingUpsertsMap();
+  async listPendingUpserts(userId = null) {
+    const map = await this.getPendingUpsertsMap(userId);
     return Object.values(map || {});
   },
 
-  async enqueuePendingUpsert(q) {
-    const map = await this.getPendingUpsertsMap();
+  async enqueuePendingUpsert(q, userId = null) {
+    const map = await this.getPendingUpsertsMap(userId);
     map[q.id] = q;
-    await this.setPendingUpsertsMap(map);
+    await this.setPendingUpsertsMap(map, userId);
   },
 
-  async dequeuePendingUpsert(id) {
-    const map = await this.getPendingUpsertsMap();
+  async dequeuePendingUpsert(id, userId = null) {
+    const map = await this.getPendingUpsertsMap(userId);
     if (map && map[id]) {
       delete map[id];
-      await this.setPendingUpsertsMap(map);
+      await this.setPendingUpsertsMap(map, userId);
     }
   },
 
-  async getSyncedOnceIds() {
-    const key = SYNCED_ONCE_KEY;
+  async getSyncedOnceIds(userId = null) {
+    const key = getSyncedOnceKey(userId);
     if (window.storage && typeof window.storage.get === 'function') {
       try {
         const result = await window.storage.get(key);
@@ -439,8 +445,8 @@ export const storageModel = {
     }
   },
 
-  async setSyncedOnceIds(ids) {
-    const key = SYNCED_ONCE_KEY;
+  async setSyncedOnceIds(ids, userId = null) {
+    const key = getSyncedOnceKey(userId);
     const value = JSON.stringify(ids);
     if (window.storage && typeof window.storage.set === 'function') {
       try {
@@ -453,15 +459,15 @@ export const storageModel = {
     localStorage.setItem(key, value);
   },
 
-  async markSyncedOnce(id) {
+  async markSyncedOnce(id, userId = null) {
     if (!id) return;
-    const ids = await this.getSyncedOnceIds();
+    const ids = await this.getSyncedOnceIds(userId);
     if (ids.includes(id)) return;
-    await this.setSyncedOnceIds([...ids, id]);
+    await this.setSyncedOnceIds([...ids, id], userId);
   },
 
-  async getRemoteDeletedIds() {
-    const key = REMOTE_DELETED_KEY;
+  async getRemoteDeletedIds(userId = null) {
+    const key = getRemoteDeletedKey(userId);
     if (window.storage && typeof window.storage.get === 'function') {
       try {
         const result = await window.storage.get(key);
@@ -477,8 +483,8 @@ export const storageModel = {
     }
   },
 
-  async setRemoteDeletedIds(ids) {
-    const key = REMOTE_DELETED_KEY;
+  async setRemoteDeletedIds(ids, userId = null) {
+    const key = getRemoteDeletedKey(userId);
     const value = JSON.stringify(ids);
     if (window.storage && typeof window.storage.set === 'function') {
       try {
@@ -491,13 +497,16 @@ export const storageModel = {
     localStorage.setItem(key, value);
   },
 
-  async get(key) {
-    // 1. Try Supabase for shared global pool (Questions only)
-    if (supabase && key === "cse-qbank-v1") {
+  async get(key, options = {}) {
+    const userId = typeof options === "string" ? options : options?.userId || null;
+
+    // 1. Try Supabase for per-user pool (Questions only)
+    if (supabase && isQuestionsKey(key) && userId) {
       try {
         const { data, error } = await supabase
           .from('questions')
           .select('*')
+          .eq('user_id', userId)
           .order('created_at', { ascending: true });
         
         if (!error && data) {
@@ -516,9 +525,9 @@ export const storageModel = {
             local = [];
           }
 
-          const pendingMap = await this.getPendingUpsertsMap();
+          const pendingMap = await this.getPendingUpsertsMap(userId);
           const pendingIds = new Set(Object.keys(pendingMap || {}));
-          const syncedOnceIds = new Set(await this.getSyncedOnceIds());
+          const syncedOnceIds = new Set(await this.getSyncedOnceIds(userId));
 
           const parseTime = (v) => {
             const t = Date.parse(v || "");
@@ -536,13 +545,13 @@ export const storageModel = {
           for (const id of syncedOnceIds) {
             if (!remoteIds.has(id)) remoteDeleted.push(id);
           }
-          await this.setRemoteDeletedIds(remoteDeleted);
+          await this.setRemoteDeletedIds(remoteDeleted, userId);
 
           for (const q of local) {
             if (!q || !q.id) continue;
             if (pendingIds.has(q.id)) {
               if (!remoteIds.has(q.id) && syncedOnceIds.has(q.id)) {
-                await this.dequeuePendingUpsert(q.id);
+                await this.dequeuePendingUpsert(q.id, userId);
                 continue;
               }
               merged.set(q.id, q);
@@ -580,25 +589,29 @@ export const storageModel = {
   /**
    * Syncs a specific question to Supabase
    */
-  async syncQuestion(q) {
-    if (!supabase) return;
+  async syncQuestion(q, userId = null) {
+    if (!supabase || !userId) return;
     try {
       const { error } = await supabase
         .from('questions')
-        .upsert({
-          id: q.id,
-          topic: q.topic,
-          label: typeof q.label === "string" ? q.label : "",
-          question: q.question,
-          choices: q.choices,
-          correct: q.correct,
-          solution: q.solution,
-          solution_draw: q.solutionDraw, // Correct column name
-          created_at: q.dateAdded
-        });
+        .upsert(
+          {
+            id: q.id,
+            user_id: userId,
+            topic: q.topic,
+            label: typeof q.label === "string" ? q.label : "",
+            question: q.question,
+            choices: q.choices,
+            correct: q.correct,
+            solution: q.solution,
+            solution_draw: q.solutionDraw,
+            created_at: q.dateAdded,
+          },
+          { onConflict: "user_id,id" }
+        );
       
       if (error) throw error;
-      await this.markSyncedOnce(q.id);
+      await this.markSyncedOnce(q.id, userId);
     } catch (e) {
       console.error("Supabase sync failed:", e);
       throw e;
@@ -619,10 +632,14 @@ export const storageModel = {
     localStorage.setItem(key, value);
   },
 
-  async delete(id) {
-    if (supabase) {
+  async delete(id, userId = null) {
+    if (supabase && userId) {
       try {
-        const { error } = await supabase.from('questions').delete().eq('id', id);
+        const { error } = await supabase
+          .from('questions')
+          .delete()
+          .eq('id', id)
+          .eq('user_id', userId);
         if (error) console.error("Supabase delete error:", error);
       } catch (e) {
         console.warn("Supabase delete failed:", e);

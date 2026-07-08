@@ -2,6 +2,7 @@ import React from "react";
 import { AlertTriangle, ArrowUpRight, ChevronLeft, Clock3, Trophy, TrendingUp } from "lucide-react";
 import { LETTERS } from "../../constants/appConstants";
 import { buildQuestionLookup, formatAttemptDate, formatExamDuration } from "../../utils/mockExamAnalytics";
+import MarkdownText from "./MarkdownText";
 
 export default function MockAttemptDetail({ attempt, qMap, onBack, onReviewAttempt }) {
   if (!attempt) return null;
@@ -138,7 +139,9 @@ export default function MockAttemptDetail({ attempt, qMap, onBack, onReviewAttem
                     </span>
                     <span className="qb-mock-question-index">Q{question.index + 1}</span>
                   </div>
-                  <div className="qb-mock-question-text">{question.question || "Question text unavailable"}</div>
+                  <div className="qb-mock-question-text">
+                    <MarkdownText text={question.question || "Question text unavailable"} inline />
+                  </div>
                   <div className="qb-mock-question-meta">
                     <span>Your answer: {question.wasAnswered ? LETTERS[question.userAnswer] : "--"}</span>
                     <span>Correct: {Number.isInteger(question.correct) ? LETTERS[question.correct] : "--"}</span>

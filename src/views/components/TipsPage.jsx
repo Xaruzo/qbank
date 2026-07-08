@@ -6,6 +6,7 @@ import { ChevronLeft, Search } from "lucide-react";
 
 export default function TipsPage({
   questions,
+  userId,
   onBack,
   onSelectQuestion,
 }) {
@@ -14,14 +15,14 @@ export default function TipsPage({
 
   useEffect(() => {
     let active = true;
-    tipsModel.getAll().then((map) => {
+    tipsModel.getAll(userId).then((map) => {
       if (!active) return;
       setTipsMap(map || {});
     });
     return () => {
       active = false;
     };
-  }, []);
+  }, [userId]);
 
   const filteredQuestions = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -51,7 +52,7 @@ export default function TipsPage({
             <span className="qb-list-label">Pick a Question</span>
             <span className="qb-list-value">{filteredQuestions.length} shown</span>
           </div>
-          <label className="qb-search-box" style={{ maxWidth: 440 }}>
+          <label className="qb-search-box" style={{ maxWidth: 640, flex: "1 1 520px" }}>
             <span className="qb-search-icon" aria-hidden="true">
               <Search size={18} />
             </span>

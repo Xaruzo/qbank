@@ -7,6 +7,7 @@ import { ChevronLeft } from "lucide-react";
 
 export default function TipDetailPage({
   question,
+  userId,
   onBack,
   onOpenQuestion,
 }) {
@@ -15,21 +16,21 @@ export default function TipDetailPage({
 
   useEffect(() => {
     let active = true;
-    tipsModel.getAll().then((map) => {
+    tipsModel.getAll(userId).then((map) => {
       if (!active) return;
       setTipText(typeof map?.[question.id] === "string" ? map[question.id] : "");
     });
     return () => {
       active = false;
     };
-  }, [question.id]);
+  }, [question.id, userId]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
-      tipsModel.setTip(question.id, tipText).catch(() => {});
+      tipsModel.setTip(question.id, tipText, userId).catch(() => {});
     }, 350);
     return () => window.clearTimeout(timeoutId);
-  }, [question.id, tipText]);
+  }, [question.id, tipText, userId]);
 
   return (
     <div className="fu">
@@ -79,7 +80,7 @@ export default function TipDetailPage({
             className="qb-del-btn"
             onClick={() => {
               setTipText("");
-              tipsModel.deleteTip(question.id).catch(() => {});
+              tipsModel.deleteTip(question.id, userId).catch(() => {});
             }}
           >
             Clear Tip
@@ -100,4 +101,3 @@ export default function TipDetailPage({
     </div>
   );
 }
-

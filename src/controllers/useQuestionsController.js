@@ -2,18 +2,24 @@ import { useState, useEffect } from "react";
 import { KEY, SAMPLES, TOPICS } from "../constants/appConstants";
 import { storageModel } from "../models/storageModel";
 
-export function useQuestionsController() {
+export function useQuestionsController({ userId = null, authAvailable = false } = {}) {
   const [qs, setQs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [topicFilter, setTopicFilter] = useState("all");
   const [labelFilter, setLabelFilter] = useState("all");
   const [sortBy, setSortBy] = useState("favorites");
+  const storageKey = userId ? `${KEY}:${userId}` : KEY;
 
   const getLabelValue = (q) => typeof q.label === "string" ? q.label.trim() : "";
+  const normalizeTopic = (value) => {
+    const topic = typeof value === "string" ? value : "general";
+    return topic === "filipino" ? "verbal" : topic;
+  };
 
   const normalizeQuestion = (q, favoriteIds = new Set()) => ({
     ...q,
+    topic: normalizeTopic(q.topic),
     question: typeof q.question === "string" ? q.question : "",
     choices: Array.isArray(q.choices) ? q.choices.map(choice => typeof choice === "string" ? choice : "") : [],
     label: getLabelValue(q),
@@ -44,8 +50,16 @@ export function useQuestionsController() {
   };
 
   useEffect(() => {
-    init();
-  }, []);
+    let active = true;
+    const isActive = () => active;
+    (async () => {
+      setLoading(true);
+      await init(isActive);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [storageKey, authAvailable]);
 
   useEffect(() => {
     const onOnline = () => {
@@ -55,34 +69,64 @@ export function useQuestionsController() {
     return () => window.removeEventListener("online", onOnline);
   }, []);
 
-  async function init() {
+  async function init(isActive) {
     try {
-      const r = await storageModel.get(KEY);
-      const favoriteIds = new Set(await storageModel.getFavoriteIds());
+      let r = await storageModel.get(storageKey, { userId });
+      const favoriteIds = new Set(await storageModel.getFavoriteIds(userId));
+      let parsed = [];
+      let didMigrateLegacy = false;
+
       if (r) {
-        const parsed = JSON.parse(r);
-        const normalized = parsed.map(q => normalizeQuestion(q, favoriteIds));
-        setQs(normalized);
-        await storageModel.set(KEY, JSON.stringify(normalized));
-        await storageModel.setFavoriteIds(normalized.filter(q => q.favorite).map(q => q.id));
+        parsed = JSON.parse(r);
       } else {
-        const initial = SAMPLES.map(q => normalizeQuestion(q, favoriteIds));
-        setQs(initial);
-        await storageModel.set(KEY, JSON.stringify(initial));
-        await storageModel.setFavoriteIds(initial.filter(q => q.favorite).map(q => q.id));
+        parsed = [];
+      }
+
+      if (userId && parsed.length === 0) {
+        const legacy = await storageModel.get(KEY);
+        if (legacy) {
+          try {
+            const legacyParsed = JSON.parse(legacy);
+            if (Array.isArray(legacyParsed) && legacyParsed.length > 0) {
+              parsed = legacyParsed;
+              didMigrateLegacy = true;
+            }
+          } catch {}
+        }
+      }
+
+      if (parsed.length > 0) {
+        const normalized = parsed.map((q) => normalizeQuestion(q, favoriteIds));
+        if (isActive()) setQs(normalized);
+        await storageModel.set(storageKey, JSON.stringify(normalized));
+        await storageModel.setFavoriteIds(
+          normalized.filter((q) => q.favorite).map((q) => q.id),
+          userId
+        );
+        if (didMigrateLegacy && userId && authAvailable) {
+          for (const q of normalized) await storageModel.enqueuePendingUpsert(q, userId);
+        }
+      } else {
+        const initial = SAMPLES.map((q) => normalizeQuestion(q, favoriteIds));
+        if (isActive()) setQs(initial);
+        await storageModel.set(storageKey, JSON.stringify(initial));
+        await storageModel.setFavoriteIds(
+          initial.filter((q) => q.favorite).map((q) => q.id),
+          userId
+        );
       }
     } catch (e) {
       console.error("Failed to init questions:", e);
-      setQs(SAMPLES);
+      if (isActive()) setQs(SAMPLES);
     }
-    setLoading(false);
+    if (isActive()) setLoading(false);
     flushPendingUpserts();
   }
 
   async function persist(next) {
     try {
-      await storageModel.set(KEY, JSON.stringify(next));
-      await storageModel.setFavoriteIds(next.filter(q => q.favorite).map(q => q.id));
+      await storageModel.set(storageKey, JSON.stringify(next));
+      await storageModel.setFavoriteIds(next.filter((q) => q.favorite).map((q) => q.id), userId);
     } catch (e) {
       console.error("Failed to persist questions:", e);
     }
@@ -94,12 +138,12 @@ export function useQuestionsController() {
     let pending = [];
     let remoteDeleted = new Set();
     try {
-      pending = await storageModel.listPendingUpserts();
+      pending = await storageModel.listPendingUpserts(userId);
     } catch {
       pending = [];
     }
     try {
-      remoteDeleted = new Set(await storageModel.getRemoteDeletedIds());
+      remoteDeleted = new Set(await storageModel.getRemoteDeletedIds(userId));
     } catch {
       remoteDeleted = new Set();
     }
@@ -108,13 +152,13 @@ export function useQuestionsController() {
       if (!q || !q.id) continue;
       if (remoteDeleted.has(q.id)) {
         try {
-          await storageModel.dequeuePendingUpsert(q.id);
+          await storageModel.dequeuePendingUpsert(q.id, userId);
         } catch {}
         continue;
       }
       try {
-        await storageModel.syncQuestion(q);
-        await storageModel.dequeuePendingUpsert(q.id);
+        await storageModel.syncQuestion(q, userId);
+        await storageModel.dequeuePendingUpsert(q.id, userId);
       } catch {}
     }
   }
@@ -131,11 +175,11 @@ export function useQuestionsController() {
     
     // First, sync to remote database if available
     try {
-      await storageModel.syncQuestion(q);
-      await storageModel.dequeuePendingUpsert(q.id);
+      await storageModel.syncQuestion(q, userId);
+      await storageModel.dequeuePendingUpsert(q.id, userId);
     } catch (e) {
       console.warn("Remote sync failed, will only save locally:", e);
-      await storageModel.enqueuePendingUpsert(q);
+      await storageModel.enqueuePendingUpsert(q, userId);
     }
 
     await persist(nextQs);
@@ -143,7 +187,7 @@ export function useQuestionsController() {
   };
 
   const deleteQuestion = async (id) => {
-    await storageModel.delete(id);
+    await storageModel.delete(id, userId);
     const nextQs = qs.filter(q => q.id !== id);
     await persist(nextQs);
   };

@@ -15,6 +15,7 @@ import { useAuthController } from "./controllers/useAuthController";
 import { useQuestionsController } from "./controllers/useQuestionsController";
 import { useThemeController } from "./controllers/useThemeController";
 import { storageModel } from "./models/storageModel";
+import { tipsModel } from "./models/tipsModel";
 import { buildMockExamAttempt, buildReviewExamFromAttempt } from "./utils/mockExamAnalytics";
 import { ArrowDown, Home, ClipboardList, Lightbulb } from "lucide-react";
 
@@ -42,11 +43,6 @@ const isResumableMockExam = (candidate) => (
 );
 
 export default function App() {
-  const { 
-    qs, loading, search, setSearch, topicFilter, setTopicFilter, labelFilter, setLabelFilter,
-    sortBy, setSortBy, saveQuestion, deleteQuestion, toggleFavorite, counts, labelOptions, filteredQuestions 
-  } = useQuestionsController();
-  
   const { isDark, toggleTheme } = useThemeController();
   const {
     authAvailable,
@@ -57,6 +53,11 @@ export default function App() {
     signInWithGoogle,
     signOut,
   } = useAuthController();
+
+  const { 
+    qs, loading, search, setSearch, topicFilter, setTopicFilter, labelFilter, setLabelFilter,
+    sortBy, setSortBy, saveQuestion, deleteQuestion, toggleFavorite, counts, labelOptions, filteredQuestions 
+  } = useQuestionsController({ userId: user?.id || null, authAvailable });
 
   const [view, setView] = useState("list");
   const [selectedId, setSelectedId] = useState(null);
@@ -212,6 +213,22 @@ export default function App() {
   }, [isAuthLoading, isAuthenticated, user?.id]);
 
   useEffect(() => {
+    if (isAuthLoading || !isAuthenticated || !user?.id) return undefined;
+
+    const syncTips = async () => {
+      try {
+        await tipsModel.flushPending(user.id);
+      } catch (e) {
+        console.error("Failed to sync pending tips:", e);
+      }
+    };
+
+    syncTips();
+    window.addEventListener("online", syncTips);
+    return () => window.removeEventListener("online", syncTips);
+  }, [isAuthLoading, isAuthenticated, user?.id]);
+
+  useEffect(() => {
     if (isAuthLoading || !isAuthenticated || !user?.id || !hasLoadedActiveMockExam) return undefined;
 
     if (exam && exam.finished && !exam.isReviewSession) {
@@ -292,6 +309,16 @@ export default function App() {
       }
 
       if (page === "tips") {
+        if (authAvailable && !isAuthenticated) {
+          setSelectedMockAttemptId(null);
+          setSelectedId(null);
+          setDeepLinkShowSol(false);
+          setEditId(null);
+          setExam(null);
+          setView("list");
+          window.history.replaceState({}, "", window.location.pathname);
+          return;
+        }
         setSelectedMockAttemptId(null);
         setDeepLinkShowSol(false);
         setEditId(null);
@@ -302,6 +329,16 @@ export default function App() {
       }
 
       if (page === "tip") {
+        if (authAvailable && !isAuthenticated) {
+          setSelectedMockAttemptId(null);
+          setSelectedId(null);
+          setDeepLinkShowSol(false);
+          setEditId(null);
+          setExam(null);
+          setView("list");
+          window.history.replaceState({}, "", window.location.pathname);
+          return;
+        }
         setSelectedMockAttemptId(null);
         setDeepLinkShowSol(false);
         setEditId(null);
@@ -334,7 +371,7 @@ export default function App() {
     syncFromUrl();
     window.addEventListener("popstate", syncFromUrl);
     return () => window.removeEventListener("popstate", syncFromUrl);
-  }, [loading, isAuthLoading, isAuthenticated]);
+  }, [authAvailable, loading, isAuthLoading, isAuthenticated]);
 
   useEffect(() => {
     const el = mainRef.current;
@@ -430,6 +467,10 @@ export default function App() {
   };
 
   const handleGoTips = (questionId = null) => {
+    if (authAvailable && !isAuthenticated) {
+      handleSignIn();
+      return;
+    }
     setEditId(null);
     setSelectedMockAttemptId(null);
     setDeepLinkShowSol(false);
@@ -441,6 +482,10 @@ export default function App() {
 
   const handleOpenTipDetail = (questionId) => {
     if (!questionId) return;
+    if (authAvailable && !isAuthenticated) {
+      handleSignIn();
+      return;
+    }
     setSelectedId(questionId);
     setEditId(null);
     setSelectedMockAttemptId(null);
@@ -713,12 +758,14 @@ export default function App() {
             ) : view === "tips" ? (
               <TipsPage
                 questions={qs}
+                userId={user?.id || null}
                 onBack={handleGoHome}
                 onSelectQuestion={handleOpenTipDetail}
               />
             ) : view === "tipDetail" && selectedQuestion ? (
               <TipDetailPage
                 question={selectedQuestion}
+                userId={user?.id || null}
                 onBack={handleGoTips}
                 onOpenQuestion={handleSelectQuestion}
               />
