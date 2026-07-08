@@ -77,13 +77,13 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
   const isTextObj = (obj) => !!obj && (obj.type === "i-text" || obj.type === "textbox");
   const isHrLine = (obj) => !!obj && (
     obj.shapeKind === "hrLine" ||
+    obj.shapeKind === "vrLine" ||
     (obj.type === "line" && obj.fractionRole === "line")
   );
   const sanitizeIntegerInput = (value) => String(value ?? "").replace(/[^\d]/g, "");
   const clampFontSizeValue = (value) => Math.max(FONT_SIZE_MIN, Math.min(FONT_SIZE_MAX, Math.round(value)));
   const configureHrLine = (obj) => {
     if (!isHrLine(obj)) return;
-    if (!obj.shapeKind) obj.shapeKind = "hrLine";
     if (obj.type === "line") {
       obj.set({
         strokeWidth: HR_LINE_THICKNESS,
@@ -92,7 +92,8 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
         scaleY: 1,
       });
     }
-    obj.lockScalingY = true;
+    obj.lockScalingY = obj.shapeKind === "hrLine";
+    obj.lockScalingX = obj.shapeKind === "vrLine";
     obj.lockRotation = false;
     obj.uniformScaling = false;
     obj.hasRotatingPoint = true;
@@ -100,8 +101,8 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
     if (typeof obj.setControlsVisibility === "function") {
       obj.setControlsVisibility({
         tl: false, tr: false, bl: false, br: false,
-        ml: true, mr: true,
-        mt: false, mb: false,
+        ml: obj.shapeKind === "hrLine", mr: obj.shapeKind === "hrLine",
+        mt: obj.shapeKind === "vrLine", mb: obj.shapeKind === "vrLine",
         mtr: true,
       });
     }
@@ -626,21 +627,35 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       }
       if (isHrLine(t)) {
         if (t.type === "line") {
-          const sx = Math.abs(t.scaleX || 1);
-          if (sx > 1.001 || sx < 0.999) {
-            const corner = t.__scaleCorner || t.__resizeAnchor?.corner || "";
-            const anchorOriginX = corner.includes("l") || corner === "ml" ? "right" : "left";
-            const anchor = t.getPointByOrigin(anchorOriginX, "center");
-            const baseLen = Math.abs((t.x2 || 0) - (t.x1 || 0));
-            const nextLen = Math.max(20, baseLen * sx);
-            t.set({ x1: 0, y1: 0, x2: nextLen, y2: 0, scaleX: 1, scaleY: 1 });
-            t.setPositionByOrigin(anchor, anchorOriginX, "center");
-            t.setCoords();
-          } else {
-            t.set({ scaleX: 1, scaleY: 1 });
+          if (t.shapeKind === "hrLine") {
+            const sx = Math.abs(t.scaleX || 1);
+            if (sx > 1.001 || sx < 0.999) {
+              const corner = t.__scaleCorner || t.__resizeAnchor?.corner || "";
+              const anchorOriginX = corner.includes("l") || corner === "ml" ? "right" : "left";
+              const anchor = t.getPointByOrigin(anchorOriginX, "center");
+              const baseLen = Math.abs((t.x2 || 0) - (t.x1 || 0));
+              const nextLen = Math.max(20, baseLen * sx);
+              t.set({ x1: 0, y1: 0, x2: nextLen, y2: 0, scaleX: 1, scaleY: 1 });
+              t.setPositionByOrigin(anchor, anchorOriginX, "center");
+              t.setCoords();
+            } else {
+              t.set({ scaleX: 1, scaleY: 1 });
+            }
+          } else if (t.shapeKind === "vrLine") {
+            const sy = Math.abs(t.scaleY || 1);
+            if (sy > 1.001 || sy < 0.999) {
+              const corner = t.__scaleCorner || t.__resizeAnchor?.corner || "";
+              const anchorOriginY = corner.includes("t") || corner === "mt" ? "bottom" : "top";
+              const anchor = t.getPointByOrigin("center", anchorOriginY);
+              const baseLen = Math.abs((t.y2 || 0) - (t.y1 || 0));
+              const nextLen = Math.max(20, baseLen * sy);
+              t.set({ x1: 0, y1: 0, x2: 0, y2: nextLen, scaleX: 1, scaleY: 1 });
+              t.setPositionByOrigin(anchor, "center", anchorOriginY);
+              t.setCoords();
+            } else {
+              t.set({ scaleX: 1, scaleY: 1 });
+            }
           }
-        } else {
-          t.set({ scaleY: 1 });
         }
         delete t.__resizeAnchor;
         delete t.__scaleCorner;
@@ -2033,10 +2048,12 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
     }
     if (obj.type === "line") {
       if (obj.shapeKind === "hrLine") return "H. Line";
+      if (obj.shapeKind === "vrLine") return "V. Line";
       return "Line";
     }
     if (obj.type === "rect") {
       if (obj.shapeKind === "hrLine") return "H. Line";
+      if (obj.shapeKind === "vrLine") return "V. Line";
       if ((obj.rx || obj.ry) && obj.width > obj.height) return "Oblong";
       if (obj.height <= 5) return "Line";
       return "Shape";
@@ -2152,6 +2169,26 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       objectCaching: false,
     });
     line.shapeKind = "hrLine";
+    configureHrLine(line);
+    fabricRef.current.add(line);
+    fabricRef.current.setActiveObject(line);
+    setTool("move");
+  };
+
+  const addVrLine = () => {
+    if (!fabricRef.current) return;
+    const line = new fabric.Line([0, 0, 0, 220], {
+      left: 150,
+      top: 100,
+      stroke: color,
+      strokeWidth: HR_LINE_THICKNESS,
+      strokeUniform: true,
+      strokeLineCap: "round",
+      originX: "center",
+      originY: "top",
+      objectCaching: false,
+    });
+    line.shapeKind = "vrLine";
     configureHrLine(line);
     fabricRef.current.add(line);
     fabricRef.current.setActiveObject(line);
@@ -2657,11 +2694,18 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
           <button className="draw-tb" onClick={addText} title="Add Text Layer">
             <Type size={16} />
           </button>
-          <button className="draw-tb" onClick={addHrLine} title="Add Rotatable Line">
+          <button className="draw-tb" onClick={addHrLine} title="Add Rotatable Horizontal Line">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <circle cx="5" cy="12" r="2" fill="currentColor" />
               <path d="M7 12h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               <circle cx="19" cy="12" r="2" fill="currentColor" />
+            </svg>
+          </button>
+          <button className="draw-tb" onClick={addVrLine} title="Add Rotatable Vertical Line">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="5" r="2" fill="currentColor" />
+              <path d="M12 7v10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              <circle cx="12" cy="19" r="2" fill="currentColor" />
             </svg>
           </button>
           <button className="draw-tb" onClick={addLine} title="Add Short Line (Fraction)">
