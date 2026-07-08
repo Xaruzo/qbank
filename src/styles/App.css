@@ -261,25 +261,7 @@ body {
 .qb-filter-wrap { display:flex; align-items:center; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
 .qb-filter-card { min-height:60px; margin-bottom:0; padding:10px 14px; border-radius:18px; border:1px solid var(--border); background:var(--input-bg); justify-content:space-between; }
 .qb-filter-label { font-family:'Fira Mono',monospace; font-size:10px; color:var(--text-faint); letter-spacing:.9px; text-transform:uppercase; }
-.qb-filter-select {
-  appearance:none;
-  -webkit-appearance:none;
-  min-width:220px;
-  max-width:100%;
-  background-color:var(--surface);
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M2.25 4.5L6 8.25L9.75 4.5' stroke='%23aebed8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  background-position:right 12px center;
-  background-repeat:no-repeat;
-  background-size:12px;
-  border:1px solid var(--border);
-  border-radius:12px;
-  color:var(--text);
-  font-family:'DM Sans',sans-serif;
-  font-size:14px;
-  padding:10px 34px 10px 13px;
-  outline:none;
-  cursor:pointer;
-}
+.qb-filter-select { min-width:220px; max-width:100%; background:var(--surface); border:1px solid var(--border); border-radius:12px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:14px; padding:10px 13px; outline:none; }
 .qb-filter-select:hover,.qb-filter-select:focus { border-color:var(--border-h); }
 .qb-filter-row { display:flex; flex-direction:column; gap:12px; }
 .qb-filter-row-title { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-heading); font-weight:700; }
@@ -293,7 +275,7 @@ body {
   -webkit-appearance:none;
   background-color:var(--surface);
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M2.25 4.5L6 8.25L9.75 4.5' stroke='%23aebed8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  background-position:right 12px center;
+  background-position:right 10px center;
   background-repeat:no-repeat;
   background-size:12px;
   border:1px solid var(--border);
@@ -490,7 +472,7 @@ body {
 .qb-mock-section-kicker { font-family:'Fira Mono',monospace; font-size:10px; color:var(--text-faint); letter-spacing:1px; text-transform:uppercase; }
 .qb-mock-section-title { font-family:'Syne',sans-serif; font-size:20px; font-weight:700; color:var(--text-heading); margin-top:4px; }
 .qb-mock-section-copy { color:var(--text-muted); font-size:13px; line-height:1.65; margin-top:8px; max-width:54ch; }
-.qb-mock-attempts { display:flex; flex-direction:column; gap:10px; max-height:760px; overflow:auto; padding:2px; }
+.qb-mock-attempts { display:flex; flex-direction:column; gap:10px; max-height:760px; overflow:auto; padding-right:2px; }
 .qb-mock-attempt-card { width:100%; background:var(--input-bg); border:1px solid var(--border); border-radius:18px; padding:16px; cursor:pointer; text-align:left; display:flex; flex-direction:column; gap:10px; color:var(--text); box-shadow:var(--shadow-card); }
 .qb-mock-attempt-card:hover { border-color:var(--border-h); background:var(--surface-h); }
 .qb-mock-attempt-card.on {

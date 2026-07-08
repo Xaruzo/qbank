@@ -2,11 +2,6 @@ import { TOPICS } from "../constants/appConstants";
 
 const topicMetaMap = new Map(TOPICS.map((topic) => [topic.id, topic]));
 
-const normalizeTopicId = (value) => {
-  const topic = typeof value === "string" ? value : "";
-  return topic === "filipino" ? "verbal" : topic;
-};
-
 const toPercent = (value, total) => {
   if (!total) return 0;
   return Math.round((value / total) * 100);
@@ -79,7 +74,7 @@ export const calculateExamMetrics = (exam, qMap, now = Date.now()) => {
 
   for (const id of exam?.orderIds || []) {
     const question = questionLookup.get(id);
-    const topicId = normalizeTopicId(question?.topic) || "other";
+    const topicId = question?.topic || "other";
     if (!topicBuckets.has(topicId)) topicBuckets.set(topicId, createTopicBucket(topicId));
 
     const bucket = topicBuckets.get(topicId);
@@ -144,7 +139,7 @@ export const buildMockExamAttempt = (exam, qMap, completedAt = Date.now()) => {
     return {
       index,
       id,
-      topic: normalizeTopicId(question?.topic) || "other",
+      topic: question?.topic || "other",
       correct: Number.isInteger(question?.correct) ? question.correct : null,
       userAnswer: userAnswer ?? null,
       isCorrect: userAnswer !== undefined && userAnswer === question?.correct,
@@ -189,7 +184,7 @@ export const buildReviewExamFromAttempt = (attempt, qMap, startQuestionId = null
     const liveQuestion = questionLookup.get(question.id);
     questionSnapshots[question.id] = {
       id: question.id,
-      topic: normalizeTopicId(liveQuestion?.topic) || normalizeTopicId(question.topic) || "other",
+      topic: liveQuestion?.topic || question.topic || "other",
       question: liveQuestion?.question || "Question text unavailable",
       choices: Array.isArray(liveQuestion?.choices) ? liveQuestion.choices : [],
       correct: Number.isInteger(liveQuestion?.correct) ? liveQuestion.correct : question.correct,

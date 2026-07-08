@@ -43,6 +43,11 @@ const isResumableMockExam = (candidate) => (
 );
 
 export default function App() {
+  const { 
+    qs, loading, search, setSearch, topicFilter, setTopicFilter, labelFilter, setLabelFilter,
+    sortBy, setSortBy, saveQuestion, deleteQuestion, toggleFavorite, counts, labelOptions, filteredQuestions 
+  } = useQuestionsController();
+  
   const { isDark, toggleTheme } = useThemeController();
   const {
     authAvailable,
@@ -53,11 +58,6 @@ export default function App() {
     signInWithGoogle,
     signOut,
   } = useAuthController();
-
-  const { 
-    qs, loading, search, setSearch, topicFilter, setTopicFilter, labelFilter, setLabelFilter,
-    sortBy, setSortBy, saveQuestion, deleteQuestion, toggleFavorite, counts, labelOptions, filteredQuestions 
-  } = useQuestionsController({ userId: user?.id || null, authAvailable });
 
   const [view, setView] = useState("list");
   const [selectedId, setSelectedId] = useState(null);

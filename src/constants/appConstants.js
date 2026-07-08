@@ -3,6 +3,7 @@ export const TOPICS = [
   { id: "verbal",     label: "Verbal",     short: "VRB", color: "#22d3ee" },
   { id: "general",    label: "Gen. Info",  short: "GEN", color: "#a78bfa" },
   { id: "analytical", label: "Analytical", short: "ANA", color: "#34d399" },
+  { id: "filipino",   label: "Filipino",   short: "FIL", color: "#fb7185" },
 ];
 
 export const SORT_OPTIONS = [
