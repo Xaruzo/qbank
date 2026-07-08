@@ -262,14 +262,14 @@ body {
 .qb-filter-card { min-height:60px; margin-bottom:0; padding:10px 14px; border-radius:18px; border:1px solid var(--border); background:var(--input-bg); justify-content:space-between; }
 .qb-filter-label { font-family:'Fira Mono',monospace; font-size:10px; color:var(--text-faint); letter-spacing:.9px; text-transform:uppercase; }
 .qb-filter-select {
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  background-color: var(--surface);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14' fill='none'%3E%3Cpath d='M3 5L7 10L11 5' stroke='%235f6a80' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  background-position: right 13px center;
-  background-repeat: no-repeat;
-  background-size: 14px;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background-color: var(--surface) !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14' fill='none'%3E%3Cpath d='M3 5L7 10L11 5' stroke='%235f6a80' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-position: right 13px center !important;
+  background-repeat: no-repeat !important;
+  background-size: 14px !important;
   min-width: 220px;
   max-width: 100%;
   border: 1px solid var(--border);
@@ -296,14 +296,14 @@ body {
 .qb-sort-wrap { display: flex; align-items: center; gap: 10px; }
 .qb-sort-label { font-family: 'Fira Mono', monospace; font-size: 10px; color: var(--text-faint); letter-spacing: .9px; text-transform: uppercase; }
 .qb-sort {
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  background-color: var(--surface);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14' fill='none'%3E%3Cpath d='M3 5L7 10L11 5' stroke='%235f6a80' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  background-position: right 10px center;
-  background-repeat: no-repeat;
-  background-size: 14px;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background-color: var(--surface) !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14' fill='none'%3E%3Cpath d='M3 5L7 10L11 5' stroke='%235f6a80' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-position: right 10px center !important;
+  background-repeat: no-repeat !important;
+  background-size: 14px !important;
   border: 1px solid var(--border);
   border-radius: 8px;
   color: var(--text);
