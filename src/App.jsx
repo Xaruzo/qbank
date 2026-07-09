@@ -309,16 +309,6 @@ export default function App() {
       }
 
       if (page === "tips") {
-        if (authAvailable && !isAuthenticated) {
-          setSelectedMockAttemptId(null);
-          setSelectedId(null);
-          setDeepLinkShowSol(false);
-          setEditId(null);
-          setExam(null);
-          setView("list");
-          window.history.replaceState({}, "", window.location.pathname);
-          return;
-        }
         setSelectedMockAttemptId(null);
         setDeepLinkShowSol(false);
         setEditId(null);
@@ -329,16 +319,6 @@ export default function App() {
       }
 
       if (page === "tip") {
-        if (authAvailable && !isAuthenticated) {
-          setSelectedMockAttemptId(null);
-          setSelectedId(null);
-          setDeepLinkShowSol(false);
-          setEditId(null);
-          setExam(null);
-          setView("list");
-          window.history.replaceState({}, "", window.location.pathname);
-          return;
-        }
         setSelectedMockAttemptId(null);
         setDeepLinkShowSol(false);
         setEditId(null);
@@ -467,10 +447,6 @@ export default function App() {
   };
 
   const handleGoTips = (questionId = null) => {
-    if (authAvailable && !isAuthenticated) {
-      handleSignIn();
-      return;
-    }
     setEditId(null);
     setSelectedMockAttemptId(null);
     setDeepLinkShowSol(false);
@@ -482,10 +458,6 @@ export default function App() {
 
   const handleOpenTipDetail = (questionId) => {
     if (!questionId) return;
-    if (authAvailable && !isAuthenticated) {
-      handleSignIn();
-      return;
-    }
     setSelectedId(questionId);
     setEditId(null);
     setSelectedMockAttemptId(null);
