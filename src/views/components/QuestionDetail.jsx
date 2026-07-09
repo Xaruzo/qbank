@@ -14,6 +14,7 @@ export default function QuestionDetail({
   onNext,
   forceShowSolution,
   canManageQuestions,
+  isAuthenticated,
   onRequireAuth,
 }) {
   const [pick, setPick] = useState(null);
@@ -258,7 +259,11 @@ export default function QuestionDetail({
             <Star size={16} fill={question.favorite ? "currentColor" : "none"} />
           </button>
           {!canManageQuestions ? (
-            <button className="qb-edit-btn" onClick={onRequireAuth}>Sign In to Edit</button>
+            isAuthenticated ? (
+              <button className="qb-edit-btn" type="button" disabled>Admin Only</button>
+            ) : (
+              <button className="qb-edit-btn" onClick={onRequireAuth}>Sign In to Edit</button>
+            )
           ) : !confirmDel ? (
             <>
               <button className="qb-edit-btn" onClick={() => onEdit(question)}>Edit</button>

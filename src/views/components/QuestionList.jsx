@@ -1,6 +1,6 @@
 import React from "react";
 import { TOPICS, SORT_OPTIONS } from "../../constants/appConstants";
-import { ClipboardList, ChevronRight, LogIn, Plus, Star } from "lucide-react";
+import { ClipboardList, ChevronRight, Lock, LogIn, Plus, Star } from "lucide-react";
 import MathText from "./MathText";
 
 export default function QuestionList({
@@ -12,9 +12,13 @@ export default function QuestionList({
   onSortChange,
   canManageQuestions,
   authAvailable,
+  isAuthenticated,
   onAddQuestion,
 }) {
   const getTopic = id => TOPICS.find(t => t.id===id) || TOPICS[0];
+  const canAdd = canManageQuestions || !authAvailable;
+  const needsAuth = authAvailable && !isAuthenticated;
+  const isForbidden = authAvailable && isAuthenticated && !canManageQuestions;
 
   return (
     <section className="qb-question-section">
@@ -23,9 +27,14 @@ export default function QuestionList({
           <span className="qb-list-label">Question Feed</span>
           <span className="qb-list-value">{questions.length} shown</span>
         </div>
-        <button type="button" className="qb-add-btn qb-list-add-btn" onClick={onAddQuestion}>
-          {canManageQuestions || !authAvailable ? <Plus size={16} /> : <LogIn size={16} />}
-          {canManageQuestions || !authAvailable ? "Add Question" : "Sign In to Add"}
+        <button
+          type="button"
+          className="qb-add-btn qb-list-add-btn"
+          onClick={isForbidden ? undefined : onAddQuestion}
+          disabled={isForbidden}
+        >
+          {canAdd ? <Plus size={16} /> : needsAuth ? <LogIn size={16} /> : <Lock size={16} />}
+          {canAdd ? "Add Question" : needsAuth ? "Sign In to Add" : "Admin Only"}
         </button>
         <div className="qb-list-meta-right">
           <label className="qb-sort-wrap">

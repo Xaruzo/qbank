@@ -18,6 +18,7 @@ import { storageModel } from "./models/storageModel";
 import { tipsModel } from "./models/tipsModel";
 import { buildMockExamAttempt, buildReviewExamFromAttempt } from "./utils/mockExamAnalytics";
 import { ArrowDown, Home, ClipboardList, Lightbulb } from "lucide-react";
+import { QUESTION_ADMIN_UIDS } from "./constants/appConstants";
 
 const PRO_EXAM_DURATION_MS = (3 * 60 * 60 + 20 * 60) * 1000;
 const PRO_EXAM_TOTAL = 170;
@@ -80,7 +81,8 @@ export default function App() {
   const mockHistoryRef = useRef([]);
   const savedExamSessionsRef = useRef(new Set());
   const qMap = useMemo(() => new Map(qs.map(q => [q.id, q])), [qs]);
-  const canManageQuestions = isAuthenticated || !authAvailable;
+  const isQuestionAdmin = !authAvailable || (isAuthenticated && !!user?.id && QUESTION_ADMIN_UIDS.includes(user.id));
+  const canManageQuestions = isQuestionAdmin;
   const favoriteCount = useMemo(() => qs.filter((q) => q.favorite).length, [qs]);
   const labeledCount = useMemo(() => qs.filter((q) => `${q.label || ""}`.trim().length > 0).length, [qs]);
   const activeTopicCount = useMemo(
@@ -551,7 +553,7 @@ export default function App() {
       handleGoAdd();
       return;
     }
-    await handleSignIn();
+    if (authAvailable && !isAuthenticated) await handleSignIn();
   };
 
   const handleEditQuestionAction = async (question) => {
@@ -559,7 +561,7 @@ export default function App() {
       handleGoEdit(question);
       return;
     }
-    await handleSignIn();
+    if (authAvailable && !isAuthenticated) await handleSignIn();
   };
 
   const handleSignOut = async () => {
@@ -707,6 +709,7 @@ export default function App() {
                   onSortChange={setSortBy}
                   canManageQuestions={canManageQuestions}
                   authAvailable={authAvailable}
+                  isAuthenticated={isAuthenticated}
                   onAddQuestion={handleAddQuestionAction}
                 />
               </div>
@@ -721,6 +724,7 @@ export default function App() {
                 forceShowSolution={deepLinkShowSol}
                 hasNext={!!nextQuestion}
                 canManageQuestions={canManageQuestions}
+                isAuthenticated={isAuthenticated}
                 onRequireAuth={handleSignIn}
                 onNext={() => {
                   if (nextQuestion) handleSelectQuestion(nextQuestion.id);
