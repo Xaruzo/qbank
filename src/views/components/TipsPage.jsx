@@ -47,12 +47,12 @@ export default function TipsPage({
       </div>
 
       <section className="qb-question-section" style={{ marginBottom: 14 }}>
-        <div className="qb-list-meta">
-          <div className="qb-list-meta-left">
+        <div className="qb-list-meta qb-list-meta-tips">
+          <div className="qb-list-meta-left qb-list-meta-left-tips">
             <span className="qb-list-label">Pick a Question</span>
             <span className="qb-list-value">{filteredQuestions.length} shown</span>
           </div>
-          <label className="qb-search-box" style={{ maxWidth: 440 }}>
+          <label className="qb-search-box qb-tips-search-box">
             <span className="qb-search-icon" aria-hidden="true">
               <Search size={18} />
             </span>

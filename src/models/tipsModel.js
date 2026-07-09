@@ -4,6 +4,8 @@ import { supabase } from "../utils/supabaseClient";
 const TIPS_CACHE_KEY = "cse-qbank-tips-cache-v1";
 const TIPS_PENDING_KEY = "cse-qbank-tips-pending-v1";
 const QUESTION_TIPS_TABLE = "question_tips";
+let remoteTipsTableAvailable = true;
+let hasLoggedMissingTipsTable = false;
 
 const safeParse = (raw, fallback) => {
   try {
@@ -138,12 +140,33 @@ const applyPendingToTipsMap = (baseMap, pendingMap) => {
   return next;
 };
 
+const isMissingQuestionTipsTableError = (error) =>
+  !!error
+  && error.code === "PGRST205"
+  && typeof error.message === "string"
+  && error.message.includes(`public.${QUESTION_TIPS_TABLE}`);
+
+const markRemoteTipsUnavailable = () => {
+  remoteTipsTableAvailable = false;
+  if (hasLoggedMissingTipsTable) return;
+  hasLoggedMissingTipsTable = true;
+  console.warn(
+    `Supabase table '${QUESTION_TIPS_TABLE}' is not available. Tips will continue using local storage until the table is created.`
+  );
+};
+
 const fetchRemoteTipsMap = async (userId) => {
+  if (!remoteTipsTableAvailable) return {};
+
   const { data, error } = await supabase
     .from(QUESTION_TIPS_TABLE)
     .select("question_id, tip_text")
     .eq("user_id", userId);
 
+  if (isMissingQuestionTipsTableError(error)) {
+    markRemoteTipsUnavailable();
+    return {};
+  }
   if (error) throw error;
 
   return Array.isArray(data)
@@ -157,6 +180,8 @@ const fetchRemoteTipsMap = async (userId) => {
 };
 
 const syncRemoteTip = async (questionId, text, userId) => {
+  if (!remoteTipsTableAvailable) return;
+
   const { error } = await supabase
     .from(QUESTION_TIPS_TABLE)
     .upsert(
@@ -169,16 +194,26 @@ const syncRemoteTip = async (questionId, text, userId) => {
       { onConflict: "user_id,question_id" }
     );
 
+  if (isMissingQuestionTipsTableError(error)) {
+    markRemoteTipsUnavailable();
+    return;
+  }
   if (error) throw error;
 };
 
 const deleteRemoteTip = async (questionId, userId) => {
+  if (!remoteTipsTableAvailable) return;
+
   const { error } = await supabase
     .from(QUESTION_TIPS_TABLE)
     .delete()
     .eq("user_id", userId)
     .eq("question_id", questionId);
 
+  if (isMissingQuestionTipsTableError(error)) {
+    markRemoteTipsUnavailable();
+    return;
+  }
   if (error) throw error;
 };
 
@@ -239,7 +274,11 @@ export const tipsModel = {
       await writeTipsCache(mergedMap, userId);
       return mergedMap;
     } catch (error) {
+      if (isMissingQuestionTipsTableError(error)) {
+        markRemoteTipsUnavailable();
+      } else {
       console.error("Failed to load tips from Supabase:", error);
+      }
       return applyPendingToTipsMap(cachedMap, pendingMap);
     }
   },
@@ -297,6 +336,7 @@ export const tipsModel = {
 
   async flushPending(userId) {
     if (!userId || !supabase) return false;
+    if (!remoteTipsTableAvailable) return false;
     if (typeof navigator !== "undefined" && navigator.onLine === false) return false;
 
     const pending = Object.values(await readPendingMap(userId)).sort((a, b) =>
