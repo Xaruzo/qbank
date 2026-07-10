@@ -20,7 +20,7 @@ import { buildMockExamAttempt, buildReviewExamFromAttempt } from "./utils/mockEx
 import { ArrowDown, Home, ClipboardList, Lightbulb } from "lucide-react";
 import { QUESTION_ADMIN_UIDS } from "./constants/appConstants";
 
-const PRO_EXAM_DURATION_MS = (3 * 60 * 60 + 20 * 60) * 1000;
+const PRO_EXAM_DURATION_MS = (3 * 60 * 60 + 10 * 60) * 1000;
 const PRO_EXAM_TOTAL = 170;
 
 const shuffleIds = (ids) => {

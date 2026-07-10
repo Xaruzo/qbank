@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { ArrowUpRight, PlayCircle, RotateCcw } from "lucide-react";
 import { formatAttemptDate, formatExamDuration } from "../../utils/mockExamAnalytics";
 
-const DURATION_MS = (3 * 60 * 60 + 20 * 60) * 1000;
+const DURATION_MS = (3 * 60 * 60 + 10 * 60) * 1000;
 
 export default function MockExam({
   totalQuestions,
