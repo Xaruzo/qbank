@@ -538,8 +538,10 @@ export const storageModel = {
           }
           await this.setRemoteDeletedIds(remoteDeleted);
 
+          // Add all local questions to merged and pending if not in remote
           for (const q of local) {
             if (!q || !q.id) continue;
+            
             if (pendingIds.has(q.id)) {
               if (!remoteIds.has(q.id) && syncedOnceIds.has(q.id)) {
                 await this.dequeuePendingUpsert(q.id);
@@ -549,10 +551,19 @@ export const storageModel = {
               continue;
             }
 
-            if (!remoteIds.has(q.id)) continue;
+            if (!remoteIds.has(q.id)) {
+              // Local question not in remote - add to merged and pending upserts
+              merged.set(q.id, q);
+              await this.enqueuePendingUpsert(q);
+              continue;
+            }
 
+            // Question exists in both - use the newer one
             const remote = merged.get(q.id);
-            if (remote && parseTime(q.dateAdded) > parseTime(remote.dateAdded)) merged.set(q.id, q);
+            if (remote && parseTime(q.dateAdded) > parseTime(remote.dateAdded)) {
+              merged.set(q.id, q);
+              await this.enqueuePendingUpsert(q);
+            }
           }
 
           return JSON.stringify(Array.from(merged.values()));

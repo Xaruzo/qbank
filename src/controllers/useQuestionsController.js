@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { KEY, SAMPLES, TOPICS } from "../constants/appConstants";
 import { storageModel } from "../models/storageModel";
+import { supabase } from "../utils/supabaseClient";
 
 export function useQuestionsController() {
   const [qs, setQs] = useState([]);
@@ -53,6 +54,28 @@ export function useQuestionsController() {
     };
     window.addEventListener("online", onOnline);
     return () => window.removeEventListener("online", onOnline);
+  }, []);
+
+  // Real-time subscription to questions table
+  useEffect(() => {
+    if (!supabase) return;
+
+    const channel = supabase
+      .channel("public:questions")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "questions" },
+        async (payload) => {
+          console.log("Realtime update received:", payload);
+          // Refresh questions from Supabase
+          await init();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   async function init() {
