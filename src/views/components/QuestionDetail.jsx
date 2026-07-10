@@ -31,6 +31,7 @@ export default function QuestionDetail({
   const expandedImgRef = useRef(null);
   const lastTapRef = useRef({ t: 0, x: 0, y: 0 });
   const suppressPointerTapRef = useRef(false);
+  const lastMouseClickRef = useRef({ t: 0, x: 0, y: 0 });
 
   const topic = TOPICS.find(t => t.id === question.topic) || TOPICS[0];
   const label = typeof question.label === "string" ? question.label.trim() : "";
@@ -105,6 +106,21 @@ export default function QuestionDetail({
   const toggleExpandedZoom = (clientX, clientY) => {
     const nextZoom = expandedZoom === 1 ? 2 : 1;
     zoomExpandedAt(clientX, clientY, nextZoom);
+  };
+
+  const handleExpandedMouseDown = (e) => {
+    if (e.pointerType === "touch") return; // Let touch events be handled separately
+    const now = Date.now();
+    const last = lastMouseClickRef.current;
+    const dx = e.clientX - last.x;
+    const dy = e.clientY - last.y;
+    if ((now - last.t) < 420 && (dx * dx + dy * dy) < 1600) {
+      lastMouseClickRef.current = { t: 0, x: 0, y: 0 };
+      toggleExpandedZoom(e.clientX, e.clientY);
+      e.preventDefault();
+      return;
+    }
+    lastMouseClickRef.current = { t: now, x: e.clientX, y: e.clientY };
   };
 
   const handleExpandedTouchEnd = (e) => {
@@ -189,7 +205,7 @@ export default function QuestionDetail({
             <div
               className="qb-modal-scroll"
               ref={expandedScrollRef}
-              onDoubleClick={(e) => toggleExpandedZoom(e.clientX, e.clientY)}
+              onMouseDown={handleExpandedMouseDown}
               onTouchEnd={handleExpandedTouchEnd}
               onPointerUp={(e) => {
                 if (e.pointerType !== "touch") return;
@@ -206,17 +222,15 @@ export default function QuestionDetail({
                 src={solImg}
                 alt="expanded solution"
                 className="qb-modal-img"
-                onDoubleClick={(e) => {
-                  e.stopPropagation();
-                  toggleExpandedZoom(e.clientX, e.clientY);
-                }}
+                onMouseDown={handleExpandedMouseDown}
                 style={{
                   width: `${expandedZoom * 100}%`,
                   maxWidth: expandedZoom === 1 ? "100%" : "none",
                   maxHeight: expandedZoom === 1 ? "80vh" : "none",
                   cursor: expandedZoom === 1 ? "zoom-in" : "zoom-out",
                   touchAction: "manipulation",
-                  userSelect: "none"
+                  userSelect: "none",
+                  pointerEvents: "auto"
                 }}
               />
             </div>
