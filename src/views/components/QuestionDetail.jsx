@@ -199,18 +199,24 @@ export default function QuestionDetail({
                   } catch {}
                 }
               }}
+              style={{ userSelect: "none" }}
             >
               <img
                 ref={expandedImgRef}
                 src={solImg}
                 alt="expanded solution"
                 className="qb-modal-img"
+                onDoubleClick={(e) => {
+                  e.stopPropagation();
+                  toggleExpandedZoom(e.clientX, e.clientY);
+                }}
                 style={{
                   width: `${expandedZoom * 100}%`,
                   maxWidth: expandedZoom === 1 ? "100%" : "none",
                   maxHeight: expandedZoom === 1 ? "80vh" : "none",
                   cursor: expandedZoom === 1 ? "zoom-in" : "zoom-out",
-                  touchAction: "manipulation"
+                  touchAction: "manipulation",
+                  userSelect: "none"
                 }}
               />
             </div>
