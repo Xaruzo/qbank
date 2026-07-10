@@ -631,10 +631,16 @@ export const storageModel = {
   },
 
   async delete(id) {
+    console.log("Deleting question with id:", id);
     if (supabase) {
       try {
+        console.log("Attempting to delete from Supabase...");
         const { error } = await supabase.from('questions').delete().eq('id', id);
-        if (error) console.error("Supabase delete error:", error);
+        if (error) {
+          console.error("Supabase delete error:", error);
+        } else {
+          console.log("✅ Question deleted from Supabase successfully!");
+        }
       } catch (e) {
         console.warn("Supabase delete failed:", e);
       }
