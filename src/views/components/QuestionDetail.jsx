@@ -218,13 +218,15 @@ export default function QuestionDetail({
         </div>
       )}
       <div className="qb-det-hdr">
-        <button className="qb-back" onClick={onBack} style={{ display: "flex", alignItems: "center" }}>
-          <ChevronLeft size={16} style={{ marginRight: 4 }} />
-          Back
-        </button>
-        <span className="qb-badge" style={{ color:topic.color, background:`${topic.color}20`, padding:"4px 10px", borderRadius:5 }}>
-          {topic.label}
-        </span>
+        <div className="qb-det-meta">
+          <button className="qb-back" onClick={onBack} style={{ display: "flex", alignItems: "center" }}>
+            <ChevronLeft size={16} style={{ marginRight: 4 }} />
+            Back
+          </button>
+          <span className="qb-badge" style={{ color:topic.color, background:`${topic.color}20`, padding:"4px 10px", borderRadius:5 }}>
+            {topic.label}
+          </span>
+        </div>
         <div className="qb-det-actions">
           <span className="qb-timer">{answerTimeText}</span>
           <button
