@@ -50,7 +50,7 @@ export function useQuestionsController() {
 
   useEffect(() => {
     const onOnline = () => {
-      flushPendingUpserts();
+      init();
     };
     window.addEventListener("online", onOnline);
     return () => window.removeEventListener("online", onOnline);
@@ -136,17 +136,25 @@ export function useQuestionsController() {
       remoteDeleted = new Set();
     }
 
-    for (const q of pending) {
-      if (!q || !q.id) continue;
-      if (remoteDeleted.has(q.id)) {
+    for (const op of pending) {
+      if (!op || !op.id) continue;
+      if (remoteDeleted.has(op.id)) {
         try {
-          await storageModel.dequeuePendingUpsert(q.id);
+          await storageModel.dequeuePendingUpsert(op.id);
         } catch {}
         continue;
       }
       try {
-        await storageModel.syncQuestion(q);
-        await storageModel.dequeuePendingUpsert(q.id);
+        if (op.type === "delete") {
+          await storageModel.syncQuestionDelete(op.id, op.deletedAt || op.updatedAt);
+        } else if (op.question) {
+          const result = await storageModel.syncQuestion(op.question);
+          if (result?.status === "remote_deleted" || result?.status === "stale_remote") {
+            await storageModel.dequeuePendingUpsert(op.id);
+            continue;
+          }
+        }
+        await storageModel.dequeuePendingUpsert(op.id);
       } catch {}
     }
   }
@@ -157,14 +165,19 @@ export function useQuestionsController() {
       id: editId || Date.now().toString(),
       ...form,
       dateAdded: previous?.dateAdded || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       favorite: previous?.favorite || false,
     };
     const nextQs = editId ? qs.map(x => x.id === editId ? q : x) : [...qs, q];
     
     // First, sync to remote database if available
     try {
-      await storageModel.syncQuestion(q);
+      const result = await storageModel.syncQuestion(q);
       await storageModel.dequeuePendingUpsert(q.id);
+      if (result?.status === "remote_deleted" || result?.status === "stale_remote") {
+        await init();
+        return null;
+      }
     } catch (e) {
       console.warn("Remote sync failed, will only save locally:", e);
       await storageModel.enqueuePendingUpsert(q);

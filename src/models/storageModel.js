@@ -19,6 +19,54 @@ const parseTime = (value) => {
   return Number.isFinite(t) ? t : 0;
 };
 
+const getQuestionUpdatedTime = (questionLike) => (
+  parseTime(
+    questionLike?.updatedAt
+    || questionLike?.updated_at
+    || questionLike?.deletedAt
+    || questionLike?.deleted_at
+    || questionLike?.dateAdded
+    || questionLike?.created_at
+    || ""
+  )
+);
+
+const isQuestionDeleted = (questionLike) => !!(
+  questionLike?.deletedAt
+  || questionLike?.deleted_at
+);
+
+const normalizePendingQuestionOperation = (entry, fallbackId = null) => {
+  if (!entry) return null;
+
+  if (entry.type === "delete" && (entry.id || fallbackId)) {
+    return {
+      id: entry.id || fallbackId,
+      type: "delete",
+      deletedAt: entry.deletedAt || entry.updatedAt || null,
+      updatedAt: entry.updatedAt || entry.deletedAt || null,
+    };
+  }
+
+  if (entry.type === "upsert" && entry.question?.id) {
+    return {
+      id: entry.question.id,
+      type: "upsert",
+      question: entry.question,
+    };
+  }
+
+  if (entry.id) {
+    return {
+      id: entry.id,
+      type: "upsert",
+      question: entry,
+    };
+  }
+
+  return null;
+};
+
 const sortMockExamHistory = (history) => (
   [...history].sort((a, b) => {
     const timeDiff = parseTime(b?.completedAt) - parseTime(a?.completedAt);
@@ -405,12 +453,32 @@ export const storageModel = {
 
   async listPendingUpserts() {
     const map = await this.getPendingUpsertsMap();
-    return Object.values(map || {});
+    return Object.entries(map || {})
+      .map(([id, entry]) => normalizePendingQuestionOperation(entry, id))
+      .filter(Boolean);
   },
 
   async enqueuePendingUpsert(q) {
+    if (!q?.id) return;
     const map = await this.getPendingUpsertsMap();
-    map[q.id] = q;
+    map[q.id] = {
+      id: q.id,
+      type: "upsert",
+      question: q,
+    };
+    await this.setPendingUpsertsMap(map);
+  },
+
+  async enqueuePendingDelete(id) {
+    if (!id) return;
+    const deletedAt = new Date().toISOString();
+    const map = await this.getPendingUpsertsMap();
+    map[id] = {
+      id,
+      type: "delete",
+      deletedAt,
+      updatedAt: deletedAt,
+    };
     await this.setPendingUpsertsMap(map);
   },
 
@@ -491,6 +559,20 @@ export const storageModel = {
     localStorage.setItem(key, value);
   },
 
+  async markRemoteDeleted(id) {
+    if (!id) return;
+    const ids = new Set(await this.getRemoteDeletedIds());
+    ids.add(id);
+    await this.setRemoteDeletedIds(Array.from(ids));
+  },
+
+  async clearRemoteDeleted(id) {
+    if (!id) return;
+    const ids = new Set(await this.getRemoteDeletedIds());
+    if (!ids.delete(id)) return;
+    await this.setRemoteDeletedIds(Array.from(ids));
+  },
+
   async get(key) {
     // 1. Try Supabase for shared global pool (Questions only)
     if (supabase && key === "cse-qbank-v1") {
@@ -506,8 +588,11 @@ export const storageModel = {
             ...q,
             label: typeof q.label === "string" ? q.label : "",
             solutionDraw: q.solution_draw, // Map back
-            dateAdded: q.created_at
+            dateAdded: q.created_at,
+            updatedAt: q.updated_at || q.deleted_at || q.created_at,
+            deletedAt: q.deleted_at || null,
           }));
+          const visibleRemoteData = mappedData.filter(q => !q.deletedAt);
 
           let local = [];
           try {
@@ -517,41 +602,81 @@ export const storageModel = {
           }
 
           const pendingMap = await this.getPendingUpsertsMap();
-          const pendingIds = new Set(Object.keys(pendingMap || {}));
+          const pendingOperations = Object.fromEntries(
+            Object.entries(pendingMap || {})
+              .map(([id, entry]) => [id, normalizePendingQuestionOperation(entry, id)])
+              .filter(([, entry]) => !!entry)
+          );
           const syncedOnceIds = new Set(await this.getSyncedOnceIds());
-
-          const parseTime = (v) => {
-            const t = Date.parse(v || "");
-            return Number.isFinite(t) ? t : 0;
-          };
 
           const merged = new Map();
           const remoteIds = new Set();
-          for (const q of mappedData) {
+          const remoteRecords = new Map(mappedData.map(q => [q.id, q]));
+          const remoteAllIds = new Set(remoteRecords.keys());
+          const remoteDeleted = new Set(
+            mappedData
+              .filter(q => !!q.deletedAt)
+              .map(q => q.id)
+          );
+          for (const q of visibleRemoteData) {
             merged.set(q.id, q);
             remoteIds.add(q.id);
           }
 
-          const remoteDeleted = [];
           for (const id of syncedOnceIds) {
-            if (!remoteIds.has(id)) remoteDeleted.push(id);
+            if (!remoteAllIds.has(id)) remoteDeleted.add(id);
           }
-          await this.setRemoteDeletedIds(remoteDeleted);
+          for (const op of Object.values(pendingOperations)) {
+            if (op?.type === "delete") merged.delete(op.id);
+          }
+          await this.setRemoteDeletedIds(Array.from(remoteDeleted));
 
           // Add all local questions to merged and pending if not in remote
           for (const q of local) {
             if (!q || !q.id) continue;
-            
-            if (pendingIds.has(q.id)) {
-              if (!remoteIds.has(q.id) && syncedOnceIds.has(q.id)) {
+
+            const pendingOp = pendingOperations[q.id];
+            const remoteRecord = remoteRecords.get(q.id) || null;
+            const remoteUpdatedTime = getQuestionUpdatedTime(remoteRecord);
+            const localUpdatedTime = getQuestionUpdatedTime(q);
+            const pendingUpdatedTime = getQuestionUpdatedTime(
+              pendingOp?.type === "upsert" ? pendingOp.question : pendingOp
+            );
+
+            if (pendingOp?.type === "delete") {
+              if (remoteDeleted.has(q.id)) {
                 await this.dequeuePendingUpsert(q.id);
                 continue;
               }
-              merged.set(q.id, q);
+              if (remoteRecord && remoteUpdatedTime > pendingUpdatedTime) {
+                await this.dequeuePendingUpsert(q.id);
+                if (!remoteRecord.deletedAt) merged.set(q.id, remoteRecord);
+              }
+              continue;
+            }
+
+            if (pendingOp?.type === "upsert") {
+              if (remoteDeleted.has(q.id) || isQuestionDeleted(remoteRecord)) {
+                await this.dequeuePendingUpsert(q.id);
+                continue;
+              }
+              if (remoteRecord && remoteUpdatedTime > pendingUpdatedTime) {
+                await this.dequeuePendingUpsert(q.id);
+                continue;
+              }
+              merged.set(q.id, pendingOp.question || q);
+              continue;
+            }
+
+            if (remoteDeleted.has(q.id)) {
+              try {
+                await this.dequeuePendingUpsert(q.id);
+              } catch {}
               continue;
             }
 
             if (!remoteIds.has(q.id)) {
+              if (syncedOnceIds.has(q.id)) continue;
               // Local question not in remote - add to merged and pending upserts
               merged.set(q.id, q);
               await this.enqueuePendingUpsert(q);
@@ -560,7 +685,7 @@ export const storageModel = {
 
             // Question exists in both - use the newer one
             const remote = merged.get(q.id);
-            if (remote && parseTime(q.dateAdded) > parseTime(remote.dateAdded)) {
+            if (remote && localUpdatedTime > getQuestionUpdatedTime(remote)) {
               merged.set(q.id, q);
               await this.enqueuePendingUpsert(q);
             }
@@ -593,7 +718,31 @@ export const storageModel = {
    */
   async syncQuestion(q) {
     if (!supabase) return;
+    const updatedAt = q.updatedAt || new Date().toISOString();
     try {
+      const { data: existingRow, error: existingError } = await supabase
+        .from('questions')
+        .select('id, updated_at, deleted_at')
+        .eq('id', q.id)
+        .maybeSingle();
+
+      if (existingError) throw existingError;
+
+      const remoteUpdatedTime = getQuestionUpdatedTime(existingRow);
+      const localUpdatedTime = getQuestionUpdatedTime({ ...q, updatedAt });
+
+      if (isQuestionDeleted(existingRow)) {
+        await this.markSyncedOnce(q.id);
+        await this.markRemoteDeleted(q.id);
+        await this.dequeuePendingUpsert(q.id);
+        return { status: "remote_deleted" };
+      }
+
+      if (existingRow && remoteUpdatedTime > localUpdatedTime) {
+        await this.markSyncedOnce(q.id);
+        return { status: "stale_remote" };
+      }
+
       const { error } = await supabase
         .from('questions')
         .upsert({
@@ -605,13 +754,36 @@ export const storageModel = {
           correct: q.correct,
           solution: q.solution,
           solution_draw: q.solutionDraw, // Correct column name
-          created_at: q.dateAdded
-        });
+          created_at: q.dateAdded,
+          updated_at: updatedAt,
+          deleted_at: null,
+        }, { onConflict: 'id' });
       
       if (error) throw error;
       await this.markSyncedOnce(q.id);
+      await this.clearRemoteDeleted(q.id);
+      return { status: "synced" };
     } catch (e) {
       console.error("Supabase sync failed:", e);
+      throw e;
+    }
+  },
+
+  async syncQuestionDelete(id, deletedAt = new Date().toISOString()) {
+    if (!supabase || !id) return;
+    try {
+      const { error } = await supabase
+        .from('questions')
+        .update({
+          deleted_at: deletedAt,
+          updated_at: deletedAt,
+        })
+        .eq('id', id);
+      if (error) throw error;
+      await this.markSyncedOnce(id);
+      await this.markRemoteDeleted(id);
+    } catch (e) {
+      console.error("Supabase soft delete failed:", e);
       throw e;
     }
   },
@@ -632,17 +804,16 @@ export const storageModel = {
 
   async delete(id) {
     console.log("Deleting question with id:", id);
+    await this.dequeuePendingUpsert(id);
+
     if (supabase) {
       try {
-        console.log("Attempting to delete from Supabase...");
-        const { error } = await supabase.from('questions').delete().eq('id', id);
-        if (error) {
-          console.error("Supabase delete error:", error);
-        } else {
-          console.log("✅ Question deleted from Supabase successfully!");
-        }
+        console.log("Attempting to soft delete from Supabase...");
+        await this.syncQuestionDelete(id);
+        console.log("✅ Question soft deleted from Supabase successfully!");
       } catch (e) {
-        console.warn("Supabase delete failed:", e);
+        console.warn("Supabase soft delete failed, queueing pending delete:", e);
+        await this.enqueuePendingDelete(id);
       }
     }
   }
