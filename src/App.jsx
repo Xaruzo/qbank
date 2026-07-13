@@ -574,6 +574,16 @@ export default function App() {
   const selectedMockAttempt = mockHistory.find((attempt) => attempt.id === selectedMockAttemptId) || null;
   const selectedIndexInFiltered = filteredQuestions.findIndex(q => q.id === selectedId);
   const nextQuestion = selectedIndexInFiltered >= 0 ? filteredQuestions[selectedIndexInFiltered + 1] : null;
+  const primaryView = view === "mock" || view === "mockRun" || view === "mockAttempt"
+    ? "mock"
+    : view === "tips" || view === "tipDetail"
+      ? "tips"
+      : "home";
+  const mobileNavItems = [
+    { id: "home", label: "Home", icon: Home, onClick: handleGoHome },
+    { id: "mock", label: "Mock", icon: ClipboardList, onClick: handleGoMockExam },
+    { id: "tips", label: "Tips", icon: Lightbulb, onClick: () => handleGoTips() },
+  ];
 
   const scrollToBottom = () => {
     const el = mainRef.current;
@@ -595,7 +605,7 @@ export default function App() {
           isDark={isDark} 
           onToggleTheme={toggleTheme} 
           onHome={handleGoHome}
-          showNavToggle={true}
+          showNavToggle={!isMobile}
           navOpen={navOpen}
           onToggleNav={() => setNavOpen(v => !v)}
           authAvailable={authAvailable}
@@ -641,7 +651,7 @@ export default function App() {
           {!isMobile && (
             <SideNav
               open={navOpen}
-              active={view === "mock" || view === "mockRun" || view === "mockAttempt" ? "mock" : view === "tips" || view === "tipDetail" ? "tips" : "home"}
+              active={primaryView}
               onHome={handleGoHome}
               onMockExam={handleGoMockExam}
               onTips={() => handleGoTips()}
@@ -831,6 +841,26 @@ export default function App() {
             </div>
           </main>
         </div>
+        {isMobile && view !== "mockRun" && (
+          <nav className="qb-mobile-tabbar" aria-label="Primary">
+            {mobileNavItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = primaryView === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`qb-mobile-tab${isActive ? " on" : ""}`}
+                  onClick={item.onClick}
+                  aria-current={isActive ? "page" : undefined}
+                >
+                  <Icon size={18} />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        )}
         {showScrollBottom && (
           <button
             type="button"

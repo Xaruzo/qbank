@@ -3,7 +3,7 @@ import { TOPICS, LETTERS, PROBLEM_LABELS } from "../../constants/appConstants";
 import DrawCanvas from "./DrawCanvas";
 import SymbolToolbar from "./SymbolToolbar";
 import { handleSymbolShortcuts } from "../../utils/symbolShortcuts";
-import { ChevronLeft, ChevronDown, Type, Pencil } from "lucide-react";
+import { ChevronLeft, ChevronDown, Type, Pencil, Image } from "lucide-react";
 
 export default function QuestionForm({ initialData, onSave, onCancel, layersHost }) {
   const [form, setForm] = useState(initialData ? {
@@ -15,10 +15,11 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
     correct: 0,
     solution: "",
     solutionDraw: null,
+    solutionUpload: null,
     topic: "numerical",
     label: "",
   });
-  const [solMode, setSolMode] = useState(form.solutionDraw ? "draw" : "text");
+  const [solMode, setSolMode] = useState(form.solutionDraw ? "draw" : form.solutionUpload ? "upload" : "text");
   const [error, setError] = useState("");
   const [topicOpen, setTopicOpen] = useState(false);
   const topicRef = useRef(null);
@@ -134,6 +135,10 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
               <Pencil size={14} style={{ marginRight: 6 }} />
               Draw
             </button>
+            <button className={`sol-tab${solMode==="upload"?" sol-on":""}`} onClick={() => setSolMode("upload")} style={{ display: "flex", alignItems: "center" }}>
+              <Image size={14} style={{ marginRight: 6 }} />
+              Upload
+            </button>
           </div>
         </div>
 
@@ -151,6 +156,43 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
               onChange={v => setForm(f => ({ ...f, solution: v }))}
             />
           </>
+        ) : solMode==="upload" ? (
+          <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+            {form.solutionUpload ? (
+              <div style={{ position:"relative", display:"inline-block" }}>
+                <img src={form.solutionUpload} alt="uploaded solution" style={{ maxWidth:"100%", borderRadius:12, border:"1px solid var(--border)", display:"block" }} />
+                <button
+                  type="button"
+                  className="qb-fcancel"
+                  style={{ position:"absolute", top:8, right:8, padding:"4px 10px", fontSize:12 }}
+                  onClick={() => setForm(f => ({...f, solutionUpload: null}))}
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <label style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:10, padding:"32px 20px", borderRadius:12, border:"2px dashed var(--border)", cursor:"pointer", background:"var(--input-bg)" }}>
+                <Image size={32} style={{ color:"var(--text-faint)" }} />
+                <span style={{ color:"var(--text-muted)", fontSize:14, fontWeight:600 }}>Click to upload an image or screenshot</span>
+                <span style={{ color:"var(--text-faint)", fontSize:12 }}>PNG, JPG, GIF, WEBP</span>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/gif,image/webp"
+                  style={{ display:"none" }}
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                      setForm(f => ({...f, solutionUpload: ev.target?.result}));
+                    };
+                    reader.readAsDataURL(file);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            )}
+          </div>
         ) : (
           <DrawCanvas value={form.solutionDraw} onChange={v => setForm(f => ({...f, solutionDraw:v}))} layersHost={layersHost} />
         )}

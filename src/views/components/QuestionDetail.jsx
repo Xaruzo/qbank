@@ -35,7 +35,7 @@ export default function QuestionDetail({
 
   const topic = TOPICS.find(t => t.id === question.topic) || TOPICS[0];
   const label = typeof question.label === "string" ? question.label.trim() : "";
-  const solImg = question.solutionDraw ? (typeof question.solutionDraw === 'string' ? question.solutionDraw : question.solutionDraw.dataURL) : null;
+  const solImg = question.solutionDraw ? (typeof question.solutionDraw === 'string' ? question.solutionDraw : question.solutionDraw.dataURL) : question.solutionUpload || null;
 
   useEffect(() => {
     setPick(null);
@@ -338,26 +338,26 @@ export default function QuestionDetail({
             <ChevronRight size={16} />
           </button>
         </div>
-        {canRevealSolution && (question.solution||question.solutionDraw) && !showSol && (
+        {canRevealSolution && (question.solution||question.solutionDraw||question.solutionUpload) && !showSol && (
           <button className="qb-reveal" onClick={() => setShowSol(true)} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%" }}>
             Show Solution
             <ChevronDown size={16} style={{ marginLeft: 6 }} />
           </button>
         )}
-        {showSol && (question.solution||question.solutionDraw) && (
+        {showSol && (question.solution||question.solutionDraw||question.solutionUpload) && (
                   <div className="qb-sol">
                     <div className="qb-sol-title">Solution</div>
                     {question.solution && <div className="qb-sol-body"><MarkdownText text={question.solution} /></div>}
-                    {question.solutionDraw && (
+                    {(question.solutionDraw||question.solutionUpload) && (
                       <div style={{ cursor: "zoom-in" }} onClick={() => setExpanded(true)}>
                         <img 
                           src={solImg} 
-                          alt="drawn solution"
+                          alt="solution"
                           style={{ width:"100%", borderRadius:6, display:"block", marginTop:question.solution?14:0, border:"1px solid var(--border)" }}
                         />
                         <p className="qb-expand-hint" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
                           <Search size={12} style={{ marginRight: 4 }} />
-                          Click to expand drawing
+                          Click to expand
                         </p>
                       </div>
                     )}

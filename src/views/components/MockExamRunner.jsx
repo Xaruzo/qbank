@@ -85,7 +85,7 @@ export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit }) {
     });
   };
   const pick = currentId ? (exam.answers[currentId] ?? null) : null;
-  const solImg = q?.solutionDraw ? (typeof q.solutionDraw === "string" ? q.solutionDraw : q.solutionDraw.dataURL) : null;
+  const solImg = q?.solutionDraw ? (typeof q.solutionDraw === "string" ? q.solutionDraw : q.solutionDraw.dataURL) : q?.solutionUpload || null;
   const totalCount = Number.isFinite(exam.totalCount) ? exam.totalCount : exam.orderIds.length;
   const reviewMap = exam.review || {};
   const isMarkedReview = currentId ? !!reviewMap[currentId] : false;
@@ -450,27 +450,27 @@ export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit }) {
                 );
               })}
 
-              {showReview && (q.solution || q.solutionDraw) && !showSol && (
+              {showReview && (q.solution || q.solutionDraw || q.solutionUpload) && !showSol && (
                 <button className="qb-reveal" onClick={() => setShowSol(true)} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%" }}>
                   Show Solution
                   <ChevronRight size={16} style={{ marginLeft: 6 }} />
                 </button>
               )}
 
-              {showReview && showSol && (q.solution || q.solutionDraw) && (
+              {showReview && showSol && (q.solution || q.solutionDraw || q.solutionUpload) && (
                 <div className="qb-sol">
                   <div className="qb-sol-title">Solution</div>
                   {q.solution && <div className="qb-sol-body"><MarkdownText text={q.solution} /></div>}
-                  {q.solutionDraw && (
+                  {(q.solutionDraw || q.solutionUpload) && (
                     <div style={{ cursor: "zoom-in" }} onClick={() => setExpanded(true)}>
                       <img
                         src={solImg}
-                        alt="drawn solution"
+                        alt="solution"
                         style={{ width: "100%", borderRadius: 6, display: "block", marginTop: q.solution ? 14 : 0, border: "1px solid var(--border)" }}
                       />
                       <p className="qb-expand-hint" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
                         <Search size={12} style={{ marginRight: 4 }} />
-                        Click to expand drawing
+                        Click to expand
                       </p>
                     </div>
                   )}
