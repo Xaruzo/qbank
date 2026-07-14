@@ -179,22 +179,17 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
         ) : solMode==="upload" ? (
           <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
             {form.solutionUpload ? (
-              <div style={{ position:"relative", display:"inline-block" }}>
-                <img src={form.solutionUpload} alt="uploaded solution" style={{ maxWidth:"100%", borderRadius:12, border:"1px solid var(--border)", display:"block" }} />
-                <button
-                  type="button"
-                  className="qb-fcancel"
-                  style={{ position:"absolute", top:8, right:8, padding:"4px 10px", fontSize:12 }}
-                  onClick={() => setForm(f => ({...f, solutionUpload: null}))}
-                >
-                  Remove
+              <div className="qb-upload-preview">
+                <img src={form.solutionUpload} alt="uploaded solution" />
+                <button type="button" className="qb-upload-remove" onClick={() => setForm(f => ({...f, solutionUpload: null}))}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
               </div>
             ) : (
-              <label style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:10, padding:"32px 20px", borderRadius:12, border:"2px dashed var(--border)", cursor:"pointer", background:"var(--input-bg)" }}>
-                <Image size={32} style={{ color:"var(--text-faint)" }} />
-                <span style={{ color:"var(--text-muted)", fontSize:14, fontWeight:600 }}>Click to upload an image or screenshot</span>
-                <span style={{ color:"var(--text-faint)", fontSize:12 }}>PNG, JPG, GIF, WEBP</span>
+              <label className="qb-upload-label">
+                <Image size={32} />
+                <span>Click to upload an image or screenshot</span>
+                <span>PNG, JPG, GIF, WEBP</span>
                 <input
                   type="file"
                   accept="image/png,image/jpeg,image/gif,image/webp"
