@@ -134,11 +134,9 @@ const writeMockHistoryCache = async (key, history) => {
     try {
       await window.storage.set(key, value);
       return;
-    } catch (e) {
-      console.warn(`window.storage.set failed for key ${key}:`, e);
-    }
+    } catch (_) {}
   }
-  localStorage.setItem(key, value);
+  try { localStorage.setItem(key, value); } catch (_) {}
 };
 
 const normalizeMockExamAttempt = (row) => {
@@ -245,7 +243,7 @@ export const storageModel = {
       }
     }
 
-    localStorage.setItem(key, value);
+    try { localStorage.setItem(key, value); } catch (_) {}
   },
 
   async clearActiveMockExam(userId) {
@@ -416,7 +414,7 @@ export const storageModel = {
         console.warn(`window.storage.set failed for key ${key}:`, e);
       }
     }
-    localStorage.setItem(key, value);
+    try { localStorage.setItem(key, value); } catch (_) {}
   },
 
   async getPendingUpsertsMap() {
@@ -448,7 +446,7 @@ export const storageModel = {
         console.warn(`window.storage.set failed for key ${key}:`, e);
       }
     }
-    localStorage.setItem(key, value);
+    try { localStorage.setItem(key, value); } catch (_) {}
   },
 
   async listPendingUpserts() {
@@ -518,7 +516,7 @@ export const storageModel = {
         console.warn(`window.storage.set failed for key ${key}:`, e);
       }
     }
-    localStorage.setItem(key, value);
+    try { localStorage.setItem(key, value); } catch (_) {}
   },
 
   async markSyncedOnce(id) {
@@ -556,7 +554,7 @@ export const storageModel = {
         console.warn(`window.storage.set failed for key ${key}:`, e);
       }
     }
-    localStorage.setItem(key, value);
+    try { localStorage.setItem(key, value); } catch (_) {}
   },
 
   async markRemoteDeleted(id) {
@@ -799,7 +797,7 @@ export const storageModel = {
         console.warn(`window.storage.set failed for key ${key}:`, e);
       }
     }
-    localStorage.setItem(key, value);
+    try { localStorage.setItem(key, value); } catch (_) {}
   },
 
   async delete(id) {

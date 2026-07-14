@@ -78,7 +78,7 @@ const writeValue = async (key, value) => {
       return;
     } catch {}
   }
-  localStorage.setItem(key, value);
+  try { localStorage.setItem(key, value); } catch (_) {}
 };
 
 const getTipsCacheKey = (userId) => (userId ? `${TIPS_CACHE_KEY}:${userId}` : TIPS_KEY);
