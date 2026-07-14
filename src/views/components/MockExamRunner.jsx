@@ -274,10 +274,15 @@ export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit }) {
 
   const onPick = (i) => {
     if (!q || finished) return;
-    onUpdateExam((prev) => ({
-      ...prev,
-      answers: { ...prev.answers, [q.id]: i }
-    }));
+    onUpdateExam((prev) => {
+      const nextReview = { ...(prev.review || {}) };
+      delete nextReview[q.id];
+      return {
+        ...prev,
+        answers: { ...prev.answers, [q.id]: i },
+        review: nextReview
+      };
+    });
   };
 
   if (!q) {
