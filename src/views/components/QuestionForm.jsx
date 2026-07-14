@@ -189,10 +189,10 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
               <label className="qb-upload-label">
                 <Image size={32} />
                 <span>Click to upload an image or screenshot</span>
-                <span>PNG, JPG, GIF, WEBP</span>
+                <span>PNG, JPG, WEBP</span>
                 <input
                   type="file"
-                  accept="image/png,image/jpeg,image/gif,image/webp"
+                  accept="image/png,image/jpeg,image/webp"
                   style={{ display:"none" }}
                   onChange={e => {
                     const file = e.target.files?.[0];
