@@ -220,6 +220,7 @@ body {
   font-weight:700;
   cursor:pointer;
 }
+.qb:not(.light) .qb-mobile-tab { color:#fff; }
 .qb-mobile-tab.on {
   color:#f5a623;
   background:rgba(245,166,35,.12);
