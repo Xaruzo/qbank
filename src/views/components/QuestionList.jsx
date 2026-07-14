@@ -40,7 +40,7 @@ export default function QuestionList({
           <label className="qb-sort-wrap">
             <span className="qb-sort-label">Sort</span>
             <div className="qb-sort-input-wrap">
-              <select className="qb-sort" value={sortBy} onChange={e => { onSortChange(e.target.value); e.target.blur(); }}>
+              <select className="qb-sort" value={sortBy} onChange={e => { onSortChange(e.target.value); setTimeout(() => e.target.blur(), 0); }}>
                 {SORT_OPTIONS.map(option => (
                   <option key={option.value} value={option.value}>
                     {option.label}
