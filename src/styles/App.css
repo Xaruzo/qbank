@@ -1026,7 +1026,14 @@ body {
   .qb-det-fav-btn {
     width:36px;
     height:36px;
+    order:1;
   }
+  .qb-timer { order:-1; }
+  .qb-share-btn { order:2; }
+  .qb-edit-btn { order:3; }
+  .qb-del-btn { order:4; }
+  .qb-del-cancel { order:5; }
+  .qb-del-confirm { order:6; }
   .qb-qcard { padding:16px; gap:12px; border-radius:18px; }
   .qb-qcard-top,
   .qb-qcard-foot { align-items:flex-start; }
@@ -1228,7 +1235,13 @@ body {
     justify-content:center;
     text-align:center;
   }
-  .qb-det-fav-btn { width:100%; height:40px; }
+  .qb-det-fav-btn { width:100%; height:40px; order:1; }
+  .qb-timer { order:-1; }
+  .qb-share-btn { order:2; }
+  .qb-edit-btn { order:3; }
+  .qb-del-btn { order:4; }
+  .qb-del-cancel { order:5; }
+  .qb-del-confirm { order:6; }
   .qb-mock-attempt-toolbar {
     grid-template-columns:1fr;
     grid-template-areas:

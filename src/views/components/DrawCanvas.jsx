@@ -2652,10 +2652,10 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
                   touchAction: "pan-y"
                 }}
               >
-                <span style={{ fontSize: 12, opacity: 0.9, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <span style={{ fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {getLayerLabel(obj)}
                 </span>
-                <span style={{ fontSize: 11, opacity: 0.6 }}>{Math.round(obj.angle || 0)}°</span>
+                <span style={{ fontSize: 11, opacity: 0.85 }}>{Math.round(obj.angle || 0)}°</span>
               </button>
               {obj.type === "group" && Array.isArray(obj._objects) && obj._objects.length > 0 && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 4, paddingLeft: 16 }}>
@@ -2671,13 +2671,13 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
                         borderRadius: 8,
                         border: "1px solid rgba(255,255,255,0.06)",
                         background: "rgba(255,255,255,0.02)",
-                        opacity: 0.85
+                        opacity: 0.95
                       }}
                     >
                       <span style={{ fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {getLayerLabel(child)}
                       </span>
-                      <span style={{ fontSize: 11, opacity: 0.55 }}>{Math.round(child?.angle || 0)}°</span>
+                      <span style={{ fontSize: 11, opacity: 0.8 }}>{Math.round(child?.angle || 0)}°</span>
                     </div>
                   ))}
                 </div>
@@ -2686,7 +2686,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
           );
         })}
         {!canvasObjects.length && (
-          <div style={{ fontSize: 12, opacity: 0.6 }}>No layers yet</div>
+          <div style={{ fontSize: 12, opacity: 0.8 }}>No layers yet</div>
         )}
       </div>
     </div>
