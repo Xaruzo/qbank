@@ -58,7 +58,7 @@ export default function App() {
   const { isDark, toggleTheme } = useThemeController();
   
   const { 
-    qs, loading, search, setSearch, topicFilter, setTopicFilter, labelFilter, setLabelFilter,
+    qs, loading, favoritesLoading, search, setSearch, topicFilter, setTopicFilter, labelFilter, setLabelFilter,
     sortBy, setSortBy, saveQuestion, deleteQuestion, toggleFavorite, counts, labelOptions, filteredQuestions 
   } = useQuestionsController(user?.id);
 
@@ -704,7 +704,7 @@ export default function App() {
                     <div className="qb-list-hero-chips">
                       <span className="qb-list-hero-chip">{filteredQuestions.length} questions available</span>
                       <span className="qb-list-hero-chip">{activeTopicCount} topics in use</span>
-                      <span className="qb-list-hero-chip">{favoriteCount} starred items</span>
+                      <span className="qb-list-hero-chip">{favoriteCount} starred items{favoritesLoading ? "..." : ""}</span>
                     </div>
                   </div>
                   <div className="qb-list-hero-side">

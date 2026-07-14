@@ -7,6 +7,7 @@ import { supabase } from "../utils/supabaseClient";
 export function useQuestionsController(userId = null) {
   const [qs, setQs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [favoritesLoading, setFavoritesLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [topicFilter, setTopicFilter] = useState("all");
   const [labelFilter, setLabelFilter] = useState("all");
@@ -20,7 +21,7 @@ export function useQuestionsController(userId = null) {
     choices: Array.isArray(q.choices) ? q.choices.map(choice => typeof choice === "string" ? choice : "") : [],
     label: getLabelValue(q),
     solution: typeof q.solution === "string" ? q.solution : "",
-    favorite: favoriteIds.has(q.id) || !!q.favorite,
+    favorite: favoriteIds.has(q.id),
   });
 
   const getSortTimestamp = ({ q, index }) => {
@@ -47,7 +48,12 @@ export function useQuestionsController(userId = null) {
 
   useEffect(() => {
     init();
-  }, [userId]);
+  }, []);
+
+  useEffect(() => {
+    if (loading) return;
+    refreshFavorites();
+  }, [userId, loading]);
 
   useEffect(() => {
     const onOnline = () => {
@@ -204,6 +210,24 @@ export function useQuestionsController(userId = null) {
     await persist(nextQs);
   };
 
+  async function refreshFavorites() {
+    if (!userId) {
+      const nextQs = qs.map(q => ({ ...q, favorite: false }));
+      setQs(nextQs);
+      return;
+    }
+    setFavoritesLoading(true);
+    try {
+      const favoriteIds = new Set(await favoritesModel.getAll(userId));
+      const nextQs = qs.map(q => normalizeQuestion(q, favoriteIds));
+      setQs(nextQs);
+    } catch (e) {
+      console.error("Failed to refresh favorites:", e);
+    } finally {
+      setFavoritesLoading(false);
+    }
+  }
+
   const counts = TOPICS.reduce((a, t) => ({
     ...a,
     [t.id]: qs.filter(q => q.topic === t.id).length
@@ -248,6 +272,7 @@ export function useQuestionsController(userId = null) {
   return {
     qs,
     loading,
+    favoritesLoading,
     search,
     setSearch,
     topicFilter,
