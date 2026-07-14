@@ -1947,10 +1947,6 @@ body {
     font-size:30px;
   }
 
-  .qb-list-hero-side {
-    grid-template-columns:1fr;
-  }
-
   .qb-list-meta {
     background:var(--surface);
   }
