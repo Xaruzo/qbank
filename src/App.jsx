@@ -596,7 +596,12 @@ export default function App() {
     const el = mainRef.current;
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
     if (!el) return;
-    el.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    if (view === "detail") {
+      const card = el.querySelector(".qb-det-card");
+      if (card) card.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      el.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    }
   }, [view, selectedId, selectedMockAttemptId, editId]);
 
   return (
