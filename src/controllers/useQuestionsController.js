@@ -95,13 +95,21 @@ export function useQuestionsController() {
         const parsed = JSON.parse(r);
         const normalized = parsed.map(q => normalizeQuestion(q, favoriteIds));
         setQs(normalized);
-        await storageModel.set(KEY, JSON.stringify(normalized));
-        await storageModel.setFavoriteIds(normalized.filter(q => q.favorite).map(q => q.id));
+        try {
+          await storageModel.set(KEY, JSON.stringify(normalized));
+        } catch (_) {}
+        try {
+          await storageModel.setFavoriteIds(normalized.filter(q => q.favorite).map(q => q.id));
+        } catch (_) {}
       } else {
         const initial = SAMPLES.map(q => normalizeQuestion(q, favoriteIds));
         setQs(initial);
-        await storageModel.set(KEY, JSON.stringify(initial));
-        await storageModel.setFavoriteIds(initial.filter(q => q.favorite).map(q => q.id));
+        try {
+          await storageModel.set(KEY, JSON.stringify(initial));
+        } catch (_) {}
+        try {
+          await storageModel.setFavoriteIds(initial.filter(q => q.favorite).map(q => q.id));
+        } catch (_) {}
       }
     } catch (e) {
       console.error("Failed to init questions:", e);
@@ -114,10 +122,10 @@ export function useQuestionsController() {
   async function persist(next) {
     try {
       await storageModel.set(KEY, JSON.stringify(next));
+    } catch (_) {}
+    try {
       await storageModel.setFavoriteIds(next.filter(q => q.favorite).map(q => q.id));
-    } catch (e) {
-      console.error("Failed to persist questions:", e);
-    }
+    } catch (_) {}
     setQs(next);
   }
 
