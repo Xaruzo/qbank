@@ -846,7 +846,7 @@ export default function App() {
             </div>
           </main>
         </div>
-        {isMobile && view !== "list" && view !== "mockRun" && (
+        {isMobile && view !== "mockRun" && (
           <nav className="qb-mobile-tabbar" aria-label="Primary">
             {mobileNavItems.map((item) => {
               const Icon = item.icon;
