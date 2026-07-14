@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { TOPICS, LETTERS } from "../../constants/appConstants";
-import { ChevronLeft, X, Check, Search, ChevronDown, ChevronRight, Star, Link2, Lightbulb } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, Check, Search, ChevronDown, Star, Link2, Lightbulb } from "lucide-react";
 import MarkdownText from "./MarkdownText";
 
 export default function QuestionDetail({
@@ -10,6 +10,8 @@ export default function QuestionDetail({
   onDelete,
   onToggleFavorite,
   onTips,
+  hasPrev,
+  onPrev,
   hasNext,
   onNext,
   forceShowSolution,
@@ -326,6 +328,17 @@ export default function QuestionDetail({
           );
         })}
         <div className="qb-next-row">
+          {hasPrev && (
+            <button
+              type="button"
+              className="qb-exam-navbtn"
+              onClick={onPrev}
+              style={{ marginRight: "auto" }}
+            >
+              <ChevronLeft size={16} />
+              Prev
+            </button>
+          )}
           <button
             className="qb-next-btn"
             disabled={pick === null}

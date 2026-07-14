@@ -574,6 +574,7 @@ export default function App() {
   const selectedMockAttempt = mockHistory.find((attempt) => attempt.id === selectedMockAttemptId) || null;
   const selectedIndexInFiltered = filteredQuestions.findIndex(q => q.id === selectedId);
   const nextQuestion = selectedIndexInFiltered >= 0 ? filteredQuestions[selectedIndexInFiltered + 1] : null;
+  const prevQuestion = selectedIndexInFiltered > 0 ? filteredQuestions[selectedIndexInFiltered - 1] : null;
   const primaryView = view === "mock" || view === "mockRun" || view === "mockAttempt"
     ? "mock"
     : view === "tips" || view === "tipDetail"
@@ -732,10 +733,14 @@ export default function App() {
                 onToggleFavorite={toggleFavorite}
                 onTips={() => handleOpenTipDetail(selectedQuestion.id)}
                 forceShowSolution={deepLinkShowSol}
+                hasPrev={!!prevQuestion}
                 hasNext={!!nextQuestion}
                 canManageQuestions={canManageQuestions}
                 isAuthenticated={isAuthenticated}
                 onRequireAuth={handleSignIn}
+                onPrev={() => {
+                  if (prevQuestion) handleSelectQuestion(prevQuestion.id);
+                }}
                 onNext={() => {
                   if (nextQuestion) handleSelectQuestion(nextQuestion.id);
                   else handleGoHome();
