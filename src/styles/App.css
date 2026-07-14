@@ -984,6 +984,7 @@ body {
   .qb-filter-card { align-items:flex-start; }
   .qb-filter-select { width:100%; min-width:0; }
   .qb-pill { flex:0 0 auto; }
+  .qb-list-hero-chip { flex:0 0 auto; }
   .qb-toolbar-row { align-items:stretch; }
   .qb-toolbar-actions { width:100%; }
   .qb-toolbar-add-btn { width:100%; justify-content:center; }
@@ -1208,8 +1209,7 @@ body {
 }
 
 @media (max-width:420px) {
-  .qb-list-hero-chip { width:100%; justify-content:center; }
-  .qb-mock-insights { grid-template-columns:1fr; }
+  .qb-mock-insights { grid-template-columns:repeat(2,1fr); }
   .qb-mock-blueprint { grid-template-columns:1fr; }
   .qb-mock-mini-card { min-height:auto; }
   .qb-det-meta {
@@ -1253,11 +1253,10 @@ body {
   .qb-exam-head-card { padding:12px; }
   .qb-exam-stat-value { font-size:18px; }
   .qb-list-meta {
-    grid-template-columns:1fr;
+    grid-template-columns:minmax(0, 1fr) auto;
     grid-template-areas:
-      "meta"
-      "add"
-      "sort";
+      "meta meta"
+      "sort add";
   }
   .qb-list-meta-left { flex-direction:column; align-items:flex-start; gap:4px; }
   .qb-list-meta-tips {
@@ -1271,7 +1270,6 @@ body {
     gap:4px;
   }
   .qb-list-add-btn { width:100%; }
-  .qb-control-summary span { width:100%; justify-content:center; }
   .qb-mobile-tabbar { padding:6px; padding-bottom:calc(6px + env(safe-area-inset-bottom, 0px)); }
   .qb-mobile-tab { min-height:50px; font-size:10px; }
 }
