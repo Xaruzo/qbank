@@ -739,10 +739,10 @@ body {
 .qb-choice-tag { font-family:'Fira Mono',monospace; font-size:10px; margin-left:auto; flex-shrink:0; margin-top:3px; }
 .qb-hint { font-size:12px; color:var(--text-faint); text-align:center; margin-top:14px; }
 
-.qb-next-row { display:flex; margin-top:14px; margin-bottom:4px; }
-.qb-next-btn { background:#f5a623; border:none; color:#070c18; font-family:'DM Sans',sans-serif; font-size:14px; font-weight:700; padding:10px 18px; border-radius:8px; cursor:pointer; display:flex; align-items:center; gap:8px; margin-left:auto; }
-.qb-next-btn:hover:not(:disabled) { background:#f8be57; }
-.qb-next-btn:disabled { opacity:.3; cursor:not-allowed; }
+.qb-next-row { display:flex; gap:8px; margin-top:14px; margin-bottom:4px; }
+.qb-next-row > * { flex:1; }
+.qb-next-btn { background:#f5a623; border:none; color:#070c18; font-family:'DM Sans',sans-serif; font-size:13px; font-weight:700; padding:10px 14px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; }
+.qb-next-btn:hover { background:#f8be57; }
 
 .qb-reveal { background:rgba(245,166,35,.08); border:1px solid rgba(245,166,35,.3); color:#e8960e; font-family:'DM Sans',sans-serif; font-size:13px; font-weight:500; padding:9px 20px; border-radius:7px; cursor:pointer; margin-top:14px; display:block; }
 .qb-reveal:hover { background:rgba(245,166,35,.18); }
@@ -1113,7 +1113,6 @@ body {
   .qb-upload-label span:first-of-type { font-size:13px; }
   .qb-factions { flex-direction:column; }
   .qb-fcancel, .qb-fsave { width:100%; }
-  .qb-next-btn { width:100%; justify-content:center; margin-left:0; }
   .qb-main.qb-main-exam { overflow:auto; }
   .qb-main-inner.qb-main-inner-exam { height:auto; overflow:auto; padding-right: 18px; }
   .qb-exam-top { margin-bottom:0; }
@@ -1351,7 +1350,7 @@ body {
 
   .qb-add-btn:hover,
   .qb-exam-start:hover:not(:disabled),
-  .qb-next-btn:hover:not(:disabled),
+  .qb-next-btn:hover,
   .qb-fsave:hover {
     background:#f5a623;
     transform:none;
@@ -1830,7 +1829,7 @@ body {
 
 .qb-add-btn:hover,
 .qb-exam-start:hover:not(:disabled),
-.qb-next-btn:hover:not(:disabled),
+.qb-next-btn:hover,
 .qb-fsave:hover,
 .qb-mock-attempt-open-btn:hover {
   background:var(--accent-strong);

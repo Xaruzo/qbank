@@ -329,23 +329,14 @@ export default function QuestionDetail({
         })}
         <div className="qb-next-row">
           {hasPrev && (
-            <button
-              type="button"
-              className="qb-exam-navbtn"
-              onClick={onPrev}
-              style={{ marginRight: "auto" }}
-            >
+            <button type="button" className="qb-next-btn" onClick={onPrev}>
               <ChevronLeft size={16} />
               Prev
             </button>
           )}
           <button
             className="qb-next-btn"
-            disabled={pick === null}
-            onClick={() => {
-              if (pick === null) return;
-              onNext();
-            }}
+            onClick={onNext}
           >
             {hasNext ? "Next" : "Finish"}
             <ChevronRight size={16} />
