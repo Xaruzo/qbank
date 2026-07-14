@@ -405,8 +405,8 @@ body {
 .qb-empty-ico { font-size:42px; display:block; opacity:.18; margin-bottom:14px; }
 .qb-empty-t,.qb-empty-text { font-family:'Syne',sans-serif; font-size:18px; color:var(--text-muted); margin-bottom:6px; }
 .qb-empty-s { font-size:13px; color:var(--text-faint); }
-.qb-scroll-bottom { position:fixed; right:22px; bottom:22px; z-index:120; background:#f5a623; border:none; color:#070c18; font-family:'DM Sans',sans-serif; font-size:13px; font-weight:700; padding:11px 14px; border-radius:999px; box-shadow:0 12px 24px rgba(0,0,0,.25); display:flex; align-items:center; gap:8px; cursor:pointer; }
-.qb-scroll-bottom:hover { background:#f8be57; transform:translateY(-1px); box-shadow:0 14px 28px rgba(0,0,0,.3); }
+.qb-scroll-bottom { position:fixed; right:22px; bottom:22px; z-index:120; background:var(--surface); border:1px solid var(--border); color:var(--text); font-family:'DM Sans',sans-serif; font-size:13px; font-weight:700; padding:11px 14px; border-radius:999px; box-shadow:0 12px 24px rgba(0,0,0,.25); display:flex; align-items:center; gap:8px; cursor:pointer; }
+.qb-scroll-bottom:hover { background:var(--surface-h); transform:translateY(-1px); box-shadow:0 14px 28px rgba(0,0,0,.3); }
 
 .qb-side { width:76px; flex:0 0 76px; overflow:visible; position:relative; }
 .qb-side-inner { height:100%; width:100%; display:flex; flex-direction:column; gap:14px; padding:18px 14px; overscroll-behavior:contain; overflow:auto; background:var(--hdr-bg); backdrop-filter:blur(18px) saturate(140%); border-right:none; }
@@ -1343,7 +1343,6 @@ body {
 
   .qb-add-btn:hover,
   .qb-exam-start:hover:not(:disabled),
-  .qb-scroll-bottom:hover,
   .qb-next-btn:hover:not(:disabled),
   .qb-fsave:hover {
     background:#f5a623;
