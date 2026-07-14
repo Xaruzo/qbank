@@ -598,7 +598,7 @@ export default function App() {
     if (!el) return;
     if (view === "detail") {
       const card = el.querySelector(".qb-det-card");
-      if (card) card.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (card) card.scrollIntoView({ behavior: "auto", block: "start" });
     } else {
       el.scrollTo({ top: 0, left: 0, behavior: "auto" });
     }
