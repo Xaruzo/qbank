@@ -14,7 +14,7 @@ button, a, [role="button"], input, select, textarea {
   --text-mid:#fff; --text-mid2:#fff; --text-low:#fff;
   --text-muted:#fff; --text-faint:#fff;
   --logo-tag-bg:#10192a; --hdr-bg:rgba(7,11,20,.82); --input-bg:#09101d;
-  --scroll-track:rgba(255,255,255,.05); --scroll-thumb:rgba(196,212,236,.22); --scroll-thumb-h:rgba(196,212,236,.34);
+  --scroll-track:rgba(255,255,255,.05); --scroll-thumb:rgba(196,212,236,.22); --scroll-thumb-h:rgba(234,88,12,.45);
   --glow1:rgba(245,166,35,.10); --glow2:rgba(139,92,246,.08);
   --font-input:'Noto Sans','Segoe UI Symbol','Cambria Math','DM Sans',sans-serif;
   --font-symbols:'Noto Sans','Segoe UI Symbol','Cambria Math','Apple Symbols',sans-serif;
@@ -32,7 +32,7 @@ button, a, [role="button"], input, select, textarea {
   --text-mid:#3a5272; --text-mid2:#4a6280; --text-low:#6a80a0;
   --text-muted:#3a4b66; --text-faint:#647794;
   --logo-tag-bg:#eef4ff; --hdr-bg:rgba(237,242,251,.82); --input-bg:#f5f8ff;
-  --scroll-track:rgba(0,0,0,.06); --scroll-thumb:rgba(26,37,64,.22); --scroll-thumb-h:rgba(26,37,64,.34);
+  --scroll-track:rgba(0,0,0,.06); --scroll-thumb:rgba(26,37,64,.22); --scroll-thumb-h:rgba(234,88,12,.35);
   --glow1:rgba(245,166,35,.06); --glow2:rgba(139,92,246,.04);
   --surface-grad:linear-gradient(180deg, rgba(255,255,255,.98), rgba(244,247,255,.92));
 }
@@ -1974,6 +1974,12 @@ body {
 .qb:not(.light) .qb-pill,
 .qb:not(.light) .qb-empty-t,
 .qb:not(.light) .qb-empty-s,
-.qb:not(.light) .qb-empty-text {
+.qb:not(.light) .qb-empty-text,
+.qb:not(.light) .qb-profile-menu-item,
+.qb:not(.light) .qb-qcard-label,
+.qb:not(.light) .qb-qcard-meta-chip,
+.qb:not(.light) .qb-qcard-open,
+.qb:not(.light) .qb-profile-name,
+.qb:not(.light) .qb-profile-email {
   color:#fff;
 }
