@@ -74,7 +74,7 @@ export default function App() {
   const [isActiveMockExamLoading, setIsActiveMockExamLoading] = useState(false);
   const [hasLoadedActiveMockExam, setHasLoadedActiveMockExam] = useState(false);
   const [selectedMockAttemptId, setSelectedMockAttemptId] = useState(null);
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia ? window.matchMedia("(max-width: 600px)").matches : false);
   const mainRef = useRef(null);
   const qsRef = useRef(qs);
   const examRef = useRef(exam);
