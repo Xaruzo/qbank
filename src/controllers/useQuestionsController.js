@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { KEY, SAMPLES, TOPICS } from "../constants/appConstants";
 import { storageModel } from "../models/storageModel";
+import { favoritesModel } from "../models/favoritesModel";
 import { supabase } from "../utils/supabaseClient";
 
-export function useQuestionsController() {
+export function useQuestionsController(userId = null) {
   const [qs, setQs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -46,7 +47,7 @@ export function useQuestionsController() {
 
   useEffect(() => {
     init();
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     const onOnline = () => {
@@ -90,7 +91,7 @@ export function useQuestionsController() {
   async function init() {
     try {
       const r = await storageModel.get(KEY);
-      const favoriteIds = new Set(await storageModel.getFavoriteIds());
+      const favoriteIds = new Set(await favoritesModel.getAll(userId));
       if (r) {
         const parsed = JSON.parse(r);
         const normalized = parsed.map(q => normalizeQuestion(q, favoriteIds));
@@ -202,8 +203,12 @@ export function useQuestionsController() {
   };
 
   const toggleFavorite = async (id) => {
+    const question = qs.find(q => q.id === id);
+    if (!question) return;
+    const newState = !question.favorite;
+    await favoritesModel.set(id, newState, userId);
     const nextQs = qs.map(q => (
-      q.id === id ? { ...q, favorite: !q.favorite } : q
+      q.id === id ? { ...q, favorite: newState } : q
     ));
     await persist(nextQs);
   };

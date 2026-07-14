@@ -16,6 +16,7 @@ import { useQuestionsController } from "./controllers/useQuestionsController";
 import { useThemeController } from "./controllers/useThemeController";
 import { storageModel } from "./models/storageModel";
 import { tipsModel } from "./models/tipsModel";
+import { favoritesModel } from "./models/favoritesModel";
 import { buildMockExamAttempt, buildReviewExamFromAttempt } from "./utils/mockExamAnalytics";
 import { ArrowDown, Home, ClipboardList, Lightbulb } from "lucide-react";
 import { QUESTION_ADMIN_UIDS } from "./constants/appConstants";
@@ -44,12 +45,6 @@ const isResumableMockExam = (candidate) => (
 );
 
 export default function App() {
-  const { 
-    qs, loading, search, setSearch, topicFilter, setTopicFilter, labelFilter, setLabelFilter,
-    sortBy, setSortBy, saveQuestion, deleteQuestion, toggleFavorite, counts, labelOptions, filteredQuestions 
-  } = useQuestionsController();
-  
-  const { isDark, toggleTheme } = useThemeController();
   const {
     authAvailable,
     isAuthLoading,
@@ -59,6 +54,13 @@ export default function App() {
     signInWithGoogle,
     signOut,
   } = useAuthController();
+  
+  const { isDark, toggleTheme } = useThemeController();
+  
+  const { 
+    qs, loading, search, setSearch, topicFilter, setTopicFilter, labelFilter, setLabelFilter,
+    sortBy, setSortBy, saveQuestion, deleteQuestion, toggleFavorite, counts, labelOptions, filteredQuestions 
+  } = useQuestionsController(user?.id);
 
   const [view, setView] = useState("list");
   const [selectedId, setSelectedId] = useState(null);
@@ -228,6 +230,22 @@ export default function App() {
     syncTips();
     window.addEventListener("online", syncTips);
     return () => window.removeEventListener("online", syncTips);
+  }, [isAuthLoading, isAuthenticated, user?.id]);
+
+  useEffect(() => {
+    if (isAuthLoading || !isAuthenticated || !user?.id) return undefined;
+
+    const syncFavorites = async () => {
+      try {
+        await favoritesModel.flushPending(user.id);
+      } catch (e) {
+        console.error("Failed to sync pending favorites:", e);
+      }
+    };
+
+    syncFavorites();
+    window.addEventListener("online", syncFavorites);
+    return () => window.removeEventListener("online", syncFavorites);
   }, [isAuthLoading, isAuthenticated, user?.id]);
 
   useEffect(() => {
