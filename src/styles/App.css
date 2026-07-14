@@ -983,7 +983,6 @@ body {
   .qb-control-summary span { min-height:30px; font-size:11px; }
   .qb-filter-card { align-items:flex-start; }
   .qb-filter-select { width:100%; min-width:0; }
-  .qb-pills { flex-wrap:nowrap; overflow-x:auto; padding-bottom:4px; margin-inline:-2px; padding-inline:2px; }
   .qb-pill { flex:0 0 auto; }
   .qb-toolbar-row { align-items:stretch; }
   .qb-toolbar-actions { width:100%; }
