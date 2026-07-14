@@ -1973,6 +1973,20 @@ body {
 .qb:not(.light) .qb-qcard-open,
 .qb:not(.light) .qb-profile-name,
 .qb:not(.light) .qb-profile-email,
-.qb:not(.light) .qb-back {
+.qb:not(.light) .qb-back,
+.qb:not(.light) .qb-theme-btn,
+.qb:not(.light) .qb-theme-btn-text,
+.qb:not(.light) .qb-mock-secondary-btn,
+.qb:not(.light) .qb-mock-attempt-date,
+.qb:not(.light) .qb-mock-attempt-link,
+.qb:not(.light) .qb-exam-navbtn,
+.qb:not(.light) .qb-next-btn,
+.qb:not(.light) .qb-qnum-btn,
+.qb:not(.light) .qb-mock-question-status,
+.qb:not(.light) .qb-exam-mode-badge,
+.qb:not(.light) .qb-mock-attempt-badge,
+.qb:not(.light) .qb-mock-attempt-open-btn,
+.qb:not(.light) .qb-exam-legend-item,
+.qb:not(.light) .qb-det-meta {
   color:#fff;
 }
