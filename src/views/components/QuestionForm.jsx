@@ -9,6 +9,9 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
   const [form, setForm] = useState(initialData ? {
     ...initialData,
     label: typeof initialData.label === "string" ? initialData.label : "",
+    solutionUpload: (initialData.solutionDraw && typeof initialData.solutionDraw === "string" && initialData.solutionDraw.startsWith("data:image"))
+      ? initialData.solutionDraw
+      : initialData.solutionUpload || null,
   } : {
     question: "",
     choices: ["", "", "", ""],
