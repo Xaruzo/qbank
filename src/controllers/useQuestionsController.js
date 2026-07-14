@@ -99,17 +99,11 @@ export function useQuestionsController(userId = null) {
         try {
           await storageModel.set(KEY, JSON.stringify(normalized));
         } catch (_) {}
-        try {
-          await storageModel.setFavoriteIds(normalized.filter(q => q.favorite).map(q => q.id));
-        } catch (_) {}
       } else {
         const initial = SAMPLES.map(q => normalizeQuestion(q, favoriteIds));
         setQs(initial);
         try {
           await storageModel.set(KEY, JSON.stringify(initial));
-        } catch (_) {}
-        try {
-          await storageModel.setFavoriteIds(initial.filter(q => q.favorite).map(q => q.id));
         } catch (_) {}
       }
     } catch (e) {
@@ -123,9 +117,6 @@ export function useQuestionsController(userId = null) {
   async function persist(next) {
     try {
       await storageModel.set(KEY, JSON.stringify(next));
-    } catch (_) {}
-    try {
-      await storageModel.setFavoriteIds(next.filter(q => q.favorite).map(q => q.id));
     } catch (_) {}
     setQs(next);
   }

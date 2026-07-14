@@ -220,9 +220,8 @@ const migrateLegacyFavoritesToUser = async (userId) => {
 
 export const favoritesModel = {
   async getAll(userId = null) {
-    if (!userId || !supabase) {
-      return readFavoritesCache(userId);
-    }
+    if (!userId) return [];
+    if (!supabase) return readFavoritesCache(userId);
 
     await migrateLegacyFavoritesToUser(userId);
 
@@ -250,7 +249,7 @@ export const favoritesModel = {
   },
 
   async add(questionId, userId = null) {
-    if (!questionId) return;
+    if (!questionId || !userId) return;
 
     const ids = await readFavoritesCache(userId);
     if (!ids.includes(questionId)) {
@@ -258,7 +257,7 @@ export const favoritesModel = {
       await writeFavoritesCache(ids, userId);
     }
 
-    if (!userId || !supabase) return;
+    if (!supabase) return;
 
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
       const pending = await readPendingMap(userId);
@@ -281,7 +280,7 @@ export const favoritesModel = {
   },
 
   async remove(questionId, userId = null) {
-    if (!questionId) return;
+    if (!questionId || !userId) return;
 
     const ids = await readFavoritesCache(userId);
     const wasCached = ids.includes(questionId);
@@ -289,7 +288,7 @@ export const favoritesModel = {
       await writeFavoritesCache(ids.filter((id) => id !== questionId), userId);
     }
 
-    if (!userId || !supabase) return;
+    if (!supabase) return;
 
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
       const pending = await readPendingMap(userId);
