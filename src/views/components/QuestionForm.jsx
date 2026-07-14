@@ -19,7 +19,12 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
     topic: "numerical",
     label: "",
   });
-  const [solMode, setSolMode] = useState(form.solutionDraw ? "draw" : form.solutionUpload ? "upload" : "text");
+  const [solMode, setSolMode] = useState(
+    form.solutionUpload ? "upload"
+    : form.solutionDraw && typeof form.solutionDraw === "string" && form.solutionDraw.startsWith("data:image") ? "upload"
+    : form.solutionDraw ? "draw"
+    : "text"
+  );
   const [error, setError] = useState("");
   const [topicOpen, setTopicOpen] = useState(false);
   const topicRef = useRef(null);
@@ -56,7 +61,19 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
   const handleSave = () => {
     if (!form.question.trim()) { setError("Question cannot be empty."); return; }
     if (form.choices.some(c => !c.trim())) { setError("All 4 choices are required."); return; }
-    onSave(form);
+    const data = { ...form };
+    if (solMode === "text") {
+      data.solutionDraw = null;
+      data.solutionUpload = null;
+    } else if (solMode === "draw") {
+      data.solution = "";
+      data.solutionUpload = null;
+    } else if (solMode === "upload") {
+      data.solution = "";
+      data.solutionDraw = data.solutionUpload;
+      data.solutionUpload = null;
+    }
+    onSave(data);
   };
 
   const valid = form.question.trim() && form.choices.every(c => c.trim());
