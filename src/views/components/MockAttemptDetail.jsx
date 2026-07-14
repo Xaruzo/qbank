@@ -1,12 +1,14 @@
-import React from "react";
-import { AlertTriangle, ArrowUpRight, ChevronLeft, Clock3, Trophy, TrendingUp } from "lucide-react";
+import React, { useState } from "react";
+import { AlertTriangle, ArrowUpRight, ChevronLeft, Clock3, Search, Trophy, TrendingUp } from "lucide-react";
 import { LETTERS } from "../../constants/appConstants";
 import { buildQuestionLookup, formatAttemptDate, formatExamDuration } from "../../utils/mockExamAnalytics";
 
 export default function MockAttemptDetail({ attempt, qMap, onBack, onReviewAttempt }) {
+  const [reviewSearch, setReviewSearch] = useState("");
   if (!attempt) return null;
 
   const questionLookup = buildQuestionLookup(qMap);
+
   const answeredQuestions = (attempt.questions || [])
     .filter((question) => question.wasAnswered)
     .map((question) => {
@@ -17,6 +19,14 @@ export default function MockAttemptDetail({ attempt, qMap, onBack, onReviewAttem
         correct: Number.isInteger(liveQuestion?.correct) ? liveQuestion.correct : question.correct,
       };
     });
+
+  const filteredQuestions = !reviewSearch.trim()
+    ? answeredQuestions
+    : answeredQuestions.filter((q) => {
+        const qry = reviewSearch.toLowerCase().trim();
+        return [q.question || "", q.topic || "", q.label || ""].some((s) => s.toLowerCase().includes(qry));
+      });
+
 
   return (
     <div className="qb-mock-attempt-detail fu">
@@ -128,9 +138,22 @@ export default function MockAttemptDetail({ attempt, qMap, onBack, onReviewAttem
             </div>
           </div>
 
-          {answeredQuestions.length ? (
+          <label className="qb-search-box" style={{ margin: "0 0 12px", minHeight: 40, borderRadius: 10 }}>
+            <span className="qb-search-icon" style={{ left: 14 }}>
+              <Search size={16} />
+            </span>
+            <input
+              className="qb-search"
+              style={{ padding: "0 12px 0 42px", minHeight: 38, fontSize: 13 }}
+              placeholder="Search reviewed questions..."
+              value={reviewSearch}
+              onChange={e => setReviewSearch(e.target.value)}
+            />
+          </label>
+
+          {filteredQuestions.length ? (
             <div className="qb-mock-question-list">
-              {answeredQuestions.map((question) => (
+              {filteredQuestions.map((question) => (
                 <div key={`${attempt.id}-${question.id}-${question.index}`} className="qb-mock-question-card">
                   <div className="qb-mock-question-top">
                     <span className={`qb-mock-question-status${question.isCorrect ? " good" : question.wasAnswered ? " bad" : ""}`}>
@@ -151,7 +174,7 @@ export default function MockAttemptDetail({ attempt, qMap, onBack, onReviewAttem
             </div>
           ) : (
             <div className="qb-empty" style={{ padding: "28px 12px" }}>
-              <div className="qb-empty-s">No answered questions were saved for this attempt.</div>
+              <div className="qb-empty-s">{reviewSearch.trim() ? "No questions match your search." : "No answered questions were saved for this attempt."}</div>
             </div>
           )}
         </div>

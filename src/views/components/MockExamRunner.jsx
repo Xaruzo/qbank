@@ -20,26 +20,12 @@ export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit }) {
   const expandedScrollRef = useRef(null);
   const expandedImgRef = useRef(null);
   const [expandedZoom, setExpandedZoom] = useState(1);
-  const [reviewSearch, setReviewSearch] = useState("");
 
   const endAt = exam.startedAt + exam.durationMs;
   const remainingMs = Math.max(0, endAt - now);
   const finished = exam.finished || remainingMs <= 0;
   const metrics = useMemo(() => calculateExamMetrics(exam, qMap, now), [exam, qMap, now]);
   const questionLookup = metrics.questionLookup;
-  const searchedIndices = useMemo(() => {
-    if (!reviewSearch.trim()) return null;
-    const q = reviewSearch.toLowerCase().trim();
-    const result = [];
-    for (let i = 0; i < exam.orderIds.length; i++) {
-      const id = exam.orderIds[i];
-      const qData = id ? questionLookup.get(id) : null;
-      if (!qData) continue;
-      const haystack = [qData.question || "", ...(qData.choices || []), qData.solution || "", qData.label || "", qData.topic || ""].join(" ").toLowerCase();
-      if (haystack.includes(q)) result.push(i);
-    }
-    return result;
-  }, [reviewSearch, exam.orderIds, questionLookup]);
   const currentId = exam.orderIds[exam.currentIndex] || null;
   const q = currentId ? questionLookup.get(currentId) : null;
 
@@ -214,20 +200,8 @@ export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit }) {
             Questions
             <span className="qb-exam-qgrid-hs">{exam.currentIndex + 1}/{totalCount}</span>
           </div>
-          <label className="qb-search-box" style={{ margin: "0 0 8px", minHeight: 36, borderRadius: 8 }}>
-            <span className="qb-search-icon" style={{ left: 10 }}>
-              <Search size={14} />
-            </span>
-            <input
-              className="qb-search"
-              style={{ padding: "0 8px 0 32px", minHeight: 34, fontSize: 12 }}
-              placeholder="Search questions..."
-              value={reviewSearch}
-              onChange={e => setReviewSearch(e.target.value)}
-            />
-          </label>
           <div className="qb-exam-qgrid">
-            {(searchedIndices ?? Array.from({ length: totalCount }, (_, i) => i)).map((i) => {
+            {Array.from({ length: totalCount }).map((_, i) => {
               const id = exam.orderIds[i];
               const answered = id ? (exam.answers[id] !== undefined) : false;
               const review = id ? !!reviewMap[id] : false;
@@ -253,11 +227,6 @@ export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit }) {
               );
             })}
           </div>
-          {searchedIndices !== null && searchedIndices.length === 0 && (
-            <div style={{ textAlign: "center", color: "var(--text-faint)", fontSize: 13, padding: "16px 0" }}>
-              No questions match your search
-            </div>
-          )}
           <div className="qb-exam-legend">
             <div className="qb-exam-legend-item">
               <span className="qb-exam-dot qb-exam-dot-empty" />
