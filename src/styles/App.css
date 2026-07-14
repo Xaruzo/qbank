@@ -1203,7 +1203,6 @@ body {
 
 @media (max-width:420px) {
   .qb-list-hero-chip { width:100%; justify-content:center; }
-  .qb-list-hero-side { grid-template-columns:1fr; }
   .qb-mock-insights { grid-template-columns:1fr; }
   .qb-mock-blueprint { grid-template-columns:1fr; }
   .qb-mock-mini-card { min-height:auto; }
