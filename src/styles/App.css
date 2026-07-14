@@ -1202,7 +1202,6 @@ body {
 }
 
 @media (max-width:420px) {
-  .qb-stats { grid-template-columns:1fr; }
   .qb-list-hero-chip { width:100%; justify-content:center; }
   .qb-list-hero-side { grid-template-columns:1fr; }
   .qb-mock-insights { grid-template-columns:1fr; }
