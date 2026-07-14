@@ -1980,6 +1980,7 @@ body {
 .qb:not(.light) .qb-qcard-meta-chip,
 .qb:not(.light) .qb-qcard-open,
 .qb:not(.light) .qb-profile-name,
-.qb:not(.light) .qb-profile-email {
+.qb:not(.light) .qb-profile-email,
+.qb:not(.light) .qb-back {
   color:#fff;
 }
