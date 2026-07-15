@@ -37,8 +37,14 @@ export default function QuestionDetail({
   useEffect(() => {
     const onKeyDown = (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
-      if (e.key === 'ArrowLeft' && hasPrev) { e.preventDefault(); prevRef.current(); }
-      if (e.key === 'ArrowRight' && hasNext) { e.preventDefault(); nextRef.current(); }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        if ((e.key === 'ArrowLeft' && hasPrev) || (e.key === 'ArrowRight' && hasNext)) {
+          e.preventDefault();
+          document.activeElement?.blur();
+          if (e.key === 'ArrowLeft') prevRef.current();
+          else nextRef.current();
+        }
+      }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
