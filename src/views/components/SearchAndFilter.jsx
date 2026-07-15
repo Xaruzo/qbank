@@ -49,7 +49,7 @@ export default function SearchAndFilter({
           <label className="qb-filter-wrap qb-filter-card">
             <span className="qb-filter-label">Problem Label</span>
             <div className="qb-filter-select-wrap">
-              <select className="qb-filter-select" value={labelFilter} onChange={e => { onLabelChange(e.target.value); setTimeout(() => e.target.blur(), 0); }}>
+              <select className="qb-filter-select" value={labelFilter} onChange={e => { onLabelChange(e.target.value); setTimeout(() => e.target.blur(), 0); }} onMouseDown={e => { if (document.activeElement === e.target) setTimeout(() => e.target.blur(), 0); }}>
                 <option value="all">All Labels</option>
                 {labelOptions.map(option => (
                   <option key={option.value} value={option.value}>
