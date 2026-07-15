@@ -1,7 +1,7 @@
 import React from "react";
 import { TOPICS, SORT_OPTIONS } from "../../constants/appConstants";
 import { ClipboardList, ChevronRight, Lock, LogIn, Plus, Star } from "lucide-react";
-import MathText from "./MathText";
+import MarkdownText from "./MarkdownText";
 
 export default function QuestionList({
   questions,
@@ -85,7 +85,7 @@ export default function QuestionList({
                 <div className="qb-qcard-heading">
                   <span className="qb-qcard-label">{q.label || "General Review"}</span>
                 </div>
-                <span className="qb-qtext"><MathText text={q.question} /></span>
+                <span className="qb-qtext"><MarkdownText text={q.question} inline /></span>
               </div>
               <div className="qb-qcard-foot">
                 <div className="qb-qcard-meta">
