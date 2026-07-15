@@ -71,6 +71,21 @@ export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit }) {
     });
   };
 
+  const goPrevRef = useRef(goPrev);
+  const goNextRef = useRef(goNext);
+  goPrevRef.current = goPrev;
+  goNextRef.current = goNext;
+
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+      if (e.key === 'ArrowLeft' && exam.currentIndex > 0) { e.preventDefault(); goPrevRef.current(); }
+      if (e.key === 'ArrowRight' && exam.currentIndex < exam.orderIds.length - 1) { e.preventDefault(); goNextRef.current(); }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [exam.currentIndex, exam.orderIds.length]);
+
   const removeCurrentQuestion = () => {
     onUpdateExam((prev) => {
       const newOrderIds = [...prev.orderIds];

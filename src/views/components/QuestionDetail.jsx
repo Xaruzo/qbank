@@ -28,6 +28,21 @@ export default function QuestionDetail({
   const [shareLabel, setShareLabel] = useState("Share");
   const timerStartRef = useRef(0);
   const timerIdRef = useRef(null);
+
+  const prevRef = useRef(onPrev);
+  const nextRef = useRef(onNext);
+  prevRef.current = onPrev;
+  nextRef.current = onNext;
+
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+      if (e.key === 'ArrowLeft' && hasPrev) { e.preventDefault(); prevRef.current(); }
+      if (e.key === 'ArrowRight' && hasNext) { e.preventDefault(); nextRef.current(); }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [hasPrev, hasNext]);
   const [expandedZoom, setExpandedZoom] = useState(1);
   const expandedScrollRef = useRef(null);
   const expandedImgRef = useRef(null);
