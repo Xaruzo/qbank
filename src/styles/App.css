@@ -343,6 +343,11 @@ body {
   background-size: contain;
   background-repeat: no-repeat;
   pointer-events: none;
+  transition: transform 0.2s ease;
+}
+.qb-filter-select-wrap:focus-within::after,
+.qb-sort-input-wrap:focus-within::after {
+  transform: translateY(-50%) rotate(180deg);
 }
 .light .qb-filter-select-wrap::after,
 .light .qb-sort-input-wrap::after {
@@ -945,6 +950,7 @@ body {
 .katex { color:inherit; }
 .katex-display { margin:.7em 0; }
 .md .katex-display { display:flex; width:100%; justify-content:center; }
+.qb-qtext .katex { font-size:1.21em; }
 
 .qb-editor { display:grid; grid-template-columns:minmax(0,1fr) 280px; gap:12px; align-items:start; min-height:100%; width:min(1180px,100%); }
 .qb-editor-main { min-width:0; }
