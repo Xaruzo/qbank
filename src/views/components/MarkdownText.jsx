@@ -49,6 +49,33 @@ function createRenderer(tag, className) {
   };
 }
 
+function autoWrapLatex(source) {
+  const lines = source.split(/\r?\n/);
+  const out = [];
+  let fenced = false;
+
+  for (const line of lines) {
+    const fenceMatch = line.match(/^\s*(```|~~~)/);
+    if (fenceMatch) fenced = !fenced;
+
+    if (!fenced) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith("$$") && trimmed.endsWith("$$")) {
+        out.push(line);
+        continue;
+      }
+      if (!line.includes("$") && /\\[a-zA-Z]+/.test(line)) {
+        out.push(`$${line}$`);
+        continue;
+      }
+    }
+
+    out.push(line);
+  }
+
+  return out.join("\n");
+}
+
 function normalizeSingleLineDisplayMath(source) {
   const lines = source.split(/\r?\n/);
   const out = [];
@@ -182,7 +209,7 @@ const inlineComponents = {
 
 export default function MarkdownText({ text, className, inline = false }) {
   const raw = typeof text === "string" ? text : "";
-  const source = inline ? raw : normalizeSingleLineDisplayMath(raw);
+  const source = inline ? raw : normalizeSingleLineDisplayMath(autoWrapLatex(raw));
   const RootTag = inline ? "span" : "div";
 
   return (
