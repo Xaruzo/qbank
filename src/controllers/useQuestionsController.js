@@ -4,7 +4,7 @@ import { storageModel } from "../models/storageModel";
 import { favoritesModel } from "../models/favoritesModel";
 import { supabase } from "../utils/supabaseClient";
 
-export function useQuestionsController(userId = null) {
+export function useQuestionsController(userId = null, isAuthLoading = false) {
   const [qs, setQs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [favoritesLoading, setFavoritesLoading] = useState(false);
@@ -47,13 +47,9 @@ export function useQuestionsController(userId = null) {
   };
 
   useEffect(() => {
+    if (isAuthLoading) return;
     init();
-  }, []);
-
-  useEffect(() => {
-    if (loading) return;
-    refreshFavorites();
-  }, [userId, loading]);
+  }, [userId, isAuthLoading]);
 
   useEffect(() => {
     const onOnline = () => {

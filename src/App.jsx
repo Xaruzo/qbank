@@ -60,7 +60,7 @@ export default function App() {
   const { 
     qs, loading, favoritesLoading, search, setSearch, topicFilter, setTopicFilter, labelFilter, setLabelFilter,
     sortBy, setSortBy, saveQuestion, deleteQuestion, toggleFavorite, counts, labelOptions, filteredQuestions 
-  } = useQuestionsController(user?.id);
+  } = useQuestionsController(user?.id, isAuthLoading);
 
   const [view, setView] = useState("list");
   const [selectedId, setSelectedId] = useState(null);
@@ -640,8 +640,8 @@ export default function App() {
           onSignOut={handleSignOut}
         />
 
-        {isMobile && navOpen && (
-          <div className="qb-mnav-ov" onClick={() => setNavOpen(false)}>
+        {isMobile && (
+          <div className={`qb-mnav-ov${navOpen ? " qb-mnav-ov-open" : ""}`} onClick={() => setNavOpen(false)}>
             <div className="qb-mnav-card" onClick={(e) => e.stopPropagation()}>
               <button
                 type="button"
