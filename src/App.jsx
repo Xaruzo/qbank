@@ -640,8 +640,8 @@ export default function App() {
           onSignOut={handleSignOut}
         />
 
-        {isMobile && (
-          <div className={`qb-mnav-ov${navOpen ? " qb-mnav-ov-open" : ""}`} onClick={() => setNavOpen(false)}>
+        {isMobile && navOpen && (
+          <div className="qb-mnav-ov" onClick={() => setNavOpen(false)}>
             <div className="qb-mnav-card" onClick={(e) => e.stopPropagation()}>
               <button
                 type="button"
