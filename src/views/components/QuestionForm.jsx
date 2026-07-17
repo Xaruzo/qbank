@@ -141,7 +141,7 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
       </div>
 
       <div className="qb-fsec">
-        <div style={{ display:"flex", alignItems:"center", marginBottom:12 }}>
+        <div className="solution-header">
           <label className="qb-flabel" style={{ margin:0 }}>
             Solution / Explanation{" "}
             <span style={{ textTransform:"none", letterSpacing:0, fontFamily:"DM Sans,sans-serif", fontSize:11, color:"var(--text-faint)" }}>(optional)</span>

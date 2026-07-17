@@ -975,6 +975,23 @@ body {
 }
 .sol-tab.sol-on { color:#e8960e; background:rgba(245,166,35,.1); }
 
+.solution-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+@media (max-width: 600px) {
+  .solution-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .solution-header .sol-tabs {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
 @keyframes fadeUp { from { opacity:0; } to { opacity:1; } }
 .fu { animation:fadeUp .22s ease forwards; }
 
