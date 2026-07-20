@@ -353,6 +353,18 @@ export default function App() {
         return;
       }
 
+      if (page === "add") {
+        const editParam = params.get("edit");
+        setSelectedMockAttemptId(null);
+        setDeepLinkShowSol(false);
+        setExam(null);
+        setSelectedId(null);
+        const editQ = editParam && qsRef.current.some(q => q.id === editParam) ? editParam : null;
+        setEditId(editQ);
+        setView("add");
+        return;
+      }
+
       if (id && qsRef.current.some(q => q.id === id)) {
         setSelectedId(id);
         setSelectedMockAttemptId(null);
@@ -425,7 +437,7 @@ export default function App() {
     setSelectedId(null);
     setDeepLinkShowSol(false);
     setExam(null);
-    window.history.pushState({}, "", window.location.pathname);
+    window.history.pushState({}, "", `?page=add`);
     setView("add");
   };
 
@@ -434,7 +446,7 @@ export default function App() {
     setSelectedId(null);
     setDeepLinkShowSol(false);
     setExam(null);
-    window.history.pushState({}, "", window.location.pathname);
+    window.history.pushState({}, "", `?page=add&edit=${encodeURIComponent(q.id)}`);
     setView("add");
   };
 
