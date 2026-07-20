@@ -2436,6 +2436,27 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
     setTool("move");
   };
 
+  const addLongDivision = () => {
+    if (!fabricRef.current) return;
+    const polyline = new fabric.Polyline([
+      { x: 0, y: 0 },
+      { x: 50, y: 0 },
+      { x: 0, y: 0 },
+      { x: 0, y: 80 }
+    ], {
+      left: 100,
+      top: 100,
+      stroke: color,
+      strokeWidth: 3,
+      fill: '',
+      originX: 'center',
+      originY: 'center'
+    });
+    fabricRef.current.add(polyline);
+    fabricRef.current.setActiveObject(polyline);
+    setTool("move");
+  };
+
   const addSymbol = (sym) => {
     if (!fabricRef.current) return;
     const text = new fabric.IText(sym, {
@@ -2762,6 +2783,9 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
           </button>
           <button className="draw-tb" onClick={addFraction} title="Add Fraction (Auto-layout)">
             <Divide size={16} />
+          </button>
+          <button className="draw-tb" onClick={addLongDivision} title="Add Long Division Symbol (⟌)">
+            <span style={{ fontSize:18, fontWeight:700, lineHeight:1 }}>⟌</span>
           </button>
           <button className={`draw-tb${tool === "eraser" ? " draw-on" : ""}`} onClick={() => setTool("eraser")} title="Eraser (Brush)">
             <Eraser size={16} />
