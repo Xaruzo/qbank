@@ -315,15 +315,15 @@ body {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  background-color: var(--surface);
+  background-color: var(--input-bg);
   min-width: 220px;
   width: 100%;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 8px;
   color: var(--text);
   font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  padding: 6px 34px 6px 11px;
+  font-size: 14px;
+  padding: 10px 34px 10px 13px;
   outline: none;
   cursor: pointer;
 }
