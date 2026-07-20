@@ -498,6 +498,8 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
 
     // Load initial value if exists
     if (value) {
+      const savedZoom = value.zoom || null;
+      const savedVpt = value.vpt || null;
       const data = typeof value === "string" ? value : JSON.stringify(value.state || value);
       try {
         if (data.startsWith("data:image")) {
@@ -515,6 +517,8 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
           canvas.loadFromJSON(data, () => {
             migrateLegacyTextOnCanvas();
             canvas.getObjects().forEach(ensureLayerId);
+            if (savedVpt) canvas.setViewportTransform(savedVpt);
+            else if (savedZoom) canvas.setZoom(savedZoom);
             canvas.renderAll();
             isInternalChange.current = false;
             saveHistory();
@@ -541,8 +545,8 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
         canvas.renderAll();
       }
       const state = canvas.toJSON();
-      const dataURL = canvas.toDataURL({ format: 'png', quality: 0.8 });
-      onChange({ state, dataURL });
+      const dataURL = canvas.toDataURL({ format: 'png', quality: 0.8, multiplier: 2 });
+      onChange({ state, dataURL, zoom: canvas.getZoom(), vpt: [...canvas.viewportTransform] });
     };
 
     const handleLiveChange = () => {
@@ -553,8 +557,8 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
         canvas.renderAll();
       }
       const state = canvas.toJSON();
-      const dataURL = canvas.toDataURL({ format: 'png', quality: 0.8 });
-      onChange({ state, dataURL });
+      const dataURL = canvas.toDataURL({ format: 'png', quality: 0.8, multiplier: 2 });
+      onChange({ state, dataURL, zoom: canvas.getZoom(), vpt: [...canvas.viewportTransform] });
     };
 
     const scheduleLiveChange = () => {
