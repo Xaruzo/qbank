@@ -146,17 +146,17 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
             Solution / Explanation{" "}
             <span style={{ textTransform:"none", letterSpacing:0, fontFamily:"DM Sans,sans-serif", fontSize:11, color:"var(--text-faint)" }}>(optional)</span>
           </label>
-          <div className="sol-tabs" style={{ marginLeft:"auto" }}>
-            <button className={`sol-tab${solMode==="text"?" sol-on":""}`} onClick={() => setSolMode("text")} style={{ display: "flex", alignItems: "center" }}>
-              <Type size={14} style={{ marginRight: 6 }} />
+          <div className="sol-tabs" aria-label="Solution mode">
+            <button type="button" className={`sol-tab${solMode==="text"?" sol-on":""}`} onClick={() => setSolMode("text")}>
+              <Type size={14} />
               Text
             </button>
-            <button className={`sol-tab${solMode==="draw"?" sol-on":""}`} onClick={() => setSolMode("draw")} style={{ display: "flex", alignItems: "center" }}>
-              <Pencil size={14} style={{ marginRight: 6 }} />
+            <button type="button" className={`sol-tab${solMode==="draw"?" sol-on":""}`} onClick={() => setSolMode("draw")}>
+              <Pencil size={14} />
               Draw
             </button>
-            <button className={`sol-tab${solMode==="upload"?" sol-on":""}`} onClick={() => setSolMode("upload")} style={{ display: "flex", alignItems: "center" }}>
-              <Image size={14} style={{ marginRight: 6 }} />
+            <button type="button" className={`sol-tab${solMode==="upload"?" sol-on":""}`} onClick={() => setSolMode("upload")}>
+              <Image size={14} />
               Upload
             </button>
           </div>
