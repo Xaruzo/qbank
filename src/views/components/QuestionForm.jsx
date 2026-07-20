@@ -163,19 +163,25 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
         </div>
 
         {visualMode==="draw" && (
-          <div style={{ marginTop:12, position:"relative" }}>
-            {form.solutionDraw && (
-              <button
-                type="button"
-                className="qb-upload-remove"
-                onClick={() => { setForm(f => ({...f, solutionDraw: null})); setVisualMode(null); }}
-                style={{ position:"absolute", top:8, right:8, zIndex:20 }}
-                title="Remove drawing"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-            )}
+          <div style={{ marginTop:12 }}>
             <DrawCanvas value={form.solutionDraw} onChange={v => setForm(f => ({...f, solutionDraw:v}))} layersHost={layersHost} />
+            {form.solutionDraw && (
+              <div style={{ display:"flex", justifyContent:"flex-end", marginTop:8 }}>
+                <button
+                  type="button"
+                  onClick={() => { setForm(f => ({...f, solutionDraw: null})); setVisualMode(null); }}
+                  style={{
+                    background:"none", border:"1px solid var(--border)", color:"var(--text-muted)",
+                    fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:600,
+                    padding:"5px 12px", borderRadius:8, cursor:"pointer",
+                    display:"inline-flex", alignItems:"center", gap:6
+                  }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  Remove Drawing
+                </button>
+              </div>
+            )}
           </div>
         )}
 
