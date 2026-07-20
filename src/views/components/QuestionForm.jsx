@@ -253,8 +253,8 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
               Label{" "}
               <span style={{ textTransform:"none", letterSpacing:0, fontFamily:"DM Sans,sans-serif", fontSize:11, color:"var(--text-faint)" }}>(optional)</span>
             </label>
-            {!useCustomLabel ? (
-              <>
+            <div style={{ minHeight:80 }}>
+              {!useCustomLabel ? (
                 <div className="qb-filter-select-wrap">
                   <select
                     className="qb-filter-select"
@@ -276,28 +276,28 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
                     <option value="other">Other (custom)</option>
                   </select>
                 </div>
-              </>
-            ) : (
-              <>
-                <input
-                  className="qb-finput"
-                  placeholder="e.g. Age Problem, Sentence Error"
-                  value={form.label}
-                  onChange={e => setForm(f => ({ ...f, label: e.target.value }))}
-                />
-                <button
-                  type="button"
-                  className="qb-fcancel"
-                  style={{ marginTop: 8, padding: "6px 12px", fontSize: 12 }}
-                  onClick={() => {
-                    setUseCustomLabel(false);
-                    setForm(f => ({ ...f, label: "" }));
-                  }}
-                >
-                  Use preset label
-                </button>
-              </>
-            )}
+              ) : (
+                <>
+                  <input
+                    className="qb-finput"
+                    placeholder="e.g. Age Problem, Sentence Error"
+                    value={form.label}
+                    onChange={e => setForm(f => ({ ...f, label: e.target.value }))}
+                  />
+                  <button
+                    type="button"
+                    className="qb-fcancel"
+                    style={{ marginTop: 8, padding: "6px 12px", fontSize: 12 }}
+                    onClick={() => {
+                      setUseCustomLabel(false);
+                      setForm(f => ({ ...f, label: "" }));
+                    }}
+                  >
+                    Use preset label
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
