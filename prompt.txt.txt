@@ -1,4 +1,0 @@
-There is a bug on the home page where if I put a question like this
-Divide the following and express the result in standard form: $$\frac{6 \times 10^5}{2 \times 10^2}$$
-​
-It normally displays fine on the question page or question block but not on the card of the home page unlike the fraction. so this one is exeptiona

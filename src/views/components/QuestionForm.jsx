@@ -3,7 +3,7 @@ import { TOPICS, LETTERS, PROBLEM_LABELS } from "../../constants/appConstants";
 import DrawCanvas from "./DrawCanvas";
 import SymbolToolbar from "./SymbolToolbar";
 import { handleSymbolShortcuts } from "../../utils/symbolShortcuts";
-import { ChevronLeft, ChevronDown, Type, Pencil, Image } from "lucide-react";
+import { ChevronLeft, ChevronDown, Pencil, Image } from "lucide-react";
 
 export default function QuestionForm({ initialData, onSave, onCancel, layersHost }) {
   const [form, setForm] = useState(initialData ? {
@@ -22,11 +22,11 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
     topic: "numerical",
     label: "",
   });
-  const [solMode, setSolMode] = useState(
+  const [visualMode, setVisualMode] = useState(
     form.solutionUpload ? "upload"
     : form.solutionDraw && typeof form.solutionDraw === "string" && form.solutionDraw.startsWith("data:image") ? "upload"
     : form.solutionDraw ? "draw"
-    : "text"
+    : null
   );
   const [error, setError] = useState("");
   const [topicOpen, setTopicOpen] = useState(false);
@@ -65,14 +65,7 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
     if (!form.question.trim()) { setError("Question cannot be empty."); return; }
     if (form.choices.some(c => !c.trim())) { setError("All 4 choices are required."); return; }
     const data = { ...form };
-    if (solMode === "text") {
-      data.solutionDraw = null;
-      data.solutionUpload = null;
-    } else if (solMode === "draw") {
-      data.solution = "";
-      data.solutionUpload = null;
-    } else if (solMode === "upload") {
-      data.solution = "";
+    if (visualMode === "upload" && data.solutionUpload) {
       data.solutionDraw = data.solutionUpload;
       data.solutionUpload = null;
     }
@@ -141,43 +134,42 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
       </div>
 
       <div className="qb-fsec">
-        <div className="solution-header">
-          <label className="qb-flabel" style={{ margin:0 }}>
-            Solution / Explanation{" "}
-            <span style={{ textTransform:"none", letterSpacing:0, fontFamily:"DM Sans,sans-serif", fontSize:11, color:"var(--text-faint)" }}>(optional)</span>
-          </label>
-          <div className="sol-tabs" aria-label="Solution mode">
-            <button type="button" className={`sol-tab${solMode==="text"?" sol-on":""}`} onClick={() => setSolMode("text")}>
-              <Type size={14} />
-              Text
-            </button>
-            <button type="button" className={`sol-tab${solMode==="draw"?" sol-on":""}`} onClick={() => setSolMode("draw")}>
-              <Pencil size={14} />
-              Draw
-            </button>
-            <button type="button" className={`sol-tab${solMode==="upload"?" sol-on":""}`} onClick={() => setSolMode("upload")}>
-              <Image size={14} />
-              Upload
-            </button>
-          </div>
+        <label className="qb-flabel">
+          Solution / Explanation{" "}
+          <span style={{ textTransform:"none", letterSpacing:0, fontFamily:"DM Sans,sans-serif", fontSize:11, color:"var(--text-faint)" }}>(optional)</span>
+        </label>
+
+        <textarea ref={solutionRef} className="qb-fta" placeholder="Write the step-by-step solution here..." value={form.solution}
+          onChange={e => {
+            const val = e.target.value;
+            setForm({...form, solution: val});
+            handleSymbolShortcuts(e.target, val, v => setForm(f => ({...f, solution: v})));
+          }} rows={5} />
+        <SymbolToolbar
+          targetRef={solutionRef}
+          value={form.solution}
+          onChange={v => setForm(f => ({ ...f, solution: v }))}
+        />
+
+        <div className="sol-tabs" aria-label="Additional visual content" style={{ marginTop:12 }}>
+          <button type="button" className={`sol-tab${visualMode==="draw"?" sol-on":""}`} onClick={() => setVisualMode(visualMode==="draw"?null:"draw")}>
+            <Pencil size={14} />
+            {form.solutionDraw ? "Drawing" : "Add Drawing"}
+          </button>
+          <button type="button" className={`sol-tab${visualMode==="upload"?" sol-on":""}`} onClick={() => setVisualMode(visualMode==="upload"?null:"upload")}>
+            <Image size={14} />
+            {form.solutionUpload ? "Image" : "Add Image"}
+          </button>
         </div>
 
-        {solMode==="text" ? (
-          <>
-            <textarea ref={solutionRef} className="qb-fta" placeholder="Write the step-by-step solution here..." value={form.solution}
-              onChange={e => {
-                const val = e.target.value;
-                setForm({...form, solution: val});
-                handleSymbolShortcuts(e.target, val, v => setForm(f => ({...f, solution: v})));
-              }} rows={5} />
-            <SymbolToolbar
-              targetRef={solutionRef}
-              value={form.solution}
-              onChange={v => setForm(f => ({ ...f, solution: v }))}
-            />
-          </>
-        ) : solMode==="upload" ? (
-          <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+        {visualMode==="draw" && (
+          <div style={{ marginTop:12 }}>
+            <DrawCanvas value={form.solutionDraw} onChange={v => setForm(f => ({...f, solutionDraw:v}))} layersHost={layersHost} />
+          </div>
+        )}
+
+        {visualMode==="upload" && (
+          <div style={{ display:"flex", flexDirection:"column", gap:12, marginTop:12 }}>
             {form.solutionUpload ? (
               <div className="qb-upload-preview">
                 <img src={form.solutionUpload} alt="uploaded solution" />
@@ -208,8 +200,6 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
               </label>
             )}
           </div>
-        ) : (
-          <DrawCanvas value={form.solutionDraw} onChange={v => setForm(f => ({...f, solutionDraw:v}))} layersHost={layersHost} />
         )}
       </div>
 
