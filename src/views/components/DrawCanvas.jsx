@@ -786,7 +786,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
         syncFraction(obj);
       }
 
-      if (nativeEvent?.altKey) return;
+      if (nativeEvent?.altKey || nativeEvent?.ctrlKey || nativeEvent?.metaKey) return;
 
       const canvasWidth = canvas.width;
       const canvasHeight = canvas.height;
