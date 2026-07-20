@@ -1257,8 +1257,8 @@ body {
   .qb-upload-label { padding:20px 14px; gap:8px; }
   .qb-upload-label svg { width:24px; height:24px; }
   .qb-upload-label span:first-of-type { font-size:13px; }
-  .qb-factions { flex-direction:column; }
-  .qb-fcancel, .qb-fsave { width:100%; }
+  .qb-factions { flex-direction:row; }
+  .qb-fcancel, .qb-fsave { flex:1; }
   .qb-main.qb-main-exam { overflow:auto; }
   .qb-main-inner.qb-main-inner-exam { height:auto; overflow:auto; padding-right: 18px; }
   .qb-exam-top { margin-bottom:0; }
