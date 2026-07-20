@@ -3000,7 +3000,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
         )}
       </div>
 
-      <p style={{ fontSize: 10, color: "var(--text-faint)", marginTop: 7, textAlign: "right", fontStyle: "italic" }}>
+      <p style={{ fontSize: 10, color: "#fff", marginTop: 7, textAlign: "right", fontStyle: "italic" }}>
         Canva Mode: [Del] deletes, Arrow keys nudge, [Shift]+Arrow moves 10px, Double-click text to edit.
       </p>
     </div>

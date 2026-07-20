@@ -171,7 +171,7 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
                   type="button"
                   onClick={() => { setForm(f => ({...f, solutionDraw: null})); setVisualMode(null); }}
                   style={{
-                    background:"none", border:"1px solid var(--border)", color:"var(--text-muted)",
+                    background:"none", border:"1px solid var(--border)", color:"#fff",
                     fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:600,
                     padding:"5px 12px", borderRadius:8, cursor:"pointer",
                     display:"inline-flex", alignItems:"center", gap:6
@@ -221,82 +221,85 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
       </div>
 
       <div className="qb-fsec">
-        <label className="qb-flabel">Topic</label>
-        <div className="qb-select" ref={topicRef}>
-          <button className="qb-select-btn" type="button" onClick={() => setTopicOpen(o => !o)} aria-expanded={topicOpen}>
-            <span>{topicLabel}</span>
-            <ChevronDown size={16} />
-          </button>
-          {topicOpen && (
-            <div className="qb-select-menu">
-              {TOPICS.map(t => (
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
+          <div>
+            <label className="qb-flabel">Topic</label>
+            <div className="qb-select" ref={topicRef}>
+              <button className="qb-select-btn" type="button" onClick={() => setTopicOpen(o => !o)} aria-expanded={topicOpen}>
+                <span>{topicLabel}</span>
+                <ChevronDown size={16} />
+              </button>
+              {topicOpen && (
+                <div className="qb-select-menu">
+                  {TOPICS.map(t => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      className={`qb-select-item${t.id === form.topic ? " on" : ""}`}
+                      onClick={() => {
+                        setForm(f => ({ ...f, topic: t.id }));
+                        setTopicOpen(false);
+                      }}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          <div>
+            <label className="qb-flabel">
+              Label{" "}
+              <span style={{ textTransform:"none", letterSpacing:0, fontFamily:"DM Sans,sans-serif", fontSize:11, color:"var(--text-faint)" }}>(optional)</span>
+            </label>
+            {!useCustomLabel ? (
+              <>
+                <div className="qb-filter-select-wrap">
+                  <select
+                    className="qb-filter-select"
+                    value={form.label}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === "other") {
+                        setUseCustomLabel(true);
+                        setForm(f => ({ ...f, label: "" }));
+                      } else {
+                        setForm(f => ({ ...f, label: val }));
+                      }
+                    }}
+                  >
+                    <option value="">Select a label...</option>
+                    {PROBLEM_LABELS.map(label => (
+                      <option key={label} value={label}>{label}</option>
+                    ))}
+                    <option value="other">Other (custom)</option>
+                  </select>
+                </div>
+              </>
+            ) : (
+              <>
+                <input
+                  className="qb-finput"
+                  placeholder="e.g. Age Problem, Sentence Error"
+                  value={form.label}
+                  onChange={e => setForm(f => ({ ...f, label: e.target.value }))}
+                />
                 <button
-                  key={t.id}
                   type="button"
-                  className={`qb-select-item${t.id === form.topic ? " on" : ""}`}
+                  className="qb-fcancel"
+                  style={{ marginTop: 8, padding: "6px 12px", fontSize: 12 }}
                   onClick={() => {
-                    setForm(f => ({ ...f, topic: t.id }));
-                    setTopicOpen(false);
+                    setUseCustomLabel(false);
+                    setForm(f => ({ ...f, label: "" }));
                   }}
                 >
-                  {t.label}
+                  Use preset label
                 </button>
-              ))}
-            </div>
-          )}
+              </>
+            )}
+          </div>
         </div>
-      </div>
-
-      <div className="qb-fsec">
-        <label className="qb-flabel">
-          Label{" "}
-          <span style={{ textTransform:"none", letterSpacing:0, fontFamily:"DM Sans,sans-serif", fontSize:11, color:"var(--text-faint)" }}>(optional)</span>
-        </label>
-        {!useCustomLabel ? (
-          <>
-            <div className="qb-filter-select-wrap">
-              <select
-                className="qb-filter-select"
-                value={form.label}
-                onChange={e => {
-                  const val = e.target.value;
-                  if (val === "other") {
-                    setUseCustomLabel(true);
-                    setForm(f => ({ ...f, label: "" }));
-                  } else {
-                    setForm(f => ({ ...f, label: val }));
-                  }
-                }}
-              >
-                <option value="">Select a label...</option>
-                {PROBLEM_LABELS.map(label => (
-                  <option key={label} value={label}>{label}</option>
-                ))}
-                <option value="other">Other (custom)</option>
-              </select>
-            </div>
-          </>
-        ) : (
-          <>
-            <input
-              className="qb-finput"
-              placeholder="e.g. Age Problem, Sentence Error"
-              value={form.label}
-              onChange={e => setForm(f => ({ ...f, label: e.target.value }))}
-            />
-            <button
-              type="button"
-              className="qb-fcancel"
-              style={{ marginTop: 8, padding: "6px 12px", fontSize: 12 }}
-              onClick={() => {
-                setUseCustomLabel(false);
-                setForm(f => ({ ...f, label: "" }));
-              }}
-            >
-              Use preset label
-            </button>
-          </>
-        )}
       </div>
 
       {error && <p className="qb-ferr">{error}</p>}
