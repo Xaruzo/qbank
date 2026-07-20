@@ -1,0 +1,5270 @@
+{
+  "nodes": [
+    {
+      "id": "package",
+      "label": "package.json",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "package_name",
+      "label": "name",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L2",
+      "_origin": "ast"
+    },
+    {
+      "id": "package_private",
+      "label": "private",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L3",
+      "_origin": "ast"
+    },
+    {
+      "id": "package_version",
+      "label": "version",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L4",
+      "_origin": "ast"
+    },
+    {
+      "id": "package_type",
+      "label": "type",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L5",
+      "_origin": "ast"
+    },
+    {
+      "id": "package_scripts",
+      "label": "scripts",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L6",
+      "_origin": "ast"
+    },
+    {
+      "id": "package_scripts_dev",
+      "label": "dev",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L7",
+      "_origin": "ast"
+    },
+    {
+      "id": "package_scripts_build",
+      "label": "build",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L8",
+      "_origin": "ast"
+    },
+    {
+      "id": "package_scripts_preview",
+      "label": "preview",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L9",
+      "_origin": "ast"
+    },
+    {
+      "id": "package_dependencies",
+      "label": "dependencies",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L11",
+      "_origin": "ast"
+    },
+    {
+      "id": "package_dependencies_supabase_supabase_js",
+      "label": "@supabase/supabase-js",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L12",
+      "_origin": "ast"
+    },
+    {
+      "id": "supabase_supabase_js",
+      "label": "@supabase/supabase-js",
+      "file_type": "concept",
+      "source_file": "package.json",
+      "source_location": "L12",
+      "_origin": "ast"
+    },
+    {
+      "id": "package_dependencies_fabric",
+      "label": "fabric",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L13",
+      "_origin": "ast"
+    },
+    {
+      "id": "fabric",
+      "label": "fabric",
+      "file_type": "concept",
+      "source_file": "package.json",
+      "source_location": "L13",
+      "_origin": "ast"
+    },
+    {
+      "id": "package_dependencies_katex",
+      "label": "katex",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L14",
+      "_origin": "ast"
+    },
+    {
+      "id": "katex",
+      "label": "katex",
+      "file_type": "concept",
+      "source_file": "package.json",
+      "source_location": "L14",
+      "_origin": "ast"
+    },
+    {
+      "id": "package_dependencies_lucide_react",
+      "label": "lucide-react",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L15",
+      "_origin": "ast"
+    },
+    {
+      "id": "lucide_react",
+      "label": "lucide-react",
+      "file_type": "concept",
+      "source_file": "package.json",
+      "source_location": "L15",
+      "_origin": "ast"
+    },
+    {
+      "id": "package_dependencies_react",
+      "label": "react",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L16",
+      "_origin": "ast"
+    },
+    {
+      "id": "react",
+      "label": "react",
+      "file_type": "concept",
+      "source_file": "package.json",
+      "source_location": "L16",
+      "_origin": "ast"
+    },
+    {
+      "id": "package_dependencies_react_dom",
+      "label": "react-dom",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L17",
+      "_origin": "ast"
+    },
+    {
+      "id": "react_dom",
+      "label": "react-dom",
+      "file_type": "concept",
+      "source_file": "package.json",
+      "source_location": "L17",
+      "_origin": "ast"
+    },
+    {
+      "id": "package_dependencies_react_markdown",
+      "label": "react-markdown",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L18",
+      "_origin": "ast"
+    },
+    {
+      "id": "react_markdown",
+      "label": "react-markdown",
+      "file_type": "concept",
+      "source_file": "package.json",
+      "source_location": "L18",
+      "_origin": "ast"
+    },
+    {
+      "id": "package_dependencies_rehype_katex",
+      "label": "rehype-katex",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L19",
+      "_origin": "ast"
+    },
+    {
+      "id": "rehype_katex",
+      "label": "rehype-katex",
+      "file_type": "concept",
+      "source_file": "package.json",
+      "source_location": "L19",
+      "_origin": "ast"
+    },
+    {
+      "id": "package_dependencies_remark_breaks",
+      "label": "remark-breaks",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L20",
+      "_origin": "ast"
+    },
+    {
+      "id": "remark_breaks",
+      "label": "remark-breaks",
+      "file_type": "concept",
+      "source_file": "package.json",
+      "source_location": "L20",
+      "_origin": "ast"
+    },
+    {
+      "id": "package_dependencies_remark_gfm",
+      "label": "remark-gfm",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L21",
+      "_origin": "ast"
+    },
+    {
+      "id": "remark_gfm",
+      "label": "remark-gfm",
+      "file_type": "concept",
+      "source_file": "package.json",
+      "source_location": "L21",
+      "_origin": "ast"
+    },
+    {
+      "id": "package_dependencies_remark_math",
+      "label": "remark-math",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L22",
+      "_origin": "ast"
+    },
+    {
+      "id": "remark_math",
+      "label": "remark-math",
+      "file_type": "concept",
+      "source_file": "package.json",
+      "source_location": "L22",
+      "_origin": "ast"
+    },
+    {
+      "id": "package_devdependencies",
+      "label": "devDependencies",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L24",
+      "_origin": "ast"
+    },
+    {
+      "id": "package_devdependencies_types_react",
+      "label": "@types/react",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L25",
+      "_origin": "ast"
+    },
+    {
+      "id": "types_react",
+      "label": "@types/react",
+      "file_type": "concept",
+      "source_file": "package.json",
+      "source_location": "L25",
+      "_origin": "ast"
+    },
+    {
+      "id": "package_devdependencies_types_react_dom",
+      "label": "@types/react-dom",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L26",
+      "_origin": "ast"
+    },
+    {
+      "id": "types_react_dom",
+      "label": "@types/react-dom",
+      "file_type": "concept",
+      "source_file": "package.json",
+      "source_location": "L26",
+      "_origin": "ast"
+    },
+    {
+      "id": "package_devdependencies_vitejs_plugin_react",
+      "label": "@vitejs/plugin-react",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L27",
+      "_origin": "ast"
+    },
+    {
+      "id": "vitejs_plugin_react",
+      "label": "@vitejs/plugin-react",
+      "file_type": "concept",
+      "source_file": "package.json",
+      "source_location": "L27",
+      "_origin": "ast"
+    },
+    {
+      "id": "package_devdependencies_vite",
+      "label": "vite",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L28",
+      "_origin": "ast"
+    },
+    {
+      "id": "vite",
+      "label": "vite",
+      "file_type": "concept",
+      "source_file": "package.json",
+      "source_location": "L28",
+      "_origin": "ast"
+    },
+    {
+      "id": "public_sw",
+      "label": "sw.js",
+      "file_type": "code",
+      "source_file": "public/sw.js",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "public_sw_app_shell_urls",
+      "label": "APP_SHELL_URLS",
+      "file_type": "code",
+      "source_file": "public/sw.js",
+      "source_location": "L5",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_app",
+      "label": "App.jsx",
+      "file_type": "code",
+      "source_file": "src/App.jsx",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_app_shuffleids",
+      "label": "shuffleIds()",
+      "file_type": "code",
+      "source_file": "src/App.jsx",
+      "source_location": "L26",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_app_isresumablemockexam",
+      "label": "isResumableMockExam()",
+      "file_type": "code",
+      "source_file": "src/App.jsx",
+      "source_location": "L37",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_app_app",
+      "label": "App()",
+      "file_type": "code",
+      "source_file": "src/App.jsx",
+      "source_location": "L46",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_constants_appconstants",
+      "label": "appConstants.js",
+      "file_type": "code",
+      "source_file": "src/constants/appConstants.js",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_constants_appconstants_topics",
+      "label": "TOPICS",
+      "file_type": "code",
+      "source_file": "src/constants/appConstants.js",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_constants_appconstants_sort_options",
+      "label": "SORT_OPTIONS",
+      "file_type": "code",
+      "source_file": "src/constants/appConstants.js",
+      "source_location": "L9",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_constants_appconstants_letters",
+      "label": "LETTERS",
+      "file_type": "code",
+      "source_file": "src/constants/appConstants.js",
+      "source_location": "L19",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_constants_appconstants_problem_labels",
+      "label": "PROBLEM_LABELS",
+      "file_type": "code",
+      "source_file": "src/constants/appConstants.js",
+      "source_location": "L20",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_constants_appconstants_question_admin_uids",
+      "label": "QUESTION_ADMIN_UIDS",
+      "file_type": "code",
+      "source_file": "src/constants/appConstants.js",
+      "source_location": "L30",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_constants_appconstants_samples",
+      "label": "SAMPLES",
+      "file_type": "code",
+      "source_file": "src/constants/appConstants.js",
+      "source_location": "L41",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_constants_mathsymbols",
+      "label": "mathSymbols.js",
+      "file_type": "code",
+      "source_file": "src/constants/mathSymbols.js",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_constants_mathsymbols_arithmetic_symbols",
+      "label": "ARITHMETIC_SYMBOLS",
+      "file_type": "code",
+      "source_file": "src/constants/mathSymbols.js",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_constants_mathsymbols_common_fractions",
+      "label": "COMMON_FRACTIONS",
+      "file_type": "code",
+      "source_file": "src/constants/mathSymbols.js",
+      "source_location": "L12",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_constants_mathsymbols_more_fractions",
+      "label": "MORE_FRACTIONS",
+      "file_type": "code",
+      "source_file": "src/constants/mathSymbols.js",
+      "source_location": "L20",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_constants_mathsymbols_currency_symbols",
+      "label": "CURRENCY_SYMBOLS",
+      "file_type": "code",
+      "source_file": "src/constants/mathSymbols.js",
+      "source_location": "L33",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_constants_mathsymbols_math_symbols",
+      "label": "MATH_SYMBOLS",
+      "file_type": "code",
+      "source_file": "src/constants/mathSymbols.js",
+      "source_location": "L44",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_constants_mathsymbols_fraction_template",
+      "label": "FRACTION_TEMPLATE",
+      "file_type": "code",
+      "source_file": "src/constants/mathSymbols.js",
+      "source_location": "L69",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_controllers_useauthcontroller",
+      "label": "useAuthController.js",
+      "file_type": "code",
+      "source_file": "src/controllers/useAuthController.js",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_controllers_useauthcontroller_getprofiledetails",
+      "label": "getProfileDetails()",
+      "file_type": "code",
+      "source_file": "src/controllers/useAuthController.js",
+      "source_location": "L4",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_controllers_useauthcontroller_useauthcontroller",
+      "label": "useAuthController()",
+      "file_type": "code",
+      "source_file": "src/controllers/useAuthController.js",
+      "source_location": "L26",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_controllers_usequestionscontroller",
+      "label": "useQuestionsController.js",
+      "file_type": "code",
+      "source_file": "src/controllers/useQuestionsController.js",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_controllers_usequestionscontroller_usequestionscontroller",
+      "label": "useQuestionsController()",
+      "file_type": "code",
+      "source_file": "src/controllers/useQuestionsController.js",
+      "source_location": "L6",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_controllers_usethemecontroller",
+      "label": "useThemeController.js",
+      "file_type": "code",
+      "source_file": "src/controllers/useThemeController.js",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_controllers_usethemecontroller_usethemecontroller",
+      "label": "useThemeController()",
+      "file_type": "code",
+      "source_file": "src/controllers/useThemeController.js",
+      "source_location": "L5",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_main",
+      "label": "main.jsx",
+      "file_type": "code",
+      "source_file": "src/main.jsx",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_storagemodel",
+      "label": "storageModel.js",
+      "file_type": "code",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_storagemodel_parsetime",
+      "label": "parseTime()",
+      "file_type": "code",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L17",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_storagemodel_sortmockexamhistory",
+      "label": "sortMockExamHistory()",
+      "file_type": "code",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L22",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_storagemodel_mergemockexamattempt",
+      "label": "mergeMockExamAttempt()",
+      "file_type": "code",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L30",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_storagemodel_mergemockexamhistory",
+      "label": "mergeMockExamHistory()",
+      "file_type": "code",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L49",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_storagemodel_getmockexampendingkey",
+      "label": "getMockExamPendingKey()",
+      "file_type": "code",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L64",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_storagemodel_getactivemockexamkey",
+      "label": "getActiveMockExamKey()",
+      "file_type": "code",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L65",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_storagemodel_readmockhistorycache",
+      "label": "readMockHistoryCache()",
+      "file_type": "code",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L67",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_storagemodel_writemockhistorycache",
+      "label": "writeMockHistoryCache()",
+      "file_type": "code",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L83",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_storagemodel_normalizemockexamattempt",
+      "label": "normalizeMockExamAttempt()",
+      "file_type": "code",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L96",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_storagemodel_serializemockexamattempt",
+      "label": "serializeMockExamAttempt()",
+      "file_type": "code",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L129",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_storagemodel_fetchremotemockexamhistory",
+      "label": "fetchRemoteMockExamHistory()",
+      "file_type": "code",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L153",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_storagemodel_storagemodel",
+      "label": "storageModel",
+      "file_type": "code",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L165",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_tipsmodel",
+      "label": "tipsModel.js",
+      "file_type": "code",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_tipsmodel_safeparse",
+      "label": "safeParse()",
+      "file_type": "code",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L10",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_tipsmodel_normalizetipsmap",
+      "label": "normalizeTipsMap()",
+      "file_type": "code",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L19",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_tipsmodel_normalizependingmap",
+      "label": "normalizePendingMap()",
+      "file_type": "code",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L29",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_tipsmodel_readvalue",
+      "label": "readValue()",
+      "file_type": "code",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L55",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_tipsmodel_removevalue",
+      "label": "removeValue()",
+      "file_type": "code",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L65",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_tipsmodel_writevalue",
+      "label": "writeValue()",
+      "file_type": "code",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L74",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_tipsmodel_gettipscachekey",
+      "label": "getTipsCacheKey()",
+      "file_type": "code",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L84",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_tipsmodel_getpendingtipskey",
+      "label": "getPendingTipsKey()",
+      "file_type": "code",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L85",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_tipsmodel_readtipscache",
+      "label": "readTipsCache()",
+      "file_type": "code",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L87",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_tipsmodel_writetipscache",
+      "label": "writeTipsCache()",
+      "file_type": "code",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L92",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_tipsmodel_readpendingmap",
+      "label": "readPendingMap()",
+      "file_type": "code",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L96",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_tipsmodel_writependingmap",
+      "label": "writePendingMap()",
+      "file_type": "code",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L103",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_tipsmodel_enqueuependingoperation",
+      "label": "enqueuePendingOperation()",
+      "file_type": "code",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L109",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_tipsmodel_dequeuependingoperation",
+      "label": "dequeuePendingOperation()",
+      "file_type": "code",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L120",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_tipsmodel_applypendingtotipsmap",
+      "label": "applyPendingToTipsMap()",
+      "file_type": "code",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L128",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_tipsmodel_ismissingquestiontipstableerror",
+      "label": "isMissingQuestionTipsTableError()",
+      "file_type": "code",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L143",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_tipsmodel_markremotetipsunavailable",
+      "label": "markRemoteTipsUnavailable()",
+      "file_type": "code",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L149",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_tipsmodel_fetchremotetipsmap",
+      "label": "fetchRemoteTipsMap()",
+      "file_type": "code",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L158",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_tipsmodel_syncremotetip",
+      "label": "syncRemoteTip()",
+      "file_type": "code",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L182",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_tipsmodel_deleteremotetip",
+      "label": "deleteRemoteTip()",
+      "file_type": "code",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L204",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_tipsmodel_migratelegacytipstouser",
+      "label": "migrateLegacyTipsToUser()",
+      "file_type": "code",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L220",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_models_tipsmodel_tipsmodel",
+      "label": "tipsModel",
+      "file_type": "code",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L253",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_utils_insertatcursor",
+      "label": "insertAtCursor.js",
+      "file_type": "code",
+      "source_file": "src/utils/insertAtCursor.js",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_utils_insertatcursor_insertatcursor",
+      "label": "insertAtCursor()",
+      "file_type": "code",
+      "source_file": "src/utils/insertAtCursor.js",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_utils_mockexamanalytics",
+      "label": "mockExamAnalytics.js",
+      "file_type": "code",
+      "source_file": "src/utils/mockExamAnalytics.js",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_utils_mockexamanalytics_topicmetamap",
+      "label": "topicMetaMap",
+      "file_type": "code",
+      "source_file": "src/utils/mockExamAnalytics.js",
+      "source_location": "L3",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_utils_mockexamanalytics_topercent",
+      "label": "toPercent()",
+      "file_type": "code",
+      "source_file": "src/utils/mockExamAnalytics.js",
+      "source_location": "L5",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_utils_mockexamanalytics_createtopicbucket",
+      "label": "createTopicBucket()",
+      "file_type": "code",
+      "source_file": "src/utils/mockExamAnalytics.js",
+      "source_location": "L10",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_utils_mockexamanalytics_formatexamduration",
+      "label": "formatExamDuration()",
+      "file_type": "code",
+      "source_file": "src/utils/mockExamAnalytics.js",
+      "source_location": "L30",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_utils_mockexamanalytics_formatattemptdate",
+      "label": "formatAttemptDate()",
+      "file_type": "code",
+      "source_file": "src/utils/mockExamAnalytics.js",
+      "source_location": "L37",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_utils_mockexamanalytics_buildquestionlookup",
+      "label": "buildQuestionLookup()",
+      "file_type": "code",
+      "source_file": "src/utils/mockExamAnalytics.js",
+      "source_location": "L50",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_utils_mockexamanalytics_calculateexammetrics",
+      "label": "calculateExamMetrics()",
+      "file_type": "code",
+      "source_file": "src/utils/mockExamAnalytics.js",
+      "source_location": "L58",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_utils_mockexamanalytics_buildmockexamattempt",
+      "label": "buildMockExamAttempt()",
+      "file_type": "code",
+      "source_file": "src/utils/mockExamAnalytics.js",
+      "source_location": "L132",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_utils_mockexamanalytics_buildreviewexamfromattempt",
+      "label": "buildReviewExamFromAttempt()",
+      "file_type": "code",
+      "source_file": "src/utils/mockExamAnalytics.js",
+      "source_location": "L173",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_utils_parsemathtext",
+      "label": "parseMathText.js",
+      "file_type": "code",
+      "source_file": "src/utils/parseMathText.js",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_utils_parsemathtext_super_map",
+      "label": "SUPER_MAP",
+      "file_type": "code",
+      "source_file": "src/utils/parseMathText.js",
+      "source_location": "L5",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_utils_parsemathtext_sub_map",
+      "label": "SUB_MAP",
+      "file_type": "code",
+      "source_file": "src/utils/parseMathText.js",
+      "source_location": "L6",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_utils_parsemathtext_decodesuper",
+      "label": "decodeSuper()",
+      "file_type": "code",
+      "source_file": "src/utils/parseMathText.js",
+      "source_location": "L8",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_utils_parsemathtext_decodesub",
+      "label": "decodeSub()",
+      "file_type": "code",
+      "source_file": "src/utils/parseMathText.js",
+      "source_location": "L12",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_utils_parsemathtext_decodemixed",
+      "label": "decodeMixed()",
+      "file_type": "code",
+      "source_file": "src/utils/parseMathText.js",
+      "source_location": "L16",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_utils_parsemathtext_fraction_re",
+      "label": "FRACTION_RE",
+      "file_type": "code",
+      "source_file": "src/utils/parseMathText.js",
+      "source_location": "L20",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_utils_parsemathtext_parsemathtext",
+      "label": "parseMathText()",
+      "file_type": "code",
+      "source_file": "src/utils/parseMathText.js",
+      "source_location": "L29",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_utils_supabaseclient",
+      "label": "supabaseClient.js",
+      "file_type": "code",
+      "source_file": "src/utils/supabaseClient.js",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_utils_symbolshortcuts",
+      "label": "symbolShortcuts.js",
+      "file_type": "code",
+      "source_file": "src/utils/symbolShortcuts.js",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_utils_symbolshortcuts_shortcuts",
+      "label": "SHORTCUTS",
+      "file_type": "code",
+      "source_file": "src/utils/symbolShortcuts.js",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_utils_symbolshortcuts_handlesymbolshortcuts",
+      "label": "handleSymbolShortcuts()",
+      "file_type": "code",
+      "source_file": "src/utils/symbolShortcuts.js",
+      "source_location": "L38",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_drawcanvas",
+      "label": "DrawCanvas.jsx",
+      "file_type": "code",
+      "source_file": "src/views/components/DrawCanvas.jsx",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_drawcanvas_drawcanvas",
+      "label": "DrawCanvas()",
+      "file_type": "code",
+      "source_file": "src/views/components/DrawCanvas.jsx",
+      "source_location": "L26",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_header",
+      "label": "Header.jsx",
+      "file_type": "code",
+      "source_file": "src/views/components/Header.jsx",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_header_header",
+      "label": "Header()",
+      "file_type": "code",
+      "source_file": "src/views/components/Header.jsx",
+      "source_location": "L5",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_markdowntext",
+      "label": "MarkdownText.jsx",
+      "file_type": "code",
+      "source_file": "src/views/components/MarkdownText.jsx",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_markdowntext_mergeclassnames",
+      "label": "mergeClassNames()",
+      "file_type": "code",
+      "source_file": "src/views/components/MarkdownText.jsx",
+      "source_location": "L9",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_markdowntext_rendermathchildren",
+      "label": "renderMathChildren()",
+      "file_type": "code",
+      "source_file": "src/views/components/MarkdownText.jsx",
+      "source_location": "L13",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_markdowntext_createrenderer",
+      "label": "createRenderer()",
+      "file_type": "code",
+      "source_file": "src/views/components/MarkdownText.jsx",
+      "source_location": "L39",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_markdowntext_normalizesinglelinedisplaymath",
+      "label": "normalizeSingleLineDisplayMath()",
+      "file_type": "code",
+      "source_file": "src/views/components/MarkdownText.jsx",
+      "source_location": "L52",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_markdowntext_blockcomponents",
+      "label": "blockComponents",
+      "file_type": "code",
+      "source_file": "src/views/components/MarkdownText.jsx",
+      "source_location": "L78",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_markdowntext_inlinecomponents",
+      "label": "inlineComponents",
+      "file_type": "code",
+      "source_file": "src/views/components/MarkdownText.jsx",
+      "source_location": "L136",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_markdowntext_markdowntext",
+      "label": "MarkdownText()",
+      "file_type": "code",
+      "source_file": "src/views/components/MarkdownText.jsx",
+      "source_location": "L183",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_mathtext",
+      "label": "MathText.jsx",
+      "file_type": "code",
+      "source_file": "src/views/components/MathText.jsx",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_mathtext_fraction",
+      "label": "Fraction()",
+      "file_type": "code",
+      "source_file": "src/views/components/MathText.jsx",
+      "source_location": "L4",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_mathtext_mathtext",
+      "label": "MathText()",
+      "file_type": "code",
+      "source_file": "src/views/components/MathText.jsx",
+      "source_location": "L14",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_mockattemptdetail",
+      "label": "MockAttemptDetail.jsx",
+      "file_type": "code",
+      "source_file": "src/views/components/MockAttemptDetail.jsx",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_mockattemptdetail_mockattemptdetail",
+      "label": "MockAttemptDetail()",
+      "file_type": "code",
+      "source_file": "src/views/components/MockAttemptDetail.jsx",
+      "source_location": "L6",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_mockexam",
+      "label": "MockExam.jsx",
+      "file_type": "code",
+      "source_file": "src/views/components/MockExam.jsx",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_mockexam_mockexam",
+      "label": "MockExam()",
+      "file_type": "code",
+      "source_file": "src/views/components/MockExam.jsx",
+      "source_location": "L7",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_mockexamrunner",
+      "label": "MockExamRunner.jsx",
+      "file_type": "code",
+      "source_file": "src/views/components/MockExamRunner.jsx",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_mockexamrunner_formatclock",
+      "label": "formatClock()",
+      "file_type": "code",
+      "source_file": "src/views/components/MockExamRunner.jsx",
+      "source_location": "L7",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_mockexamrunner_mockexamrunner",
+      "label": "MockExamRunner()",
+      "file_type": "code",
+      "source_file": "src/views/components/MockExamRunner.jsx",
+      "source_location": "L15",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_questiondetail",
+      "label": "QuestionDetail.jsx",
+      "file_type": "code",
+      "source_file": "src/views/components/QuestionDetail.jsx",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_questiondetail_questiondetail",
+      "label": "QuestionDetail()",
+      "file_type": "code",
+      "source_file": "src/views/components/QuestionDetail.jsx",
+      "source_location": "L6",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_questionform",
+      "label": "QuestionForm.jsx",
+      "file_type": "code",
+      "source_file": "src/views/components/QuestionForm.jsx",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_questionform_questionform",
+      "label": "QuestionForm()",
+      "file_type": "code",
+      "source_file": "src/views/components/QuestionForm.jsx",
+      "source_location": "L8",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_questionlist",
+      "label": "QuestionList.jsx",
+      "file_type": "code",
+      "source_file": "src/views/components/QuestionList.jsx",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_questionlist_questionlist",
+      "label": "QuestionList()",
+      "file_type": "code",
+      "source_file": "src/views/components/QuestionList.jsx",
+      "source_location": "L6",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_searchandfilter",
+      "label": "SearchAndFilter.jsx",
+      "file_type": "code",
+      "source_file": "src/views/components/SearchAndFilter.jsx",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_searchandfilter_searchandfilter",
+      "label": "SearchAndFilter()",
+      "file_type": "code",
+      "source_file": "src/views/components/SearchAndFilter.jsx",
+      "source_location": "L5",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_sidenav",
+      "label": "SideNav.jsx",
+      "file_type": "code",
+      "source_file": "src/views/components/SideNav.jsx",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_sidenav_sidenav",
+      "label": "SideNav()",
+      "file_type": "code",
+      "source_file": "src/views/components/SideNav.jsx",
+      "source_location": "L4",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_stats",
+      "label": "Stats.jsx",
+      "file_type": "code",
+      "source_file": "src/views/components/Stats.jsx",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_stats_stats",
+      "label": "Stats()",
+      "file_type": "code",
+      "source_file": "src/views/components/Stats.jsx",
+      "source_location": "L4",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_symboltoolbar",
+      "label": "SymbolToolbar.jsx",
+      "file_type": "code",
+      "source_file": "src/views/components/SymbolToolbar.jsx",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_symboltoolbar_symbolbutton",
+      "label": "SymbolButton()",
+      "file_type": "code",
+      "source_file": "src/views/components/SymbolToolbar.jsx",
+      "source_location": "L13",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_symboltoolbar_symboltoolbar",
+      "label": "SymbolToolbar()",
+      "file_type": "code",
+      "source_file": "src/views/components/SymbolToolbar.jsx",
+      "source_location": "L27",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_tipdetailpage",
+      "label": "TipDetailPage.jsx",
+      "file_type": "code",
+      "source_file": "src/views/components/TipDetailPage.jsx",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_tipdetailpage_tipdetailpage",
+      "label": "TipDetailPage()",
+      "file_type": "code",
+      "source_file": "src/views/components/TipDetailPage.jsx",
+      "source_location": "L8",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_tipspage",
+      "label": "TipsPage.jsx",
+      "file_type": "code",
+      "source_file": "src/views/components/TipsPage.jsx",
+      "source_location": "L1",
+      "_origin": "ast"
+    },
+    {
+      "id": "src_views_components_tipspage_tipspage",
+      "label": "TipsPage()",
+      "file_type": "code",
+      "source_file": "src/views/components/TipsPage.jsx",
+      "source_location": "L7",
+      "_origin": "ast"
+    },
+    {
+      "id": "vite_config",
+      "label": "vite.config.js",
+      "file_type": "code",
+      "source_file": "vite.config.js",
+      "source_location": "L1",
+      "_origin": "ast"
+    }
+  ],
+  "edges": [
+    {
+      "source": "package",
+      "target": "package_name",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "package",
+      "target": "package_private",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "package",
+      "target": "package_version",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "package",
+      "target": "package_type",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "package",
+      "target": "package_scripts",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "package_scripts",
+      "target": "package_scripts_dev",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "package_scripts",
+      "target": "package_scripts_build",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "package_scripts",
+      "target": "package_scripts_preview",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "package",
+      "target": "package_dependencies",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "package_dependencies",
+      "target": "package_dependencies_supabase_supabase_js",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "package_dependencies_supabase_supabase_js",
+      "target": "supabase_supabase_js",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L12",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "package_dependencies",
+      "target": "package_dependencies_fabric",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "package_dependencies_fabric",
+      "target": "fabric",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "package_dependencies",
+      "target": "package_dependencies_katex",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "package_dependencies_katex",
+      "target": "katex",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L14",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "package_dependencies",
+      "target": "package_dependencies_lucide_react",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "package_dependencies_lucide_react",
+      "target": "lucide_react",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L15",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "package_dependencies",
+      "target": "package_dependencies_react",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "package_dependencies_react",
+      "target": "react",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L16",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "package_dependencies",
+      "target": "package_dependencies_react_dom",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "package_dependencies_react_dom",
+      "target": "react_dom",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L17",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "package_dependencies",
+      "target": "package_dependencies_react_markdown",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "package_dependencies_react_markdown",
+      "target": "react_markdown",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L18",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "package_dependencies",
+      "target": "package_dependencies_rehype_katex",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "package_dependencies_rehype_katex",
+      "target": "rehype_katex",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L19",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "package_dependencies",
+      "target": "package_dependencies_remark_breaks",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L20",
+      "weight": 1.0
+    },
+    {
+      "source": "package_dependencies_remark_breaks",
+      "target": "remark_breaks",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L20",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "package_dependencies",
+      "target": "package_dependencies_remark_gfm",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "package_dependencies_remark_gfm",
+      "target": "remark_gfm",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L21",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "package_dependencies",
+      "target": "package_dependencies_remark_math",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "package_dependencies_remark_math",
+      "target": "remark_math",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L22",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "package",
+      "target": "package_devdependencies",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L24",
+      "weight": 1.0
+    },
+    {
+      "source": "package_devdependencies",
+      "target": "package_devdependencies_types_react",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L25",
+      "weight": 1.0
+    },
+    {
+      "source": "package_devdependencies_types_react",
+      "target": "types_react",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L25",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "package_devdependencies",
+      "target": "package_devdependencies_types_react_dom",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L26",
+      "weight": 1.0
+    },
+    {
+      "source": "package_devdependencies_types_react_dom",
+      "target": "types_react_dom",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L26",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "package_devdependencies",
+      "target": "package_devdependencies_vitejs_plugin_react",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L27",
+      "weight": 1.0
+    },
+    {
+      "source": "package_devdependencies_vitejs_plugin_react",
+      "target": "vitejs_plugin_react",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L27",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "package_devdependencies",
+      "target": "package_devdependencies_vite",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L28",
+      "weight": 1.0
+    },
+    {
+      "source": "package_devdependencies_vite",
+      "target": "vite",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L28",
+      "weight": 1.0,
+      "context": "import"
+    },
+    {
+      "source": "public_sw",
+      "target": "public_sw_app_shell_urls",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "public/sw.js",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "ref_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_views_components_header",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_views_components_stats",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_views_components_searchandfilter",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_views_components_questionlist",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_views_components_questiondetail",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_views_components_questionform",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_views_components_sidenav",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_views_components_mockexam",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_views_components_mockattemptdetail",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_views_components_mockexamrunner",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_views_components_tipspage",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_views_components_tipdetailpage",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_controllers_useauthcontroller",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_controllers_useauthcontroller_useauthcontroller",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_controllers_usequestionscontroller",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_controllers_usequestionscontroller_usequestionscontroller",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_controllers_usethemecontroller",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_controllers_usethemecontroller_usethemecontroller",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_models_storagemodel",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_models_storagemodel_storagemodel",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_models_tipsmodel",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_models_tipsmodel_tipsmodel",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_utils_mockexamanalytics",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_utils_mockexamanalytics_buildmockexamattempt",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_utils_mockexamanalytics_buildreviewexamfromattempt",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "ref_lucide_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L20",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_constants_appconstants",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_constants_appconstants_question_admin_uids",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_app_shuffleids",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L26",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_app_isresumablemockexam",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L37",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_app_app",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L46",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app",
+      "target": "src_app_isresumablemockexam",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L141",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app",
+      "target": "src_app_shuffleids",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L489",
+      "weight": 1.0
+    },
+    {
+      "source": "src_constants_appconstants",
+      "target": "src_constants_appconstants_topics",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/constants/appConstants.js",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_constants_appconstants",
+      "target": "src_constants_appconstants_sort_options",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/constants/appConstants.js",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "src_constants_appconstants",
+      "target": "src_constants_appconstants_letters",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/constants/appConstants.js",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "src_constants_appconstants",
+      "target": "src_constants_appconstants_problem_labels",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/constants/appConstants.js",
+      "source_location": "L20",
+      "weight": 1.0
+    },
+    {
+      "source": "src_constants_appconstants",
+      "target": "src_constants_appconstants_question_admin_uids",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/constants/appConstants.js",
+      "source_location": "L30",
+      "weight": 1.0
+    },
+    {
+      "source": "src_constants_appconstants",
+      "target": "src_constants_appconstants_samples",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/constants/appConstants.js",
+      "source_location": "L41",
+      "weight": 1.0
+    },
+    {
+      "source": "src_constants_mathsymbols",
+      "target": "src_constants_mathsymbols_arithmetic_symbols",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/constants/mathSymbols.js",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_constants_mathsymbols",
+      "target": "src_constants_mathsymbols_common_fractions",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/constants/mathSymbols.js",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "src_constants_mathsymbols",
+      "target": "src_constants_mathsymbols_more_fractions",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/constants/mathSymbols.js",
+      "source_location": "L20",
+      "weight": 1.0
+    },
+    {
+      "source": "src_constants_mathsymbols",
+      "target": "src_constants_mathsymbols_currency_symbols",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/constants/mathSymbols.js",
+      "source_location": "L33",
+      "weight": 1.0
+    },
+    {
+      "source": "src_constants_mathsymbols",
+      "target": "src_constants_mathsymbols_math_symbols",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/constants/mathSymbols.js",
+      "source_location": "L44",
+      "weight": 1.0
+    },
+    {
+      "source": "src_constants_mathsymbols",
+      "target": "src_constants_mathsymbols_fraction_template",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/constants/mathSymbols.js",
+      "source_location": "L69",
+      "weight": 1.0
+    },
+    {
+      "source": "src_controllers_useauthcontroller",
+      "target": "ref_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/controllers/useAuthController.js",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_controllers_useauthcontroller",
+      "target": "src_utils_supabaseclient",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/controllers/useAuthController.js",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_controllers_useauthcontroller",
+      "target": "c_users_xaruzo_documents_qbank_main_src_utils_supabaseclient_supabase",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/controllers/useAuthController.js",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_controllers_useauthcontroller",
+      "target": "src_controllers_useauthcontroller_getprofiledetails",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/controllers/useAuthController.js",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_controllers_useauthcontroller",
+      "target": "src_controllers_useauthcontroller_useauthcontroller",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/controllers/useAuthController.js",
+      "source_location": "L26",
+      "weight": 1.0
+    },
+    {
+      "source": "src_controllers_useauthcontroller_useauthcontroller",
+      "target": "src_controllers_useauthcontroller_getprofiledetails",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/controllers/useAuthController.js",
+      "source_location": "L57",
+      "weight": 1.0
+    },
+    {
+      "source": "src_controllers_usequestionscontroller",
+      "target": "ref_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/controllers/useQuestionsController.js",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_controllers_usequestionscontroller",
+      "target": "src_constants_appconstants",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/controllers/useQuestionsController.js",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_controllers_usequestionscontroller",
+      "target": "c_users_xaruzo_documents_qbank_main_src_constants_appconstants_key",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/controllers/useQuestionsController.js",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_controllers_usequestionscontroller",
+      "target": "src_constants_appconstants_samples",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/controllers/useQuestionsController.js",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_controllers_usequestionscontroller",
+      "target": "src_constants_appconstants_topics",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/controllers/useQuestionsController.js",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_controllers_usequestionscontroller",
+      "target": "src_models_storagemodel",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/controllers/useQuestionsController.js",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_controllers_usequestionscontroller",
+      "target": "src_models_storagemodel_storagemodel",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/controllers/useQuestionsController.js",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_controllers_usequestionscontroller",
+      "target": "src_utils_supabaseclient",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/controllers/useQuestionsController.js",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_controllers_usequestionscontroller",
+      "target": "c_users_xaruzo_documents_qbank_main_src_utils_supabaseclient_supabase",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/controllers/useQuestionsController.js",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_controllers_usequestionscontroller",
+      "target": "src_controllers_usequestionscontroller_usequestionscontroller",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/controllers/useQuestionsController.js",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "src_controllers_usethemecontroller",
+      "target": "ref_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/controllers/useThemeController.js",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_controllers_usethemecontroller",
+      "target": "src_constants_appconstants",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/controllers/useThemeController.js",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_controllers_usethemecontroller",
+      "target": "c_users_xaruzo_documents_qbank_main_src_constants_appconstants_theme_key",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/controllers/useThemeController.js",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_controllers_usethemecontroller",
+      "target": "src_models_storagemodel",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/controllers/useThemeController.js",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_controllers_usethemecontroller",
+      "target": "src_models_storagemodel_storagemodel",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/controllers/useThemeController.js",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_controllers_usethemecontroller",
+      "target": "src_controllers_usethemecontroller_usethemecontroller",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/controllers/useThemeController.js",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "src_main",
+      "target": "ref_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/main.jsx",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_main",
+      "target": "ref_react_dom_client",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/main.jsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_main",
+      "target": "src_app",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/main.jsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_main",
+      "target": "ref_katex_dist_katex_min_css",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/main.jsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_main",
+      "target": "c_users_xaruzo_documents_qbank_main_src_styles_app_css",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/main.jsx",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "src_main",
+      "target": "c_users_xaruzo_documents_qbank_main_src_models_image_logo_png",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/main.jsx",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_storagemodel",
+      "target": "src_utils_supabaseclient",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_storagemodel",
+      "target": "c_users_xaruzo_documents_qbank_main_src_utils_supabaseclient_supabase",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_storagemodel",
+      "target": "src_constants_appconstants",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_storagemodel",
+      "target": "c_users_xaruzo_documents_qbank_main_src_constants_appconstants_favorites_key",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_storagemodel",
+      "target": "c_users_xaruzo_documents_qbank_main_src_constants_appconstants_mock_exam_history_key",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_storagemodel",
+      "target": "src_models_storagemodel_parsetime",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_storagemodel",
+      "target": "src_models_storagemodel_sortmockexamhistory",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_storagemodel",
+      "target": "src_models_storagemodel_mergemockexamattempt",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L30",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_storagemodel",
+      "target": "src_models_storagemodel_mergemockexamhistory",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L49",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_storagemodel",
+      "target": "src_models_storagemodel_getmockexampendingkey",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L64",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_storagemodel",
+      "target": "src_models_storagemodel_getactivemockexamkey",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L65",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_storagemodel",
+      "target": "src_models_storagemodel_readmockhistorycache",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L67",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_storagemodel",
+      "target": "src_models_storagemodel_writemockhistorycache",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L83",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_storagemodel",
+      "target": "src_models_storagemodel_normalizemockexamattempt",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L96",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_storagemodel",
+      "target": "src_models_storagemodel_serializemockexamattempt",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L129",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_storagemodel",
+      "target": "src_models_storagemodel_fetchremotemockexamhistory",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L153",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_storagemodel",
+      "target": "src_models_storagemodel_storagemodel",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L165",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_storagemodel_sortmockexamhistory",
+      "target": "src_models_storagemodel_parsetime",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L24",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_storagemodel_mergemockexamhistory",
+      "target": "src_models_storagemodel_mergemockexamattempt",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L57",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_storagemodel_mergemockexamhistory",
+      "target": "src_models_storagemodel_sortmockexamhistory",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L61",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_storagemodel_fetchremotemockexamhistory",
+      "target": "src_models_storagemodel_normalizemockexamattempt",
+      "relation": "indirect_call",
+      "context": "argument",
+      "confidence": "INFERRED",
+      "source_file": "src/models/storageModel.js",
+      "source_location": "L162",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel",
+      "target": "src_constants_appconstants",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel",
+      "target": "c_users_xaruzo_documents_qbank_main_src_constants_appconstants_tips_key",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel",
+      "target": "src_utils_supabaseclient",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel",
+      "target": "c_users_xaruzo_documents_qbank_main_src_utils_supabaseclient_supabase",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel",
+      "target": "src_models_tipsmodel_safeparse",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel",
+      "target": "src_models_tipsmodel_normalizetipsmap",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel",
+      "target": "src_models_tipsmodel_normalizependingmap",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L29",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel",
+      "target": "src_models_tipsmodel_readvalue",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L55",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel",
+      "target": "src_models_tipsmodel_removevalue",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L65",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel",
+      "target": "src_models_tipsmodel_writevalue",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L74",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel",
+      "target": "src_models_tipsmodel_gettipscachekey",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L84",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel",
+      "target": "src_models_tipsmodel_getpendingtipskey",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L85",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel",
+      "target": "src_models_tipsmodel_readtipscache",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L87",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel",
+      "target": "src_models_tipsmodel_writetipscache",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L92",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel",
+      "target": "src_models_tipsmodel_readpendingmap",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L96",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel",
+      "target": "src_models_tipsmodel_writependingmap",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L103",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel",
+      "target": "src_models_tipsmodel_enqueuependingoperation",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L109",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel",
+      "target": "src_models_tipsmodel_dequeuependingoperation",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L120",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel",
+      "target": "src_models_tipsmodel_applypendingtotipsmap",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L128",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel",
+      "target": "src_models_tipsmodel_ismissingquestiontipstableerror",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L143",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel",
+      "target": "src_models_tipsmodel_markremotetipsunavailable",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L149",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel",
+      "target": "src_models_tipsmodel_fetchremotetipsmap",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L158",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel",
+      "target": "src_models_tipsmodel_syncremotetip",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L182",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel",
+      "target": "src_models_tipsmodel_deleteremotetip",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L204",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel",
+      "target": "src_models_tipsmodel_migratelegacytipstouser",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L220",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel",
+      "target": "src_models_tipsmodel_tipsmodel",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L253",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel_readtipscache",
+      "target": "src_models_tipsmodel_readvalue",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L88",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel_readtipscache",
+      "target": "src_models_tipsmodel_gettipscachekey",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L88",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel_readtipscache",
+      "target": "src_models_tipsmodel_normalizetipsmap",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L89",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel_readtipscache",
+      "target": "src_models_tipsmodel_safeparse",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L89",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel_writetipscache",
+      "target": "src_models_tipsmodel_writevalue",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L93",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel_writetipscache",
+      "target": "src_models_tipsmodel_gettipscachekey",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L93",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel_writetipscache",
+      "target": "src_models_tipsmodel_normalizetipsmap",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L93",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel_readpendingmap",
+      "target": "src_models_tipsmodel_getpendingtipskey",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L98",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel_readpendingmap",
+      "target": "src_models_tipsmodel_readvalue",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L99",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel_readpendingmap",
+      "target": "src_models_tipsmodel_normalizependingmap",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L100",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel_readpendingmap",
+      "target": "src_models_tipsmodel_safeparse",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L100",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel_writependingmap",
+      "target": "src_models_tipsmodel_getpendingtipskey",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L105",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel_writependingmap",
+      "target": "src_models_tipsmodel_writevalue",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L106",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel_writependingmap",
+      "target": "src_models_tipsmodel_normalizependingmap",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L106",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel_enqueuependingoperation",
+      "target": "src_models_tipsmodel_readpendingmap",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L111",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel_enqueuependingoperation",
+      "target": "src_models_tipsmodel_writependingmap",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L117",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel_dequeuependingoperation",
+      "target": "src_models_tipsmodel_readpendingmap",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L122",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel_dequeuependingoperation",
+      "target": "src_models_tipsmodel_writependingmap",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L125",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel_applypendingtotipsmap",
+      "target": "src_models_tipsmodel_normalizetipsmap",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L129",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel_applypendingtotipsmap",
+      "target": "src_models_tipsmodel_normalizependingmap",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L131",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel_fetchremotetipsmap",
+      "target": "src_models_tipsmodel_ismissingquestiontipstableerror",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L166",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel_fetchremotetipsmap",
+      "target": "src_models_tipsmodel_markremotetipsunavailable",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L167",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel_syncremotetip",
+      "target": "src_models_tipsmodel_ismissingquestiontipstableerror",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L197",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel_syncremotetip",
+      "target": "src_models_tipsmodel_markremotetipsunavailable",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L198",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel_deleteremotetip",
+      "target": "src_models_tipsmodel_ismissingquestiontipstableerror",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L213",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel_deleteremotetip",
+      "target": "src_models_tipsmodel_markremotetipsunavailable",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L214",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel_migratelegacytipstouser",
+      "target": "src_models_tipsmodel_readtipscache",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L223",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel_migratelegacytipstouser",
+      "target": "src_models_tipsmodel_writetipscache",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L229",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel_migratelegacytipstouser",
+      "target": "src_models_tipsmodel_readpendingmap",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L231",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel_migratelegacytipstouser",
+      "target": "src_models_tipsmodel_writependingmap",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L247",
+      "weight": 1.0
+    },
+    {
+      "source": "src_models_tipsmodel_migratelegacytipstouser",
+      "target": "src_models_tipsmodel_removevalue",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/models/tipsModel.js",
+      "source_location": "L250",
+      "weight": 1.0
+    },
+    {
+      "source": "src_utils_insertatcursor",
+      "target": "src_utils_insertatcursor_insertatcursor",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/insertAtCursor.js",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_utils_mockexamanalytics",
+      "target": "src_constants_appconstants",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/mockExamAnalytics.js",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_utils_mockexamanalytics",
+      "target": "src_constants_appconstants_topics",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/mockExamAnalytics.js",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_utils_mockexamanalytics",
+      "target": "src_utils_mockexamanalytics_topicmetamap",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/mockExamAnalytics.js",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_utils_mockexamanalytics",
+      "target": "src_utils_mockexamanalytics_topercent",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/mockExamAnalytics.js",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "src_utils_mockexamanalytics",
+      "target": "src_utils_mockexamanalytics_createtopicbucket",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/mockExamAnalytics.js",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "src_utils_mockexamanalytics",
+      "target": "src_utils_mockexamanalytics_formatexamduration",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/mockExamAnalytics.js",
+      "source_location": "L30",
+      "weight": 1.0
+    },
+    {
+      "source": "src_utils_mockexamanalytics",
+      "target": "src_utils_mockexamanalytics_formatattemptdate",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/mockExamAnalytics.js",
+      "source_location": "L37",
+      "weight": 1.0
+    },
+    {
+      "source": "src_utils_mockexamanalytics",
+      "target": "src_utils_mockexamanalytics_buildquestionlookup",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/mockExamAnalytics.js",
+      "source_location": "L50",
+      "weight": 1.0
+    },
+    {
+      "source": "src_utils_mockexamanalytics",
+      "target": "src_utils_mockexamanalytics_calculateexammetrics",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/mockExamAnalytics.js",
+      "source_location": "L58",
+      "weight": 1.0
+    },
+    {
+      "source": "src_utils_mockexamanalytics",
+      "target": "src_utils_mockexamanalytics_buildmockexamattempt",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/mockExamAnalytics.js",
+      "source_location": "L132",
+      "weight": 1.0
+    },
+    {
+      "source": "src_utils_mockexamanalytics",
+      "target": "src_utils_mockexamanalytics_buildreviewexamfromattempt",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/mockExamAnalytics.js",
+      "source_location": "L173",
+      "weight": 1.0
+    },
+    {
+      "source": "src_utils_mockexamanalytics_calculateexammetrics",
+      "target": "src_utils_mockexamanalytics_buildquestionlookup",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/mockExamAnalytics.js",
+      "source_location": "L59",
+      "weight": 1.0
+    },
+    {
+      "source": "src_utils_mockexamanalytics_calculateexammetrics",
+      "target": "src_utils_mockexamanalytics_createtopicbucket",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/mockExamAnalytics.js",
+      "source_location": "L78",
+      "weight": 1.0
+    },
+    {
+      "source": "src_utils_mockexamanalytics_calculateexammetrics",
+      "target": "src_utils_mockexamanalytics_topercent",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/mockExamAnalytics.js",
+      "source_location": "L100",
+      "weight": 1.0
+    },
+    {
+      "source": "src_utils_mockexamanalytics_buildmockexamattempt",
+      "target": "src_utils_mockexamanalytics_calculateexammetrics",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/mockExamAnalytics.js",
+      "source_location": "L134",
+      "weight": 1.0
+    },
+    {
+      "source": "src_utils_mockexamanalytics_buildreviewexamfromattempt",
+      "target": "src_utils_mockexamanalytics_buildquestionlookup",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/mockExamAnalytics.js",
+      "source_location": "L177",
+      "weight": 1.0
+    },
+    {
+      "source": "src_utils_parsemathtext",
+      "target": "src_utils_parsemathtext_super_map",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/parseMathText.js",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "src_utils_parsemathtext",
+      "target": "src_utils_parsemathtext_sub_map",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/parseMathText.js",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "src_utils_parsemathtext",
+      "target": "src_utils_parsemathtext_decodesuper",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/parseMathText.js",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "src_utils_parsemathtext",
+      "target": "src_utils_parsemathtext_decodesub",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/parseMathText.js",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "src_utils_parsemathtext",
+      "target": "src_utils_parsemathtext_decodemixed",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/parseMathText.js",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "src_utils_parsemathtext",
+      "target": "src_utils_parsemathtext_fraction_re",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/parseMathText.js",
+      "source_location": "L20",
+      "weight": 1.0
+    },
+    {
+      "source": "src_utils_parsemathtext",
+      "target": "src_utils_parsemathtext_parsemathtext",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/parseMathText.js",
+      "source_location": "L29",
+      "weight": 1.0
+    },
+    {
+      "source": "src_utils_parsemathtext_parsemathtext",
+      "target": "src_utils_parsemathtext_decodesuper",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/parseMathText.js",
+      "source_location": "L44",
+      "weight": 1.0
+    },
+    {
+      "source": "src_utils_parsemathtext_parsemathtext",
+      "target": "src_utils_parsemathtext_decodemixed",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/parseMathText.js",
+      "source_location": "L44",
+      "weight": 1.0
+    },
+    {
+      "source": "src_utils_parsemathtext_parsemathtext",
+      "target": "src_utils_parsemathtext_decodesub",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/parseMathText.js",
+      "source_location": "L46",
+      "weight": 1.0
+    },
+    {
+      "source": "src_utils_supabaseclient",
+      "target": "ref_supabase_supabase_js",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/supabaseClient.js",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_utils_symbolshortcuts",
+      "target": "src_utils_symbolshortcuts_shortcuts",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/symbolShortcuts.js",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_utils_symbolshortcuts",
+      "target": "src_utils_symbolshortcuts_handlesymbolshortcuts",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/symbolShortcuts.js",
+      "source_location": "L38",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_drawcanvas",
+      "target": "ref_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/DrawCanvas.jsx",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_drawcanvas",
+      "target": "ref_react_dom",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/DrawCanvas.jsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_drawcanvas",
+      "target": "ref_fabric",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/DrawCanvas.jsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_drawcanvas",
+      "target": "ref_lucide_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/DrawCanvas.jsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_drawcanvas",
+      "target": "src_views_components_drawcanvas_drawcanvas",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/DrawCanvas.jsx",
+      "source_location": "L26",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_header",
+      "target": "ref_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/Header.jsx",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_header",
+      "target": "ref_lucide_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/Header.jsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_header",
+      "target": "c_users_xaruzo_documents_qbank_main_src_models_image_logo_png",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/Header.jsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_header",
+      "target": "src_views_components_header_header",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/Header.jsx",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_markdowntext",
+      "target": "ref_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MarkdownText.jsx",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_markdowntext",
+      "target": "ref_react_markdown",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MarkdownText.jsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_markdowntext",
+      "target": "ref_remark_breaks",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MarkdownText.jsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_markdowntext",
+      "target": "ref_remark_gfm",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MarkdownText.jsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_markdowntext",
+      "target": "ref_remark_math",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MarkdownText.jsx",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_markdowntext",
+      "target": "ref_rehype_katex",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MarkdownText.jsx",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_markdowntext",
+      "target": "src_views_components_mathtext",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MarkdownText.jsx",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_markdowntext",
+      "target": "src_views_components_markdowntext_mergeclassnames",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MarkdownText.jsx",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_markdowntext",
+      "target": "src_views_components_markdowntext_rendermathchildren",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MarkdownText.jsx",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_markdowntext",
+      "target": "src_views_components_markdowntext_createrenderer",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MarkdownText.jsx",
+      "source_location": "L39",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_markdowntext",
+      "target": "src_views_components_markdowntext_normalizesinglelinedisplaymath",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MarkdownText.jsx",
+      "source_location": "L52",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_markdowntext",
+      "target": "src_views_components_markdowntext_blockcomponents",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MarkdownText.jsx",
+      "source_location": "L78",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_markdowntext",
+      "target": "src_views_components_markdowntext_inlinecomponents",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MarkdownText.jsx",
+      "source_location": "L136",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_markdowntext",
+      "target": "src_views_components_markdowntext_markdowntext",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MarkdownText.jsx",
+      "source_location": "L183",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_markdowntext_createrenderer",
+      "target": "src_views_components_markdowntext_mergeclassnames",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MarkdownText.jsx",
+      "source_location": "L45",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_markdowntext_createrenderer",
+      "target": "src_views_components_markdowntext_rendermathchildren",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MarkdownText.jsx",
+      "source_location": "L47",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_markdowntext_markdowntext",
+      "target": "src_views_components_markdowntext_normalizesinglelinedisplaymath",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MarkdownText.jsx",
+      "source_location": "L185",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_markdowntext_markdowntext",
+      "target": "src_views_components_markdowntext_mergeclassnames",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MarkdownText.jsx",
+      "source_location": "L189",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mathtext",
+      "target": "ref_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MathText.jsx",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mathtext",
+      "target": "src_utils_parsemathtext",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MathText.jsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mathtext",
+      "target": "src_utils_parsemathtext_parsemathtext",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MathText.jsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mathtext",
+      "target": "src_views_components_mathtext_fraction",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MathText.jsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mathtext",
+      "target": "src_views_components_mathtext_mathtext",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MathText.jsx",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockattemptdetail",
+      "target": "ref_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MockAttemptDetail.jsx",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockattemptdetail",
+      "target": "ref_lucide_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MockAttemptDetail.jsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockattemptdetail",
+      "target": "src_constants_appconstants",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MockAttemptDetail.jsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockattemptdetail",
+      "target": "src_constants_appconstants_letters",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MockAttemptDetail.jsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockattemptdetail",
+      "target": "src_utils_mockexamanalytics",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MockAttemptDetail.jsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockattemptdetail",
+      "target": "src_utils_mockexamanalytics_buildquestionlookup",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MockAttemptDetail.jsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockattemptdetail",
+      "target": "src_utils_mockexamanalytics_formatattemptdate",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MockAttemptDetail.jsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockattemptdetail",
+      "target": "src_utils_mockexamanalytics_formatexamduration",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MockAttemptDetail.jsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockattemptdetail",
+      "target": "src_views_components_mockattemptdetail_mockattemptdetail",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MockAttemptDetail.jsx",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockexam",
+      "target": "ref_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MockExam.jsx",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockexam",
+      "target": "ref_lucide_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MockExam.jsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockexam",
+      "target": "src_utils_mockexamanalytics",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MockExam.jsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockexam",
+      "target": "src_utils_mockexamanalytics_formatattemptdate",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MockExam.jsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockexam",
+      "target": "src_utils_mockexamanalytics_formatexamduration",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MockExam.jsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockexam",
+      "target": "src_views_components_mockexam_mockexam",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MockExam.jsx",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockexamrunner",
+      "target": "ref_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MockExamRunner.jsx",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockexamrunner",
+      "target": "ref_lucide_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MockExamRunner.jsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockexamrunner",
+      "target": "src_views_components_markdowntext",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MockExamRunner.jsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockexamrunner",
+      "target": "src_constants_appconstants",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MockExamRunner.jsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockexamrunner",
+      "target": "src_constants_appconstants_letters",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MockExamRunner.jsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockexamrunner",
+      "target": "src_constants_appconstants_topics",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MockExamRunner.jsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockexamrunner",
+      "target": "src_utils_mockexamanalytics",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MockExamRunner.jsx",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockexamrunner",
+      "target": "src_utils_mockexamanalytics_calculateexammetrics",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MockExamRunner.jsx",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockexamrunner",
+      "target": "src_views_components_mockexamrunner_formatclock",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MockExamRunner.jsx",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockexamrunner",
+      "target": "src_views_components_mockexamrunner_mockexamrunner",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MockExamRunner.jsx",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockexamrunner_mockexamrunner",
+      "target": "src_views_components_mockexamrunner_formatclock",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MockExamRunner.jsx",
+      "source_location": "L184",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questiondetail",
+      "target": "ref_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/QuestionDetail.jsx",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questiondetail",
+      "target": "src_constants_appconstants",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/QuestionDetail.jsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questiondetail",
+      "target": "src_constants_appconstants_topics",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/QuestionDetail.jsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questiondetail",
+      "target": "src_constants_appconstants_letters",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/QuestionDetail.jsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questiondetail",
+      "target": "ref_lucide_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/QuestionDetail.jsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questiondetail",
+      "target": "src_views_components_markdowntext",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/QuestionDetail.jsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questiondetail",
+      "target": "src_views_components_questiondetail_questiondetail",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/QuestionDetail.jsx",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questionform",
+      "target": "ref_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/QuestionForm.jsx",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questionform",
+      "target": "src_constants_appconstants",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/QuestionForm.jsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questionform",
+      "target": "src_constants_appconstants_topics",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/QuestionForm.jsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questionform",
+      "target": "src_constants_appconstants_letters",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/QuestionForm.jsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questionform",
+      "target": "src_constants_appconstants_problem_labels",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/QuestionForm.jsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questionform",
+      "target": "src_views_components_drawcanvas",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/QuestionForm.jsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questionform",
+      "target": "src_views_components_symboltoolbar",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/QuestionForm.jsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questionform",
+      "target": "src_utils_symbolshortcuts",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/QuestionForm.jsx",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questionform",
+      "target": "src_utils_symbolshortcuts_handlesymbolshortcuts",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/QuestionForm.jsx",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questionform",
+      "target": "ref_lucide_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/QuestionForm.jsx",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questionform",
+      "target": "src_views_components_questionform_questionform",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/QuestionForm.jsx",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questionlist",
+      "target": "ref_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/QuestionList.jsx",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questionlist",
+      "target": "src_constants_appconstants",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/QuestionList.jsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questionlist",
+      "target": "src_constants_appconstants_topics",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/QuestionList.jsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questionlist",
+      "target": "src_constants_appconstants_sort_options",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/QuestionList.jsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questionlist",
+      "target": "ref_lucide_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/QuestionList.jsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questionlist",
+      "target": "src_views_components_mathtext",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/QuestionList.jsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questionlist",
+      "target": "src_views_components_questionlist_questionlist",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/QuestionList.jsx",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_searchandfilter",
+      "target": "ref_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/SearchAndFilter.jsx",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_searchandfilter",
+      "target": "ref_lucide_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/SearchAndFilter.jsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_searchandfilter",
+      "target": "src_constants_appconstants",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/SearchAndFilter.jsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_searchandfilter",
+      "target": "src_constants_appconstants_topics",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/SearchAndFilter.jsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_searchandfilter",
+      "target": "src_views_components_searchandfilter_searchandfilter",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/SearchAndFilter.jsx",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_sidenav",
+      "target": "ref_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/SideNav.jsx",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_sidenav",
+      "target": "ref_lucide_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/SideNav.jsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_sidenav",
+      "target": "src_views_components_sidenav_sidenav",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/SideNav.jsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_stats",
+      "target": "ref_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/Stats.jsx",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_stats",
+      "target": "src_constants_appconstants",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/Stats.jsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_stats",
+      "target": "src_constants_appconstants_topics",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/Stats.jsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_stats",
+      "target": "src_views_components_stats_stats",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/Stats.jsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_symboltoolbar",
+      "target": "ref_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/SymbolToolbar.jsx",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_symboltoolbar",
+      "target": "ref_lucide_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/SymbolToolbar.jsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_symboltoolbar",
+      "target": "src_constants_mathsymbols",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/SymbolToolbar.jsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_symboltoolbar",
+      "target": "src_constants_mathsymbols_arithmetic_symbols",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/SymbolToolbar.jsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_symboltoolbar",
+      "target": "src_constants_mathsymbols_common_fractions",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/SymbolToolbar.jsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_symboltoolbar",
+      "target": "src_constants_mathsymbols_more_fractions",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/SymbolToolbar.jsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_symboltoolbar",
+      "target": "src_constants_mathsymbols_currency_symbols",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/SymbolToolbar.jsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_symboltoolbar",
+      "target": "src_constants_mathsymbols_math_symbols",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/SymbolToolbar.jsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_symboltoolbar",
+      "target": "src_constants_mathsymbols_fraction_template",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/SymbolToolbar.jsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_symboltoolbar",
+      "target": "src_utils_insertatcursor",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/SymbolToolbar.jsx",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_symboltoolbar",
+      "target": "src_utils_insertatcursor_insertatcursor",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/SymbolToolbar.jsx",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_symboltoolbar",
+      "target": "src_views_components_symboltoolbar_symbolbutton",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/SymbolToolbar.jsx",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_symboltoolbar",
+      "target": "src_views_components_symboltoolbar_symboltoolbar",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/SymbolToolbar.jsx",
+      "source_location": "L27",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_tipdetailpage",
+      "target": "ref_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/TipDetailPage.jsx",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_tipdetailpage",
+      "target": "src_models_tipsmodel",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/TipDetailPage.jsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_tipdetailpage",
+      "target": "src_models_tipsmodel_tipsmodel",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/TipDetailPage.jsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_tipdetailpage",
+      "target": "src_views_components_markdowntext",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/TipDetailPage.jsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_tipdetailpage",
+      "target": "src_views_components_symboltoolbar",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/TipDetailPage.jsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_tipdetailpage",
+      "target": "src_utils_symbolshortcuts",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/TipDetailPage.jsx",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_tipdetailpage",
+      "target": "src_utils_symbolshortcuts_handlesymbolshortcuts",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/TipDetailPage.jsx",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_tipdetailpage",
+      "target": "ref_lucide_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/TipDetailPage.jsx",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_tipdetailpage",
+      "target": "src_views_components_tipdetailpage_tipdetailpage",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/TipDetailPage.jsx",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_tipspage",
+      "target": "ref_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/TipsPage.jsx",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_tipspage",
+      "target": "src_constants_appconstants",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/TipsPage.jsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_tipspage",
+      "target": "src_constants_appconstants_topics",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/TipsPage.jsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_tipspage",
+      "target": "src_models_tipsmodel",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/TipsPage.jsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_tipspage",
+      "target": "src_models_tipsmodel_tipsmodel",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/TipsPage.jsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_tipspage",
+      "target": "src_views_components_mathtext",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/TipsPage.jsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_tipspage",
+      "target": "ref_lucide_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/TipsPage.jsx",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_tipspage",
+      "target": "src_views_components_tipspage_tipspage",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/TipsPage.jsx",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "vite_config",
+      "target": "ref_vite",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "vite.config.js",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "vite_config",
+      "target": "ref_vitejs_plugin_react",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "vite.config.js",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_views_components_header_header",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_views_components_stats_stats",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_views_components_searchandfilter_searchandfilter",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_views_components_questionlist_questionlist",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_views_components_questiondetail_questiondetail",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_views_components_questionform_questionform",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_views_components_sidenav_sidenav",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_views_components_mockexam_mockexam",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_views_components_mockattemptdetail_mockattemptdetail",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_views_components_mockexamrunner_mockexamrunner",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_views_components_tipspage_tipspage",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app",
+      "target": "src_views_components_tipdetailpage_tipdetailpage",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/App.jsx",
+      "source_location": "L13",
+      "weight": 1.0
+    },
+    {
+      "source": "src_main",
+      "target": "src_app_app",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/main.jsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_markdowntext",
+      "target": "src_views_components_mathtext_mathtext",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MarkdownText.jsx",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockexamrunner",
+      "target": "src_views_components_markdowntext_markdowntext",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/MockExamRunner.jsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questiondetail",
+      "target": "src_views_components_markdowntext_markdowntext",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/QuestionDetail.jsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questionform",
+      "target": "src_views_components_drawcanvas_drawcanvas",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/QuestionForm.jsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questionform",
+      "target": "src_views_components_symboltoolbar_symboltoolbar",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/QuestionForm.jsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questionlist",
+      "target": "src_views_components_mathtext_mathtext",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/QuestionList.jsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_tipdetailpage",
+      "target": "src_views_components_markdowntext_markdowntext",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/TipDetailPage.jsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_tipdetailpage",
+      "target": "src_views_components_symboltoolbar_symboltoolbar",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/TipDetailPage.jsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_tipspage",
+      "target": "src_views_components_mathtext_mathtext",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/views/components/TipsPage.jsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app",
+      "target": "src_controllers_usequestionscontroller_usequestionscontroller",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/App.jsx",
+      "source_location": "L50",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app",
+      "target": "src_controllers_usethemecontroller_usethemecontroller",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/App.jsx",
+      "source_location": "L52",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app",
+      "target": "src_controllers_useauthcontroller_useauthcontroller",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/App.jsx",
+      "source_location": "L61",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app",
+      "target": "src_utils_mockexamanalytics_buildmockexamattempt",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/App.jsx",
+      "source_location": "L386",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app",
+      "target": "src_utils_mockexamanalytics_buildreviewexamfromattempt",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/App.jsx",
+      "source_location": "L529",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mathtext_mathtext",
+      "target": "src_utils_parsemathtext_parsemathtext",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/views/components/MathText.jsx",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockattemptdetail_mockattemptdetail",
+      "target": "src_utils_mockexamanalytics_buildquestionlookup",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/views/components/MockAttemptDetail.jsx",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockattemptdetail_mockattemptdetail",
+      "target": "src_utils_mockexamanalytics_formatattemptdate",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/views/components/MockAttemptDetail.jsx",
+      "source_location": "L36",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockattemptdetail_mockattemptdetail",
+      "target": "src_utils_mockexamanalytics_formatexamduration",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/views/components/MockAttemptDetail.jsx",
+      "source_location": "L47",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockexam_mockexam",
+      "target": "src_utils_mockexamanalytics_formatexamduration",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/views/components/MockExam.jsx",
+      "source_location": "L61",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockexam_mockexam",
+      "target": "src_utils_mockexamanalytics_formatattemptdate",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/views/components/MockExam.jsx",
+      "source_location": "L159",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockexamrunner_mockexamrunner",
+      "target": "src_utils_mockexamanalytics_calculateexammetrics",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/views/components/MockExamRunner.jsx",
+      "source_location": "L27",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questionform_questionform",
+      "target": "src_utils_symbolshortcuts_handlesymbolshortcuts",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/views/components/QuestionForm.jsx",
+      "source_location": "L79",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_symboltoolbar_symboltoolbar",
+      "target": "src_utils_insertatcursor_insertatcursor",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/views/components/SymbolToolbar.jsx",
+      "source_location": "L45",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_tipdetailpage_tipdetailpage",
+      "target": "src_utils_symbolshortcuts_handlesymbolshortcuts",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/views/components/TipDetailPage.jsx",
+      "source_location": "L68",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app",
+      "target": "src_constants_appconstants_question_admin_uids",
+      "relation": "references",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/App.jsx",
+      "source_location": "L84",
+      "weight": 1.0
+    },
+    {
+      "source": "src_controllers_usequestionscontroller_usequestionscontroller",
+      "target": "src_constants_appconstants_topics",
+      "relation": "references",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/controllers/useQuestionsController.js",
+      "source_location": "L190",
+      "weight": 1.0
+    },
+    {
+      "source": "src_utils_parsemathtext_parsemathtext",
+      "target": "src_utils_parsemathtext_fraction_re",
+      "relation": "references",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/utils/parseMathText.js",
+      "source_location": "L36",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_markdowntext_rendermathchildren",
+      "target": "package_dependencies_react",
+      "relation": "references",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/views/components/MarkdownText.jsx",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_markdowntext_createrenderer",
+      "target": "package_dependencies_react",
+      "relation": "references",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/views/components/MarkdownText.jsx",
+      "source_location": "L41",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_mockexamrunner_mockexamrunner",
+      "target": "src_constants_appconstants_topics",
+      "relation": "references",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/views/components/MockExamRunner.jsx",
+      "source_location": "L412",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questiondetail_questiondetail",
+      "target": "src_constants_appconstants_topics",
+      "relation": "references",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/views/components/QuestionDetail.jsx",
+      "source_location": "L36",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questionform_questionform",
+      "target": "src_constants_appconstants_problem_labels",
+      "relation": "references",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/views/components/QuestionForm.jsx",
+      "source_location": "L30",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questionform_questionform",
+      "target": "src_constants_appconstants_topics",
+      "relation": "references",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/views/components/QuestionForm.jsx",
+      "source_location": "L32",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_questionlist_questionlist",
+      "target": "src_constants_appconstants_topics",
+      "relation": "references",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/views/components/QuestionList.jsx",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_searchandfilter_searchandfilter",
+      "target": "src_constants_appconstants_topics",
+      "relation": "references",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/views/components/SearchAndFilter.jsx",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "src_views_components_tipspage_tipspage",
+      "target": "src_constants_appconstants_topics",
+      "relation": "references",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/views/components/TipsPage.jsx",
+      "source_location": "L37",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

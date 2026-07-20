@@ -12,6 +12,7 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
   const [topicFilter, setTopicFilter] = useState("all");
   const [labelFilter, setLabelFilter] = useState("all");
   const [sortBy, setSortBy] = useState("favorites");
+  const initRequestRef = useRef(0);
 
   const getLabelValue = (q) => typeof q.label === "string" ? q.label.trim() : "";
 
@@ -23,6 +24,23 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
     solution: typeof q.solution === "string" ? q.solution : "",
     favorite: favoriteIds.has(q.id),
   });
+
+  const normalizeQuestions = (items, favoriteIds = new Set()) => (
+    Array.isArray(items) ? items.map((q) => normalizeQuestion(q, favoriteIds)) : []
+  );
+
+  const parseQuestionsValue = (raw, favoriteIds = new Set()) => {
+    try {
+      const parsed = JSON.parse(raw);
+      return normalizeQuestions(parsed, favoriteIds);
+    } catch {
+      return [];
+    }
+  };
+
+  const persistQuestionsCache = (next) => {
+    storageModel.set(KEY, JSON.stringify(next)).catch(() => {});
+  };
 
   const getSortTimestamp = ({ q, index }) => {
     const directTime = Date.parse(q.dateAdded || "");
@@ -91,29 +109,80 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
   }, []);
 
   async function init() {
+    const requestId = initRequestRef.current + 1;
+    initRequestRef.current = requestId;
+    let renderedInitialState = false;
+
     try {
-      const r = await storageModel.get(KEY);
-      const favoriteIds = new Set(await favoritesModel.getAll(userId));
-      if (r) {
-        const parsed = JSON.parse(r);
-        const normalized = parsed.map(q => normalizeQuestion(q, favoriteIds));
+      const [cachedQuestionsValue, cachedFavoriteIds] = await Promise.all([
+        storageModel.getLocal(KEY),
+        favoritesModel.getCachedAll(userId),
+      ]);
+
+      if (initRequestRef.current !== requestId) return;
+
+      const cachedFavoriteSet = new Set(cachedFavoriteIds);
+
+      if (cachedQuestionsValue !== null) {
+        const normalized = parseQuestionsValue(cachedQuestionsValue, cachedFavoriteSet);
         setQs(normalized);
-        try {
-          await storageModel.set(KEY, JSON.stringify(normalized));
-        } catch (_) {}
-      } else {
-        const initial = SAMPLES.map(q => normalizeQuestion(q, favoriteIds));
+        setLoading(false);
+        renderedInitialState = true;
+      } else if (!supabase) {
+        const initial = normalizeQuestions(SAMPLES, cachedFavoriteSet);
         setQs(initial);
-        try {
-          await storageModel.set(KEY, JSON.stringify(initial));
-        } catch (_) {}
+        setLoading(false);
+        renderedInitialState = true;
+        persistQuestionsCache(initial);
       }
     } catch (e) {
       console.error("Failed to init questions:", e);
-      setQs(SAMPLES);
+      setQs(normalizeQuestions(SAMPLES));
+      setLoading(false);
+      renderedInitialState = true;
     }
-    setLoading(false);
-    flushPendingUpserts();
+
+    if (userId) setFavoritesLoading(true);
+    else setFavoritesLoading(false);
+
+    void (async () => {
+      try {
+        const [freshQuestionsValue, freshFavoriteIds] = await Promise.all([
+          storageModel.getFreshQuestions().catch((error) => {
+            console.error("Failed to refresh questions:", error);
+            return null;
+          }),
+          favoritesModel.getAll(userId).catch((error) => {
+            console.error("Failed to refresh favorites:", error);
+            return null;
+          }),
+        ]);
+
+        if (initRequestRef.current !== requestId) return;
+
+        const favoriteIds = new Set(Array.isArray(freshFavoriteIds) ? freshFavoriteIds : []);
+
+        if (freshQuestionsValue !== null) {
+          const normalized = parseQuestionsValue(freshQuestionsValue, favoriteIds);
+          setQs(normalized);
+          setLoading(false);
+          persistQuestionsCache(normalized);
+        } else if (!renderedInitialState) {
+          const fallback = normalizeQuestions(SAMPLES, favoriteIds);
+          setQs(fallback);
+          setLoading(false);
+          persistQuestionsCache(fallback);
+        } else {
+          setQs((current) => current.map((q) => normalizeQuestion(q, favoriteIds)));
+        }
+      } finally {
+        if (initRequestRef.current === requestId) {
+          setFavoritesLoading(false);
+        }
+      }
+    })();
+
+    void flushPendingUpserts();
   }
 
   async function persist(next) {
@@ -208,15 +277,13 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
 
   async function refreshFavorites() {
     if (!userId) {
-      const nextQs = qs.map(q => ({ ...q, favorite: false }));
-      setQs(nextQs);
+      setQs((current) => current.map((q) => ({ ...q, favorite: false })));
       return;
     }
     setFavoritesLoading(true);
     try {
       const favoriteIds = new Set(await favoritesModel.getAll(userId));
-      const nextQs = qs.map(q => normalizeQuestion(q, favoriteIds));
-      setQs(nextQs);
+      setQs((current) => current.map((q) => normalizeQuestion(q, favoriteIds)));
     } catch (e) {
       console.error("Failed to refresh favorites:", e);
     } finally {

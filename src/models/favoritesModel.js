@@ -219,6 +219,14 @@ const migrateLegacyFavoritesToUser = async (userId) => {
 };
 
 export const favoritesModel = {
+  async getCachedAll(userId = null) {
+    if (!userId) return [];
+
+    const cachedIds = await readFavoritesCache(userId);
+    const pendingMap = await readPendingMap(userId);
+    return applyPendingToFavoriteIds(cachedIds, pendingMap);
+  },
+
   async getAll(userId = null) {
     if (!userId) return [];
     if (!supabase) return readFavoritesCache(userId);

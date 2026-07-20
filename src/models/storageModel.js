@@ -208,6 +208,137 @@ const fetchRemoteMockExamHistory = async (userId) => {
   return Array.isArray(data) ? data.map(normalizeMockExamAttempt) : [];
 };
 
+const readLocalValue = async (key) => {
+  if (window.storage && typeof window.storage.get === 'function') {
+    try {
+      const result = await window.storage.get(key);
+      return result?.value ?? null;
+    } catch (e) {
+      console.warn(`window.storage.get failed for key ${key}:`, e);
+    }
+  }
+
+  return localStorage.getItem(key);
+};
+
+const fetchFreshQuestionsValue = async (storageApi) => {
+  const questionsKey = "cse-qbank-v1";
+  const { data, error } = await supabase
+    .from('questions')
+    .select('*')
+    .order('created_at', { ascending: true });
+
+  if (error) throw error;
+  if (!data) return null;
+
+  const mappedData = data.map(q => ({
+    ...q,
+    label: typeof q.label === "string" ? q.label : "",
+    solutionDraw: q.solution_draw,
+    dateAdded: q.created_at,
+    updatedAt: q.updated_at || q.deleted_at || q.created_at,
+    deletedAt: q.deleted_at || null,
+  }));
+  const visibleRemoteData = mappedData.filter(q => !q.deletedAt);
+
+  let local = [];
+  try {
+    local = JSON.parse((await readLocalValue(questionsKey)) || "[]");
+  } catch {
+    local = [];
+  }
+
+  const pendingMap = await storageApi.getPendingUpsertsMap();
+  const pendingOperations = Object.fromEntries(
+    Object.entries(pendingMap || {})
+      .map(([id, entry]) => [id, normalizePendingQuestionOperation(entry, id)])
+      .filter(([, entry]) => !!entry)
+  );
+  const syncedOnceIds = new Set(await storageApi.getSyncedOnceIds());
+
+  const merged = new Map();
+  const remoteIds = new Set();
+  const remoteRecords = new Map(mappedData.map(q => [q.id, q]));
+  const remoteAllIds = new Set(remoteRecords.keys());
+  const remoteDeleted = new Set(
+    mappedData
+      .filter(q => !!q.deletedAt)
+      .map(q => q.id)
+  );
+
+  for (const q of visibleRemoteData) {
+    merged.set(q.id, q);
+    remoteIds.add(q.id);
+  }
+
+  for (const id of syncedOnceIds) {
+    if (!remoteAllIds.has(id)) remoteDeleted.add(id);
+  }
+  for (const op of Object.values(pendingOperations)) {
+    if (op?.type === "delete") merged.delete(op.id);
+  }
+  await storageApi.setRemoteDeletedIds(Array.from(remoteDeleted));
+
+  for (const q of local) {
+    if (!q || !q.id) continue;
+
+    const pendingOp = pendingOperations[q.id];
+    const remoteRecord = remoteRecords.get(q.id) || null;
+    const remoteUpdatedTime = getQuestionUpdatedTime(remoteRecord);
+    const localUpdatedTime = getQuestionUpdatedTime(q);
+    const pendingUpdatedTime = getQuestionUpdatedTime(
+      pendingOp?.type === "upsert" ? pendingOp.question : pendingOp
+    );
+
+    if (pendingOp?.type === "delete") {
+      if (remoteDeleted.has(q.id)) {
+        await storageApi.dequeuePendingUpsert(q.id);
+        continue;
+      }
+      if (remoteRecord && remoteUpdatedTime > pendingUpdatedTime) {
+        await storageApi.dequeuePendingUpsert(q.id);
+        if (!remoteRecord.deletedAt) merged.set(q.id, remoteRecord);
+      }
+      continue;
+    }
+
+    if (pendingOp?.type === "upsert") {
+      if (remoteDeleted.has(q.id) || isQuestionDeleted(remoteRecord)) {
+        await storageApi.dequeuePendingUpsert(q.id);
+        continue;
+      }
+      if (remoteRecord && remoteUpdatedTime > pendingUpdatedTime) {
+        await storageApi.dequeuePendingUpsert(q.id);
+        continue;
+      }
+      merged.set(q.id, pendingOp.question || q);
+      continue;
+    }
+
+    if (remoteDeleted.has(q.id)) {
+      try {
+        await storageApi.dequeuePendingUpsert(q.id);
+      } catch {}
+      continue;
+    }
+
+    if (!remoteIds.has(q.id)) {
+      if (syncedOnceIds.has(q.id)) continue;
+      merged.set(q.id, q);
+      await storageApi.enqueuePendingUpsert(q);
+      continue;
+    }
+
+    const remote = merged.get(q.id);
+    if (remote && localUpdatedTime > getQuestionUpdatedTime(remote)) {
+      merged.set(q.id, q);
+      await storageApi.enqueuePendingUpsert(q);
+    }
+  }
+
+  return JSON.stringify(Array.from(merged.values()));
+};
+
 export const storageModel = {
   async getActiveMockExam(userId) {
     if (!userId) return null;
@@ -571,144 +702,27 @@ export const storageModel = {
     await this.setRemoteDeletedIds(Array.from(ids));
   },
 
+  async getLocal(key) {
+    return readLocalValue(key);
+  },
+
+  async getFreshQuestions() {
+    if (!supabase) return this.getLocal("cse-qbank-v1");
+    return fetchFreshQuestionsValue(this);
+  },
+
   async get(key) {
     // 1. Try Supabase for shared global pool (Questions only)
     if (supabase && key === "cse-qbank-v1") {
       try {
-        const { data, error } = await supabase
-          .from('questions')
-          .select('*')
-          .order('created_at', { ascending: true });
-        
-        if (!error && data) {
-          // Map database snake_case back to camelCase for the app
-          const mappedData = data.map(q => ({
-            ...q,
-            label: typeof q.label === "string" ? q.label : "",
-            solutionDraw: q.solution_draw, // Map back
-            dateAdded: q.created_at,
-            updatedAt: q.updated_at || q.deleted_at || q.created_at,
-            deletedAt: q.deleted_at || null,
-          }));
-          const visibleRemoteData = mappedData.filter(q => !q.deletedAt);
-
-          let local = [];
-          try {
-            local = JSON.parse(localStorage.getItem(key) || "[]");
-          } catch {
-            local = [];
-          }
-
-          const pendingMap = await this.getPendingUpsertsMap();
-          const pendingOperations = Object.fromEntries(
-            Object.entries(pendingMap || {})
-              .map(([id, entry]) => [id, normalizePendingQuestionOperation(entry, id)])
-              .filter(([, entry]) => !!entry)
-          );
-          const syncedOnceIds = new Set(await this.getSyncedOnceIds());
-
-          const merged = new Map();
-          const remoteIds = new Set();
-          const remoteRecords = new Map(mappedData.map(q => [q.id, q]));
-          const remoteAllIds = new Set(remoteRecords.keys());
-          const remoteDeleted = new Set(
-            mappedData
-              .filter(q => !!q.deletedAt)
-              .map(q => q.id)
-          );
-          for (const q of visibleRemoteData) {
-            merged.set(q.id, q);
-            remoteIds.add(q.id);
-          }
-
-          for (const id of syncedOnceIds) {
-            if (!remoteAllIds.has(id)) remoteDeleted.add(id);
-          }
-          for (const op of Object.values(pendingOperations)) {
-            if (op?.type === "delete") merged.delete(op.id);
-          }
-          await this.setRemoteDeletedIds(Array.from(remoteDeleted));
-
-          // Add all local questions to merged and pending if not in remote
-          for (const q of local) {
-            if (!q || !q.id) continue;
-
-            const pendingOp = pendingOperations[q.id];
-            const remoteRecord = remoteRecords.get(q.id) || null;
-            const remoteUpdatedTime = getQuestionUpdatedTime(remoteRecord);
-            const localUpdatedTime = getQuestionUpdatedTime(q);
-            const pendingUpdatedTime = getQuestionUpdatedTime(
-              pendingOp?.type === "upsert" ? pendingOp.question : pendingOp
-            );
-
-            if (pendingOp?.type === "delete") {
-              if (remoteDeleted.has(q.id)) {
-                await this.dequeuePendingUpsert(q.id);
-                continue;
-              }
-              if (remoteRecord && remoteUpdatedTime > pendingUpdatedTime) {
-                await this.dequeuePendingUpsert(q.id);
-                if (!remoteRecord.deletedAt) merged.set(q.id, remoteRecord);
-              }
-              continue;
-            }
-
-            if (pendingOp?.type === "upsert") {
-              if (remoteDeleted.has(q.id) || isQuestionDeleted(remoteRecord)) {
-                await this.dequeuePendingUpsert(q.id);
-                continue;
-              }
-              if (remoteRecord && remoteUpdatedTime > pendingUpdatedTime) {
-                await this.dequeuePendingUpsert(q.id);
-                continue;
-              }
-              merged.set(q.id, pendingOp.question || q);
-              continue;
-            }
-
-            if (remoteDeleted.has(q.id)) {
-              try {
-                await this.dequeuePendingUpsert(q.id);
-              } catch {}
-              continue;
-            }
-
-            if (!remoteIds.has(q.id)) {
-              if (syncedOnceIds.has(q.id)) continue;
-              // Local question not in remote - add to merged and pending upserts
-              merged.set(q.id, q);
-              await this.enqueuePendingUpsert(q);
-              continue;
-            }
-
-            // Question exists in both - use the newer one
-            const remote = merged.get(q.id);
-            if (remote && localUpdatedTime > getQuestionUpdatedTime(remote)) {
-              merged.set(q.id, q);
-              await this.enqueuePendingUpsert(q);
-            }
-          }
-
-          return JSON.stringify(Array.from(merged.values()));
-        }
-        console.error("Supabase fetch error:", error);
+        return await fetchFreshQuestionsValue(this);
       } catch (e) {
         console.warn("Supabase get failed:", e);
       }
     }
 
     // 2. Try window.storage (Custom environment)
-    if (window.storage && typeof window.storage.get === 'function') {
-      try {
-        const result = await window.storage.get(key);
-        return result.value;
-      } catch (e) {
-        console.warn(`window.storage.get failed for key ${key}:`, e);
-      }
-    }
-
-    // 3. Fallback to localStorage
-    return localStorage.getItem(key);
+    return readLocalValue(key);
   },
 
   /**
