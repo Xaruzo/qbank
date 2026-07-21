@@ -377,7 +377,7 @@ body {
 .qb-sort-wrap { display: flex; align-items: center; gap: 10px; }
 .qb-sort-label { font-family: 'Fira Mono', monospace; font-size: 10px; color: var(--text-faint); letter-spacing: .9px; text-transform: uppercase; }
 .qb-sort-input-wrap { position: relative; display: flex; min-width: 220px; }
-.qb-sort-wrap .qb-select { flex: 1; min-width: 0; }
+.qb-sort-wrap .qb-select { flex: 1; min-width: 180px; }
 .qb-sort {
   appearance: none;
   -webkit-appearance: none;
