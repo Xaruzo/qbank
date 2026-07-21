@@ -3021,7 +3021,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
         {layersOpen && (useExternalLayers ? isMobile : narrow) && (
           <>
             <div onClick={() => setLayersOpen(false)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)", borderRadius: 8 }} />
-            <div style={{ position: "absolute", right: 0, top: 0, width: isMobile ? "100%" : 280, zIndex: 5, boxShadow: "0 8px 22px rgba(0,0,0,0.25)", maxHeight: isMobile ? "60vh" : "none", overflowY: "auto" }}>
+            <div style={{ position: "absolute", right: 0, top: 0, width: 280, zIndex: 5, boxShadow: "0 8px 22px rgba(0,0,0,0.25)", maxHeight: isMobile ? "60vh" : "none", overflowY: "auto" }}>
               {layersPanel(true)}
             </div>
           </>
