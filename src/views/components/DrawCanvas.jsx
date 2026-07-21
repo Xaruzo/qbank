@@ -51,7 +51,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
   const [fontSizeInput, setFontSizeInput] = useState("24");
   const [isNarrow, setIsNarrow] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [layersOpen, setLayersOpen] = useState(true);
+  const [layersOpen, setLayersOpen] = useState(false);
   const [ctxMenu, setCtxMenu] = useState(null);
   const [draggingLayerId, setDraggingLayerId] = useState(null);
   const [dragOverLayerId, setDragOverLayerId] = useState(null);
@@ -2864,7 +2864,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
         </div>
         
         <div className="draw-bar-group" style={{ marginLeft: narrow ? 0 : "auto", display: "flex", gap: 4 }}>
-          {narrow && (
+          {(narrow || (useExternalLayers && isMobile)) && (
             <button className="draw-tb" onClick={() => setLayersOpen(o => !o)} title={layersOpen ? "Hide Layers" : "Show Layers"}>
               {layersOpen ? <X size={16} /> : <span style={{ fontSize: 12, padding: "0 4px" }}>Layers</span>}
             </button>
@@ -2884,7 +2884,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
         </div>
       </div>
 
-      {useExternalLayers ? createPortal(layersPanel(false), layersHost) : null}
+      {useExternalLayers && !isMobile ? createPortal(layersPanel(false), layersHost) : null}
 
       <div style={{ position: "relative" }} ref={menuHostRef}>
         {(showFontSize || showTextAlign) && (
@@ -3018,10 +3018,10 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
           </div>
         </div>
 
-        {!useExternalLayers && narrow && layersOpen && (
+        {layersOpen && (useExternalLayers ? isMobile : narrow) && (
           <>
             <div onClick={() => setLayersOpen(false)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)", borderRadius: 8 }} />
-            <div style={{ position: "absolute", right: 0, top: 0, width: 280, zIndex: 5, boxShadow: "0 8px 22px rgba(0,0,0,0.25)" }}>
+            <div style={{ position: "absolute", right: 0, top: 0, width: isMobile ? "100%" : 280, zIndex: 5, boxShadow: "0 8px 22px rgba(0,0,0,0.25)", maxHeight: isMobile ? "60vh" : "none", overflowY: "auto" }}>
               {layersPanel(true)}
             </div>
           </>

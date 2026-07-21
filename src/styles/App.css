@@ -867,6 +867,9 @@ body {
   .qb-select-item:hover { background:var(--surface-h); color:var(--text); }
 }
 .qb-select-item.on { background:rgba(245,166,35,.12); color:#e8960e; }
+@media (max-width:600px) {
+  .qb-select-menu { top:auto; bottom:calc(100% + 6px); }
+}
 .qb:not(.light) .qb-select-menu,
 .qb:not(.light) .qb-filter-select,
 .qb:not(.light) .qb-filter-select option {

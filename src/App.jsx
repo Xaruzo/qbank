@@ -901,7 +901,7 @@ export default function App() {
             })}
           </nav>
         )}
-        {showScrollBottom && (
+        {showScrollBottom && view !== "add" && (
           <button
             type="button"
             className="qb-scroll-bottom"
