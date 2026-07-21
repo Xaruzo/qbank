@@ -18,6 +18,7 @@ export default function SearchAndFilter({
   const getTopicColor = id => TOPICS.find(t => t.id===id)?.color || "inherit";
   const activeFilters = [search.trim(), topicFilter !== "all" ? topicFilter : "", labelFilter !== "all" ? labelFilter : ""].filter(Boolean).length;
   const [labelFilterOpen, setLabelFilterOpen] = useState(false);
+  const [labelFilterDir, setLabelFilterDir] = useState("down");
   const labelFilterRef = useRef(null);
 
   useEffect(() => {
@@ -71,38 +72,42 @@ export default function SearchAndFilter({
         {labelOptions.length > 0 && (
           <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
             <span className="qb-filter-label">Problem Label</span>
-            <div className="qb-select" ref={labelFilterRef}>
-              <button className="qb-select-btn" type="button" onClick={() => setLabelFilterOpen(o => !o)} aria-expanded={labelFilterOpen}>
+            <div className="qb-select" ref={labelFilterRef} data-dir={labelFilterDir} data-open={labelFilterOpen}>
+              <button className="qb-select-btn" type="button" onClick={() => {
+                if (!labelFilterOpen && labelFilterRef.current) {
+                  const rect = labelFilterRef.current.getBoundingClientRect();
+                  setLabelFilterDir(window.innerHeight - rect.bottom < 220 ? "up" : "down");
+                }
+                setLabelFilterOpen(o => !o);
+              }} aria-expanded={labelFilterOpen}>
                 <span>{labelFilter === "all" ? "All Labels" : (labelOptions.find(o => o.value === labelFilter)?.label || "All Labels")}</span>
                 <ChevronDown size={16} />
               </button>
-              {labelFilterOpen && (
-                <div className="qb-select-menu">
+              <div className={`qb-select-menu${labelFilterOpen ? " open" : ""}`}>
+                <button
+                  type="button"
+                  className={`qb-select-item${labelFilter === "all" ? " on" : ""}`}
+                  onClick={() => {
+                    onLabelChange("all");
+                    setLabelFilterOpen(false);
+                  }}
+                >
+                  All Labels
+                </button>
+                {labelOptions.map(option => (
                   <button
+                    key={option.value}
                     type="button"
-                    className={`qb-select-item${labelFilter === "all" ? " on" : ""}`}
+                    className={`qb-select-item${labelFilter === option.value ? " on" : ""}`}
                     onClick={() => {
-                      onLabelChange("all");
+                      onLabelChange(option.value);
                       setLabelFilterOpen(false);
                     }}
                   >
-                    All Labels
+                    {option.label} ({option.count})
                   </button>
-                  {labelOptions.map(option => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      className={`qb-select-item${labelFilter === option.value ? " on" : ""}`}
-                      onClick={() => {
-                        onLabelChange(option.value);
-                        setLabelFilterOpen(false);
-                      }}
-                    >
-                      {option.label} ({option.count})
-                    </button>
-                  ))}
-                </div>
-              )}
+                ))}
+              </div>
             </div>
           </div>
         )}

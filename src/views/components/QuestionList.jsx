@@ -20,6 +20,7 @@ export default function QuestionList({
   const needsAuth = authAvailable && !isAuthenticated;
   const isForbidden = authAvailable && isAuthenticated && !canManageQuestions;
   const [sortOpen, setSortOpen] = useState(false);
+  const [sortDir, setSortDir] = useState("down");
   const sortRef = useRef(null);
 
   useEffect(() => {
@@ -62,28 +63,32 @@ export default function QuestionList({
         <div className="qb-list-meta-right">
           <div className="qb-sort-wrap">
             <span className="qb-sort-label">Sort</span>
-            <div className="qb-select" ref={sortRef}>
-              <button className="qb-select-btn" type="button" onClick={() => setSortOpen(o => !o)} aria-expanded={sortOpen}>
+            <div className="qb-select" ref={sortRef} data-dir={sortDir} data-open={sortOpen}>
+              <button className="qb-select-btn" type="button" onClick={() => {
+                if (!sortOpen && sortRef.current) {
+                  const rect = sortRef.current.getBoundingClientRect();
+                  setSortDir(window.innerHeight - rect.bottom < 220 ? "up" : "down");
+                }
+                setSortOpen(o => !o);
+              }} aria-expanded={sortOpen}>
                 <span>{SORT_OPTIONS.find(o => o.value === sortBy)?.label}</span>
                 <ChevronDown size={16} />
               </button>
-              {sortOpen && (
-                <div className="qb-select-menu">
-                  {SORT_OPTIONS.map(option => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      className={`qb-select-item${sortBy === option.value ? " on" : ""}`}
-                      onClick={() => {
-                        onSortChange(option.value);
-                        setSortOpen(false);
-                      }}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <div className={`qb-select-menu${sortOpen ? " open" : ""}`}>
+                {SORT_OPTIONS.map(option => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    className={`qb-select-item${sortBy === option.value ? " on" : ""}`}
+                    onClick={() => {
+                      onSortChange(option.value);
+                      setSortOpen(false);
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>

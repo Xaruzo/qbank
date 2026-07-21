@@ -30,7 +30,9 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
   );
   const [error, setError] = useState("");
   const [topicOpen, setTopicOpen] = useState(false);
+  const [topicDir, setTopicDir] = useState("down");
   const [labelOpen, setLabelOpen] = useState(false);
+  const [labelDir, setLabelDir] = useState("down");
   const topicRef = useRef(null);
   const labelRef = useRef(null);
   const questionRef = useRef(null);
@@ -247,28 +249,32 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
           <div>
             <label className="qb-flabel">Topic</label>
-            <div className="qb-select" ref={topicRef}>
-              <button className="qb-select-btn" type="button" onClick={() => setTopicOpen(o => !o)} aria-expanded={topicOpen}>
+            <div className="qb-select" ref={topicRef} data-dir={topicDir} data-open={topicOpen}>
+              <button className="qb-select-btn" type="button" onClick={() => {
+                if (!topicOpen && topicRef.current) {
+                  const rect = topicRef.current.getBoundingClientRect();
+                  setTopicDir(window.innerHeight - rect.bottom < 220 ? "up" : "down");
+                }
+                setTopicOpen(o => !o);
+              }} aria-expanded={topicOpen}>
                 <span>{topicLabel}</span>
                 <ChevronDown size={16} />
               </button>
-              {topicOpen && (
-                <div className="qb-select-menu">
-                  {TOPICS.map(t => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      className={`qb-select-item${t.id === form.topic ? " on" : ""}`}
-                      onClick={() => {
-                        setForm(f => ({ ...f, topic: t.id }));
-                        setTopicOpen(false);
-                      }}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <div className={`qb-select-menu${topicOpen ? " open" : ""}`}>
+                {TOPICS.map(t => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    className={`qb-select-item${t.id === form.topic ? " on" : ""}`}
+                    onClick={() => {
+                      setForm(f => ({ ...f, topic: t.id }));
+                      setTopicOpen(false);
+                    }}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
           <div>
@@ -278,39 +284,43 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
             </label>
             <div>
               {!useCustomLabel ? (
-                <div className="qb-select" ref={labelRef}>
-                  <button className="qb-select-btn" type="button" onClick={() => setLabelOpen(o => !o)} aria-expanded={labelOpen}>
+                <div className="qb-select" ref={labelRef} data-dir={labelDir} data-open={labelOpen}>
+                  <button className="qb-select-btn" type="button" onClick={() => {
+                    if (!labelOpen && labelRef.current) {
+                      const rect = labelRef.current.getBoundingClientRect();
+                      setLabelDir(window.innerHeight - rect.bottom < 220 ? "up" : "down");
+                    }
+                    setLabelOpen(o => !o);
+                  }} aria-expanded={labelOpen}>
                     <span>{form.label || "Select a label..."}</span>
                     <ChevronDown size={16} />
                   </button>
-                  {labelOpen && (
-                    <div className="qb-select-menu">
-                      {PROBLEM_LABELS.map(label => (
-                        <button
-                          key={label}
-                          type="button"
-                          className={`qb-select-item${form.label === label ? " on" : ""}`}
-                          onClick={() => {
-                            setForm(f => ({ ...f, label }));
-                            setLabelOpen(false);
-                          }}
-                        >
-                          {label}
-                        </button>
-                      ))}
+                  <div className={`qb-select-menu${labelOpen ? " open" : ""}`}>
+                    {PROBLEM_LABELS.map(label => (
                       <button
+                        key={label}
                         type="button"
-                        className="qb-select-item"
+                        className={`qb-select-item${form.label === label ? " on" : ""}`}
                         onClick={() => {
-                          setUseCustomLabel(true);
-                          setForm(f => ({ ...f, label: "" }));
+                          setForm(f => ({ ...f, label }));
                           setLabelOpen(false);
                         }}
                       >
-                        Other (custom)
+                        {label}
                       </button>
-                    </div>
-                  )}
+                    ))}
+                    <button
+                      type="button"
+                      className="qb-select-item"
+                      onClick={() => {
+                        setUseCustomLabel(true);
+                        setForm(f => ({ ...f, label: "" }));
+                        setLabelOpen(false);
+                      }}
+                    >
+                      Other (custom)
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <>
