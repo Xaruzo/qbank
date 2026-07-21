@@ -30,7 +30,9 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
   );
   const [error, setError] = useState("");
   const [topicOpen, setTopicOpen] = useState(false);
+  const [labelOpen, setLabelOpen] = useState(false);
   const topicRef = useRef(null);
+  const labelRef = useRef(null);
   const questionRef = useRef(null);
   const choiceRefs = useRef([]);
   const activeChoiceRef = useRef(null);
@@ -60,6 +62,27 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
     window.addEventListener("keydown", handle);
     return () => window.removeEventListener("keydown", handle);
   }, [topicOpen]);
+
+  useEffect(() => {
+    if (!labelOpen) return;
+    const handle = (e) => {
+      const root = labelRef.current;
+      if (!root) return;
+      if (root.contains(e.target)) return;
+      setLabelOpen(false);
+    };
+    window.addEventListener("mousedown", handle);
+    return () => window.removeEventListener("mousedown", handle);
+  }, [labelOpen]);
+
+  useEffect(() => {
+    if (!labelOpen) return;
+    const handle = (e) => {
+      if (e.key === "Escape") setLabelOpen(false);
+    };
+    window.addEventListener("keydown", handle);
+    return () => window.removeEventListener("keydown", handle);
+  }, [labelOpen]);
 
   const handleSave = () => {
     if (!form.question.trim()) { setError("Question cannot be empty."); return; }
@@ -255,26 +278,39 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
             </label>
             <div style={{ minHeight:80 }}>
               {!useCustomLabel ? (
-                <div className="qb-filter-select-wrap">
-                  <select
-                    className="qb-filter-select"
-                    value={form.label}
-                    onChange={e => {
-                      const val = e.target.value;
-                      if (val === "other") {
-                        setUseCustomLabel(true);
-                        setForm(f => ({ ...f, label: "" }));
-                      } else {
-                        setForm(f => ({ ...f, label: val }));
-                      }
-                    }}
-                  >
-                    <option value="">Select a label...</option>
-                    {PROBLEM_LABELS.map(label => (
-                      <option key={label} value={label}>{label}</option>
-                    ))}
-                    <option value="other">Other (custom)</option>
-                  </select>
+                <div className="qb-select" ref={labelRef}>
+                  <button className="qb-select-btn" type="button" onClick={() => setLabelOpen(o => !o)} aria-expanded={labelOpen}>
+                    <span>{form.label || "Select a label..."}</span>
+                    <ChevronDown size={16} />
+                  </button>
+                  {labelOpen && (
+                    <div className="qb-select-menu">
+                      {PROBLEM_LABELS.map(label => (
+                        <button
+                          key={label}
+                          type="button"
+                          className={`qb-select-item${form.label === label ? " on" : ""}`}
+                          onClick={() => {
+                            setForm(f => ({ ...f, label }));
+                            setLabelOpen(false);
+                          }}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        className="qb-select-item"
+                        onClick={() => {
+                          setUseCustomLabel(true);
+                          setForm(f => ({ ...f, label: "" }));
+                          setLabelOpen(false);
+                        }}
+                      >
+                        Other (custom)
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <>

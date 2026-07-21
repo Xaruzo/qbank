@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { TOPICS, SORT_OPTIONS } from "../../constants/appConstants";
-import { ClipboardList, ChevronRight, Lock, LogIn, Plus, Star } from "lucide-react";
+import { ClipboardList, ChevronRight, Lock, LogIn, Plus, Star, ChevronDown } from "lucide-react";
 import MarkdownText from "./MarkdownText";
 
 export default function QuestionList({
@@ -19,6 +19,29 @@ export default function QuestionList({
   const canAdd = canManageQuestions || !authAvailable;
   const needsAuth = authAvailable && !isAuthenticated;
   const isForbidden = authAvailable && isAuthenticated && !canManageQuestions;
+  const [sortOpen, setSortOpen] = useState(false);
+  const sortRef = useRef(null);
+
+  useEffect(() => {
+    if (!sortOpen) return;
+    const handle = (e) => {
+      const root = sortRef.current;
+      if (!root) return;
+      if (root.contains(e.target)) return;
+      setSortOpen(false);
+    };
+    window.addEventListener("mousedown", handle);
+    return () => window.removeEventListener("mousedown", handle);
+  }, [sortOpen]);
+
+  useEffect(() => {
+    if (!sortOpen) return;
+    const handle = (e) => {
+      if (e.key === "Escape") setSortOpen(false);
+    };
+    window.addEventListener("keydown", handle);
+    return () => window.removeEventListener("keydown", handle);
+  }, [sortOpen]);
 
   return (
     <section className="qb-question-section">
@@ -37,18 +60,32 @@ export default function QuestionList({
           {canAdd ? "Add Question" : needsAuth ? "Sign In to Add" : "Admin Only"}
         </button>
         <div className="qb-list-meta-right">
-          <label className="qb-sort-wrap">
+          <div className="qb-sort-wrap">
             <span className="qb-sort-label">Sort</span>
-            <div className="qb-sort-input-wrap">
-              <select className="qb-sort" value={sortBy} onChange={e => { onSortChange(e.target.value); setTimeout(() => e.target.blur(), 0); }} onMouseDown={e => { if (document.activeElement === e.target) setTimeout(() => e.target.blur(), 0); }}>
-                {SORT_OPTIONS.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+            <div className="qb-select" ref={sortRef}>
+              <button className="qb-select-btn" type="button" onClick={() => setSortOpen(o => !o)} aria-expanded={sortOpen}>
+                <span>{SORT_OPTIONS.find(o => o.value === sortBy)?.label}</span>
+                <ChevronDown size={16} />
+              </button>
+              {sortOpen && (
+                <div className="qb-select-menu">
+                  {SORT_OPTIONS.map(option => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={`qb-select-item${sortBy === option.value ? " on" : ""}`}
+                      onClick={() => {
+                        onSortChange(option.value);
+                        setSortOpen(false);
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-          </label>
+          </div>
         </div>
       </div>
       <div className="qb-question-stack">
