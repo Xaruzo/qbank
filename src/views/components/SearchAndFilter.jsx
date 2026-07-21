@@ -1,5 +1,5 @@
-import React from "react";
-import { Search, SlidersHorizontal } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { Search, SlidersHorizontal, ChevronDown } from "lucide-react";
 import { TOPICS } from "../../constants/appConstants";
 
 export default function SearchAndFilter({
@@ -17,6 +17,29 @@ export default function SearchAndFilter({
 }) {
   const getTopicColor = id => TOPICS.find(t => t.id===id)?.color || "inherit";
   const activeFilters = [search.trim(), topicFilter !== "all" ? topicFilter : "", labelFilter !== "all" ? labelFilter : ""].filter(Boolean).length;
+  const [labelFilterOpen, setLabelFilterOpen] = useState(false);
+  const labelFilterRef = useRef(null);
+
+  useEffect(() => {
+    if (!labelFilterOpen) return;
+    const handle = (e) => {
+      const root = labelFilterRef.current;
+      if (!root) return;
+      if (root.contains(e.target)) return;
+      setLabelFilterOpen(false);
+    };
+    window.addEventListener("pointerdown", handle);
+    return () => window.removeEventListener("pointerdown", handle);
+  }, [labelFilterOpen]);
+
+  useEffect(() => {
+    if (!labelFilterOpen) return;
+    const handle = (e) => {
+      if (e.key === "Escape") setLabelFilterOpen(false);
+    };
+    window.addEventListener("keydown", handle);
+    return () => window.removeEventListener("keydown", handle);
+  }, [labelFilterOpen]);
 
   return (
     <section className="qb-control-panel">
@@ -46,19 +69,42 @@ export default function SearchAndFilter({
         </label>
 
         {labelOptions.length > 0 && (
-          <label className="qb-filter-wrap qb-filter-card">
+          <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
             <span className="qb-filter-label">Problem Label</span>
-            <div className="qb-filter-select-wrap">
-              <select className="qb-filter-select" value={labelFilter} onChange={e => { onLabelChange(e.target.value); setTimeout(() => e.target.blur(), 0); }} onMouseDown={e => { if (document.activeElement === e.target) setTimeout(() => e.target.blur(), 0); }}>
-                <option value="all">All Labels</option>
-                {labelOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label} ({option.count})
-                  </option>
-                ))}
-              </select>
+            <div className="qb-select" ref={labelFilterRef}>
+              <button className="qb-select-btn" type="button" onClick={() => setLabelFilterOpen(o => !o)} aria-expanded={labelFilterOpen}>
+                <span>{labelFilter === "all" ? "All Labels" : (labelOptions.find(o => o.value === labelFilter)?.label || "All Labels")}</span>
+                <ChevronDown size={16} />
+              </button>
+              {labelFilterOpen && (
+                <div className="qb-select-menu">
+                  <button
+                    type="button"
+                    className={`qb-select-item${labelFilter === "all" ? " on" : ""}`}
+                    onClick={() => {
+                      onLabelChange("all");
+                      setLabelFilterOpen(false);
+                    }}
+                  >
+                    All Labels
+                  </button>
+                  {labelOptions.map(option => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={`qb-select-item${labelFilter === option.value ? " on" : ""}`}
+                      onClick={() => {
+                        onLabelChange(option.value);
+                        setLabelFilterOpen(false);
+                      }}
+                    >
+                      {option.label} ({option.count})
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-          </label>
+          </div>
         )}
       </div>
 

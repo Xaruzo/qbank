@@ -391,7 +391,7 @@ export default function App() {
 
     const updateScrollButton = () => {
       const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 160;
-      setShowScrollBottom(false);
+      setShowScrollBottom(nearBottom);
     };
 
     updateScrollButton();

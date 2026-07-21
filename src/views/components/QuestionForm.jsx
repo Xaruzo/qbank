@@ -276,7 +276,7 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
               Label{" "}
               <span style={{ textTransform:"none", letterSpacing:0, fontFamily:"DM Sans,sans-serif", fontSize:11, color:"var(--text-faint)" }}>(optional)</span>
             </label>
-            <div style={{ minHeight:80 }}>
+            <div>
               {!useCustomLabel ? (
                 <div className="qb-select" ref={labelRef}>
                   <button className="qb-select-btn" type="button" onClick={() => setLabelOpen(o => !o)} aria-expanded={labelOpen}>
