@@ -2632,7 +2632,20 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
   }, [reorderLayerAbove]);
 
   const layersPanel = (showClose) => (
-    <div style={{ width: "100%", borderRadius: 8, border: "2px solid var(--border)", background: "var(--surface-h)", padding: 10, height: useExternalLayers ? "100%" : boardHeight, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+    <div
+      style={{
+        width: "100%",
+        borderRadius: 8,
+        border: "2px solid var(--border)",
+        background: "var(--surface-h)",
+        padding: 10,
+        height: useExternalLayers ? "auto" : boardHeight,
+        maxHeight: useExternalLayers ? "calc(100dvh - var(--hdr-height) - 44px)" : undefined,
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column"
+      }}
+    >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
         <div style={{ fontSize: 12, fontWeight: 600 }}>Layers</div>
         {showClose && (

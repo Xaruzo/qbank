@@ -967,9 +967,9 @@ body {
 .qb-qtext .katex { font-size:1.21em; }
 
 .qb-editor { display:grid; grid-template-columns:minmax(0,1fr) 280px; gap:12px; align-items:start; width:min(1180px,100%); align-self:start; }
-.qb-editor-main { min-width:0; min-height:calc(100dvh - var(--hdr-height) - 44px); }
-.qb-editor-side { min-width:0; position:sticky; top:22px; height:calc(100vh - var(--hdr-height) - 44px); height:calc(100dvh - var(--hdr-height) - 44px); align-self:start; overflow:hidden; }
-.qb-layers-host { height:100%; }
+.qb-editor-main { min-width:0; }
+.qb-editor-side { min-width:0; position:sticky; top:22px; align-self:start; overflow:hidden; }
+.qb-layers-host { max-height:calc(100vh - var(--hdr-height) - 44px); max-height:calc(100dvh - var(--hdr-height) - 44px); }
 
 /* ── Drawing canvas ── */
 .draw-tb { background:var(--input-bg); border:1px solid var(--border); color:var(--text-low); font-family:'DM Sans',sans-serif; font-size:11px; padding:5px 10px; border-radius:6px; cursor:pointer; white-space:nowrap; }
