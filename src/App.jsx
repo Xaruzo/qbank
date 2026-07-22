@@ -696,7 +696,7 @@ export default function App() {
           <main ref={mainRef} className={`qb-main${view === "mockRun" ? " qb-main-exam" : ""}`}>
             <div
               className={`qb-main-inner${
-                view === "mockRun" ? " qb-main-inner-exam" : view === "mockAttempt" ? " qb-main-inner-mock-attempt" : ""
+                view === "add" ? " qb-main-inner-wide" : view === "mockRun" ? " qb-main-inner-exam" : view === "mockAttempt" ? " qb-main-inner-mock-attempt" : ""
               }`}
             >
             {loading ? (
