@@ -971,9 +971,9 @@ body {
 .md .katex-display { display:flex; width:100%; justify-content:center; }
 .qb-qtext .katex { font-size:1.21em; }
 
-.qb-editor { min-height:100%; width:min(1180px,100%); padding-right:calc(280px + 12px); }
+.qb-editor { display:grid; grid-template-columns:1fr; align-items:start; min-height:100%; width:min(1180px,100%); padding-right:calc(280px + 12px); }
 .qb-editor-main { min-width:0; }
-.qb-editor-side { position:fixed; top:calc(var(--hdr-height) + 22px); right:max(28px, calc((100vw - 1196px) / 2 + 28px)); width:280px; height:calc(100dvh - var(--hdr-height) - 44px); overflow:hidden; z-index:100; }
+.qb-editor-side { position:fixed; top:calc(var(--hdr-height) + 22px); right:calc((100vw - min(1120px, 100vw)) / 2 + 28px); width:280px; height:calc(100dvh - var(--hdr-height) - 44px); overflow:hidden; z-index:100; }
 .qb-layers-host { height:100%; }
 
 /* ── Drawing canvas ── */
