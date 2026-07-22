@@ -37,6 +37,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
   const isPanningRef = useRef(false);
   const panLastRef = useRef({ x: 0, y: 0 });
   const resizeScrollRef = useRef({ lastH: 0, active: false, lastChange: 0, raf: 0 });
+  const resizeAutoScrollGuardRef = useRef({ skipUntil: 0 });
   const fontCommitTimer = useRef(null);
   const textLiveTimer = useRef(null);
   const changeCommitTimer = useRef(null);
@@ -1975,6 +1976,8 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
   useEffect(() => {
     if (!boardRef.current) return;
     const resizeScroll = resizeScrollRef.current;
+    const autoScrollGuard = resizeAutoScrollGuardRef.current;
+    autoScrollGuard.skipUntil = performance.now() + 500;
     resizeScroll.lastH = Math.round(boardRef.current.getBoundingClientRect().height || 0);
 
     const tick = () => {
@@ -2011,7 +2014,8 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       if (!target) return;
       const h = Math.round(target.getBoundingClientRect().height || 0);
       if (!h) return;
-      if (h > resizeScroll.lastH + 1) {
+      const canAutoScroll = performance.now() >= autoScrollGuard.skipUntil;
+      if (canAutoScroll && h > resizeScroll.lastH + 1) {
         resizeScroll.active = true;
         resizeScroll.lastChange = performance.now();
         if (!resizeScroll.raf) resizeScroll.raf = window.requestAnimationFrame(tick);
