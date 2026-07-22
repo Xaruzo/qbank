@@ -28,6 +28,7 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
     : form.solutionDraw ? "draw"
     : null
   );
+  const [confirmRemoveDraw, setConfirmRemoveDraw] = useState(false);
   const [error, setError] = useState("");
   const [topicOpen, setTopicOpen] = useState(false);
   const [topicDir, setTopicDir] = useState("down");
@@ -194,7 +195,7 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
               <div style={{ display:"flex", justifyContent:"flex-end", marginTop:8 }}>
                 <button
                   type="button"
-                  onClick={() => { setForm(f => ({...f, solutionDraw: null})); setVisualMode(null); }}
+                  onClick={() => setConfirmRemoveDraw(true)}
                   style={{
                     background:"none", border:"1px solid var(--border)", color:"#fff",
                     fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:600,
@@ -348,6 +349,48 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
         </div>
       </div>
 
+      {confirmRemoveDraw && (
+        <div style={{
+          position:"fixed", inset:0, zIndex:500,
+          display:"flex", alignItems:"center", justifyContent:"center",
+          background:"rgba(0,0,0,.55)", backdropFilter:"blur(4px)"
+        }}>
+          <div style={{
+            background:"var(--surface-h)", border:"1px solid var(--border)",
+            borderRadius:14, padding:24, maxWidth:340, width:"90%",
+            boxShadow:"0 20px 50px rgba(0,0,0,.4)"
+          }}>
+            <div style={{ fontSize:14, fontWeight:600, marginBottom:8 }}>Remove drawing?</div>
+            <div style={{ fontSize:13, color:"var(--text-muted)", marginBottom:18, lineHeight:1.4 }}>
+              This will permanently delete your drawing.
+            </div>
+            <div style={{ display:"flex", gap:10, justifyContent:"flex-end" }}>
+              <button
+                type="button"
+                onClick={() => setConfirmRemoveDraw(false)}
+                style={{
+                  background:"none", border:"1px solid var(--border)", color:"var(--text-muted)",
+                  fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:600,
+                  padding:"8px 16px", borderRadius:10, cursor:"pointer"
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => { setForm(f => ({...f, solutionDraw: null})); setVisualMode(null); setConfirmRemoveDraw(false); }}
+                style={{
+                  background:"#dc2626", border:"none", color:"#fff",
+                  fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:600,
+                  padding:"8px 16px", borderRadius:10, cursor:"pointer"
+                }}
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {error && <p className="qb-ferr">{error}</p>}
       <div className="qb-factions">
         <button className="qb-fcancel" onClick={onCancel}>Cancel</button>
