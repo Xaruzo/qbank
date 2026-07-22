@@ -18,7 +18,7 @@ import { storageModel } from "./models/storageModel";
 import { tipsModel } from "./models/tipsModel";
 import { favoritesModel } from "./models/favoritesModel";
 import { buildMockExamAttempt, buildReviewExamFromAttempt } from "./utils/mockExamAnalytics";
-import { ArrowDown, Home, ClipboardList, Lightbulb } from "lucide-react";
+import { Home, ClipboardList, Lightbulb } from "lucide-react";
 import { QUESTION_ADMIN_UIDS } from "./constants/appConstants";
 
 const PRO_EXAM_DURATION_MS = (3 * 60 * 60 + 10 * 60) * 1000;
@@ -67,7 +67,7 @@ export default function App() {
   const [editId, setEditId] = useState(null);
   const [deepLinkShowSol, setDeepLinkShowSol] = useState(false);
   const [layersHostEl, setLayersHostEl] = useState(null);
-  const [showScrollBottom, setShowScrollBottom] = useState(false);
+
   const [navOpen, setNavOpen] = useState(false);
   const [exam, setExam] = useState(null);
   const [mockHistory, setMockHistory] = useState([]);
@@ -385,24 +385,7 @@ export default function App() {
     return () => window.removeEventListener("popstate", syncFromUrl);
   }, [authAvailable, loading, isAuthLoading, isAuthenticated]);
 
-  useEffect(() => {
-    const el = mainRef.current;
-    if (!el) return;
 
-    const updateScrollButton = () => {
-      const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 160;
-      setShowScrollBottom(nearBottom);
-    };
-
-    updateScrollButton();
-    el.addEventListener("scroll", updateScrollButton);
-    window.addEventListener("resize", updateScrollButton);
-
-    return () => {
-      el.removeEventListener("scroll", updateScrollButton);
-      window.removeEventListener("resize", updateScrollButton);
-    };
-  }, [view, filteredQuestions.length]);
 
   useEffect(() => {
     if (!exam || !exam.finished || exam.isReviewSession || !exam.sessionId) return;
@@ -615,12 +598,6 @@ export default function App() {
     { id: "mock", label: "Mock", icon: ClipboardList, onClick: handleGoMockExam },
     { id: "tips", label: "Tips", icon: Lightbulb, onClick: () => handleGoTips() },
   ];
-
-  const scrollToBottom = () => {
-    const el = mainRef.current;
-    if (!el) return;
-    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-  };
 
   useEffect(() => {
     const el = mainRef.current;
@@ -900,18 +877,6 @@ export default function App() {
               );
             })}
           </nav>
-        )}
-        {showScrollBottom && view !== "add" && (
-          <button
-            type="button"
-            className="qb-scroll-bottom"
-            onClick={scrollToBottom}
-            aria-label="Scroll to bottom"
-            title="Scroll to bottom"
-          >
-            <ArrowDown size={16} />
-            Bottom
-          </button>
         )}
       </div>
     </div>
