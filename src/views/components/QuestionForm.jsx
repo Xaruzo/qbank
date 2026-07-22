@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { TOPICS, LETTERS, PROBLEM_LABELS } from "../../constants/appConstants";
 import DrawCanvas from "./DrawCanvas";
 import SymbolToolbar from "./SymbolToolbar";
@@ -349,9 +350,9 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
         </div>
       </div>
 
-      {confirmRemoveDraw && (
+      {confirmRemoveDraw && createPortal(
         <div style={{
-          position:"fixed", inset:0, zIndex:500,
+          position:"fixed", inset:0, zIndex:9999,
           display:"flex", alignItems:"center", justifyContent:"center",
           background:"rgba(0,0,0,.55)", backdropFilter:"blur(4px)"
         }}>
@@ -389,7 +390,8 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       {error && <p className="qb-ferr">{error}</p>}
       <div className="qb-factions">
