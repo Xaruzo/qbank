@@ -873,13 +873,15 @@ export default function App() {
                     layersHost={layersHostEl}
                   />
                 </div>
-                <div className="qb-editor-side">
-                  <div ref={setLayersHostEl} className="qb-layers-host" />
-                </div>
               </div>
             ) : null}
             </div>
           </main>
+          {view === "add" && (
+            <div className="qb-editor-side">
+              <div ref={setLayersHostEl} className="qb-layers-host" />
+            </div>
+          )}
         </div>
         {isMobile && view !== "mockRun" && (
           <nav className="qb-mobile-tabbar" aria-label="Primary">
