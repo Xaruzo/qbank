@@ -973,7 +973,7 @@ body {
 
 .qb-editor { min-height:100%; width:min(1180px,100%); }
 .qb-editor-main { min-width:0; }
-.qb-editor-side { flex:0 0 280px; width:280px; padding:22px 4px 22px 12px; overflow:hidden; }
+.qb-editor-side { flex:0 0 280px; width:280px; padding:32px 4px 32px 12px; overflow:hidden; }
 .qb-layers-host { height:100%; }
 
 /* ── Drawing canvas ── */
