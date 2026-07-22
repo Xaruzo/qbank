@@ -971,9 +971,9 @@ body {
 .md .katex-display { display:flex; width:100%; justify-content:center; }
 .qb-qtext .katex { font-size:1.21em; }
 
-.qb-editor { min-height:100%; width:min(1180px,100%); }
+.qb-editor { min-height:100%; width:min(1180px,100%); padding-right:calc(280px + 12px); }
 .qb-editor-main { min-width:0; }
-.qb-editor-side { flex:0 0 280px; width:280px; padding:22px 4px 22px 12px; overflow:hidden; }
+.qb-editor-side { position:fixed; top:calc(var(--hdr-height) + 22px); right:max(28px, calc((100vw - 1196px) / 2 + 28px)); width:280px; height:calc(100dvh - var(--hdr-height) - 44px); overflow:hidden; z-index:100; }
 .qb-layers-host { height:100%; }
 
 /* ── Drawing canvas ── */
@@ -1269,7 +1269,9 @@ body {
     white-space:nowrap;
   }
   .qb-scroll-bottom { right:14px; bottom:calc(var(--mobile-nav-height) + 18px + env(safe-area-inset-bottom, 0px)); padding:10px 13px; }
-  .qb-editor-side { display:none; }
+  .qb-editor { padding-right:0; }
+  .qb-editor-side { position:static; height:auto; overflow:visible; order:-1; }
+  .qb-layers-host { height:auto; }
   .qb-fsec { padding:16px; }
   .qb-upload-label { padding:20px 14px; gap:8px; }
   .qb-upload-label svg { width:24px; height:24px; }
