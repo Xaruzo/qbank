@@ -971,9 +971,9 @@ body {
 .md .katex-display { display:flex; width:100%; justify-content:center; }
 .qb-qtext .katex { font-size:1.21em; }
 
-.qb-editor { display:grid; grid-template-columns:minmax(0,1fr) 280px; gap:12px; align-items:start; min-height:100%; width:min(1180px,100%); }
+.qb-editor { display:grid; grid-template-columns:1fr; align-items:start; min-height:100%; width:min(1180px,100%); padding-right:calc(280px + 12px); }
 .qb-editor-main { min-width:0; }
-.qb-editor-side { min-width:0; position:sticky; top:22px; height:calc(100vh - var(--hdr-height) - 44px); height:calc(100dvh - var(--hdr-height) - 44px); align-self:start; overflow:hidden; }
+.qb-editor-side { position:fixed; top:calc(var(--hdr-height) + 22px); right:calc((100vw - min(1120px, 100vw)) / 2 + 28px); width:280px; height:calc(100dvh - var(--hdr-height) - 44px); overflow:hidden; z-index:100; }
 .qb-layers-host { height:100%; }
 
 /* ── Drawing canvas ── */
@@ -1269,7 +1269,7 @@ body {
     white-space:nowrap;
   }
   .qb-scroll-bottom { right:14px; bottom:calc(var(--mobile-nav-height) + 18px + env(safe-area-inset-bottom, 0px)); padding:10px 13px; }
-  .qb-editor { grid-template-columns:1fr; }
+  .qb-editor { padding-right:0; }
   .qb-editor-side { position:static; height:auto; overflow:visible; order:-1; }
   .qb-layers-host { height:auto; }
   .qb-fsec { padding:16px; }
