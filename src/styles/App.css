@@ -972,7 +972,7 @@ body {
 .qb-qtext .katex { font-size:1.21em; }
 
 .qb-editor { display:grid; grid-template-columns:minmax(0,1fr) 280px; gap:12px; align-items:start; min-height:100%; width:min(1180px,100%); }
-.qb-editor-main { min-width:0; }
+.qb-editor-main { min-width:0; min-height:calc(100dvh - var(--hdr-height) - 44px); }
 .qb-editor-side { min-width:0; position:sticky; top:22px; height:calc(100vh - var(--hdr-height) - 44px); height:calc(100dvh - var(--hdr-height) - 44px); align-self:start; overflow:hidden; }
 .qb-layers-host { height:100%; }
 
