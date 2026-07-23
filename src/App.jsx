@@ -673,7 +673,7 @@ export default function App() {
           <main ref={mainRef} className={`qb-main${view === "mockRun" ? " qb-main-exam" : ""}`}>
             <div
               className={`qb-main-inner${
-                view === "add" ? " qb-main-inner-wide" : view === "mockRun" ? " qb-main-inner-exam" : view === "mockAttempt" ? " qb-main-inner-mock-attempt" : ""
+                view === "add" ? " qb-main-inner-editor" : view === "mockRun" ? " qb-main-inner-exam" : view === "mockAttempt" ? " qb-main-inner-mock-attempt" : ""
               }`}
             >
             {loading ? (
@@ -841,6 +841,7 @@ export default function App() {
                 />
               )
             ) : view === "add" ? (
+              <div className="qb-editor-shell">
               <div className="qb-editor">
                 <div className="qb-editor-main">
                   <QuestionForm 
@@ -853,6 +854,7 @@ export default function App() {
                 <div className="qb-editor-side">
                   <div ref={setLayersHostEl} className="qb-layers-host" />
                 </div>
+              </div>
               </div>
             ) : null}
             </div>

@@ -102,13 +102,27 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
   const valid = form.question.trim() && form.choices.every(c => c.trim());
 
   return (
-    <div className="fu">
-      <div className="qb-form-hdr">
-        <button className="qb-back" onClick={onCancel} style={{ display: "flex", alignItems: "center" }}>
-          <ChevronLeft size={16} style={{ marginRight: 4 }} />
-          Back
-        </button>
-        <h2 className="qb-form-title">{initialData ? "Edit Question" : "New Question"}</h2>
+    <div className="fu qb-form-workspace">
+      <div className="qb-form-hero">
+        <div className="qb-form-hero-main">
+          <span className="qb-section-kicker">Editing Studio</span>
+          <div className="qb-form-hdr">
+            <button className="qb-back qb-back-ghost" onClick={onCancel} style={{ display: "flex", alignItems: "center" }}>
+              <ChevronLeft size={16} style={{ marginRight: 4 }} />
+              Back
+            </button>
+            <span className="qb-form-status">{initialData ? "Editing Existing Question" : "Creating New Question"}</span>
+          </div>
+          <h2 className="qb-form-title">{initialData ? "Shape and refine the full question flow." : "Build a focused question block with a cleaner workspace."}</h2>
+          <p className="qb-form-subtitle">
+            Keep the prompt, answer choices, and visual explanation in one centered workspace so the editor feels calm, spacious, and easier to scan.
+          </p>
+        </div>
+        <div className="qb-form-hero-meta" aria-label="Editor highlights">
+          <span className="qb-form-chip">4 answer choices</span>
+          <span className="qb-form-chip">Visual solution support</span>
+          <span className="qb-form-chip">Topic and label controls</span>
+        </div>
       </div>
 
       <div className="qb-fsec">
@@ -134,10 +148,10 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
             <span className="qb-cletter">{LETTERS[i]}.</span>
             <input ref={el => { choiceRefs.current[i] = el; }} className="qb-finput" placeholder={`Choice ${LETTERS[i]}`} value={c}
               onFocus={() => { setActiveChoice(i); activeChoiceRef.current = choiceRefs.current[i]; }}
-              onChange={e => { 
+              onChange={e => {
                 const val = e.target.value;
-                const nc=[...form.choices]; 
-                nc[i]=val; 
+                const nc=[...form.choices];
+                nc[i]=val;
                 setForm({...form, choices:nc});
                 handleSymbolShortcuts(e.target, val, v => {
                   const ncc = [...form.choices];
