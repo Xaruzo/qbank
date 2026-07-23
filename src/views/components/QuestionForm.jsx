@@ -294,9 +294,9 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
           </p>
         </div>
         <div className="qb-form-hero-meta" aria-label="Editor highlights">
-          <span className="qb-form-chip">4 answer choices</span>
-          <span className="qb-form-chip">Visual solution support</span>
-          <span className="qb-form-chip">Topic and label controls</span>
+          <span className="qb-form-chip" data-label="Choices">4 answer choices</span>
+          <span className="qb-form-chip" data-label="Visual">Visual solution support</span>
+          <span className="qb-form-chip" data-label="Controls">Topic and label controls</span>
         </div>
       </div>
 
