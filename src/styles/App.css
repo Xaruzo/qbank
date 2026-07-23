@@ -255,7 +255,7 @@ body {
 .qb-main-inner.qb-main-inner-wide { max-width:none; margin:0; padding:22px 4px 22px 4px; padding-bottom:calc(22px + env(safe-area-inset-bottom, 0px)); min-height:auto; display:block; }
 .qb-main-inner.qb-main-inner-exam { max-width:none; margin:0; padding:22px 18px 22px 18px; padding-right:28px; padding-bottom:calc(22px + env(safe-area-inset-bottom, 0px)); min-height:100%; height:100%; display:flex; flex-direction:column; overflow:hidden; }
 .qb-main-inner.qb-main-inner-mock-attempt { max-width:1180px; }
-.qb-main-inner.qb-main-inner-editor { max-width:1280px; padding:32px 28px 32px 48px; }
+.qb-main-inner.qb-main-inner-editor { max-width:1280px; padding:32px 28px 32px 80px; }
 .qb-loading { min-height:calc(100vh - 170px); min-height:calc(100dvh - 170px); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; color:var(--text-faint); }
 .qb-loading-spinner { width:42px; height:42px; border-radius:999px; border:3px solid rgba(245,166,35,.18); border-top-color:#f5a623; animation:qb-spin .8s linear infinite; box-shadow:0 0 0 1px rgba(255,255,255,.03) inset; }
 .qb-loading-text { font-family:'Fira Mono',monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--text-faint); }
