@@ -67,6 +67,7 @@ export default function App() {
   const [editId, setEditId] = useState(null);
   const [deepLinkShowSol, setDeepLinkShowSol] = useState(false);
   const [layersHostEl, setLayersHostEl] = useState(null);
+  const [editorAsideHostEl, setEditorAsideHostEl] = useState(null);
 
   const [navOpen, setNavOpen] = useState(false);
   const [exam, setExam] = useState(null);
@@ -849,10 +850,21 @@ export default function App() {
                     onSave={handleSave} 
                     onCancel={handleGoHome} 
                     layersHost={layersHostEl}
+                    sideRailHost={editorAsideHostEl}
                   />
                 </div>
                 <div className="qb-editor-side">
-                  <div ref={setLayersHostEl} className="qb-layers-host" />
+                  <div ref={setEditorAsideHostEl} className="qb-editor-side-host" />
+                  <div className="qb-editor-side-card qb-editor-side-card-layers">
+                    <div className="qb-editor-side-card-head">
+                      <span className="qb-editor-side-kicker">Visual Layers</span>
+                      <div className="qb-editor-side-title">Drawing stack</div>
+                      <p className="qb-editor-side-copy">
+                        When you open the drawing tool, its layers stay here so the main editor remains focused and uncluttered.
+                      </p>
+                    </div>
+                    <div ref={setLayersHostEl} className="qb-layers-host" />
+                  </div>
                 </div>
               </div>
               </div>

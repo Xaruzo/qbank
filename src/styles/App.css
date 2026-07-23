@@ -1088,15 +1088,153 @@ body {
 }
 .qb-editor {
   display:grid;
-  grid-template-columns:minmax(0, 1fr) 300px;
+  grid-template-columns:minmax(0, 1fr) minmax(300px, 340px);
   gap:20px;
   align-items:start;
   width:100%;
   align-self:start;
 }
 .qb-editor-main { min-width:0; }
-.qb-editor-side { min-width:0; position:sticky; top:22px; align-self:start; overflow:hidden; border-radius:22px; }
-.qb-layers-host { max-height:calc(100vh - var(--hdr-height) - 44px); max-height:calc(100dvh - var(--hdr-height) - 44px); }
+.qb-editor-side {
+  min-width:0;
+  position:sticky;
+  top:22px;
+  align-self:start;
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+.qb-editor-side-host,
+.qb-editor-rail {
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+.qb-editor-side-card {
+  border:1px solid var(--border);
+  border-radius:22px;
+  padding:18px;
+  background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012));
+  box-shadow:var(--shadow-card);
+}
+.light .qb-editor-side-card {
+  background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(246,248,252,.92));
+}
+.qb-editor-side-card-head {
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  margin-bottom:14px;
+}
+.qb-editor-side-kicker {
+  font-family:'Fira Mono',monospace;
+  font-size:10px;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  color:var(--text-faint);
+}
+.qb-editor-side-title {
+  font-size:18px;
+  font-weight:700;
+  color:var(--text-heading);
+  line-height:1.2;
+}
+.qb-editor-side-copy {
+  margin:0;
+  font-size:13px;
+  line-height:1.65;
+  color:var(--text-muted);
+}
+.qb-editor-side-stack {
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+.qb-editor-progress {
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.qb-editor-progress-row {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:11px 12px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:rgba(255,255,255,.025);
+}
+.qb-editor-progress-row.is-done {
+  border-color:rgba(245,166,35,.22);
+  background:rgba(245,166,35,.08);
+}
+.qb-editor-progress-info {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:0;
+  color:var(--text);
+  font-size:13px;
+  font-weight:600;
+}
+.qb-editor-progress-dot {
+  width:10px;
+  height:10px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.28);
+  background:rgba(255,255,255,.12);
+  flex-shrink:0;
+}
+.qb-editor-progress-row.is-done .qb-editor-progress-dot {
+  border-color:rgba(245,166,35,.42);
+  background:#f5a623;
+}
+.qb-editor-progress-meta {
+  flex-shrink:0;
+  font-size:12px;
+  color:var(--text-muted);
+}
+.qb-editor-side-actions {
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:10px;
+}
+.qb-editor-side-error {
+  margin:0 0 12px;
+  font-size:12px;
+  line-height:1.5;
+  color:#ff9b9b;
+}
+.light .qb-editor-side-error {
+  color:#c2410c;
+}
+.qb-editor-side-card-layers {
+  display:flex;
+  flex-direction:column;
+}
+.qb-layers-host {
+  min-height:180px;
+  max-height:calc(100vh - var(--hdr-height) - 44px);
+  max-height:calc(100dvh - var(--hdr-height) - 44px);
+}
+.qb-layers-host:empty {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:180px;
+  border:1px dashed var(--border);
+  border-radius:18px;
+  background:rgba(255,255,255,.02);
+  padding:20px;
+}
+.qb-layers-host:empty::before {
+  content:"Start a drawing to manage its layers here.";
+  font-size:13px;
+  line-height:1.6;
+  text-align:center;
+  color:var(--text-muted);
+}
 
 /* ── Drawing canvas ── */
 .draw-tb { background:var(--input-bg); border:1px solid var(--border); color:var(--text-low); font-family:'DM Sans',sans-serif; font-size:11px; padding:5px 10px; border-radius:6px; cursor:pointer; white-space:nowrap; }
@@ -1396,7 +1534,9 @@ body {
   .qb-form-title { max-width:none; }
   .qb-editor { grid-template-columns:1fr; }
   .qb-editor-side { position:static; height:auto; overflow:visible; order:-1; }
-  .qb-layers-host { height:auto; }
+  .qb-editor-side-card { padding:16px; border-radius:20px; }
+  .qb-editor-side-actions { grid-template-columns:1fr; }
+  .qb-layers-host { height:auto; max-height:none; }
   .qb-fsec { padding:16px; }
   .qb-upload-label { padding:20px 14px; gap:8px; }
   .qb-upload-label svg { width:24px; height:24px; }

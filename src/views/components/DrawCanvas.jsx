@@ -2639,10 +2639,10 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
     <div
       style={{
         width: "100%",
-        borderRadius: 8,
-        border: "2px solid var(--border)",
-        background: "var(--surface-h)",
-        padding: 10,
+        borderRadius: 20,
+        border: "1px solid var(--border)",
+        background: "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))",
+        padding: 14,
         height: useExternalLayers ? "auto" : boardHeight,
         maxHeight: useExternalLayers ? "calc(100dvh - var(--hdr-height) - 44px)" : undefined,
         overflow: "hidden",
@@ -2650,8 +2650,11 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
         flexDirection: "column"
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-        <div style={{ fontSize: 12, fontWeight: 600 }}>Layers</div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
+        <div>
+          <div style={{ fontSize: 10, letterSpacing: 1, textTransform: "uppercase", opacity: 0.72, marginBottom: 4 }}>Visual Layers</div>
+          <div style={{ fontSize: 14, fontWeight: 700 }}>Drawing stack</div>
+        </div>
         {showClose && (
           <button className="draw-tb" onClick={() => setLayersOpen(false)} title="Close Layers">
             <X size={16} />
@@ -2681,12 +2684,12 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
                   alignItems: "center",
                   justifyContent: "space-between",
                   gap: 8,
-                  padding: "8px 10px",
-                  borderRadius: 8,
+                  padding: "10px 12px",
+                  borderRadius: 14,
                   border: "1px solid var(--border)",
                   outline: isOver ? "2px solid #f5a623" : (isActive ? "2px solid #a855f7" : "none"),
                   outlineOffset: -1,
-                  background: isOver ? "rgba(245,166,35,0.12)" : "rgba(255,255,255,0.04)",
+                  background: isOver ? "rgba(245,166,35,0.12)" : "rgba(255,255,255,0.035)",
                   opacity: isDragging ? 0.55 : 1,
                   color: "inherit",
                   cursor: "pointer",
@@ -2709,8 +2712,8 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
                         alignItems: "center",
                         justifyContent: "space-between",
                         gap: 8,
-                        padding: "6px 10px",
-                        borderRadius: 8,
+                        padding: "7px 10px",
+                        borderRadius: 12,
                         border: "1px solid rgba(255,255,255,0.06)",
                         background: "rgba(255,255,255,0.02)",
                         opacity: 0.95
@@ -3025,27 +3028,27 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
         )}
         <div style={{ 
           width: "100%", overflow: "hidden", overscrollBehavior: "auto", resize: "vertical", minHeight: MIN_H, maxHeight: MAX_H, boxSizing: "border-box",
-          borderRadius: 8, border: "2px solid var(--border)",
-          background: "#f0f0f0", padding: "10px", flex: 1, minWidth: 0,
+          borderRadius: 20, border: "1px solid var(--border)",
+          background: "linear-gradient(180deg, rgba(244,246,250,0.98), rgba(236,239,245,0.92))", padding: "12px", flex: 1, minWidth: 0,
           display: "flex", justifyContent: "center", alignItems: "flex-start",
           touchAction: "none"
         }} ref={boardRef}>
-          <div style={{ boxShadow: "0 4px 15px rgba(0,0,0,0.1)", width: "fit-content", margin: 0 }}>
+          <div style={{ boxShadow: "0 18px 38px rgba(15,23,42,0.12)", width: "fit-content", margin: 0, borderRadius: 16, overflow: "hidden" }}>
             <div ref={canvasHostRef} />
           </div>
         </div>
 
         {layersOpen && (useExternalLayers ? isMobile : narrow) && (
           <>
-            <div onClick={() => setLayersOpen(false)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)", borderRadius: 8 }} />
-            <div style={{ position: "absolute", right: 0, top: 0, width: 280, zIndex: 5, boxShadow: "0 8px 22px rgba(0,0,0,0.25)", maxHeight: isMobile ? "60vh" : "none", overflowY: "auto" }}>
+            <div onClick={() => setLayersOpen(false)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)", borderRadius: 20 }} />
+            <div style={{ position: "absolute", right: 0, top: 0, width: 280, zIndex: 5, boxShadow: "0 18px 42px rgba(15,23,42,0.22)", maxHeight: isMobile ? "60vh" : "none", overflowY: "auto" }}>
               {layersPanel(true)}
             </div>
           </>
         )}
       </div>
 
-      <p style={{ fontSize: 10, color: "#fff", marginTop: 7, textAlign: "right", fontStyle: "italic" }}>
+      <p style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 8, textAlign: "right", fontStyle: "italic" }}>
         Canva Mode: [Del] deletes, Arrow keys nudge, [Shift]+Arrow moves 10px, Double-click text to edit.
       </p>
     </div>

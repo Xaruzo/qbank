@@ -6,7 +6,7 @@ import SymbolToolbar from "./SymbolToolbar";
 import { handleSymbolShortcuts } from "../../utils/symbolShortcuts";
 import { ChevronLeft, ChevronDown, Pencil, Image } from "lucide-react";
 
-export default function QuestionForm({ initialData, onSave, onCancel, layersHost }) {
+export default function QuestionForm({ initialData, onSave, onCancel, layersHost, sideRailHost }) {
   const [form, setForm] = useState(initialData ? {
     ...initialData,
     label: typeof initialData.label === "string" ? initialData.label : "",
@@ -100,6 +100,181 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
   };
 
   const valid = form.question.trim() && form.choices.every(c => c.trim());
+  const filledChoices = form.choices.filter(choice => choice.trim()).length;
+  const hasQuestion = !!form.question.trim();
+  const hasSolution = !!form.solution.trim();
+  const hasVisualSupport = !!(form.solutionDraw || form.solutionUpload);
+  const useSideRail = !!sideRailHost;
+
+  const settingsPanel = (
+    <div className="qb-editor-rail">
+      <div className="qb-editor-side-card qb-editor-side-card-summary">
+        <div className="qb-editor-side-card-head">
+          <span className="qb-editor-side-kicker">Editor Summary</span>
+          <div className="qb-editor-side-title">{initialData ? "Refine this question" : "Build this question"}</div>
+          <p className="qb-editor-side-copy">
+            Keep the main column focused on writing, then use this rail for settings, progress, and final actions.
+          </p>
+        </div>
+        <div className="qb-editor-progress">
+          <div className={`qb-editor-progress-row${hasQuestion ? " is-done" : ""}`}>
+            <div className="qb-editor-progress-info">
+              <span className="qb-editor-progress-dot" aria-hidden="true" />
+              <span>Question prompt</span>
+            </div>
+            <span className="qb-editor-progress-meta">{hasQuestion ? "Ready" : "Pending"}</span>
+          </div>
+          <div className={`qb-editor-progress-row${filledChoices === 4 ? " is-done" : ""}`}>
+            <div className="qb-editor-progress-info">
+              <span className="qb-editor-progress-dot" aria-hidden="true" />
+              <span>Answer choices</span>
+            </div>
+            <span className="qb-editor-progress-meta">{filledChoices}/4</span>
+          </div>
+          <div className={`qb-editor-progress-row${hasSolution ? " is-done" : ""}`}>
+            <div className="qb-editor-progress-info">
+              <span className="qb-editor-progress-dot" aria-hidden="true" />
+              <span>Explanation</span>
+            </div>
+            <span className="qb-editor-progress-meta">{hasSolution ? "Added" : "Optional"}</span>
+          </div>
+          <div className={`qb-editor-progress-row${hasVisualSupport ? " is-done" : ""}`}>
+            <div className="qb-editor-progress-info">
+              <span className="qb-editor-progress-dot" aria-hidden="true" />
+              <span>Visual support</span>
+            </div>
+            <span className="qb-editor-progress-meta">{hasVisualSupport ? "Attached" : "Optional"}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="qb-editor-side-card">
+        <div className="qb-editor-side-card-head">
+          <span className="qb-editor-side-kicker">Question Settings</span>
+          <div className="qb-editor-side-title">Topic and label</div>
+          <p className="qb-editor-side-copy">
+            Keep these supporting controls on the side so the main editing flow stays cleaner.
+          </p>
+        </div>
+        <div className="qb-editor-side-stack">
+          <div>
+            <label className="qb-flabel">Topic</label>
+            <div className="qb-select" ref={topicRef} data-dir={topicDir} data-open={topicOpen}>
+              <button className="qb-select-btn" type="button" onClick={() => {
+                if (!topicOpen && topicRef.current) {
+                  const rect = topicRef.current.getBoundingClientRect();
+                  setTopicDir(window.innerHeight - rect.bottom < 220 ? "up" : "down");
+                }
+                setTopicOpen(o => !o);
+              }} aria-expanded={topicOpen}>
+                <span>{topicLabel}</span>
+                <ChevronDown size={16} />
+              </button>
+              <div className={`qb-select-menu${topicOpen ? " open" : ""}`}>
+                {TOPICS.map(t => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    className={`qb-select-item${t.id === form.topic ? " on" : ""}`}
+                    onClick={() => {
+                      setForm(f => ({ ...f, topic: t.id }));
+                      setTopicOpen(false);
+                    }}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="qb-flabel">
+              Label{" "}
+              <span style={{ textTransform:"none", letterSpacing:0, fontFamily:"DM Sans,sans-serif", fontSize:11, color:"var(--text-faint)" }}>(optional)</span>
+            </label>
+            <div>
+              {!useCustomLabel ? (
+                <div className="qb-select" ref={labelRef} data-dir={labelDir} data-open={labelOpen}>
+                  <button className="qb-select-btn" type="button" onClick={() => {
+                    if (!labelOpen && labelRef.current) {
+                      const rect = labelRef.current.getBoundingClientRect();
+                      setLabelDir(window.innerHeight - rect.bottom < 220 ? "up" : "down");
+                    }
+                    setLabelOpen(o => !o);
+                  }} aria-expanded={labelOpen}>
+                    <span>{form.label || "Select a label..."}</span>
+                    <ChevronDown size={16} />
+                  </button>
+                  <div className={`qb-select-menu${labelOpen ? " open" : ""}`}>
+                    {PROBLEM_LABELS.map(label => (
+                      <button
+                        key={label}
+                        type="button"
+                        className={`qb-select-item${form.label === label ? " on" : ""}`}
+                        onClick={() => {
+                          setForm(f => ({ ...f, label }));
+                          setLabelOpen(false);
+                        }}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      className="qb-select-item"
+                      onClick={() => {
+                        setUseCustomLabel(true);
+                        setForm(f => ({ ...f, label: "" }));
+                        setLabelOpen(false);
+                      }}
+                    >
+                      Other (custom)
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <input
+                    className="qb-finput"
+                    placeholder="e.g. Age Problem, Sentence Error"
+                    value={form.label}
+                    onChange={e => setForm(f => ({ ...f, label: e.target.value }))}
+                  />
+                  <button
+                    type="button"
+                    className="qb-fcancel"
+                    style={{ marginTop: 8, padding: "6px 12px", fontSize: 12 }}
+                    onClick={() => {
+                      setUseCustomLabel(false);
+                      setForm(f => ({ ...f, label: "" }));
+                    }}
+                  >
+                    Use preset label
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="qb-editor-side-card">
+        <div className="qb-editor-side-card-head">
+          <span className="qb-editor-side-kicker">Actions</span>
+          <div className="qb-editor-side-title">{valid ? "Ready to save" : "Complete the required fields"}</div>
+          <p className="qb-editor-side-copy">
+            Save from here once the question prompt and all four choices are filled in.
+          </p>
+        </div>
+        {error && <p className="qb-editor-side-error">{error}</p>}
+        <div className="qb-editor-side-actions">
+          <button className="qb-fcancel" onClick={onCancel}>Cancel</button>
+          <button className="qb-fsave" onClick={handleSave} disabled={!valid}>{initialData ? "Save Changes" : "Add Question"}</button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="fu qb-form-workspace">
@@ -261,108 +436,7 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
         )}
       </div>
 
-      <div className="qb-fsec">
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
-          <div>
-            <label className="qb-flabel">Topic</label>
-            <div className="qb-select" ref={topicRef} data-dir={topicDir} data-open={topicOpen}>
-              <button className="qb-select-btn" type="button" onClick={() => {
-                if (!topicOpen && topicRef.current) {
-                  const rect = topicRef.current.getBoundingClientRect();
-                  setTopicDir(window.innerHeight - rect.bottom < 220 ? "up" : "down");
-                }
-                setTopicOpen(o => !o);
-              }} aria-expanded={topicOpen}>
-                <span>{topicLabel}</span>
-                <ChevronDown size={16} />
-              </button>
-              <div className={`qb-select-menu${topicOpen ? " open" : ""}`}>
-                {TOPICS.map(t => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    className={`qb-select-item${t.id === form.topic ? " on" : ""}`}
-                    onClick={() => {
-                      setForm(f => ({ ...f, topic: t.id }));
-                      setTopicOpen(false);
-                    }}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div>
-            <label className="qb-flabel">
-              Label{" "}
-              <span style={{ textTransform:"none", letterSpacing:0, fontFamily:"DM Sans,sans-serif", fontSize:11, color:"var(--text-faint)" }}>(optional)</span>
-            </label>
-            <div>
-              {!useCustomLabel ? (
-                <div className="qb-select" ref={labelRef} data-dir={labelDir} data-open={labelOpen}>
-                  <button className="qb-select-btn" type="button" onClick={() => {
-                    if (!labelOpen && labelRef.current) {
-                      const rect = labelRef.current.getBoundingClientRect();
-                      setLabelDir(window.innerHeight - rect.bottom < 220 ? "up" : "down");
-                    }
-                    setLabelOpen(o => !o);
-                  }} aria-expanded={labelOpen}>
-                    <span>{form.label || "Select a label..."}</span>
-                    <ChevronDown size={16} />
-                  </button>
-                  <div className={`qb-select-menu${labelOpen ? " open" : ""}`}>
-                    {PROBLEM_LABELS.map(label => (
-                      <button
-                        key={label}
-                        type="button"
-                        className={`qb-select-item${form.label === label ? " on" : ""}`}
-                        onClick={() => {
-                          setForm(f => ({ ...f, label }));
-                          setLabelOpen(false);
-                        }}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                    <button
-                      type="button"
-                      className="qb-select-item"
-                      onClick={() => {
-                        setUseCustomLabel(true);
-                        setForm(f => ({ ...f, label: "" }));
-                        setLabelOpen(false);
-                      }}
-                    >
-                      Other (custom)
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <input
-                    className="qb-finput"
-                    placeholder="e.g. Age Problem, Sentence Error"
-                    value={form.label}
-                    onChange={e => setForm(f => ({ ...f, label: e.target.value }))}
-                  />
-                  <button
-                    type="button"
-                    className="qb-fcancel"
-                    style={{ marginTop: 8, padding: "6px 12px", fontSize: 12 }}
-                    onClick={() => {
-                      setUseCustomLabel(false);
-                      setForm(f => ({ ...f, label: "" }));
-                    }}
-                  >
-                    Use preset label
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      {!useSideRail && settingsPanel}
 
       {confirmRemoveDraw && createPortal(
         <div style={{
@@ -407,11 +481,14 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
         </div>,
         document.body
       )}
-      {error && <p className="qb-ferr">{error}</p>}
-      <div className="qb-factions">
-        <button className="qb-fcancel" onClick={onCancel}>Cancel</button>
-        <button className="qb-fsave" onClick={handleSave} disabled={!valid}>{initialData ? "Save Changes" : "Add Question"}</button>
-      </div>
+      {!useSideRail && error && <p className="qb-ferr">{error}</p>}
+      {!useSideRail && (
+        <div className="qb-factions">
+          <button className="qb-fcancel" onClick={onCancel}>Cancel</button>
+          <button className="qb-fsave" onClick={handleSave} disabled={!valid}>{initialData ? "Save Changes" : "Add Question"}</button>
+        </div>
+      )}
+      {useSideRail && createPortal(settingsPanel, sideRailHost)}
     </div>
   );
 }
