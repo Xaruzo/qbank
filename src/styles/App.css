@@ -844,17 +844,18 @@ body {
 .qb-form-workspace { position:relative; z-index:1; }
 .qb-form-hero {
   display:grid;
-  grid-template-columns:minmax(0, 1fr) auto;
-  gap:18px;
-  align-items:start;
+  grid-template-columns:minmax(0, 1fr);
+  gap:14px;
+  align-items:center;
   margin-bottom:18px;
-  padding:24px;
+  padding:28px 32px;
   border:1px solid var(--border);
   border-radius:24px;
   background:linear-gradient(135deg, rgba(245,166,35,.10), rgba(96,165,250,.07) 48%, rgba(139,92,246,.08));
   box-shadow:var(--shadow-soft);
   position:relative;
   overflow:hidden;
+  text-align:center;
 }
 .qb-form-hero::after {
   content:"";
@@ -870,8 +871,8 @@ body {
   border-color:rgba(26,37,64,.08);
   background:linear-gradient(135deg, rgba(245,166,35,.10), rgba(255,255,255,.96) 46%, rgba(240,244,255,.96));
 }
-.qb-form-hero-main { position:relative; z-index:1; display:flex; flex-direction:column; gap:12px; }
-.qb-form-hdr { display:flex; align-items:center; gap:12px; margin-bottom:0; flex-wrap:wrap; }
+.qb-form-hero-main { position:relative; z-index:1; display:flex; flex-direction:column; gap:12px; align-items:center; }
+.qb-form-hdr { display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:0; flex-wrap:wrap; }
 .qb-back-ghost {
   background:rgba(9,16,29,.42);
   border-color:rgba(255,255,255,.10);
@@ -900,10 +901,10 @@ body {
   margin:0;
   font-family:'Syne',sans-serif;
   font-size:clamp(28px, 4vw, 38px);
-  line-height:1.06;
+  line-height:1.1;
   font-weight:700;
   color:var(--text-heading);
-  max-width:18ch;
+  max-width:24ch;
 }
 .qb-form-subtitle {
   margin:0;
@@ -1246,7 +1247,10 @@ body {
 .draw-tb.draw-on { border-color:rgba(245,166,35,.4); color:#e8960e; background:rgba(245,166,35,.08); }
 .draw-tb:disabled { opacity:.35; cursor:not-allowed; }
 .draw-tb.draw-tb-lg { font-size:14px; padding:6px 12px; min-width:34px; }
-.draw-bar { display:flex; gap:6px; margin-bottom:12px; align-items:center; flex-wrap:nowrap; overflow-x:auto; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; padding:10px; border:1px solid var(--border); border-radius:14px; background:var(--surface-h); }
+.draw-bar { display:flex; gap:6px; margin-bottom:12px; align-items:center; flex-wrap:nowrap; overflow-x:auto; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; padding:10px 10px 14px; border:1px solid var(--border); border-radius:14px; background:var(--surface-h); scrollbar-width:thin; scrollbar-color:rgba(128,128,128,.25) transparent; }
+.draw-bar::-webkit-scrollbar { height:4px; }
+.draw-bar::-webkit-scrollbar-track { background:transparent; border-radius:999px; }
+.draw-bar::-webkit-scrollbar-thumb { background:rgba(128,128,128,.25); border-radius:999px; }
 
 /* ── Solution tabs ── */
 .sol-tabs {
