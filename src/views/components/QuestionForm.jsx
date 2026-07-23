@@ -141,8 +141,7 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
       </div>
 
       <div className="qb-fsec">
-        <label className="qb-flabel">Choices <span className="qb-flabel-hint">— select radio for correct answer</span></label>
-        <div className="qb-choices-grid">
+        <label className="qb-flabel">Choices <span style={{ textTransform:"none", letterSpacing:0, fontFamily:"DM Sans,sans-serif", fontSize:11, color:"var(--text-faint)" }}>— select radio for correct answer</span></label>
         {form.choices.map((c,i) => (
           <div key={i} className="qb-crow">
             <input type="radio" className="qb-cradio" name="correct" checked={form.correct===i} onChange={() => setForm({...form, correct:i})} />
@@ -162,7 +161,6 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
               }} />
           </div>
         ))}
-        </div>
         <SymbolToolbar
           targetRef={activeChoiceRef}
           value={activeChoice !== null ? form.choices[activeChoice] : ""}
@@ -178,7 +176,8 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
 
       <div className="qb-fsec">
         <label className="qb-flabel">
-          Solution / Explanation <span className="qb-flabel-hint">(optional)</span>
+          Solution / Explanation{" "}
+          <span style={{ textTransform:"none", letterSpacing:0, fontFamily:"DM Sans,sans-serif", fontSize:11, color:"var(--text-faint)" }}>(optional)</span>
         </label>
 
         <textarea ref={solutionRef} className="qb-fta" placeholder="Write the step-by-step solution here..." value={form.solution}
@@ -296,7 +295,8 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
           </div>
           <div>
             <label className="qb-flabel">
-              Label <span className="qb-flabel-hint">(optional)</span>
+              Label{" "}
+              <span style={{ textTransform:"none", letterSpacing:0, fontFamily:"DM Sans,sans-serif", fontSize:11, color:"var(--text-faint)" }}>(optional)</span>
             </label>
             <div>
               {!useCustomLabel ? (
