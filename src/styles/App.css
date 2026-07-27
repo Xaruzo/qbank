@@ -1255,7 +1255,8 @@ body {
 .draw-tb.draw-on { border-color:rgba(245,166,35,.4); color:#e8960e; background:rgba(245,166,35,.08); }
 .draw-tb:disabled { opacity:.35; cursor:not-allowed; }
 .draw-tb.draw-tb-lg { font-size:14px; padding:6px 12px; min-width:34px; }
-.draw-bar { display:flex; gap:6px; margin-bottom:12px; align-items:center; flex-wrap:wrap; padding:10px; border:1px solid var(--border); border-radius:14px; background:var(--surface-h); }
+.draw-bar { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; padding:10px; border:1px solid var(--border); border-radius:14px; background:var(--surface-h); }
+.draw-bar-row { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
 
 /* ── Solution tabs ── */
 .sol-tabs {

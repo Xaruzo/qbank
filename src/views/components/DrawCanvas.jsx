@@ -20,7 +20,9 @@ import {
   RotateCcw,
   Square,
   Divide,
-  X
+  X,
+  ZoomIn,
+  ZoomOut
 } from "lucide-react";
 
 export default function DrawCanvas({ value, onChange, layersHost }) {
@@ -1879,6 +1881,8 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
     fabricRef.current.duplicateSelection = duplicateSelection;
     fabricRef.current.groupSelection = groupSelection;
     fabricRef.current.ungroupSelection = ungroupSelection;
+    fabricRef.current.zoomBy = zoomBy;
+    fabricRef.current.resetZoom = resetZoom;
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
@@ -2740,167 +2744,171 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
   return (
     <div ref={containerRef}>
       <div className="draw-bar">
-        <div className="draw-bar-group" style={{ display: "flex", background: "var(--surface-h)", padding: "3px", borderRadius: "8px", gap: "2px" }}>
-          <button className={`draw-tb${tool === "pen" ? " draw-on" : ""}`} onClick={() => setTool("pen")} title="Draw with Pen">
-            <Pencil size={16} />
-          </button>
-          <button className={`draw-tb${tool === "move" ? " draw-on" : ""}`} onClick={() => setTool("move")} title="Select & Move Objects">
-            <MousePointer2 size={16} />
-          </button>
-          <button className={`draw-tb${tool === "pan" ? " draw-on" : ""}`} onClick={() => setTool("pan")} title="Pan Canvas">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2v6M12 16v6M2 12h6M16 12h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              <path d="M12 2l-2 2m2-2l2 2M12 22l-2-2m2 2l2-2M2 12l2-2m-2 2l2 2M22 12l-2-2m2 2l-2 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-          <button className="draw-tb" onClick={addText} title="Add Text Layer">
-            <Type size={16} />
-          </button>
-          <button className="draw-tb" onClick={addHrLine} title="Add Rotatable Horizontal Line">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <circle cx="5" cy="12" r="2" fill="currentColor" />
-              <path d="M7 12h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              <circle cx="19" cy="12" r="2" fill="currentColor" />
-            </svg>
-          </button>
-          <button className="draw-tb" onClick={addVrLine} title="Add Rotatable Vertical Line">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <circle cx="12" cy="5" r="2" fill="currentColor" />
-              <path d="M12 7v10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              <circle cx="12" cy="19" r="2" fill="currentColor" />
-            </svg>
-          </button>
-          <button className="draw-tb" onClick={addLine} title="Add Short Line (Fraction)">
-            <Minus size={16} />
-          </button>
-          <button className="draw-tb" onClick={addSquare} title="Add Square Shape">
-            <Square size={16} />
-          </button>
-          <button className="draw-tb" onClick={addRectangle} title="Add Rectangle Shape">
-            <span style={{ display: "inline-block", width: 18, height: 12, border: "2px solid currentColor", borderRadius: 3 }} />
-          </button>
-          <button className="draw-tb" onClick={addCircle} title="Add Circle Shape">
-            <span style={{ display: "inline-block", width: 16, height: 16, border: "2px solid currentColor", borderRadius: 9999 }} />
-          </button>
-          <button className="draw-tb" onClick={addTriangle} title="Add Triangle Shape">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M12 4 L21 20 H3 Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-            </svg>
-          </button>
-          <button className="draw-tb" onClick={addStar} title="Add Star Shape">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2 L15.1 8.6 L22 9.3 L17 13.9 L18.5 21 L12 17.4 L5.5 21 L7 13.9 L2 9.3 L8.9 8.6 Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-            </svg>
-          </button>
-          <button className="draw-tb" onClick={addOblong} title="Add Oblong (Butterfly Method)">
-            <span style={{ display: "inline-block", width: 18, height: 10, border: "2px solid currentColor", borderRadius: 9999 }} />
-          </button>
-          <button className="draw-tb" onClick={addTrayShape} title="Add Tray Shape">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M5 5 V18 H19 V5" stroke="currentColor" strokeWidth="2" strokeLinecap="butt" strokeLinejoin="miter" />
-            </svg>
-          </button>
-          <button className="draw-tb" onClick={addRoofShape} title="Add Roof Shape">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M4 17 L12 7 L20 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-          <button className="draw-tb" onClick={addFraction} title="Add Fraction (Auto-layout)">
-            <Divide size={16} />
-          </button>
-          <button className="draw-tb" onClick={addLongDivision} title="Add Long Division Symbol (⟌)">
-            <span style={{ fontSize:18, fontWeight:700, lineHeight:1 }}>⟌</span>
-          </button>
-          <button className={`draw-tb${tool === "eraser" ? " draw-on" : ""}`} onClick={() => setTool("eraser")} title="Eraser (Brush)">
-            <Eraser size={16} />
-          </button>
-        </div>
-        
-        <div className="draw-bar-group" style={{ display: "flex", gap: 4, alignItems: "center", background: "var(--surface-h)", padding: "3px 8px", borderRadius: "8px" }}>
-          {COLORS.map(c => (
-            <div key={c} onClick={() => { 
-              setColor(c); 
-              const active = fabricRef.current?.getActiveObject();
-              if (active) {
-                if (isTextObj(active)) active.set('fill', c);
-                else if (active.type === 'path') active.set('stroke', c);
-                else if (isHrLine(active) && active.type === 'line') active.set('stroke', c);
-                else if (active.type === 'rect') {
-                  if (active.shapeKind === 'hrLine' || active.height <= 5) active.set('fill', c);
-                  else active.set('stroke', c);
-                }
-                else if (active.type === 'circle' || active.type === 'triangle' || active.type === 'polygon') {
-                  active.set('stroke', c);
-                }
-                fabricRef.current.requestRenderAll();
-                commitCanvasChange(active);
-              }
-            }}
-              style={{
-                width: 18, height: 18, borderRadius: "50%", background: c, cursor: "pointer", flexShrink: 0,
-                border: color === c ? "2px solid #fff" : "1px solid rgba(0,0,0,0.1)",
-                boxShadow: color === c ? "0 0 0 2px #f5a623" : "none"
-              }}
-            />
-          ))}
-          <div style={{ width: "1px", height: "20px", background: "var(--border)", margin: "0 4px" }} />
-          <input type="range" min={1} max={20} value={size} onChange={e => setSize(+e.target.value)}
-            style={{ width: 50, accentColor: "#f5a623" }} />
-        </div>
-
-        <div className="draw-bar-group" style={{ display: "flex", background: "var(--surface-h)", padding: "3px", borderRadius: "8px", gap: "2px" }}>
-          <button className="draw-tb draw-tb-lg" onClick={() => addSymbol("+")} title="Plus">+</button>
-          <button className="draw-tb draw-tb-lg" onClick={() => addSymbol("-")} title="Minus">-</button>
-          <button className="draw-tb draw-tb-lg" onClick={() => addSymbol("×")} title="Multiply">×</button>
-          <button className="draw-tb draw-tb-lg" onClick={() => addSymbol("÷")} title="Divide">÷</button>
-          <button className="draw-tb draw-tb-lg" onClick={() => addSymbol("=")} title="Equal">=</button>
-        </div>
-
-        <div className="draw-bar-group" style={{ display: "flex", gap: 4, background: "var(--surface-h)", padding: "3px", borderRadius: "8px" }}>
-          <button className="draw-tb" onClick={moveForward} title="Bring Forward">
-            <ChevronUp size={16} />
-          </button>
-          <button className="draw-tb" onClick={moveBackward} title="Send Backward">
-            <ChevronDown size={16} />
-          </button>
-        </div>
-
-        <div className="draw-bar-group" style={{ display: "flex", gap: 4, background: "var(--surface-h)", padding: "3px", borderRadius: "8px" }}>
-          <button className="draw-tb" onClick={() => fabricRef.current?.groupSelection?.()} disabled={!canGroup} title="Group">
-            Group
-          </button>
-          <button className="draw-tb" onClick={() => fabricRef.current?.ungroupSelection?.()} disabled={!canUngroup} title="Ungroup">
-            Ungroup
-          </button>
-        </div>
-
-        <div className="draw-bar-group" style={{ display: "flex", gap: 4, background: "var(--surface-h)", padding: "3px", borderRadius: "8px" }}>
-          <button className="draw-tb" onClick={() => bumpBoardHeight(200)} title="Add Space Below">
-            <Plus size={16} />
-          </button>
-          <button className="draw-tb" onClick={() => bumpBoardHeight(-200)} title="Remove Space Below">
-            <Minus size={16} />
-          </button>
-        </div>
-        
-        <div className="draw-bar-group" style={{ marginLeft: narrow ? 0 : "auto", display: "flex", gap: 4 }}>
-          {(narrow || (useExternalLayers && isMobile)) && (
-            <button className="draw-tb" onClick={() => setLayersOpen(o => !o)} title={layersOpen ? "Hide Layers" : "Show Layers"}>
-              {layersOpen ? <X size={16} /> : <span style={{ fontSize: 12, padding: "0 4px" }}>Layers</span>}
+        <div className="draw-bar-row">
+          <div className="draw-bar-group" style={{ display: "flex", background: "var(--surface-h)", padding: "3px", borderRadius: "8px", gap: "2px" }}>
+            <button className={`draw-tb${tool === "pen" ? " draw-on" : ""}`} onClick={() => setTool("pen")} title="Draw with Pen">
+              <Pencil size={16} />
             </button>
-          )}
-          <button className="draw-tb" onClick={deleteSelected} style={{ color: "#e0365a" }} title="Delete Selected (Del)">
-            <Trash2 size={16} />
-          </button>
-          <button className="draw-tb" onClick={undo} title="Undo (Ctrl+Z)">
-            <Undo2 size={16} />
-          </button>
-          <button className="draw-tb" onClick={redo} title="Redo (Ctrl+Y)">
-            <Redo2 size={16} />
-          </button>
-          <button className="draw-tb" onClick={clear} style={{ color: "#e0365a" }} title="Clear All">
-            <RotateCcw size={16} />
-          </button>
+            <button className={`draw-tb${tool === "move" ? " draw-on" : ""}`} onClick={() => setTool("move")} title="Select & Move Objects">
+              <MousePointer2 size={16} />
+            </button>
+            <button className={`draw-tb${tool === "pan" ? " draw-on" : ""}`} onClick={() => setTool("pan")} title="Pan Canvas">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2v6M12 16v6M2 12h6M16 12h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <path d="M12 2l-2 2m2-2l2 2M12 22l-2-2m2 2l2-2M2 12l2-2m-2 2l2 2M22 12l-2-2m2 2l-2 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            <button className="draw-tb" onClick={addText} title="Add Text Layer">
+              <Type size={16} />
+            </button>
+            <button className="draw-tb" onClick={addHrLine} title="Add Rotatable Horizontal Line">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="5" cy="12" r="2" fill="currentColor" />
+                <path d="M7 12h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <circle cx="19" cy="12" r="2" fill="currentColor" />
+              </svg>
+            </button>
+            <button className="draw-tb" onClick={addVrLine} title="Add Rotatable Vertical Line">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="5" r="2" fill="currentColor" />
+                <path d="M12 7v10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <circle cx="12" cy="19" r="2" fill="currentColor" />
+              </svg>
+            </button>
+            <button className="draw-tb" onClick={addLine} title="Add Short Line (Fraction)">
+              <Minus size={16} />
+            </button>
+            <button className="draw-tb" onClick={addSquare} title="Add Square Shape">
+              <Square size={16} />
+            </button>
+            <button className="draw-tb" onClick={addRectangle} title="Add Rectangle Shape">
+              <span style={{ display: "inline-block", width: 18, height: 12, border: "2px solid currentColor", borderRadius: 3 }} />
+            </button>
+            <button className="draw-tb" onClick={addCircle} title="Add Circle Shape">
+              <span style={{ display: "inline-block", width: 16, height: 16, border: "2px solid currentColor", borderRadius: 9999 }} />
+            </button>
+            <button className="draw-tb" onClick={addTriangle} title="Add Triangle Shape">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M12 4 L21 20 H3 Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+              </svg>
+            </button>
+            <button className="draw-tb" onClick={addStar} title="Add Star Shape">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2 L15.1 8.6 L22 9.3 L17 13.9 L18.5 21 L12 17.4 L5.5 21 L7 13.9 L2 9.3 L8.9 8.6 Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+              </svg>
+            </button>
+            <button className="draw-tb" onClick={addOblong} title="Add Oblong (Butterfly Method)">
+              <span style={{ display: "inline-block", width: 18, height: 10, border: "2px solid currentColor", borderRadius: 9999 }} />
+            </button>
+            <button className="draw-tb" onClick={addTrayShape} title="Add Tray Shape">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M5 5 V18 H19 V5" stroke="currentColor" strokeWidth="2" strokeLinecap="butt" strokeLinejoin="miter" />
+              </svg>
+            </button>
+            <button className="draw-tb" onClick={addRoofShape} title="Add Roof Shape">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M4 17 L12 7 L20 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            <button className="draw-tb" onClick={addFraction} title="Add Fraction (Auto-layout)">
+              <Divide size={16} />
+            </button>
+            <button className="draw-tb" onClick={addLongDivision} title="Add Long Division Symbol (⟌)">
+              <span style={{ fontSize:18, fontWeight:700, lineHeight:1 }}>⟌</span>
+            </button>
+            <button className={`draw-tb${tool === "eraser" ? " draw-on" : ""}`} onClick={() => setTool("eraser")} title="Eraser (Brush)">
+              <Eraser size={16} />
+            </button>
+          </div>
+
+          <div className="draw-bar-group" style={{ display: "flex", background: "var(--surface-h)", padding: "3px", borderRadius: "8px", gap: "2px" }}>
+            <button className="draw-tb draw-tb-lg" onClick={() => addSymbol("+")} title="Plus">+</button>
+            <button className="draw-tb draw-tb-lg" onClick={() => addSymbol("-")} title="Minus">-</button>
+            <button className="draw-tb draw-tb-lg" onClick={() => addSymbol("×")} title="Multiply">×</button>
+            <button className="draw-tb draw-tb-lg" onClick={() => addSymbol("÷")} title="Divide">÷</button>
+            <button className="draw-tb draw-tb-lg" onClick={() => addSymbol("=")} title="Equal">=</button>
+          </div>
+        </div>
+
+        <div className="draw-bar-row">
+          <div className="draw-bar-group" style={{ display: "flex", gap: 4, alignItems: "center", background: "var(--surface-h)", padding: "3px 8px", borderRadius: "8px" }}>
+            {COLORS.map(c => (
+              <div key={c} onClick={() => { 
+                setColor(c); 
+                const active = fabricRef.current?.getActiveObject();
+                if (active) {
+                  if (isTextObj(active)) active.set('fill', c);
+                  else if (active.type === 'path') active.set('stroke', c);
+                  else if (isHrLine(active) && active.type === 'line') active.set('stroke', c);
+                  else if (active.type === 'rect') {
+                    if (active.shapeKind === 'hrLine' || active.height <= 5) active.set('fill', c);
+                    else active.set('stroke', c);
+                  }
+                  else if (active.type === 'circle' || active.type === 'triangle' || active.type === 'polygon') {
+                    active.set('stroke', c);
+                  }
+                  fabricRef.current.requestRenderAll();
+                  commitCanvasChange(active);
+                }
+              }}
+                style={{
+                  width: 18, height: 18, borderRadius: "50%", background: c, cursor: "pointer", flexShrink: 0,
+                  border: color === c ? "2px solid #fff" : "1px solid rgba(0,0,0,0.1)",
+                  boxShadow: color === c ? "0 0 0 2px #f5a623" : "none"
+                }}
+              />
+            ))}
+            <div style={{ width: "1px", height: "20px", background: "var(--border)", margin: "0 4px" }} />
+            <input type="range" min={1} max={20} value={size} onChange={e => setSize(+e.target.value)}
+              style={{ width: 50, accentColor: "#f5a623" }} />
+          </div>
+
+          <div className="draw-bar-group" style={{ display: "flex", gap: 4, background: "var(--surface-h)", padding: "3px", borderRadius: "8px" }}>
+            <button className="draw-tb" onClick={moveForward} title="Bring Forward">
+              <ChevronUp size={16} />
+            </button>
+            <button className="draw-tb" onClick={moveBackward} title="Send Backward">
+              <ChevronDown size={16} />
+            </button>
+          </div>
+
+          <div className="draw-bar-group" style={{ display: "flex", gap: 4, background: "var(--surface-h)", padding: "3px", borderRadius: "8px" }}>
+            <button className="draw-tb" onClick={() => fabricRef.current?.groupSelection?.()} disabled={!canGroup} title="Group">
+              Group
+            </button>
+            <button className="draw-tb" onClick={() => fabricRef.current?.ungroupSelection?.()} disabled={!canUngroup} title="Ungroup">
+              Ungroup
+            </button>
+          </div>
+
+          <div className="draw-bar-group" style={{ display: "flex", gap: 4, background: "var(--surface-h)", padding: "3px", borderRadius: "8px" }}>
+            <button className="draw-tb" onClick={() => fabricRef.current?.zoomBy?.(1.2)} title="Zoom In">
+              <ZoomIn size={16} />
+            </button>
+            <button className="draw-tb" onClick={() => fabricRef.current?.zoomBy?.(1/1.2)} title="Zoom Out">
+              <ZoomOut size={16} />
+            </button>
+          </div>
+
+          <div className="draw-bar-group" style={{ display: "flex", gap: 4 }}>
+            {(narrow || (useExternalLayers && isMobile)) && (
+              <button className="draw-tb" onClick={() => setLayersOpen(o => !o)} title={layersOpen ? "Hide Layers" : "Show Layers"}>
+                {layersOpen ? <X size={16} /> : <span style={{ fontSize: 12, padding: "0 4px" }}>Layers</span>}
+              </button>
+            )}
+            <button className="draw-tb" onClick={deleteSelected} style={{ color: "#e0365a" }} title="Delete Selected (Del)">
+              <Trash2 size={16} />
+            </button>
+            <button className="draw-tb" onClick={undo} title="Undo (Ctrl+Z)">
+              <Undo2 size={16} />
+            </button>
+            <button className="draw-tb" onClick={redo} title="Redo (Ctrl+Y)">
+              <Redo2 size={16} />
+            </button>
+            <button className="draw-tb" onClick={clear} style={{ color: "#e0365a" }} title="Clear All">
+              <RotateCcw size={16} />
+            </button>
+          </div>
         </div>
       </div>
 
