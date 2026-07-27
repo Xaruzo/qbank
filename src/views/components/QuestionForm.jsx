@@ -90,7 +90,7 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
 
   const handleSave = () => {
     if (!form.question.trim()) { setError("Question cannot be empty."); return; }
-    if (form.choices.some(c => !c.trim())) { setError("All 4 choices are required."); return; }
+    if (form.choices.slice(0, 4).some(c => !c.trim())) { setError("All 4 choices are required."); return; }
     const data = { ...form };
     if (visualMode === "upload" && data.solutionUpload) {
       data.solutionDraw = data.solutionUpload;
@@ -99,7 +99,7 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
     onSave(data);
   };
 
-  const valid = form.question.trim() && form.choices.every(c => c.trim());
+  const valid = form.question.trim() && form.choices.slice(0, 4).every(c => c.trim());
   const filledChoices = form.choices.filter(choice => choice.trim()).length;
   const hasQuestion = !!form.question.trim();
   const hasSolution = !!form.solution.trim();
@@ -124,12 +124,12 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
             </div>
             <span className="qb-editor-progress-meta">{hasQuestion ? "Ready" : "Pending"}</span>
           </div>
-          <div className={`qb-editor-progress-row${filledChoices === 4 ? " is-done" : ""}`}>
+          <div className={`qb-editor-progress-row${filledChoices >= 4 ? " is-done" : ""}`}>
             <div className="qb-editor-progress-info">
               <span className="qb-editor-progress-dot" aria-hidden="true" />
               <span>Answer choices</span>
             </div>
-            <span className="qb-editor-progress-meta">{filledChoices}/4</span>
+            <span className="qb-editor-progress-meta">{filledChoices}/{form.choices.length}</span>
           </div>
           <div className={`qb-editor-progress-row${hasSolution ? " is-done" : ""}`}>
             <div className="qb-editor-progress-info">
@@ -264,7 +264,7 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
           <span className="qb-editor-side-kicker">Actions</span>
           <div className="qb-editor-side-title">{valid ? "Ready to save" : "Complete the required fields"}</div>
           <p className="qb-editor-side-copy">
-            Save from here once the question prompt and all four choices are filled in.
+            Save from here once the question prompt and first four choices are filled in (5th optional).
           </p>
         </div>
         {error && <p className="qb-editor-side-error">{error}</p>}
@@ -294,7 +294,7 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
           </p>
         </div>
         <div className="qb-form-hero-meta" aria-label="Editor highlights">
-          <span className="qb-form-chip" data-label="Choices">4 answer choices</span>
+          <span className="qb-form-chip" data-label="Choices">Up to 5 answer choices</span>
           <span className="qb-form-chip" data-label="Visual">Visual solution support</span>
           <span className="qb-form-chip" data-label="Controls">Topic and label controls</span>
         </div>
@@ -321,7 +321,7 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
           <div key={i} className="qb-crow">
             <input type="radio" className="qb-cradio" name="correct" checked={form.correct===i} onChange={() => setForm({...form, correct:i})} />
             <span className="qb-cletter">{LETTERS[i]}.</span>
-            <input ref={el => { choiceRefs.current[i] = el; }} className="qb-finput" placeholder={`Choice ${LETTERS[i]}`} value={c}
+            <input ref={el => { choiceRefs.current[i] = el; }} className="qb-finput" placeholder={`Choice ${LETTERS[i]}${i === 4 ? " (optional)" : ""}`} value={c}
               onFocus={() => { setActiveChoice(i); activeChoiceRef.current = choiceRefs.current[i]; }}
               onChange={e => {
                 const val = e.target.value;
@@ -347,6 +347,40 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
           }}
           disabled={activeChoice === null}
         />
+        <div style={{ marginTop: 8 }}>
+          {form.choices.length >= 5 ? (
+            <button
+              type="button"
+              className="qb-add-choice"
+              onClick={() => {
+                const nc = [...form.choices];
+                nc.pop();
+                const newCorrect = form.correct >= nc.length ? 0 : form.correct;
+                setForm({...form, choices: nc, correct: newCorrect});
+              }}
+              style={{
+                background:"none", border:"1px solid var(--border)", color:"var(--text-muted)",
+                fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:600,
+                padding:"6px 12px", borderRadius:8, cursor:"pointer"
+              }}
+            >
+              – Remove 5th choice
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="qb-add-choice"
+              onClick={() => setForm({...form, choices: [...form.choices, ""]})}
+              style={{
+                background:"none", border:"1px dashed var(--border)", color:"var(--text-muted)",
+                fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:600,
+                padding:"6px 12px", borderRadius:8, cursor:"pointer"
+              }}
+            >
+              + Add 5th choice (optional)
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="qb-fsec">

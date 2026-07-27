@@ -16,7 +16,7 @@ export const SORT_OPTIONS = [
   { value: "z-a", label: "Question Z-A" },
 ];
 
-export const LETTERS = ["A", "B", "C", "D"];
+export const LETTERS = ["A", "B", "C", "D", "E"];
 export const PROBLEM_LABELS = [
   "Age Problem",
   "Percentage",
