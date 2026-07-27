@@ -28,3 +28,12 @@ dist-ssr
 
 # Backup files
 *.bak
+
+# Screenshots
+screenshot issues/
+
+# Graphify cache and artifacts
+graphify-out/cache/
+graphify-out/.graphify_*
+graphify-out/graph.json
+graphify-out/graph.html
