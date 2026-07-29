@@ -4,14 +4,18 @@ import { Joyride, STATUS } from "react-joyride";
 export default function TutorialTour({ run, onFinish, isDark }) {
   // Add body class when tour is active to disable background interactions
   useEffect(() => {
+    console.log('[TutorialTour] useEffect - run:', run);
     if (run) {
+      console.log('[TutorialTour] Adding qb-tour-active class');
       document.body.classList.add('qb-tour-active');
     } else {
+      console.log('[TutorialTour] Removing qb-tour-active class');
       document.body.classList.remove('qb-tour-active');
     }
     
     // Cleanup on unmount
     return () => {
+      console.log('[TutorialTour] Cleanup - removing qb-tour-active class');
       document.body.classList.remove('qb-tour-active');
     };
   }, [run]);
@@ -326,15 +330,20 @@ export default function TutorialTour({ run, onFinish, isDark }) {
   ];
 
   const handleJoyrideCallback = (data) => {
-    const { status } = data;
+    const { status, action, index, type } = data;
+    console.log('[TutorialTour] Callback:', { status, action, index, type });
+    
     const finishedStatuses = [STATUS.FINISHED, STATUS.SKIPPED];
 
     if (finishedStatuses.includes(status)) {
+      console.log('[TutorialTour] Tour finished! Removing qb-tour-active class');
       // Remove the body class immediately when tour finishes
       document.body.classList.remove('qb-tour-active');
+      console.log('[TutorialTour] Body classes after removal:', document.body.className);
       
       // Small delay to ensure cleanup before calling onFinish
       setTimeout(() => {
+        console.log('[TutorialTour] Calling onFinish()');
         onFinish();
       }, 50);
     }
