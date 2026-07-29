@@ -2,25 +2,18 @@ import React, { useEffect } from "react";
 import { Joyride, STATUS } from "react-joyride";
 
 export default function TutorialTour({ run, onFinish, isDark }) {
-  // Add body class when tour is active to disable background interactions
   useEffect(() => {
-    console.log('[TutorialTour] useEffect - run:', run);
     if (run) {
-      console.log('[TutorialTour] Adding qb-tour-active class');
       document.body.classList.add('qb-tour-active');
     } else {
-      console.log('[TutorialTour] Removing qb-tour-active class');
       document.body.classList.remove('qb-tour-active');
     }
-    
-    // Cleanup on unmount
     return () => {
-      console.log('[TutorialTour] Cleanup - removing qb-tour-active class');
       document.body.classList.remove('qb-tour-active');
     };
   }, [run]);
   
-  const steps = [
+  const steps = React.useMemo(() => [
     {
       target: "body",
       content: (
@@ -71,7 +64,7 @@ export default function TutorialTour({ run, onFinish, isDark }) {
         </div>
       ),
       placement: "center",
-      disableBeacon: true,
+      skipBeacon: true,
     },
     {
       target: ".qb-side-nav",
@@ -98,7 +91,7 @@ export default function TutorialTour({ run, onFinish, isDark }) {
         </div>
       ),
       placement: "right",
-      disableBeacon: true,
+      skipBeacon: true,
     },
     {
       target: ".qb-search-box",
@@ -123,7 +116,7 @@ export default function TutorialTour({ run, onFinish, isDark }) {
         </div>
       ),
       placement: "bottom",
-      disableBeacon: true,
+      skipBeacon: true,
     },
     {
       target: ".qb-filter-card",
@@ -148,7 +141,7 @@ export default function TutorialTour({ run, onFinish, isDark }) {
         </div>
       ),
       placement: "bottom",
-      disableBeacon: true,
+      skipBeacon: true,
     },
     {
       target: ".qb-fav-btn",
@@ -173,7 +166,7 @@ export default function TutorialTour({ run, onFinish, isDark }) {
         </div>
       ),
       placement: "left",
-      disableBeacon: true,
+      skipBeacon: true,
     },
     {
       target: ".qb-qcard",
@@ -198,7 +191,7 @@ export default function TutorialTour({ run, onFinish, isDark }) {
         </div>
       ),
       placement: "top",
-      disableBeacon: true,
+      skipBeacon: true,
     },
     {
       target: ".qb-nav-item:has(svg):nth-of-type(2)",
@@ -223,7 +216,7 @@ export default function TutorialTour({ run, onFinish, isDark }) {
         </div>
       ),
       placement: "right",
-      disableBeacon: true,
+      skipBeacon: true,
     },
     {
       target: ".qb-nav-item:has(svg):nth-of-type(3)",
@@ -248,7 +241,7 @@ export default function TutorialTour({ run, onFinish, isDark }) {
         </div>
       ),
       placement: "right",
-      disableBeacon: true,
+      skipBeacon: true,
     },
     {
       target: ".qb-theme-btn:nth-of-type(2)",
@@ -273,7 +266,7 @@ export default function TutorialTour({ run, onFinish, isDark }) {
         </div>
       ),
       placement: "bottom",
-      disableBeacon: true,
+      skipBeacon: true,
     },
     {
       target: "body",
@@ -325,9 +318,9 @@ export default function TutorialTour({ run, onFinish, isDark }) {
         </div>
       ),
       placement: "center",
-      disableBeacon: true,
+      skipBeacon: true,
     },
-  ];
+  ], []);
 
   const handleJoyrideCallback = (data) => {
     const { status, action, index, type } = data;
@@ -381,26 +374,24 @@ export default function TutorialTour({ run, onFinish, isDark }) {
       steps={steps}
       run={run}
       continuous
-      showProgress
-      showSkipButton
-      disableScrolling
-      disableOverlayClose={true}
-      disableCloseOnEsc={false}
-      hideCloseButton={true}
-      spotlightClicks={false}
-      spotlightPadding={0}
-      hideBackButton={false}
-      callback={handleJoyrideCallback}
+      onEvent={handleJoyrideCallback}
+      options={{
+        arrowColor: isDark ? "#2b2d31" : "#ffffff",
+        backgroundColor: isDark ? "#2b2d31" : "#ffffff",
+        overlayColor: isDark ? "rgba(30, 31, 34, 0.85)" : "rgba(0, 0, 0, 0.50)",
+        primaryColor: isDark ? "#f59e0b" : "#ea580c",
+        textColor: isDark ? "#ffffff" : "#000000",
+        width: 420,
+        zIndex: 10000,
+        showProgress: true,
+        skipScroll: true,
+        overlayClickAction: false,
+        dismissKeyAction: 'close',
+        buttons: ["back", "skip", "primary"],
+        blockTargetInteraction: false,
+        spotlightPadding: 0,
+      }}
       styles={{
-        options: {
-          arrowColor: isDark ? "#2b2d31" : "#ffffff",
-          backgroundColor: isDark ? "#2b2d31" : "#ffffff",
-          overlayColor: isDark ? "rgba(30, 31, 34, 0.85)" : "rgba(0, 0, 0, 0.50)",
-          primaryColor: isDark ? "#f59e0b" : "#ea580c",
-          textColor: isDark ? "#ffffff" : "#000000",
-          width: 420,
-          zIndex: 10000,
-        },
         tooltip: {
           borderRadius: "18px",
           padding: "26px",
