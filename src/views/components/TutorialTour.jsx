@@ -1,7 +1,21 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Joyride, STATUS } from "react-joyride";
 
 export default function TutorialTour({ run, onFinish, isDark }) {
+  // Add body class when tour is active to disable background interactions
+  useEffect(() => {
+    if (run) {
+      document.body.classList.add('qb-tour-active');
+    } else {
+      document.body.classList.remove('qb-tour-active');
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      document.body.classList.remove('qb-tour-active');
+    };
+  }, [run]);
+  
   const steps = [
     {
       target: "body",
@@ -328,12 +342,15 @@ export default function TutorialTour({ run, onFinish, isDark }) {
       showProgress
       showSkipButton
       disableScrolling
+      disableOverlayClose
+      disableCloseOnEsc={false}
+      spotlightClicks={false}
       callback={handleJoyrideCallback}
       styles={{
         options: {
           arrowColor: isDark ? "#2b2d31" : "#ffffff",
           backgroundColor: isDark ? "#2b2d31" : "#ffffff",
-          overlayColor: isDark ? "rgba(30, 31, 34, 0.75)" : "rgba(0, 0, 0, 0.35)",
+          overlayColor: isDark ? "rgba(30, 31, 34, 0.85)" : "rgba(0, 0, 0, 0.50)",
           primaryColor: isDark ? "#f59e0b" : "#ea580c",
           textColor: isDark ? "#ffffff" : "#000000",
           width: 420,

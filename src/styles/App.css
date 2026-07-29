@@ -370,6 +370,39 @@ body {
 
 .react-joyride__overlay {
   mix-blend-mode: normal !important;
+  pointer-events: auto !important;
+}
+
+/* Prevent clicks outside tour when active */
+body.qb-tour-active {
+  pointer-events: none !important;
+}
+
+body.qb-tour-active .qb-hdr,
+body.qb-tour-active .qb-side,
+body.qb-tour-active .qb-main {
+  pointer-events: none !important;
+}
+
+/* Only allow interaction with tour elements */
+body.qb-tour-active [class*="react-joyride"],
+body.qb-tour-active .__floater {
+  pointer-events: auto !important;
+}
+
+body.qb-tour-active .react-joyride__spotlight {
+  pointer-events: auto !important;
+}
+
+/* Ensure header stays visible during tour */
+.qb-hdr {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 400 !important;
+}
+
+body.qb-tour-active .qb-hdr {
+  z-index: 9999 !important;
 }
 
 /* Ensure tour tooltips match theme perfectly */
