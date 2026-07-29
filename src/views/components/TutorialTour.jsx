@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Joyride, STATUS } from "react-joyride";
 
 export default function TutorialTour({ run, onFinish, isDark }) {
@@ -351,8 +352,8 @@ export default function TutorialTour({ run, onFinish, isDark }) {
 
   return (
     <>
-      {/* Physical blocking overlay - prevents all clicks when tour is active */}
-      {run && (
+      {/* Physical blocking overlay - rendered via Portal to document.body (OUTSIDE .qb container) */}
+      {run && createPortal(
         <div 
           style={{
             position: 'fixed',
@@ -367,7 +368,8 @@ export default function TutorialTour({ run, onFinish, isDark }) {
             e.stopPropagation();
             console.log('[TutorialTour] Blocking overlay clicked - ignoring');
           }}
-        />
+        />,
+        document.body
       )}
       
       <Joyride
