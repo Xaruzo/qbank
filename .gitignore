@@ -44,3 +44,7 @@ graphify-out/graph.html
 # Supabase migrations and schema (managed separately)
 /supabase/
 Supabase schema.txt
+
+# Personal notes and setup instructions
+SETUP_INSTRUCTIONS_FOR_FRIEND.md
+TIPS_ENHANCEMENT_SQL.txt
