@@ -1695,8 +1695,10 @@ span[class*="react-joyride"] {
     gap:12px;
   }
   .qb-list-meta-tips .qb-list-meta-left-tips {
-    justify-content:space-between;
-    align-items:center;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    align-items:flex-start;
   }
   .qb-list-meta-tips .qb-tips-search-box {
     grid-area:search;

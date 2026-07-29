@@ -80,10 +80,10 @@ export default function TipsPage({
       <section className="qb-question-section" style={{ marginBottom: 14 }}>
         <div className="qb-list-meta qb-list-meta-tips">
           <div className="qb-list-meta-left qb-list-meta-left-tips">
-            <span className="qb-list-label">Pick a Question</span>
-            <span className="qb-list-value">{filteredQuestions.length} shown</span>
-          </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <span className="qb-list-label">Pick a Question</span>
+              <span className="qb-list-value">{filteredQuestions.length} shown</span>
+            </div>
             <button
               className="qb-filter-toggle"
               onClick={() => setShowFilters(!showFilters)}
@@ -94,10 +94,11 @@ export default function TipsPage({
                 padding: "8px 12px",
                 borderRadius: 8,
                 border: "1px solid var(--border)",
-                background: showFilters ? "var(--primary)" : "var(--surface-h)",
+                background: showFilters ? "var(--accent)" : "var(--surface-h)",
                 color: showFilters ? "#fff" : "inherit",
                 cursor: "pointer",
                 position: "relative",
+                flexShrink: 0,
               }}
             >
               <Filter size={16} />
@@ -124,18 +125,18 @@ export default function TipsPage({
                 </span>
               )}
             </button>
-            <label className="qb-search-box qb-tips-search-box">
-              <span className="qb-search-icon" aria-hidden="true">
-                <Search size={18} />
-              </span>
-              <input
-                className="qb-search"
-                placeholder="Search by label or question..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </label>
           </div>
+          <label className="qb-search-box qb-tips-search-box">
+            <span className="qb-search-icon" aria-hidden="true">
+              <Search size={18} />
+            </span>
+            <input
+              className="qb-search"
+              placeholder="Search by label or question..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </label>
         </div>
 
         {/* Filter Panel */}
