@@ -1,0 +1,50 @@
+Contact: https://github.com/Xaruzo/qbank/security/advisories/new
+Expires: 2027-12-31T23:59:59.000Z
+Preferred-Languages: en
+Canonical: https://qbank-vr5s.onrender.com/.well-known/security.txt
+Policy: https://github.com/Xaruzo/qbank/blob/main/SECURITY.md
+Acknowledgments: https://github.com/Xaruzo/qbank/blob/main/SECURITY.md#acknowledgments
+
+# Security Policy for QBANK - CSE Reviewer
+
+Thank you for helping keep QBANK and its users safe. We appreciate your efforts to responsibly disclose security vulnerabilities.
+
+## Reporting a Vulnerability
+
+If you discover a security vulnerability, please report it via:
+- GitHub Security Advisories: https://github.com/Xaruzo/qbank/security/advisories/new
+- Do NOT create public GitHub issues for security vulnerabilities
+
+## Scope
+
+This security policy applies to:
+- The QBANK web application (https://qbank-vr5s.onrender.com)
+- Source code in the main repository
+- Dependencies and third-party libraries
+
+## Out of Scope
+
+The following are not considered vulnerabilities:
+- Issues that require physical access to a user's device
+- Social engineering attacks
+- Denial of service attacks
+- Issues in third-party services (Supabase, Render, etc.)
+- Vulnerabilities in outdated browsers or operating systems
+
+## Response Timeline
+
+We aim to:
+- Acknowledge receipt within 48 hours
+- Provide an initial assessment within 7 days
+- Keep you informed of our progress
+
+## Safe Harbor
+
+We will not pursue legal action against researchers who:
+- Make a good faith effort to comply with this policy
+- Do not access or modify user data beyond what is necessary to demonstrate the vulnerability
+- Do not intentionally harm the service or its users
+
+## Recognition
+
+With your permission, we will acknowledge your contribution in our SECURITY.md file once the vulnerability is resolved.
