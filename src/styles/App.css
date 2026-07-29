@@ -374,55 +374,42 @@ body {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   TOUR OVERLAY - BLOCK APP CLICKS, ONLY ALLOW TOUR BUTTONS
+   TOUR OVERLAY - BLOCK APP, ALLOW ONLY TOUR INTERACTION
    ══════════════════════════════════════════════════════════════════════════ */
 
-/* Prevent scrolling when tour is active */
+/* When tour is active: prevent scrolling and block ALL app interactions */
 body.qb-tour-active {
   overflow: hidden !important;
 }
 
-/* Block ALL clicks on app by disabling pointer events */
-body.qb-tour-active .qb,
+/* Block pointer events on the entire app */
+body.qb-tour-active .qb {
+  pointer-events: none !important;
+  user-select: none !important;
+}
+
 body.qb-tour-active .qb * {
   pointer-events: none !important;
 }
 
-/* Create invisible blocking layer to prevent any click passthrough */
-body.qb-tour-active .qb::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 9997;
-  pointer-events: auto;
-  background: transparent;
-}
-
-/* Allow ONLY Joyride elements to be interactive */
+/* ONLY when tour is active: allow Joyride elements to be clickable */
 body.qb-tour-active [class*="react-joyride"],
 body.qb-tour-active [class*="react-joyride"] *,
 body.qb-tour-active .__floater,
 body.qb-tour-active .__floater *,
-body.qb-tour-active [data-testid="button-primary"],
-body.qb-tour-active [data-testid="button-skip"],
-body.qb-tour-active [data-testid="button-back"] {
+body.qb-tour-active [class*="__floater"],
+body.qb-tour-active [class*="__floater"] * {
   pointer-events: auto !important;
 }
 
-/* Ensure Joyride overlay is above blocking layer */
+/* Ensure proper stacking */
 body.qb-tour-active [class*="react-joyride__overlay"] {
   z-index: 9998 !important;
-  pointer-events: auto !important;
 }
 
-/* Ensure Joyride tooltip is above everything */
 body.qb-tour-active [class*="react-joyride__tooltip"],
 body.qb-tour-active [class*="__floater"] {
   z-index: 9999 !important;
-  pointer-events: auto !important;
 }
 
 /* Ensure header stays visible during tour */
