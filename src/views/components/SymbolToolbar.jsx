@@ -45,6 +45,25 @@ export default function SymbolToolbar({ targetRef, value, onChange, disabled }) 
     insertAtCursor(el, text, value ?? "", onChange, cursorOffset, selectLength);
   };
 
+  const insertUnderline = () => {
+    if (disabled) return;
+    const el = targetRef?.current;
+    if (!el) return;
+    const start = el.selectionStart ?? value.length;
+    const end = el.selectionEnd ?? start;
+    if (start !== end) {
+      const selected = value.slice(start, end);
+      const newValue = value.slice(0, start) + "++" + selected + "++" + value.slice(end);
+      onChange(newValue);
+      requestAnimationFrame(() => {
+        el.focus();
+        el.setSelectionRange(start + 2, end + 2);
+      });
+    } else {
+      insertAtCursor(el, "++text++", value ?? "", onChange, 2, 4);
+    }
+  };
+
   return (
     <div className={`sym-tb${disabled ? " sym-tb-off" : ""}`}>
       <span className="sym-tb-label">Insert</span>
@@ -53,6 +72,21 @@ export default function SymbolToolbar({ targetRef, value, onChange, disabled }) 
         {ARITHMETIC_SYMBOLS.map(({ symbol, title }) => (
           <SymbolButton key={symbol} symbol={symbol} title={title} onClick={(s) => insert(s)} />
         ))}
+      </div>
+
+      <div className="sym-tb-sep" />
+
+      <div className="sym-tb-group">
+        <button
+          type="button"
+          className="sym-tb-btn"
+          title="Underline"
+          style={{ textDecoration: "underline", fontFamily: "Arial, sans-serif", fontSize: 15 }}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={insertUnderline}
+        >
+          U
+        </button>
       </div>
 
       <div className="sym-tb-sep" />
