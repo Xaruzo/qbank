@@ -1,15 +1,23 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Joyride, STATUS } from "react-joyride";
 
 export default function TutorialTour({ run, onFinish, isDark }) {
+  const hasFinishedRef = useRef(false);
+
   useEffect(() => {
+    console.log('[TutorialTour] useEffect - run:', run);
     if (run) {
+      console.log('[TutorialTour] Adding qb-tour-active class');
       document.body.classList.add('qb-tour-active');
+      hasFinishedRef.current = false;
     } else {
+      console.log('[TutorialTour] Removing qb-tour-active class (run=false)');
       document.body.classList.remove('qb-tour-active');
     }
+    
     return () => {
+      console.log('[TutorialTour] Cleanup - removing qb-tour-active class');
       document.body.classList.remove('qb-tour-active');
     };
   }, [run]);
@@ -310,7 +318,7 @@ export default function TutorialTour({ run, onFinish, isDark }) {
             color: isDark ? "#ffffff" : "#000000",
             lineHeight: "1.6",
             fontStyle: "italic",
-            opacity: 0.7
+            opacity: 0.7"
           }}>
             Restart this tour anytime from the Help menu in the header.
           </p>
@@ -322,18 +330,32 @@ export default function TutorialTour({ run, onFinish, isDark }) {
   ];
 
   const handleJoyrideCallback = (data) => {
-    const { status, action } = data;
+    const { status, action, type, index } = data;
+    console.log('[TutorialTour] Callback:', { status, action, type, index });
     
     const finishedStatuses = [STATUS.FINISHED, STATUS.SKIPPED];
 
-    if (finishedStatuses.includes(status) || action === 'close' || action === 'reset' || action === 'skip') {
-      document.body.classList.remove('qb-tour-active');
-      requestAnimationFrame(() => {
+    // Handle ALL close scenarios
+    if (finishedStatuses.includes(status) || action === 'close' || action === 'reset' || action === 'skip' || type === 'tour:end') {
+      if (!hasFinishedRef.current) {
+        console.log('[TutorialTour] Tour ending! Removing class and calling onFinish');
+        hasFinishedRef.current = true;
+        
+        // Force remove class immediately
         document.body.classList.remove('qb-tour-active');
-      });
-      setTimeout(() => {
-        onFinish();
-      }, 50);
+        
+        // Double-check after a tick
+        requestAnimationFrame(() => {
+          document.body.classList.remove('qb-tour-active');
+          console.log('[TutorialTour] Body classes after cleanup:', document.body.className);
+        });
+        
+        // Call onFinish to set run=false in parent
+        setTimeout(() => {
+          console.log('[TutorialTour] Calling onFinish()');
+          onFinish();
+        }, 50);
+      }
     }
   };
 
@@ -352,6 +374,7 @@ export default function TutorialTour({ run, onFinish, isDark }) {
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
+            console.log('[TutorialTour] Blocking overlay clicked');
           }}
         />,
         document.body
