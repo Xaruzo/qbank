@@ -335,8 +335,9 @@ export default function TutorialTour({ run, onFinish, isDark }) {
     
     const finishedStatuses = [STATUS.FINISHED, STATUS.SKIPPED];
 
-    if (finishedStatuses.includes(status)) {
-      console.log('[TutorialTour] Tour finished! Removing qb-tour-active class');
+    // IMPORTANT: Remove class on ANY close action, not just finished statuses
+    if (finishedStatuses.includes(status) || action === 'close' || action === 'reset') {
+      console.log('[TutorialTour] Tour ending! Removing qb-tour-active class');
       // Remove the body class immediately when tour finishes
       document.body.classList.remove('qb-tour-active');
       console.log('[TutorialTour] Body classes after removal:', document.body.className);
@@ -357,9 +358,11 @@ export default function TutorialTour({ run, onFinish, isDark }) {
       showProgress
       showSkipButton
       disableScrolling
-      disableOverlayClose
+      disableOverlayClose={true}
       disableCloseOnEsc={false}
+      hideCloseButton={true}
       spotlightClicks={false}
+      spotlightPadding={0}
       callback={handleJoyrideCallback}
       styles={{
         options: {
