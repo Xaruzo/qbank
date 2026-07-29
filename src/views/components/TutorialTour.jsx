@@ -14,7 +14,7 @@ export default function TutorialTour({ run, onFinish, isDark }) {
     };
   }, [run]);
   
-  const steps = React.useMemo(() => [
+  const steps = [
     {
       target: "body",
       content: (
@@ -65,7 +65,7 @@ export default function TutorialTour({ run, onFinish, isDark }) {
         </div>
       ),
       placement: "center",
-      skipBeacon: true,
+      disableBeacon: true,
     },
     {
       target: ".qb-side-nav",
@@ -85,14 +85,12 @@ export default function TutorialTour({ run, onFinish, isDark }) {
             color: isDark ? "#ffffff" : "#000000",
             fontSize: "14px"
           }}>
-            Access your <strong style={{ color: isDark ? "#ffffff" : "#000000" }}>Question Bank</strong>, 
-            take <strong style={{ color: isDark ? "#ffffff" : "#000000" }}>Mock Exams</strong>, 
-            and review <strong style={{ color: isDark ? "#ffffff" : "#000000" }}>Study Tips</strong> from this menu.
+            Access your Question Bank, take Mock Exams, and review Study Tips from this menu.
           </p>
         </div>
       ),
       placement: "right",
-      skipBeacon: true,
+      disableBeacon: true,
     },
     {
       target: ".qb-search-box",
@@ -117,7 +115,7 @@ export default function TutorialTour({ run, onFinish, isDark }) {
         </div>
       ),
       placement: "bottom",
-      skipBeacon: true,
+      disableBeacon: true,
     },
     {
       target: ".qb-filter-card",
@@ -137,12 +135,12 @@ export default function TutorialTour({ run, onFinish, isDark }) {
             color: isDark ? "#ffffff" : "#000000",
             fontSize: "14px"
           }}>
-            Filter questions by topic (Numerical, Verbal, Abstract, etc.) or custom labels to focus your practice sessions.
+            Filter questions by topic (Numerical, Verbal, Abstract) or custom labels to focus your practice sessions.
           </p>
         </div>
       ),
       placement: "bottom",
-      skipBeacon: true,
+      disableBeacon: true,
     },
     {
       target: ".qb-fav-btn",
@@ -167,7 +165,7 @@ export default function TutorialTour({ run, onFinish, isDark }) {
         </div>
       ),
       placement: "left",
-      skipBeacon: true,
+      disableBeacon: true,
     },
     {
       target: ".qb-qcard",
@@ -192,7 +190,7 @@ export default function TutorialTour({ run, onFinish, isDark }) {
         </div>
       ),
       placement: "top",
-      skipBeacon: true,
+      disableBeacon: true,
     },
     {
       target: ".qb-nav-item:has(svg):nth-of-type(2)",
@@ -217,7 +215,7 @@ export default function TutorialTour({ run, onFinish, isDark }) {
         </div>
       ),
       placement: "right",
-      skipBeacon: true,
+      disableBeacon: true,
     },
     {
       target: ".qb-nav-item:has(svg):nth-of-type(3)",
@@ -242,7 +240,7 @@ export default function TutorialTour({ run, onFinish, isDark }) {
         </div>
       ),
       placement: "right",
-      skipBeacon: true,
+      disableBeacon: true,
     },
     {
       target: ".qb-theme-btn:nth-of-type(2)",
@@ -267,7 +265,7 @@ export default function TutorialTour({ run, onFinish, isDark }) {
         </div>
       ),
       placement: "bottom",
-      skipBeacon: true,
+      disableBeacon: true,
     },
     {
       target: "body",
@@ -319,32 +317,21 @@ export default function TutorialTour({ run, onFinish, isDark }) {
         </div>
       ),
       placement: "center",
-      skipBeacon: true,
+      disableBeacon: true,
     },
-  ], []);
+  ];
 
   const handleJoyrideCallback = (data) => {
-    const { status, action, index, type } = data;
-    console.log('[TutorialTour] Callback:', { status, action, index, type });
+    const { status, action } = data;
     
     const finishedStatuses = [STATUS.FINISHED, STATUS.SKIPPED];
 
-    // Remove class IMMEDIATELY on any finish/skip/close action
     if (finishedStatuses.includes(status) || action === 'close' || action === 'reset' || action === 'skip') {
-      console.log('[TutorialTour] Tour ending! Removing qb-tour-active class IMMEDIATELY');
-      
-      // Force remove class synchronously
       document.body.classList.remove('qb-tour-active');
-      
-      // Double-check after a tick
       requestAnimationFrame(() => {
         document.body.classList.remove('qb-tour-active');
-        console.log('[TutorialTour] Body classes after cleanup:', document.body.className);
       });
-      
-      // Call onFinish after cleanup
       setTimeout(() => {
-        console.log('[TutorialTour] Calling onFinish()');
         onFinish();
       }, 50);
     }
@@ -352,7 +339,6 @@ export default function TutorialTour({ run, onFinish, isDark }) {
 
   return (
     <>
-      {/* Physical blocking overlay - rendered via Portal to document.body (OUTSIDE .qb container) */}
       {run && createPortal(
         <div 
           style={{
@@ -366,109 +352,112 @@ export default function TutorialTour({ run, onFinish, isDark }) {
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            console.log('[TutorialTour] Blocking overlay clicked - ignoring');
           }}
         />,
         document.body
       )}
       
       <Joyride
-      steps={steps}
-      run={run}
-      continuous
-      onEvent={handleJoyrideCallback}
-      options={{
-        arrowColor: isDark ? "#2b2d31" : "#ffffff",
-        backgroundColor: isDark ? "#2b2d31" : "#ffffff",
-        overlayColor: isDark ? "rgba(30, 31, 34, 0.85)" : "rgba(0, 0, 0, 0.50)",
-        primaryColor: isDark ? "#f59e0b" : "#ea580c",
-        textColor: isDark ? "#ffffff" : "#000000",
-        width: 420,
-        zIndex: 10000,
-        showProgress: true,
-        skipScroll: true,
-        overlayClickAction: false,
-        dismissKeyAction: 'close',
-        buttons: ["back", "skip", "primary"],
-        blockTargetInteraction: false,
-        spotlightPadding: 0,
-      }}
-      styles={{
-        tooltip: {
-          borderRadius: "18px",
-          padding: "26px",
-          fontSize: "14px",
-          boxShadow: isDark 
-            ? "0 20px 50px rgba(0, 0, 0, 0.4)" 
-            : "0 18px 40px rgba(15, 23, 42, 0.12)",
-          border: isDark 
-            ? "1px solid #3b3f45" 
-            : "1px solid #e6ddd0",
-        },
-        tooltipContainer: {
-          textAlign: "left",
-        },
-        tooltipTitle: {
-          fontSize: "17px",
-          fontWeight: "700",
-          marginBottom: "12px",
-          fontFamily: "'DM Sans', sans-serif",
-          letterSpacing: "-0.02em",
-          color: isDark ? "#ffffff" : "#000000",
-        },
-        tooltipContent: {
-          padding: "0",
-          fontFamily: "'DM Sans', sans-serif",
-        },
-        buttonNext: {
-          backgroundColor: isDark ? "#f59e0b" : "#ea580c",
-          color: "#ffffff",
-          borderRadius: "12px",
-          fontSize: "13px",
-          fontWeight: "700",
-          padding: "11px 24px",
-          border: "none",
-          outline: "none",
-          fontFamily: "'DM Sans', sans-serif",
-          cursor: "pointer",
-          transition: "all 0.2s ease",
-        },
-        buttonBack: {
-          color: isDark ? "#ffffff" : "#000000",
-          fontSize: "13px",
-          fontWeight: "600",
-          marginRight: "14px",
-          fontFamily: "'DM Sans', sans-serif",
-          cursor: "pointer",
-          opacity: 0.7,
-        },
-        buttonSkip: {
-          color: isDark ? "#ffffff" : "#000000",
-          fontSize: "12px",
-          fontFamily: "'DM Sans', sans-serif",
-          cursor: "pointer",
-          opacity: 0.6,
-        },
-        buttonClose: {
-          display: "none",
-        },
-        spotlight: {
-          borderRadius: "12px",
-        },
-        beacon: {
-          inner: isDark ? "#f59e0b" : "#ea580c",
-          outer: isDark ? "rgba(245,158,11,0.3)" : "rgba(234,88,12,0.3)",
-        },
-      }}
-      locale={{
-        back: "Back",
-        close: "Close",
-        last: "Get Started",
-        next: "Next",
-        open: "Open",
-        skip: "Skip",
-      }}
-    />
+        steps={steps}
+        run={run}
+        continuous
+        showProgress
+        showSkipButton
+        disableOverlayClose={true}
+        disableCloseOnEsc={false}
+        hideCloseButton={true}
+        spotlightClicks={false}
+        spotlightPadding={0}
+        hideBackButton={false}
+        callback={handleJoyrideCallback}
+        scrollToFirstStep={true}
+        disableScrolling={false}
+        disableScrollParentFix={true}
+        styles={{
+          options: {
+            arrowColor: isDark ? "#2b2d31" : "#ffffff",
+            backgroundColor: isDark ? "#2b2d31" : "#ffffff",
+            overlayColor: isDark ? "rgba(30, 31, 34, 0.85)" : "rgba(0, 0, 0, 0.50)",
+            primaryColor: isDark ? "#f59e0b" : "#ea580c",
+            textColor: isDark ? "#ffffff" : "#000000",
+            width: 420,
+            zIndex: 10000,
+          },
+          tooltip: {
+            borderRadius: "18px",
+            padding: "26px",
+            fontSize: "14px",
+            boxShadow: isDark 
+              ? "0 20px 50px rgba(0, 0, 0, 0.4)" 
+              : "0 18px 40px rgba(15, 23, 42, 0.12)",
+            border: isDark 
+              ? "1px solid #3b3f45" 
+              : "1px solid #e6ddd0",
+          },
+          tooltipContainer: {
+            textAlign: "left",
+          },
+          tooltipTitle: {
+            fontSize: "17px",
+            fontWeight: "700",
+            marginBottom: "12px",
+            fontFamily: "'DM Sans', sans-serif",
+            letterSpacing: "-0.02em",
+            color: isDark ? "#ffffff" : "#000000",
+          },
+          tooltipContent: {
+            padding: "0",
+            fontFamily: "'DM Sans', sans-serif",
+          },
+          buttonNext: {
+            backgroundColor: isDark ? "#f59e0b" : "#ea580c",
+            color: "#ffffff",
+            borderRadius: "12px",
+            fontSize: "13px",
+            fontWeight: "700",
+            padding: "11px 24px",
+            border: "none",
+            outline: "none",
+            fontFamily: "'DM Sans', sans-serif",
+            cursor: "pointer",
+            transition: "all 0.2s ease",
+          },
+          buttonBack: {
+            color: isDark ? "#ffffff" : "#000000",
+            fontSize: "13px",
+            fontWeight: "600",
+            marginRight: "14px",
+            fontFamily: "'DM Sans', sans-serif",
+            cursor: "pointer",
+            opacity: 0.7,
+          },
+          buttonSkip: {
+            color: isDark ? "#ffffff" : "#000000",
+            fontSize: "12px",
+            fontFamily: "'DM Sans', sans-serif",
+            cursor: "pointer",
+            opacity: 0.6,
+          },
+          buttonClose: {
+            display: "none",
+          },
+          spotlight: {
+            borderRadius: "12px",
+          },
+          beacon: {
+            inner: isDark ? "#f59e0b" : "#ea580c",
+            outer: isDark ? "rgba(245,158,11,0.3)" : "rgba(234,88,12,0.3)",
+          },
+        }}
+        locale={{
+          back: "Back",
+          close: "Close",
+          last: "Get Started",
+          next: "Next",
+          open: "Open",
+          skip: "Skip",
+        }}
+      />
     </>
   );
 }
