@@ -366,7 +366,7 @@ export default function TutorialTour({ run, onFinish, isDark }) {
           style={{
             position: 'fixed',
             inset: 0,
-            zIndex: 9997,
+            zIndex: 10001,
             pointerEvents: 'auto',
             cursor: 'not-allowed',
             background: 'transparent'
