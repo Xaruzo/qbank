@@ -1226,6 +1226,7 @@ span[class*="react-joyride"] {
 .md-li + .md-li { margin-top:.3em; }
 .md-blockquote { margin:0; padding:.1em 0 .1em .9em; border-left:3px solid rgba(245,166,35,.42); color:var(--text-muted); }
 .md-strong { font-weight:700; font-family:'Arial',sans-serif; }
+.md-u { text-decoration:underline; }
 .md-link { color:#f5a623; text-decoration:none; }
 @media (hover: hover) {
   .md-link:hover { text-decoration:underline; }

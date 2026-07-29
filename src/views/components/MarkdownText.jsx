@@ -4,6 +4,7 @@ import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
+import remarkUnderline from "../../utils/remarkUnderline";
 import MathText from "./MathText";
 
 function mergeClassNames(...names) {
@@ -114,6 +115,7 @@ const blockComponents = {
   blockquote: createRenderer("blockquote", "md-blockquote"),
   strong: createRenderer("strong", "md-strong"),
   em: createRenderer("em", "md-em"),
+  u: createRenderer("u", "md-u"),
   del: createRenderer("del", "md-del"),
   a({ children, className, ...props }) {
     return (
@@ -176,6 +178,7 @@ const inlineComponents = {
   blockquote: createRenderer("span", "md-inline-quote"),
   strong: createRenderer("strong", "md-strong"),
   em: createRenderer("em", "md-em"),
+  u: createRenderer("u", "md-u"),
   del: createRenderer("del", "md-del"),
   a({ children, className, ...props }) {
     return (
@@ -215,7 +218,7 @@ export default function MarkdownText({ text, className, inline = false }) {
   return (
     <RootTag className={mergeClassNames(inline ? "md md-inline-root" : "md md-root", className)}>
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkBreaks, remarkMath]}
+        remarkPlugins={[remarkGfm, remarkBreaks, remarkMath, remarkUnderline]}
         rehypePlugins={[rehypeKatex]}
         components={inline ? inlineComponents : blockComponents}
       >
