@@ -1692,9 +1692,11 @@ span[class*="react-joyride"] {
       "meta"
       "search";
     align-items:stretch;
+    gap:12px;
   }
   .qb-list-meta-tips .qb-list-meta-left-tips {
     justify-content:space-between;
+    align-items:center;
   }
   .qb-list-meta-tips .qb-tips-search-box {
     grid-area:search;

@@ -1,82 +1,85 @@
 # QBANK - CSE Reviewer
 
-A comprehensive Progressive Web App (PWA) for Civil Service Exam preparation — featuring question management, mock exams, and personalized study tools.
+Your comprehensive study companion for Civil Service Exam preparation.
 
 [![Live Demo](https://img.shields.io/badge/demo-live-success)](https://qbank-vr5s.onrender.com/)
-[![React](https://img.shields.io/badge/React-18-blue)](https://reactjs.org/)
-[![Vite](https://img.shields.io/badge/Vite-5-purple)](https://vitejs.dev/)
+
+## 🎯 What is QBANK?
+
+QBANK is a free, Progressive Web App designed to help you prepare for the Civil Service Exam. Practice with real questions, take timed mock exams, and track your progress—all in a clean, distraction-free interface.
+
+## ✨ Key Features
+
+### 📚 Question Bank
+- **Search & Filter**: Instantly find questions by keyword, topic, or custom labels
+- **Smart Organization**: Browse by topic—Numerical, Verbal, Abstract, Clerical, and more
+- **Favorites**: Star important questions for quick review later
+- **Math Support**: View mathematical expressions clearly rendered
+
+### ⏱️ Mock Exams
+- **Full-Length Tests**: Take 170-question practice exams with 3h 10min timer
+- **Auto-Save Progress**: Your exam progress saves automatically—resume anytime
+- **Performance Analytics**: See your score breakdown by topic after each attempt
+- **Review Past Attempts**: Go back and review all your previous mock exams
+
+### 💡 Study Tips
+- **Personal Notes**: Add your own study notes to any question
+- **Draw Diagrams**: Create visual aids with the built-in drawing tool
+- **Categorize**: Organize tips by type—Formula, Shortcut, Method, Mnemonic
+- **Track Progress**: Mark your mastery level from Learning → Familiar → Mastered
+
+### 🎨 Designed for You
+- **Dark & Light Mode**: Switch themes to match your study environment
+- **Works Offline**: Study even without internet—your progress syncs when you're back online
+- **Mobile Friendly**: Use on your phone, tablet, or computer
+- **Installable**: Add to your home screen as a standalone app
+
+## 🚀 Getting Started
+
+1. **Visit the site**: [https://qbank-vr5s.onrender.com](https://qbank-vr5s.onrender.com)
+2. **Take the tour**: Follow the guided walkthrough on your first visit
+3. **Sign in** (optional): Create an account with Google to sync your progress across devices
+4. **Start practicing**: Browse questions, take mock exams, and add study tips
+
+## 💡 Tips for Success
+
+- **Practice regularly**: Consistent daily practice is more effective than cramming
+- **Use mock exams**: Time yourself to simulate real exam pressure
+- **Review mistakes**: Focus on questions you got wrong in mock exams
+- **Add notes**: Write tips for tricky questions to help you remember
+- **Track progress**: Watch your scores improve over time
+
+## ⌨️ Keyboard Shortcuts
+
+Speed up your study sessions with these shortcuts:
+
+- **Esc** - Close modals or exit tour
+- **Ctrl + K** - Jump to search
+- **← / →** - Navigate between questions
+- **Space** - Scroll down
+- **Shift + Space** - Scroll up
+
+## 📱 Install as App
+
+### On Mobile (iPhone/Android)
+1. Open QBANK in your browser
+2. Tap the Share button
+3. Select "Add to Home Screen"
+
+### On Desktop (Chrome/Edge)
+1. Click the install icon (⊕) in the address bar
+2. Click "Install"
+
+## ❓ Need Help?
+
+- Click the **Help** icon (?) in the header for tutorials and FAQ
+- Restart the guided tour anytime from the Help menu
+- All your data is private and secured with your Google account
+
+## 🔗 Access QBANK
+
+**Live Site**: [https://qbank-vr5s.onrender.com](https://qbank-vr5s.onrender.com)
 
 ---
 
-## Features
-
-### Question Bank Management
-- **Search & Filter**: Instant search with topic and label filtering
-- **Smart Organization**: Categorize questions by topic (Numerical, Verbal, Abstract, Clerical, etc.)
-- **Custom Labels**: Tag questions with custom labels for personalized organization
-- **Favorites**: Star important questions for quick access
-- **Math Support**: Render mathematical expressions using KaTeX
-- **Drawing Tools**: Add visual diagrams to questions using Fabric.js canvas
-
-### Mock Exam System
-- **Timed Practice**: Simulate real exam conditions with 3h 10min timer
-- **170 Questions**: Full-length professional mock exams
-- **Auto-Save**: Progress automatically saved during exam sessions
-- **Performance Analytics**: Detailed score breakdowns and topic-wise analysis
-- **Attempt History**: Review past attempts with complete answer records
-- **Resume Capability**: Resume unfinished exams from where you left off
-
-### Study Tips
-- **Personal Notes**: Create custom study notes for any question
-- **Visual Learning**: Draw diagrams and visual aids using canvas
-- **Categorization**: Organize tips by type (Formula, Shortcut, Method, Mnemonic)
-- **Mastery Tracking**: Track progress from Learning to Familiar to Mastered
-
-### User Experience
-- **Dark/Light Mode**: Toggle themes for comfortable studying in any lighting
-- **Responsive Design**: Optimized for desktop, tablet, and mobile devices
-- **iOS Compatible**: Full support for iPhone/iPad with safe-area handling
-- **PWA Installable**: Install as standalone app on any device
-- **Offline Support**: Access questions and take exams without internet
-- **Keyboard Shortcuts**: Navigate efficiently with keyboard commands
-- **Interactive Tutorial**: Guided tour for first-time users
-
-### Authentication & Sync
-- **Google OAuth**: Secure sign-in with Google accounts
-- **Cloud Sync**: Questions, favorites, and tips sync across devices
-
-## Tech Stack
-
-- **Frontend**: React 18, Vite 5, JavaScript (JSX)
-- **Database**: Supabase (PostgreSQL with Row-Level Security)
-- **Authentication**: Supabase Auth (Google OAuth)
-- **Styling**: Custom CSS with dark/light theme system
-- **Math Rendering**: KaTeX
-- **Drawing**: Fabric.js 5
-- **Icons**: Lucide React
-- **PWA**: Service Worker with cache-first strategy
-
-## Keyboard Shortcuts
-
-| Shortcut | Action |
-|----------|--------|
-| `Esc` | Close modals, exit overlays, or skip tour |
-| `Ctrl + K` | Focus search box |
-| `←/→` | Navigate between questions |
-| `Space` | Scroll down in question detail |
-| `Shift + Space` | Scroll up in question detail |
-| `Ctrl + Enter` | Submit form when editing |
-
-## Links
-
-- **Live Demo**: [https://qbank-vr5s.onrender.com](https://qbank-vr5s.onrender.com)
-- **Repository**: [https://github.com/Xaruzo/qbank](https://github.com/Xaruzo/qbank)
-- **Original Author**: [Xaruzo](https://github.com/Xaruzo)
-
-## Support
-
-For questions or issues, please open an issue on GitHub.
-
----
-
-Made with 💙 for CSE exam takers
+Good luck with your Civil Service Exam! 🎓
