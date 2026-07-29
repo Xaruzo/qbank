@@ -379,7 +379,7 @@ body {
 
 /* When tour is active: prevent scrolling but don't break mobile layout */
 body.qb-tour-active {
-  overflow: hidden !important;
+  /* overflow: hidden !important; REMOVED - allow scrolling during tour */
   /* Don't use position: fixed on mobile - it breaks layout */
 }
 
