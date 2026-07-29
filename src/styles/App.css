@@ -376,6 +376,7 @@ body {
 /* Prevent clicks outside tour when active */
 body.qb-tour-active {
   pointer-events: none !important;
+  overflow: hidden !important;
 }
 
 body.qb-tour-active .qb-hdr,
@@ -384,13 +385,24 @@ body.qb-tour-active .qb-main {
   pointer-events: none !important;
 }
 
+/* Block ALL interactions except Joyride */
+body.qb-tour-active * {
+  pointer-events: none !important;
+}
+
 /* Only allow interaction with tour elements */
 body.qb-tour-active [class*="react-joyride"],
-body.qb-tour-active .__floater {
+body.qb-tour-active .__floater,
+body.qb-tour-active [class*="react-joyride"] *,
+body.qb-tour-active .__floater * {
   pointer-events: auto !important;
 }
 
 body.qb-tour-active .react-joyride__spotlight {
+  pointer-events: none !important;
+}
+
+body.qb-tour-active .react-joyride__overlay {
   pointer-events: auto !important;
 }
 
