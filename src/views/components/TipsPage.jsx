@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { TOPICS } from "../../constants/appConstants";
-import { tipsModel } from "../../models/tipsModel";
+import { tipsModel, TIP_CATEGORIES, MASTERY_LEVELS } from "../../models/tipsModel";
 import MathText from "./MathText";
-import { ChevronLeft, Search } from "lucide-react";
+import { ChevronLeft, Search, Filter, Palette, FileText, Tag, TrendingUp } from "lucide-react";
 
 export default function TipsPage({
   questions,
@@ -12,6 +12,9 @@ export default function TipsPage({
 }) {
   const [tipsMap, setTipsMap] = useState({});
   const [search, setSearch] = useState("");
+  const [filterCategory, setFilterCategory] = useState("all");
+  const [filterMastery, setFilterMastery] = useState("all");
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -26,15 +29,43 @@ export default function TipsPage({
 
   const filteredQuestions = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return questions;
-    return questions.filter((item) => {
-      const label = typeof item.label === "string" ? item.label : "";
-      const questionText = typeof item.question === "string" ? item.question : "";
-      return `${label} ${questionText}`.toLowerCase().includes(q);
-    });
-  }, [questions, search]);
+    let filtered = questions;
+
+    // Text search
+    if (q) {
+      filtered = filtered.filter((item) => {
+        const label = typeof item.label === "string" ? item.label : "";
+        const questionText = typeof item.question === "string" ? item.question : "";
+        return `${label} ${questionText}`.toLowerCase().includes(q);
+      });
+    }
+
+    // Category filter
+    if (filterCategory !== "all") {
+      filtered = filtered.filter((item) => {
+        const tipData = tipsMap?.[item.id];
+        if (!tipData) return false;
+        const category = typeof tipData === "object" ? tipData.category : "general";
+        return category === filterCategory;
+      });
+    }
+
+    // Mastery filter
+    if (filterMastery !== "all") {
+      filtered = filtered.filter((item) => {
+        const tipData = tipsMap?.[item.id];
+        if (!tipData) return false;
+        const mastery = typeof tipData === "object" ? tipData.masteryLevel : "learning";
+        return mastery === filterMastery;
+      });
+    }
+
+    return filtered;
+  }, [questions, search, tipsMap, filterCategory, filterMastery]);
 
   const getTopic = (id) => TOPICS.find((t) => t.id === id) || TOPICS[0];
+
+  const activeFiltersCount = (filterCategory !== "all" ? 1 : 0) + (filterMastery !== "all" ? 1 : 0);
 
   return (
     <div className="fu">
@@ -52,18 +83,121 @@ export default function TipsPage({
             <span className="qb-list-label">Pick a Question</span>
             <span className="qb-list-value">{filteredQuestions.length} shown</span>
           </div>
-          <label className="qb-search-box qb-tips-search-box">
-            <span className="qb-search-icon" aria-hidden="true">
-              <Search size={18} />
-            </span>
-            <input
-              className="qb-search"
-              placeholder="Search by label or question..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </label>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <button
+              className="qb-filter-toggle"
+              onClick={() => setShowFilters(!showFilters)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "8px 12px",
+                borderRadius: 8,
+                border: "1px solid var(--border)",
+                background: showFilters ? "var(--primary)" : "var(--surface-h)",
+                color: showFilters ? "#fff" : "inherit",
+                cursor: "pointer",
+                position: "relative",
+              }}
+            >
+              <Filter size={16} />
+              <span>Filters</span>
+              {activeFiltersCount > 0 && (
+                <span
+                  style={{
+                    position: "absolute",
+                    top: -6,
+                    right: -6,
+                    background: "#ef4444",
+                    color: "#fff",
+                    borderRadius: "50%",
+                    width: 20,
+                    height: 20,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 11,
+                    fontWeight: 700,
+                  }}
+                >
+                  {activeFiltersCount}
+                </span>
+              )}
+            </button>
+            <label className="qb-search-box qb-tips-search-box">
+              <span className="qb-search-icon" aria-hidden="true">
+                <Search size={18} />
+              </span>
+              <input
+                className="qb-search"
+                placeholder="Search by label or question..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </label>
+          </div>
         </div>
+
+        {/* Filter Panel */}
+        {showFilters && (
+          <div className="qb-filters-panel" style={{ marginBottom: 14 }}>
+            <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+              {/* Category Filter */}
+              <div style={{ flex: "1 1 200px" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, marginBottom: 8, opacity: 0.85 }}>
+                  <Tag size={14} />
+                  Category
+                </label>
+                <select
+                  className="qb-finput"
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                  style={{ width: "100%", cursor: "pointer" }}
+                >
+                  <option value="all">All Categories</option>
+                  {Object.values(TIP_CATEGORIES).map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Mastery Filter */}
+              <div style={{ flex: "1 1 200px" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, marginBottom: 8, opacity: 0.85 }}>
+                  <TrendingUp size={14} />
+                  Mastery Level
+                </label>
+                <select
+                  className="qb-finput"
+                  value={filterMastery}
+                  onChange={(e) => setFilterMastery(e.target.value)}
+                  style={{ width: "100%", cursor: "pointer" }}
+                >
+                  <option value="all">All Levels</option>
+                  {Object.values(MASTERY_LEVELS).map(level => (
+                    <option key={level.id} value={level.id}>{level.icon} {level.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Clear Filters Button */}
+              {activeFiltersCount > 0 && (
+                <div style={{ flex: "0 0 auto", display: "flex", alignItems: "flex-end" }}>
+                  <button
+                    className="qb-fcancel"
+                    onClick={() => {
+                      setFilterCategory("all");
+                      setFilterMastery("all");
+                    }}
+                    style={{ padding: "8px 16px" }}
+                  >
+                    Clear Filters
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="qb-question-stack">
           {filteredQuestions.length === 0 ? (
@@ -74,7 +208,21 @@ export default function TipsPage({
           ) : (
             filteredQuestions.map((q, i) => {
               const t = getTopic(q.topic);
-              const hasTip = !!(tipsMap?.[q.id] && String(tipsMap[q.id]).trim());
+              const tipData = tipsMap?.[q.id];
+              const hasTip = !!(tipData && (
+                (typeof tipData === "string" && tipData.trim()) ||
+                (typeof tipData === "object" && (tipData.text?.trim() || tipData.canvasData))
+              ));
+              const hasCanvas = !!(tipData && typeof tipData === "object" && tipData.canvasData);
+              const hasText = !!(tipData && (
+                (typeof tipData === "string" && tipData.trim()) ||
+                (typeof tipData === "object" && tipData.text?.trim())
+              ));
+              const category = tipData && typeof tipData === "object" ? tipData.category : "general";
+              const categoryInfo = Object.values(TIP_CATEGORIES).find(c => c.id === category) || TIP_CATEGORIES.GENERAL;
+              const mastery = tipData && typeof tipData === "object" ? tipData.masteryLevel : "learning";
+              const masteryInfo = Object.values(MASTERY_LEVELS).find(m => m.id === mastery) || MASTERY_LEVELS.LEARNING;
+
               return (
                 <div
                   key={q.id}
@@ -100,7 +248,62 @@ export default function TipsPage({
                   <div className="qb-qcard-foot">
                     <div className="qb-qcard-meta">
                       <span className="qb-qcard-meta-chip">{t.label}</span>
-                      {hasTip && <span className="qb-qcard-meta-chip qb-qcard-meta-chip-fav">Has Tip</span>}
+                      {hasTip && (
+                        <>
+                          <span
+                            className="qb-tip-badge"
+                            style={{
+                              background: `${categoryInfo.color}20`,
+                              color: categoryInfo.color,
+                              border: `1px solid ${categoryInfo.color}40`,
+                            }}
+                            title={categoryInfo.label}
+                          >
+                            <Tag size={12} />
+                            {categoryInfo.label}
+                          </span>
+                          <span
+                            className="qb-tip-badge"
+                            style={{
+                              background: `${masteryInfo.color}20`,
+                              color: masteryInfo.color,
+                              border: `1px solid ${masteryInfo.color}40`,
+                            }}
+                            title={masteryInfo.label}
+                          >
+                            <span style={{ fontSize: 11 }}>{masteryInfo.icon}</span>
+                            {masteryInfo.label}
+                          </span>
+                          {hasText && (
+                            <span
+                              className="qb-tip-badge"
+                              style={{
+                                background: "#3b82f620",
+                                color: "#3b82f6",
+                                border: "1px solid #3b82f640",
+                              }}
+                              title="Has text notes"
+                            >
+                              <FileText size={12} />
+                              Notes
+                            </span>
+                          )}
+                          {hasCanvas && (
+                            <span
+                              className="qb-tip-badge"
+                              style={{
+                                background: "#8b5cf620",
+                                color: "#8b5cf6",
+                                border: "1px solid #8b5cf640",
+                              }}
+                              title="Has visual diagram"
+                            >
+                              <Palette size={12} />
+                              Diagram
+                            </span>
+                          )}
+                        </>
+                      )}
                     </div>
                     <span className="qb-qcard-open">Open Tip</span>
                   </div>

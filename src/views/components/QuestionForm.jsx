@@ -4,7 +4,8 @@ import { TOPICS, LETTERS, PROBLEM_LABELS } from "../../constants/appConstants";
 import DrawCanvas from "./DrawCanvas";
 import SymbolToolbar from "./SymbolToolbar";
 import { handleSymbolShortcuts } from "../../utils/symbolShortcuts";
-import { ChevronLeft, ChevronDown, Pencil, Image } from "lucide-react";
+import { uploadImageToSupabase, validateImageFile } from "../../utils/imageUpload";
+import { ChevronLeft, ChevronDown, Pencil, Image, Upload, Loader } from "lucide-react";
 
 export default function QuestionForm({ initialData, onSave, onCancel, layersHost, sideRailHost }) {
   const [form, setForm] = useState(initialData ? {
@@ -30,6 +31,8 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
     : null
   );
   const [confirmRemoveDraw, setConfirmRemoveDraw] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   const [error, setError] = useState("");
   const [topicOpen, setTopicOpen] = useState(false);
   const [topicDir, setTopicDir] = useState("down");
@@ -445,26 +448,67 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
                 </button>
               </div>
             ) : (
-              <label className="qb-upload-label">
-                <Image size={32} />
-                <span>Click to upload an image or screenshot</span>
-                <span>PNG, JPG, WEBP</span>
+              <label className="qb-upload-label" style={{ opacity: uploadingImage ? 0.6 : 1, cursor: uploadingImage ? "wait" : "pointer" }}>
+                {uploadingImage ? (
+                  <>
+                    <Loader size={32} className="qb-spinner" />
+                    <span>Uploading image...</span>
+                    <span>Please wait</span>
+                  </>
+                ) : (
+                  <>
+                    <Image size={32} />
+                    <span>Click to upload an image or screenshot</span>
+                    <span>PNG, JPG, WEBP (max 10MB)</span>
+                  </>
+                )}
                 <input
                   type="file"
-                  accept="image/png,image/jpeg,image/webp"
+                  accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
                   style={{ display:"none" }}
-                  onChange={e => {
+                  disabled={uploadingImage}
+                  onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                      setForm(f => ({...f, solutionUpload: ev.target?.result}));
-                    };
-                    reader.readAsDataURL(file);
-                    e.target.value = "";
+
+                    // Validate file
+                    const validation = validateImageFile(file);
+                    if (!validation.valid) {
+                      setUploadError(validation.error);
+                      e.target.value = "";
+                      return;
+                    }
+
+                    setUploadingImage(true);
+                    setUploadError("");
+
+                    try {
+                      // Upload to Supabase Storage
+                      const { url } = await uploadImageToSupabase(file, "solutions", "user");
+                      setForm(f => ({...f, solutionUpload: url}));
+                    } catch (err) {
+                      console.error("Image upload failed:", err);
+                      setUploadError(err.message || "Failed to upload image. Please try again.");
+                    } finally {
+                      setUploadingImage(false);
+                      e.target.value = "";
+                    }
                   }}
                 />
               </label>
+            )}
+            {uploadError && (
+              <div style={{
+                padding: "12px",
+                background: "rgba(239, 68, 68, 0.1)",
+                border: "1px solid rgba(239, 68, 68, 0.3)",
+                borderRadius: "8px",
+                color: "#ef4444",
+                fontSize: "13px",
+                fontFamily: "'DM Sans', sans-serif"
+              }}>
+                {uploadError}
+              </div>
             )}
           </div>
         )}

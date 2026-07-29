@@ -260,6 +260,176 @@ body {
 .qb-loading-text { font-family:'Fira Mono',monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--text-faint); }
 @keyframes qb-spin { to { transform:rotate(360deg); } }
 
+/* ── New Loading Spinner Styles ── */
+.qb-loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 20px;
+}
+
+.qb-loading-centered {
+  min-height: 300px;
+}
+
+.qb-loading-fullscreen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  z-index: 100;
+}
+
+.qb-spinner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qb-spinner-sm {
+  width: 32px;
+  height: 32px;
+}
+
+.qb-spinner-md {
+  width: 48px;
+  height: 48px;
+}
+
+.qb-spinner-lg {
+  width: 64px;
+  height: 64px;
+}
+
+.qb-spinner-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: var(--accent);
+  animation: qb-spinner-rotate 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+}
+
+.qb-spinner-sm .qb-spinner-ring {
+  width: 32px;
+  height: 32px;
+  border-width: 2px;
+}
+
+.qb-spinner-md .qb-spinner-ring {
+  width: 48px;
+  height: 48px;
+  border-width: 3px;
+}
+
+.qb-spinner-lg .qb-spinner-ring {
+  width: 64px;
+  height: 64px;
+  border-width: 4px;
+}
+
+.qb-spinner-ring:nth-child(1) {
+  animation-delay: -0.45s;
+  border-top-color: var(--accent);
+}
+
+.qb-spinner-ring:nth-child(2) {
+  animation-delay: -0.3s;
+  border-top-color: var(--accent-strong);
+  opacity: 0.7;
+}
+
+.qb-spinner-ring:nth-child(3) {
+  animation-delay: -0.15s;
+  border-top-color: var(--accent);
+  opacity: 0.4;
+}
+
+@keyframes qb-spinner-rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Tutorial Tour Custom Styles ── */
+.__floater__open {
+  z-index: 10001 !important;
+}
+
+.react-joyride__spotlight {
+  background-color: transparent !important;
+  border-radius: 12px !important;
+}
+
+.react-joyride__overlay {
+  mix-blend-mode: normal !important;
+}
+
+/* Ensure tour tooltips match theme perfectly */
+/* Default: Light mode (white background, black text) */
+div[class*="react-joyride__tooltip"] {
+  filter: none !important;
+  font-family: 'DM Sans', sans-serif !important;
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+/* Dark theme overrides for Joyride (when .light class is NOT present) */
+.qb:not(.light) div[class*="react-joyride__tooltip"] {
+  background-color: #2b2d31 !important;
+  color: #ffffff !important;
+}
+
+/* Tour beacon pulse animation */
+@keyframes qb-tour-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.react-joyride__beacon {
+  animation: qb-tour-pulse 1.8s ease-in-out infinite;
+}
+
+/* Enhanced button hover states for tour */
+button[data-action="primary"]:hover,
+button[data-action="next"]:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+button[data-action="back"]:hover,
+button[data-action="skip"]:hover {
+  opacity: 1;
+}
+
+/* Progress bar styling */
+div[class*="react-joyride__tooltip"] + div {
+  margin-top: 16px;
+}
+
+/* Step counter badge styling */
+span[class*="react-joyride"] {
+  font-family: 'DM Sans', sans-serif !important;
+  font-weight: 600 !important;
+}
+
 .qb-dashboard { display:flex; flex-direction:column; gap:24px; }
 .qb-section-head { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; }
 .qb-section-head-compact { align-items:center; }
@@ -2350,4 +2520,268 @@ body {
     box-shadow:none;
     outline:none;
   }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Tips Page Enhancements - Tabs, Categories, Mastery, Canvas Indicators
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Tabs System ── */
+.qb-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 6px;
+  background: var(--input-bg);
+}
+
+.qb-tab {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 11px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+@media (hover: hover) {
+  .qb-tab:hover:not(.qb-tab-active) {
+    color: var(--text);
+    background: var(--surface-h);
+  }
+}
+
+.qb-tab-active,
+.qb-tab.qb-tab-active {
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+.qb-tab-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--input-bg);
+}
+
+/* ── Category & Mastery Badges ── */
+.qb-tip-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 26px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+.qb-tip-badge svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+/* ── Mastery Level Buttons ── */
+.qb-mastery-btn {
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 46px;
+  transition: all 0.2s ease;
+}
+
+@media (hover: hover) {
+  .qb-mastery-btn:hover {
+    border-color: var(--border-h);
+  }
+}
+
+.qb-mastery-btn[data-active="true"] {
+  border-width: 2px;
+}
+
+/* ── Filter Panel ── */
+.qb-filters-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: var(--shadow-card);
+}
+
+.qb-filter-toggle {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  min-height: 38px;
+}
+
+@media (hover: hover) {
+  .qb-filter-toggle:hover {
+    border-color: var(--border-h);
+  }
+}
+
+/* Active state when filter panel is open */
+.qb-filter-toggle[style*="--primary"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+/* ── Mobile Responsive ── */
+@media (max-width: 600px) {
+  .qb-tabs {
+    gap: 4px;
+    padding: 4px;
+    border-radius: 12px;
+  }
+
+  .qb-tab {
+    padding: 9px 12px;
+    font-size: 12px;
+    gap: 6px;
+    min-height: 40px;
+    flex-direction: row;
+  }
+
+  .qb-tab svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .qb-tip-badge {
+    font-size: 9px;
+    padding: 0 7px;
+    min-height: 24px;
+    gap: 4px;
+  }
+
+  .qb-mastery-btn {
+    padding: 8px 12px;
+    font-size: 12px;
+    min-height: 42px;
+  }
+
+  .qb-filters-panel {
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  .qb-filter-toggle {
+    padding: 7px 10px;
+    font-size: 12px;
+    min-height: 36px;
+  }
+}
+
+@media (max-width: 420px) {
+  .qb-tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .qb-tab {
+    justify-content: flex-start;
+  }
+}
+
+/* ── Image Upload Spinner ── */
+.qb-upload-label .qb-spinner {
+  animation: qb-spin 1s linear infinite;
+}
+
+@keyframes qb-upload-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.qb-upload-label.uploading {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+/* Force all text inside Joyride tooltips to match theme */
+/* Default: Light mode (black text) */
+div[class*="react-joyride__tooltip"] h3,
+div[class*="react-joyride__tooltip"] p,
+div[class*="react-joyride__tooltip"] div,
+div[class*="react-joyride__tooltip"] span {
+  color: #000000 !important;
+}
+
+/* Dark theme overrides (white text) */
+.qb:not(.light) div[class*="react-joyride__tooltip"] h3,
+.qb:not(.light) div[class*="react-joyride__tooltip"] p,
+.qb:not(.light) div[class*="react-joyride__tooltip"] div,
+.qb:not(.light) div[class*="react-joyride__tooltip"] span {
+  color: #ffffff !important;
+}
+
+/* Override button text colors */
+/* Light mode: black Next button, black Back/Skip */
+button[data-action="primary"] {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+button[data-action="back"],
+button[data-action="skip"] {
+  color: #000000 !important;
+}
+
+/* Dark mode: black Next button, white Back/Skip */
+.qb:not(.light) button[data-action="primary"] {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+.qb:not(.light) button[data-action="back"],
+.qb:not(.light) button[data-action="skip"] {
+  color: #ffffff !important;
 }

@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { ArrowUpRight, PlayCircle, RotateCcw } from "lucide-react";
 import { formatAttemptDate, formatExamDuration } from "../../utils/mockExamAnalytics";
+import LoadingSpinner from "./LoadingSpinner";
 
 const DURATION_MS = (3 * 60 * 60 + 10 * 60) * 1000;
 
@@ -185,10 +186,7 @@ export default function MockExam({
               </button>
             </div>
           ) : isHistoryLoading ? (
-            <div className="qb-loading" style={{ minHeight: 220 }}>
-              <div className="qb-loading-spinner" aria-hidden="true" />
-              <div className="qb-loading-text">Loading mock exam history...</div>
-            </div>
+            <LoadingSpinner centered text="Loading mock exam history..." />
           ) : !sortedHistory.length ? (
             <div className="qb-empty" style={{ padding: "48px 16px" }}>
               <div className="qb-empty-text">No mock exam history yet</div>

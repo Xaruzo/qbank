@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { LogIn, LogOut, Menu, Moon, Settings, Sun, UserCircle2, X } from "lucide-react";
+import { LogIn, LogOut, Menu, Moon, Settings, Sun, UserCircle2, X, HelpCircle } from "lucide-react";
 import brandLogo from "../../models/Image/logo.png";
 
 export default function Header({
@@ -15,6 +15,7 @@ export default function Header({
   profile,
   onSignIn,
   onSignOut,
+  onOpenHelp,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -48,6 +49,13 @@ export default function Header({
   const handleSignOut = async () => {
     setMenuOpen(false);
     await onSignOut();
+  };
+
+  const handleOpenHelp = () => {
+    setMenuOpen(false);
+    if (onOpenHelp) {
+      onOpenHelp();
+    }
   };
 
   const accountIcon = (
@@ -85,6 +93,15 @@ export default function Header({
         </div>
         <div className="qb-spacer" />
         <div className="qb-hdr-right">
+          <button
+            type="button"
+            className="qb-theme-btn"
+            onClick={handleOpenHelp}
+            title="Open help center"
+          >
+            <HelpCircle size={16} />
+            <span className="qb-theme-btn-text">Help</span>
+          </button>
           <button
             type="button"
             className="qb-theme-btn"
@@ -130,6 +147,10 @@ export default function Header({
                   <button type="button" className="qb-profile-menu-item" onClick={onToggleTheme}>
                     {isDark ? <Sun size={16} /> : <Moon size={16} />}
                     {isDark ? "Light Mode" : "Dark Mode"}
+                  </button>
+                  <button type="button" className="qb-profile-menu-item" onClick={handleOpenHelp}>
+                    <HelpCircle size={16} />
+                    Help Center
                   </button>
                   <button type="button" className="qb-profile-menu-item" onClick={openSettings}>
                     <Settings size={16} />

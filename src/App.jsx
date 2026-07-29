@@ -11,6 +11,9 @@ import MockAttemptDetail from "./views/components/MockAttemptDetail";
 import MockExamRunner from "./views/components/MockExamRunner";
 import TipsPage from "./views/components/TipsPage";
 import TipDetailPage from "./views/components/TipDetailPage";
+import TutorialTour from "./views/components/TutorialTour";
+import LoadingSpinner from "./views/components/LoadingSpinner";
+import HelpModal from "./views/components/HelpModal";
 import { useAuthController } from "./controllers/useAuthController";
 import { useQuestionsController } from "./controllers/useQuestionsController";
 import { useThemeController } from "./controllers/useThemeController";
@@ -78,6 +81,8 @@ export default function App() {
   const [hasLoadedActiveMockExam, setHasLoadedActiveMockExam] = useState(false);
   const [selectedMockAttemptId, setSelectedMockAttemptId] = useState(null);
   const [isMobile, setIsMobile] = useState(() => window.matchMedia ? window.matchMedia("(max-width: 600px)").matches : false);
+  const [runTour, setRunTour] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
   const mainRef = useRef(null);
   const qsRef = useRef(qs);
   const examRef = useRef(exam);
@@ -96,6 +101,18 @@ export default function App() {
   useEffect(() => {
     if (window.matchMedia && window.matchMedia("(max-width: 600px)").matches) setNavOpen(false);
   }, []);
+
+  // Check if this is the user's first visit and show tour
+  useEffect(() => {
+    const hasSeenTour = localStorage.getItem("qbank-tour-completed");
+    if (!hasSeenTour && !loading && view === "list" && qs.length > 0) {
+      // Delay tour start slightly to ensure elements are rendered
+      const timer = setTimeout(() => {
+        setRunTour(true);
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, view, qs.length]);
 
   useEffect(() => {
     const mql = window.matchMedia("(max-width: 600px)");
@@ -584,6 +601,31 @@ export default function App() {
     if (view === "mockRun") handleGoMockExam();
   };
 
+  const handleTourFinish = () => {
+    setRunTour(false);
+    localStorage.setItem("qbank-tour-completed", "true");
+  };
+
+  const handleRestartTour = () => {
+    setShowHelpModal(false);
+    
+    // Navigate to list view if not already there
+    if (view !== 'list') {
+      handleGoHome();
+    }
+    
+    // Reset runTour to false first, then set to true to trigger restart
+    setRunTour(false);
+    
+    setTimeout(() => {
+      setRunTour(true);
+    }, 200);
+  };
+
+  const handleOpenHelp = () => {
+    setShowHelpModal(true);
+  };
+
   const selectedQuestion = qs.find(q => q.id === selectedId);
   const selectedMockAttempt = mockHistory.find((attempt) => attempt.id === selectedMockAttemptId) || null;
   const selectedIndexInFiltered = filteredQuestions.findIndex(q => q.id === selectedId);
@@ -628,6 +670,7 @@ export default function App() {
           profile={profile}
           onSignIn={handleSignIn}
           onSignOut={handleSignOut}
+          onOpenHelp={handleOpenHelp}
         />
 
         {isMobile && navOpen && (
@@ -678,10 +721,7 @@ export default function App() {
               }`}
             >
             {loading ? (
-              <div className="qb-loading">
-                <div className="qb-loading-spinner" aria-hidden="true" />
-                <div className="qb-loading-text">Loading questions...</div>
-              </div>
+              <LoadingSpinner fullScreen text="Loading questions..." />
             ) : view === "list" ? (
               <div className="fu qb-dashboard">
                 <section className="qb-list-hero">
@@ -821,10 +861,7 @@ export default function App() {
                   onExit={handleGoMockExam}
                 />
               ) : isActiveMockExamLoading ? (
-                <div className="qb-loading">
-                  <div className="qb-loading-spinner" aria-hidden="true" />
-                  <div className="qb-loading-text">Restoring active mock exam...</div>
-                </div>
+                <LoadingSpinner fullScreen text="Restoring active mock exam..." />
               ) : (
                 <MockExam
                   totalQuestions={qs.length}
@@ -893,6 +930,16 @@ export default function App() {
           </nav>
         )}
       </div>
+
+      <TutorialTour run={runTour} onFinish={handleTourFinish} isDark={isDark} />
+      
+      {showHelpModal && (
+        <HelpModal
+          isDark={isDark}
+          onClose={() => setShowHelpModal(false)}
+          onRestartTour={handleRestartTour}
+        />
+      )}
     </div>
   );
 }
