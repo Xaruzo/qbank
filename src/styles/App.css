@@ -374,7 +374,7 @@ body {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   TOUR OVERLAY - BLOCK APP CLICKS, ALLOW TOUR INTERACTION
+   TOUR OVERLAY - BLOCK APP CLICKS, ONLY ALLOW TOUR BUTTONS
    ══════════════════════════════════════════════════════════════════════════ */
 
 /* Prevent scrolling when tour is active */
@@ -382,12 +382,14 @@ body.qb-tour-active {
   overflow: hidden !important;
 }
 
-/* Block clicks ONLY on the main app container */
-body.qb-tour-active .qb {
-  position: relative;
+/* Block ALL clicks on app by disabling pointer events */
+body.qb-tour-active .qb,
+body.qb-tour-active .qb * {
+  pointer-events: none !important;
 }
 
-body.qb-tour-active .qb::after {
+/* Create invisible blocking layer to prevent any click passthrough */
+body.qb-tour-active .qb::before {
   content: '';
   position: fixed;
   top: 0;
@@ -396,15 +398,27 @@ body.qb-tour-active .qb::after {
   bottom: 0;
   z-index: 9997;
   pointer-events: auto;
-  cursor: not-allowed;
+  background: transparent;
 }
 
-/* Ensure Joyride overlay and tooltips are above the blocker */
+/* Allow ONLY Joyride elements to be interactive */
+body.qb-tour-active [class*="react-joyride"],
+body.qb-tour-active [class*="react-joyride"] *,
+body.qb-tour-active .__floater,
+body.qb-tour-active .__floater *,
+body.qb-tour-active [data-testid="button-primary"],
+body.qb-tour-active [data-testid="button-skip"],
+body.qb-tour-active [data-testid="button-back"] {
+  pointer-events: auto !important;
+}
+
+/* Ensure Joyride overlay is above blocking layer */
 body.qb-tour-active [class*="react-joyride__overlay"] {
   z-index: 9998 !important;
   pointer-events: auto !important;
 }
 
+/* Ensure Joyride tooltip is above everything */
 body.qb-tour-active [class*="react-joyride__tooltip"],
 body.qb-tour-active [class*="__floater"] {
   z-index: 9999 !important;

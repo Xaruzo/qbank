@@ -335,14 +335,20 @@ export default function TutorialTour({ run, onFinish, isDark }) {
     
     const finishedStatuses = [STATUS.FINISHED, STATUS.SKIPPED];
 
-    // IMPORTANT: Remove class on ANY close action, not just finished statuses
-    if (finishedStatuses.includes(status) || action === 'close' || action === 'reset') {
-      console.log('[TutorialTour] Tour ending! Removing qb-tour-active class');
-      // Remove the body class immediately when tour finishes
-      document.body.classList.remove('qb-tour-active');
-      console.log('[TutorialTour] Body classes after removal:', document.body.className);
+    // Remove class IMMEDIATELY on any finish/skip/close action
+    if (finishedStatuses.includes(status) || action === 'close' || action === 'reset' || action === 'skip') {
+      console.log('[TutorialTour] Tour ending! Removing qb-tour-active class IMMEDIATELY');
       
-      // Small delay to ensure cleanup before calling onFinish
+      // Force remove class synchronously
+      document.body.classList.remove('qb-tour-active');
+      
+      // Double-check after a tick
+      requestAnimationFrame(() => {
+        document.body.classList.remove('qb-tour-active');
+        console.log('[TutorialTour] Body classes after cleanup:', document.body.className);
+      });
+      
+      // Call onFinish after cleanup
       setTimeout(() => {
         console.log('[TutorialTour] Calling onFinish()');
         onFinish();
@@ -358,7 +364,7 @@ export default function TutorialTour({ run, onFinish, isDark }) {
       showProgress
       showSkipButton
       disableScrolling
-      disableOverlayClose={false}
+      disableOverlayClose={true}
       disableCloseOnEsc={false}
       hideCloseButton={true}
       spotlightClicks={false}
