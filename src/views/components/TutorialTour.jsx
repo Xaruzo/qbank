@@ -357,7 +357,27 @@ export default function TutorialTour({ run, onFinish, isDark }) {
   };
 
   return (
-    <Joyride
+    <>
+      {/* Physical blocking overlay - prevents all clicks when tour is active */}
+      {run && (
+        <div 
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9997,
+            pointerEvents: 'auto',
+            cursor: 'not-allowed',
+            background: 'transparent'
+          }}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('[TutorialTour] Blocking overlay clicked - ignoring');
+          }}
+        />
+      )}
+      
+      <Joyride
       steps={steps}
       run={run}
       continuous
@@ -369,6 +389,7 @@ export default function TutorialTour({ run, onFinish, isDark }) {
       hideCloseButton={true}
       spotlightClicks={false}
       spotlightPadding={0}
+      hideBackButton={false}
       callback={handleJoyrideCallback}
       styles={{
         options: {
@@ -455,5 +476,6 @@ export default function TutorialTour({ run, onFinish, isDark }) {
         skip: "Skip",
       }}
     />
+    </>
   );
 }

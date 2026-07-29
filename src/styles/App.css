@@ -377,9 +377,10 @@ body {
    TOUR OVERLAY - BLOCK APP, ALLOW ONLY TOUR INTERACTION
    ══════════════════════════════════════════════════════════════════════════ */
 
-/* When tour is active: prevent scrolling and block ALL app interactions */
+/* When tour is active: prevent scrolling but don't break mobile layout */
 body.qb-tour-active {
   overflow: hidden !important;
+  /* Don't use position: fixed on mobile - it breaks layout */
 }
 
 /* Block pointer events on the entire app */
@@ -390,6 +391,7 @@ body.qb-tour-active .qb {
 
 body.qb-tour-active .qb * {
   pointer-events: none !important;
+  cursor: not-allowed !important;
 }
 
 /* ONLY when tour is active: allow Joyride elements to be clickable */
@@ -400,16 +402,32 @@ body.qb-tour-active .__floater *,
 body.qb-tour-active [class*="__floater"],
 body.qb-tour-active [class*="__floater"] * {
   pointer-events: auto !important;
+  cursor: default !important;
 }
 
-/* Ensure proper stacking */
+/* Joyride buttons should have pointer cursor */
+body.qb-tour-active button[data-action],
+body.qb-tour-active [class*="react-joyride"] button {
+  cursor: pointer !important;
+}
+
+/* Ensure proper stacking: blocking layer (9997) < overlay (9998) < tooltip (9999) */
 body.qb-tour-active [class*="react-joyride__overlay"] {
   z-index: 9998 !important;
+  pointer-events: none !important; /* Don't capture clicks - let our blocking layer handle it */
 }
 
 body.qb-tour-active [class*="react-joyride__tooltip"],
 body.qb-tour-active [class*="__floater"] {
   z-index: 9999 !important;
+}
+
+/* After tour ends: ensure normal scrolling resumes */
+body:not(.qb-tour-active) {
+  overflow: visible !important;
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
 }
 
 /* Ensure header stays visible during tour */
