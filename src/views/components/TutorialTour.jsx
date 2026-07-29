@@ -318,7 +318,7 @@ export default function TutorialTour({ run, onFinish, isDark }) {
             color: isDark ? "#ffffff" : "#000000",
             lineHeight: "1.6",
             fontStyle: "italic",
-            opacity: 0.7"
+            opacity: 0.7
           }}>
             Restart this tour anytime from the Help menu in the header.
           </p>
