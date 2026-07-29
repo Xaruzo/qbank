@@ -358,7 +358,7 @@ export default function TutorialTour({ run, onFinish, isDark }) {
       showProgress
       showSkipButton
       disableScrolling
-      disableOverlayClose={true}
+      disableOverlayClose={false}
       disableCloseOnEsc={false}
       hideCloseButton={true}
       spotlightClicks={false}

@@ -373,36 +373,41 @@ body {
   pointer-events: auto !important;
 }
 
-/* Prevent clicks outside tour when active */
+/* ══════════════════════════════════════════════════════════════════════════
+   TOUR OVERLAY - BLOCK APP CLICKS, ALLOW TOUR INTERACTION
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Prevent scrolling when tour is active */
 body.qb-tour-active {
-  pointer-events: none !important;
   overflow: hidden !important;
 }
 
-body.qb-tour-active .qb-hdr,
-body.qb-tour-active .qb-side,
-body.qb-tour-active .qb-main {
-  pointer-events: none !important;
+/* Block clicks ONLY on the main app container */
+body.qb-tour-active .qb {
+  position: relative;
 }
 
-/* Block ALL interactions except Joyride */
-body.qb-tour-active * {
-  pointer-events: none !important;
+body.qb-tour-active .qb::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9997;
+  pointer-events: auto;
+  cursor: not-allowed;
 }
 
-/* Only allow interaction with tour elements */
-body.qb-tour-active [class*="react-joyride"],
-body.qb-tour-active .__floater,
-body.qb-tour-active [class*="react-joyride"] *,
-body.qb-tour-active .__floater * {
+/* Ensure Joyride overlay and tooltips are above the blocker */
+body.qb-tour-active [class*="react-joyride__overlay"] {
+  z-index: 9998 !important;
   pointer-events: auto !important;
 }
 
-body.qb-tour-active .react-joyride__spotlight {
-  pointer-events: none !important;
-}
-
-body.qb-tour-active .react-joyride__overlay {
+body.qb-tour-active [class*="react-joyride__tooltip"],
+body.qb-tour-active [class*="__floater"] {
+  z-index: 9999 !important;
   pointer-events: auto !important;
 }
 
