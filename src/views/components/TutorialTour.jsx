@@ -330,7 +330,13 @@ export default function TutorialTour({ run, onFinish, isDark }) {
     const finishedStatuses = [STATUS.FINISHED, STATUS.SKIPPED];
 
     if (finishedStatuses.includes(status)) {
-      onFinish();
+      // Remove the body class immediately when tour finishes
+      document.body.classList.remove('qb-tour-active');
+      
+      // Small delay to ensure cleanup before calling onFinish
+      setTimeout(() => {
+        onFinish();
+      }, 50);
     }
   };
 
