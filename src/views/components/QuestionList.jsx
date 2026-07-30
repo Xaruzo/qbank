@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { TOPICS, SORT_OPTIONS } from "../../constants/appConstants";
-import { ClipboardList, ChevronRight, Lock, LogIn, Plus, Star, ChevronDown } from "lucide-react";
+import { ClipboardList, ChevronRight, Lock, LogIn, Plus, Star, ChevronDown, Lightbulb, Palette, BookOpen } from "lucide-react";
 import MarkdownText from "./MarkdownText";
 
 export default function QuestionList({
@@ -14,6 +14,7 @@ export default function QuestionList({
   authAvailable,
   isAuthenticated,
   onAddQuestion,
+  onNavigateToTips, // NEW: Navigate to Tips page
 }) {
   const getTopic = id => TOPICS.find(t => t.id===id) || TOPICS[0];
   const canAdd = canManageQuestions || !authAvailable;
@@ -93,6 +94,33 @@ export default function QuestionList({
           </div>
         </div>
       </div>
+
+      {/* Tips Feature Promo Banner */}
+      {onNavigateToTips && questions.length > 0 && (
+        <div className="qb-tips-promo-banner">
+          <div className="qb-tips-promo-content">
+            <div className="qb-tips-promo-icon">
+              <Lightbulb size={32} />
+            </div>
+            <div className="qb-tips-promo-text">
+              <h3 className="qb-tips-promo-title">Create Study Notes & Visual Diagrams</h3>
+              <p className="qb-tips-promo-desc">
+                Organize your methods step-by-step! Add text notes or draw visual solutions. 
+                Categorize by type (Formula, Shortcut, Method) and track your mastery.
+              </p>
+            </div>
+          </div>
+          <button 
+            type="button"
+            className="qb-tips-promo-btn"
+            onClick={onNavigateToTips}
+          >
+            <BookOpen size={18} />
+            Open Tips
+          </button>
+        </div>
+      )}
+
       <div className="qb-question-stack">
       {questions.length === 0 ? (
         <div className="qb-empty">

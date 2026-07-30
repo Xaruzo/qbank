@@ -83,6 +83,7 @@ export default function App() {
   const [isMobile, setIsMobile] = useState(() => window.matchMedia ? window.matchMedia("(max-width: 600px)").matches : false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [runGuide, setRunGuide] = useState(false);
+  const [showLoadingSpinner, setShowLoadingSpinner] = useState(false);
   const mainRef = useRef(null);
   const qsRef = useRef(qs);
   const examRef = useRef(exam);
@@ -101,6 +102,22 @@ export default function App() {
   useEffect(() => {
     if (window.matchMedia && window.matchMedia("(max-width: 600px)").matches) setNavOpen(false);
   }, []);
+
+  // Delayed loading spinner - only show if loading takes longer than 400ms
+  useEffect(() => {
+    if (!loading) {
+      setShowLoadingSpinner(false);
+      return;
+    }
+    
+    const timer = setTimeout(() => {
+      if (loading) {
+        setShowLoadingSpinner(true);
+      }
+    }, 400); // 400ms delay - feels instant on good connections
+    
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   // Check if this is the user's first visit and show guide
   useEffect(() => {
@@ -716,7 +733,7 @@ export default function App() {
                 view === "add" ? " qb-main-inner-editor" : view === "mockRun" ? " qb-main-inner-exam" : view === "mockAttempt" ? " qb-main-inner-mock-attempt" : ""
               }`}
             >
-            {loading ? (
+            {showLoadingSpinner ? (
               <LoadingSpinner fullScreen text="Loading questions..." />
             ) : view === "list" ? (
               <div className="fu qb-dashboard">

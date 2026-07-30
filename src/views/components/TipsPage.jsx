@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { TOPICS } from "../../constants/appConstants";
 import { tipsModel, TIP_CATEGORIES, MASTERY_LEVELS } from "../../models/tipsModel";
 import MathText from "./MathText";
+import CustomSelect from "./CustomSelect";
 import { ChevronLeft, Search, Filter, Palette, FileText, Tag, TrendingUp } from "lucide-react";
 
 export default function TipsPage({
@@ -69,12 +70,11 @@ export default function TipsPage({
 
   return (
     <div className="fu">
-      <div className="qb-form-hdr">
-        <button className="qb-back" onClick={onBack} style={{ display: "flex", alignItems: "center" }}>
-          <ChevronLeft size={16} style={{ marginRight: 4 }} />
-          Back
-        </button>
-        <h2 className="qb-form-title">Tips & Tricks</h2>
+      <div className="qb-section-head" style={{ marginBottom: 24 }}>
+        <div>
+          <span className="qb-section-kicker">Study Notes</span>
+          <h2 className="qb-section-title">Tips & Tricks</h2>
+        </div>
       </div>
 
       <section className="qb-question-section" style={{ marginBottom: 14 }}>
@@ -149,17 +149,17 @@ export default function TipsPage({
                   <Tag size={14} />
                   Category
                 </label>
-                <select
-                  className="qb-finput"
+                <CustomSelect
                   value={filterCategory}
-                  onChange={(e) => setFilterCategory(e.target.value)}
-                  style={{ width: "100%", cursor: "pointer" }}
-                >
-                  <option value="all">All Categories</option>
-                  {Object.values(TIP_CATEGORIES).map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.label}</option>
-                  ))}
-                </select>
+                  onChange={setFilterCategory}
+                  options={[
+                    { value: "all", label: "All Categories" },
+                    ...Object.values(TIP_CATEGORIES).map(cat => ({
+                      value: cat.id,
+                      label: cat.label,
+                    }))
+                  ]}
+                />
               </div>
 
               {/* Mastery Filter */}
@@ -168,17 +168,17 @@ export default function TipsPage({
                   <TrendingUp size={14} />
                   Mastery Level
                 </label>
-                <select
-                  className="qb-finput"
+                <CustomSelect
                   value={filterMastery}
-                  onChange={(e) => setFilterMastery(e.target.value)}
-                  style={{ width: "100%", cursor: "pointer" }}
-                >
-                  <option value="all">All Levels</option>
-                  {Object.values(MASTERY_LEVELS).map(level => (
-                    <option key={level.id} value={level.id}>{level.icon} {level.label}</option>
-                  ))}
-                </select>
+                  onChange={setFilterMastery}
+                  options={[
+                    { value: "all", label: "All Levels" },
+                    ...Object.values(MASTERY_LEVELS).map(level => ({
+                      value: level.id,
+                      label: level.label,
+                    }))
+                  ]}
+                />
               </div>
 
               {/* Clear Filters Button */}

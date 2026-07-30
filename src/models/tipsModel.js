@@ -20,9 +20,9 @@ export const TIP_CATEGORIES = {
 
 // Mastery levels
 export const MASTERY_LEVELS = {
-  LEARNING: { id: 'learning', label: 'Still Learning', icon: '📖', color: '#ef4444' },
-  FAMILIAR: { id: 'familiar', label: 'Familiar', icon: '📝', color: '#f59e0b' },
-  MASTERED: { id: 'mastered', label: 'Mastered', icon: '✅', color: '#10b981' },
+  LEARNING: { id: 'learning', label: 'Still Learning', icon: 'BookOpen', color: '#ef4444' },
+  FAMILIAR: { id: 'familiar', label: 'Familiar', icon: 'BookMarked', color: '#f59e0b' },
+  MASTERED: { id: 'mastered', label: 'Mastered', icon: 'CheckCircle2', color: '#10b981' },
 };
 
 const safeParse = (raw, fallback) => {
@@ -211,7 +211,7 @@ const fetchRemoteTipsMap = async (userId) => {
 
   const { data, error } = await supabase
     .from(QUESTION_TIPS_TABLE)
-    .select("question_id, tip_text, canvas_data, tip_category, mastery_level, last_reviewed")
+    .select("id, question_id, tip_text, canvas_data, tip_category, mastery_level, last_reviewed, linked_question_id:question_id")
     .eq("user_id", userId);
 
   if (isMissingQuestionTipsTableError(error)) {
@@ -233,6 +233,7 @@ const fetchRemoteTipsMap = async (userId) => {
           category: row?.tip_category || 'general',
           masteryLevel: row?.mastery_level || 'learning',
           lastReviewed: row?.last_reviewed || null,
+          linkedQuestionId: row?.linked_question_id || null,
         };
         return acc;
       }, {})
@@ -479,5 +480,40 @@ export const tipsModel = {
 
     await writePendingMap(failed, userId);
     return syncedAny;
+  },
+
+  // NEW: Get tips linked to a specific question
+  async getTipsByQuestionId(questionId, userId = null) {
+    if (!userId || !supabase || !remoteTipsTableAvailable) {
+      return [];
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from(QUESTION_TIPS_TABLE)
+        .select("question_id, tip_text, canvas_data, tip_category, mastery_level, last_reviewed")
+        .eq("user_id", userId)
+        .eq("linked_question_id", questionId);
+
+      if (isMissingQuestionTipsTableError(error)) {
+        markRemoteTipsUnavailable();
+        return [];
+      }
+      if (error) throw error;
+
+      return Array.isArray(data)
+        ? data.map(row => ({
+            id: row.question_id,
+            text: row.tip_text || "",
+            canvasData: row.canvas_data || null,
+            category: row.tip_category || 'general',
+            masteryLevel: row.mastery_level || 'learning',
+            lastReviewed: row.last_reviewed || null,
+          }))
+        : [];
+    } catch (error) {
+      console.error("Failed to fetch tips for question:", error);
+      return [];
+    }
   },
 };
