@@ -414,7 +414,7 @@ body.qb-tour-active [class*="react-joyride"] button {
 /* Ensure proper stacking: blocking layer (9997) < overlay (9998) < tooltip (9999) */
 body.qb-tour-active [class*="react-joyride__overlay"] {
   z-index: 9998 !important;
-  pointer-events: none !important; /* Don't capture clicks - let our blocking layer handle it */
+  pointer-events: auto !important; /* Capture clicks to prevent them reaching app behind */
 }
 
 body.qb-tour-active [class*="react-joyride__tooltip"],

@@ -1,5 +1,4 @@
 import React, { useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
 import { Joyride, STATUS } from "react-joyride";
 
 export default function TutorialTour({ run, onFinish, isDark }) {
@@ -330,8 +329,8 @@ export default function TutorialTour({ run, onFinish, isDark }) {
   ];
 
   const handleJoyrideCallback = (data) => {
-    const { status, action, type, index } = data;
-    console.log('[TutorialTour] Callback:', { status, action, type, index });
+    const { status, action, type } = data;
+    console.log('[TutorialTour] Callback:', { status, action, type });
     
     const finishedStatuses = [STATUS.FINISHED, STATUS.SKIPPED];
 
@@ -360,127 +359,106 @@ export default function TutorialTour({ run, onFinish, isDark }) {
   };
 
   return (
-    <>
-      {run && createPortal(
-        <div 
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 10001,
-            pointerEvents: 'auto',
-            cursor: 'not-allowed',
-            background: 'transparent'
-          }}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            console.log('[TutorialTour] Blocking overlay clicked');
-          }}
-        />,
-        document.body
-      )}
-      
-      <Joyride
-        steps={steps}
-        run={run}
-        continuous
-        showProgress
-        showSkipButton
-        disableOverlayClose={true}
-        disableCloseOnEsc={false}
-        hideCloseButton={true}
-        spotlightClicks={false}
-        spotlightPadding={0}
-        hideBackButton={false}
-        callback={handleJoyrideCallback}
-        scrollToFirstStep={true}
-        disableScrolling={false}
-        disableScrollParentFix={true}
-        styles={{
-          options: {
-            arrowColor: isDark ? "#2b2d31" : "#ffffff",
-            backgroundColor: isDark ? "#2b2d31" : "#ffffff",
-            overlayColor: isDark ? "rgba(30, 31, 34, 0.85)" : "rgba(0, 0, 0, 0.50)",
-            primaryColor: isDark ? "#f59e0b" : "#ea580c",
-            textColor: isDark ? "#ffffff" : "#000000",
-            width: 420,
-            zIndex: 10000,
-          },
-          tooltip: {
-            borderRadius: "18px",
-            padding: "26px",
-            fontSize: "14px",
-            boxShadow: isDark 
-              ? "0 20px 50px rgba(0, 0, 0, 0.4)" 
-              : "0 18px 40px rgba(15, 23, 42, 0.12)",
-            border: isDark 
-              ? "1px solid #3b3f45" 
-              : "1px solid #e6ddd0",
-          },
-          tooltipContainer: {
-            textAlign: "left",
-          },
-          tooltipTitle: {
-            fontSize: "17px",
-            fontWeight: "700",
-            marginBottom: "12px",
-            fontFamily: "'DM Sans', sans-serif",
-            letterSpacing: "-0.02em",
-            color: isDark ? "#ffffff" : "#000000",
-          },
-          tooltipContent: {
-            padding: "0",
-            fontFamily: "'DM Sans', sans-serif",
-          },
-          buttonNext: {
-            backgroundColor: isDark ? "#f59e0b" : "#ea580c",
-            color: "#ffffff",
-            borderRadius: "12px",
-            fontSize: "13px",
-            fontWeight: "700",
-            padding: "11px 24px",
-            border: "none",
-            outline: "none",
-            fontFamily: "'DM Sans', sans-serif",
-            cursor: "pointer",
-            transition: "all 0.2s ease",
-          },
-          buttonBack: {
-            color: isDark ? "#ffffff" : "#000000",
-            fontSize: "13px",
-            fontWeight: "600",
-            marginRight: "14px",
-            fontFamily: "'DM Sans', sans-serif",
-            cursor: "pointer",
-            opacity: 0.7,
-          },
-          buttonSkip: {
-            color: isDark ? "#ffffff" : "#000000",
-            fontSize: "12px",
-            fontFamily: "'DM Sans', sans-serif",
-            cursor: "pointer",
-            opacity: 0.6,
-          },
-          buttonClose: {
-            display: "none",
-          },
-          spotlight: {
-            borderRadius: "12px",
-          },
-          beacon: {
-            inner: isDark ? "#f59e0b" : "#ea580c",
-            outer: isDark ? "rgba(245,158,11,0.3)" : "rgba(234,88,12,0.3)",
-          },
-        }}
-        locale={{
-          back: "Back",
-          close: "Close",
-          last: "Get Started",
-          next: "Next",
-          open: "Open",
-          skip: "Skip",
-        }}
-      />
-    </>
+    <Joyride
+      steps={steps}
+      run={run}
+      continuous
+      showProgress
+      showSkipButton
+      disableOverlayClose={true}
+      disableCloseOnEsc={false}
+      hideCloseButton={false}
+      spotlightClicks={false}
+      spotlightPadding={0}
+      hideBackButton={false}
+      callback={handleJoyrideCallback}
+      scrollToFirstStep={true}
+      disableScrolling={false}
+      disableScrollParentFix={true}
+      styles={{
+        options: {
+          arrowColor: isDark ? "#2b2d31" : "#ffffff",
+          backgroundColor: isDark ? "#2b2d31" : "#ffffff",
+          overlayColor: isDark ? "rgba(30, 31, 34, 0.85)" : "rgba(0, 0, 0, 0.50)",
+          primaryColor: isDark ? "#f59e0b" : "#ea580c",
+          textColor: isDark ? "#ffffff" : "#000000",
+          width: 420,
+          zIndex: 10000,
+        },
+        tooltip: {
+          borderRadius: "18px",
+          padding: "26px",
+          fontSize: "14px",
+          boxShadow: isDark 
+            ? "0 20px 50px rgba(0, 0, 0, 0.4)" 
+            : "0 18px 40px rgba(15, 23, 42, 0.12)",
+          border: isDark 
+            ? "1px solid #3b3f45" 
+            : "1px solid #e6ddd0",
+        },
+        tooltipContainer: {
+          textAlign: "left",
+        },
+        tooltipTitle: {
+          fontSize: "17px",
+          fontWeight: "700",
+          marginBottom: "12px",
+          fontFamily: "'DM Sans', sans-serif",
+          letterSpacing: "-0.02em",
+          color: isDark ? "#ffffff" : "#000000",
+        },
+        tooltipContent: {
+          padding: "0",
+          fontFamily: "'DM Sans', sans-serif",
+        },
+        buttonNext: {
+          backgroundColor: isDark ? "#f59e0b" : "#ea580c",
+          color: "#ffffff",
+          borderRadius: "12px",
+          fontSize: "13px",
+          fontWeight: "700",
+          padding: "11px 24px",
+          border: "none",
+          outline: "none",
+          fontFamily: "'DM Sans', sans-serif",
+          cursor: "pointer",
+          transition: "all 0.2s ease",
+        },
+        buttonBack: {
+          color: isDark ? "#ffffff" : "#000000",
+          fontSize: "13px",
+          fontWeight: "600",
+          marginRight: "14px",
+          fontFamily: "'DM Sans', sans-serif",
+          cursor: "pointer",
+          opacity: 0.7,
+        },
+        buttonSkip: {
+          color: isDark ? "#ffffff" : "#000000",
+          fontSize: "12px",
+          fontFamily: "'DM Sans', sans-serif",
+          cursor: "pointer",
+          opacity: 0.6,
+        },
+        buttonClose: {
+          display: "none",
+        },
+        spotlight: {
+          borderRadius: "12px",
+        },
+        beacon: {
+          inner: isDark ? "#f59e0b" : "#ea580c",
+          outer: isDark ? "rgba(245,158,11,0.3)" : "rgba(234,88,12,0.3)",
+        },
+      }}
+      locale={{
+        back: "Back",
+        close: "Close",
+        last: "Get Started",
+        next: "Next",
+        open: "Open",
+        skip: "Skip",
+      }}
+    />
   );
 }
