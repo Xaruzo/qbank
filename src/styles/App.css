@@ -2766,3 +2766,393 @@ button[data-action="skip"] {
 .qb:not(.light) button[data-action="skip"] {
   color: #ffffff !important;
 }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   EXTRA SMALL SCREENS (322px width) - iPhone SE, Galaxy Fold
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 360px) {
+  /* Buttons */
+  .qb-add-btn,
+  .qb-theme-btn,
+  .qb-auth-btn,
+  .qb-list-add-btn,
+  .qb-toolbar-add-btn,
+  .qb-mock-secondary-btn,
+  .qb-exam-start,
+  .qb-exam-navbtn,
+  .qb-next-btn,
+  .qb-fsave,
+  .qb-fcancel {
+    font-size: 12px !important;
+    padding: 8px 12px !important;
+    min-height: 36px !important;
+  }
+
+  /* Pills / Category buttons */
+  .qb-pill,
+  .qb-list-hero-chip,
+  .qb-control-summary span,
+  .qb-qcard-meta-chip,
+  .qb-exam-meta > span,
+  .qb-mock-attempt-meta > span {
+    font-size: 11px !important;
+    padding: 6px 10px !important;
+    min-height: 28px !important;
+  }
+
+  /* Filter/Sort dropdowns */
+  .qb-filter-select,
+  .qb-sort {
+    font-size: 13px !important;
+    padding: 8px 32px 8px 10px !important;
+    min-width: 100% !important;
+  }
+
+  /* Sort select button */
+  .qb-select-btn {
+    font-size: 12px !important;
+    padding: 8px 10px !important;
+    min-height: 40px !important;
+    max-width: 100% !important;
+  }
+
+  .qb-select-btn span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  .qb-filter-card {
+    padding: 6px 10px !important;
+    min-height: 42px !important;
+  }
+
+  /* Search box */
+  .qb-search-box {
+    min-height: 42px !important;
+  }
+
+  .qb-search {
+    font-size: 13px !important;
+    padding: 0 12px 0 40px !important;
+    min-height: 40px !important;
+  }
+
+  .qb-search-icon {
+    left: 14px !important;
+  }
+
+  /* Control grid - stack vertically */
+  .qb-control-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* Filter wrap */
+  .qb-filter-wrap {
+    gap: 8px !important;
+  }
+
+  /* Header */
+  .qb-logo {
+    font-size: 15px !important;
+  }
+
+  .qb-logo-img {
+    width: 26px !important;
+    height: 26px !important;
+  }
+
+  .qb-hdr {
+    padding: 0 10px !important;
+    gap: 8px !important;
+  }
+
+  .qb-hdr-right {
+    gap: 8px !important;
+  }
+
+  .qb-theme-btn {
+    padding: 0 8px !important;
+    height: 32px !important;
+  }
+
+  /* Question cards */
+  .qb-qcard {
+    padding: 14px !important;
+    gap: 10px !important;
+  }
+
+  .qb-qtext {
+    font-size: 14px !important;
+  }
+
+  .qb-qcard-label {
+    font-size: 12px !important;
+  }
+
+  /* Stats */
+  .qb-stats {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  .qb-stat {
+    min-height: 120px !important;
+    padding: 14px 12px !important;
+  }
+
+  .qb-stat-n {
+    font-size: 28px !important;
+  }
+
+  /* List meta */
+  .qb-list-meta {
+    padding: 12px !important;
+    gap: 8px !important;
+  }
+
+  /* Form inputs */
+  .qb-finput,
+  .qb-fta,
+  .qb-fsel {
+    font-size: 14px !important;
+    padding: 9px 11px !important;
+  }
+
+  /* Section titles */
+  .qb-section-title {
+    font-size: 18px !important;
+  }
+
+  .qb-section-title-lg {
+    font-size: 22px !important;
+  }
+
+  /* List hero */
+  .qb-list-hero {
+    padding: 16px !important;
+    gap: 12px !important;
+  }
+
+  .qb-list-hero-title {
+    font-size: 24px !important;
+  }
+
+  .qb-list-hero-copy {
+    font-size: 13px !important;
+  }
+
+  .qb-list-hero-panel {
+    padding: 14px !important;
+    min-height: 100px !important;
+  }
+
+  .qb-list-hero-side {
+    gap: 10px !important;
+  }
+
+  /* Mock exam cards */
+  .qb-mock-mini-card {
+    padding: 12px !important;
+    min-height: 100px !important;
+  }
+
+  .qb-mock-mini-value {
+    font-size: 24px !important;
+  }
+
+  .qb-mock-mini-sub {
+    font-size: 10px !important;
+  }
+
+  /* Exam cards */
+  .qb-exam-stat-chip {
+    min-height: 48px !important;
+    padding: 6px 8px !important;
+  }
+
+  .qb-exam-stat-value {
+    font-size: 16px !important;
+  }
+
+  .qb-exam-stat-label {
+    font-size: 9px !important;
+  }
+
+  /* Detail view */
+  .qb-det-card {
+    padding: 14px !important;
+  }
+
+  .qb-det-q {
+    font-size: 15px !important;
+  }
+
+  .qb-choice {
+    font-size: 14px !important;
+    padding: 10px 12px !important;
+  }
+
+  /* Tab bar */
+  .qb-mobile-tab {
+    font-size: 9px !important;
+    min-height: 46px !important;
+    padding: 6px 4px !important;
+  }
+
+  .qb-mobile-tab svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  /* Tabs system (Tips page) */
+  .qb-tabs {
+    gap: 3px !important;
+    padding: 3px !important;
+  }
+
+  .qb-tab {
+    padding: 8px 10px !important;
+    font-size: 11px !important;
+    min-height: 36px !important;
+  }
+
+  .qb-tab svg {
+    width: 13px !important;
+    height: 13px !important;
+  }
+
+  /* Mastery buttons */
+  .qb-mastery-btn {
+    padding: 8px 10px !important;
+    font-size: 12px !important;
+    min-height: 38px !important;
+  }
+
+  /* Main padding */
+  .qb-main-inner {
+    padding: 14px 10px 20px !important;
+  }
+
+  /* Control panel */
+  .qb-control-panel {
+    padding: 12px !important;
+    gap: 12px !important;
+  }
+
+  /* Modals */
+  .qb-settings-card,
+  .qb-help-modal {
+    padding: 14px !important;
+  }
+
+  /* Drawing toolbar */
+  .draw-tb {
+    font-size: 10px !important;
+    padding: 4px 8px !important;
+  }
+
+  .sym-tb-btn {
+    min-width: 32px !important;
+    height: 30px !important;
+    font-size: 16px !important;
+  }
+
+  /* Side nav (when collapsed) */
+  .qb-side-collapsed {
+    width: 68px !important;
+  }
+
+  .qb-side:not(.qb-side-collapsed) .qb-side-inner {
+    width: 220px !important;
+  }
+
+  /* Nav items */
+  .qb-nav-item {
+    padding: 10px 12px !important;
+    font-size: 12px !important;
+  }
+
+  .qb-side-collapsed .qb-nav-item {
+    padding: 10px 0 !important;
+  }
+
+  .qb-side-collapsed .qb-nav-text {
+    font-size: 9px !important;
+  }
+
+  /* Question number grid */
+  .qb-exam-qgrid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 5px !important;
+  }
+
+  .qb-qnum-btn {
+    height: 36px !important;
+    font-size: 11px !important;
+  }
+
+  /* Form sections */
+  .qb-fsec {
+    padding: 12px !important;
+  }
+
+  .qb-form-hero {
+    padding: 16px !important;
+    gap: 12px !important;
+  }
+
+  .qb-form-title {
+    font-size: 24px !important;
+  }
+
+  .qb-form-subtitle {
+    font-size: 13px !important;
+  }
+
+  /* Back button */
+  .qb-back {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+  }
+
+  /* Actions */
+  .qb-det-actions {
+    gap: 6px !important;
+  }
+
+  .qb-edit-btn,
+  .qb-del-btn,
+  .qb-share-btn {
+    padding: 6px 10px !important;
+    font-size: 11px !important;
+  }
+
+  /* Empty states */
+  .qb-empty {
+    padding: 60px 16px !important;
+  }
+
+  .qb-empty-ico {
+    font-size: 36px !important;
+  }
+
+  .qb-empty-t,
+  .qb-empty-text {
+    font-size: 16px !important;
+  }
+
+  /* Profile menu */
+  .qb-profile-menu {
+    width: 240px !important;
+  }
+
+  .qb-profile-menu-item {
+    font-size: 12px !important;
+    padding: 9px 10px !important;
+  }
+}
