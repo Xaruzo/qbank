@@ -1,23 +1,18 @@
 import React, { useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
 import { Joyride, STATUS } from "react-joyride";
 
 export default function TutorialTour({ run, onFinish, isDark }) {
   const hasFinishedRef = useRef(false);
 
   useEffect(() => {
-    console.log('[TutorialTour] useEffect - run:', run);
     if (run) {
-      console.log('[TutorialTour] Adding qb-tour-active class');
       document.body.classList.add('qb-tour-active');
       hasFinishedRef.current = false;
     } else {
-      console.log('[TutorialTour] Removing qb-tour-active class (run=false)');
       document.body.classList.remove('qb-tour-active');
     }
     
     return () => {
-      console.log('[TutorialTour] Cleanup - removing qb-tour-active class');
       document.body.classList.remove('qb-tour-active');
     };
   }, [run]);
@@ -68,7 +63,7 @@ export default function TutorialTour({ run, onFinish, isDark }) {
             fontStyle: "italic",
             opacity: 0.7
           }}>
-            Use the buttons below to navigate the tour. Click Skip to exit anytime.
+            Use the buttons below to navigate. Click Skip to exit anytime.
           </p>
         </div>
       ),
@@ -331,158 +326,127 @@ export default function TutorialTour({ run, onFinish, isDark }) {
 
   const handleJoyrideCallback = (data) => {
     const { status, action, type } = data;
-    console.log('[TutorialTour] Callback:', { status, action, type });
     
     const finishedStatuses = [STATUS.FINISHED, STATUS.SKIPPED];
 
-    // Handle ALL close scenarios
-    if (finishedStatuses.includes(status) || action === 'close' || action === 'reset' || action === 'skip' || type === 'tour:end') {
+    if (finishedStatuses.includes(status) || action === 'close' || action === 'skip' || type === 'tour:end') {
       if (!hasFinishedRef.current) {
-        console.log('[TutorialTour] Tour ending! Removing class and calling onFinish');
         hasFinishedRef.current = true;
-        
-        // Force remove class immediately
         document.body.classList.remove('qb-tour-active');
-        
-        // Double-check after a tick
         requestAnimationFrame(() => {
           document.body.classList.remove('qb-tour-active');
-          console.log('[TutorialTour] Body classes after cleanup:', document.body.className);
         });
-        
-        // Call onFinish to set run=false in parent
-        setTimeout(() => {
-          console.log('[TutorialTour] Calling onFinish()');
-          onFinish();
-        }, 50);
+        setTimeout(() => onFinish(), 50);
       }
     }
   };
 
   return (
-    <>
-      {/* Blocking overlay - rendered via Portal OUTSIDE .qb to prevent being blocked */}
-      {run && createPortal(
-        <div 
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 9999,
-            pointerEvents: 'auto',
-            background: 'transparent',
-            cursor: 'not-allowed'
-          }}
-          onClick={(e) => {
-            // Block ALL clicks on the overlay
-            e.preventDefault();
-            e.stopPropagation();
-            console.log('[TutorialTour] Outside click blocked');
-          }}
-        />,
-        document.body
-      )}
-      
-      <Joyride
-        steps={steps}
-        run={run}
-        continuous
-        showProgress
-        showSkipButton
-        disableOverlayClose={true}
-        disableCloseOnEsc={false}
-        hideCloseButton={false}
-        spotlightClicks={true}
-        spotlightPadding={0}
-        hideBackButton={false}
-        callback={handleJoyrideCallback}
-        scrollToFirstStep={true}
-        disableScrolling={false}
-        disableScrollParentFix={true}
-        styles={{
-          options: {
-            arrowColor: isDark ? "#2b2d31" : "#ffffff",
-            backgroundColor: isDark ? "#2b2d31" : "#ffffff",
-            overlayColor: isDark ? "rgba(30, 31, 34, 0.85)" : "rgba(0, 0, 0, 0.50)",
-            primaryColor: isDark ? "#f59e0b" : "#ea580c",
-            textColor: isDark ? "#ffffff" : "#000000",
-            width: 420,
-            zIndex: 10000,
-          },
-          tooltip: {
-            borderRadius: "18px",
-            padding: "26px",
-            fontSize: "14px",
-            boxShadow: isDark 
-              ? "0 20px 50px rgba(0, 0, 0, 0.4)" 
-              : "0 18px 40px rgba(15, 23, 42, 0.12)",
-            border: isDark 
-              ? "1px solid #3b3f45" 
-              : "1px solid #e6ddd0",
-          },
-          tooltipContainer: {
-            textAlign: "left",
-          },
-          tooltipTitle: {
-            fontSize: "17px",
-            fontWeight: "700",
-            marginBottom: "12px",
-            fontFamily: "'DM Sans', sans-serif",
-            letterSpacing: "-0.02em",
-            color: isDark ? "#ffffff" : "#000000",
-          },
-          tooltipContent: {
-            padding: "0",
-            fontFamily: "'DM Sans', sans-serif",
-          },
-          buttonNext: {
-            backgroundColor: isDark ? "#f59e0b" : "#ea580c",
-            color: "#ffffff",
-            borderRadius: "12px",
-            fontSize: "13px",
-            fontWeight: "700",
-            padding: "11px 24px",
-            border: "none",
-            outline: "none",
-            fontFamily: "'DM Sans', sans-serif",
-            cursor: "pointer",
-            transition: "all 0.2s ease",
-          },
-          buttonBack: {
-            color: isDark ? "#ffffff" : "#000000",
-            fontSize: "13px",
-            fontWeight: "600",
-            marginRight: "14px",
-            fontFamily: "'DM Sans', sans-serif",
-            cursor: "pointer",
-            opacity: 0.7,
-          },
-          buttonSkip: {
-            color: isDark ? "#ffffff" : "#000000",
-            fontSize: "12px",
-            fontFamily: "'DM Sans', sans-serif",
-            cursor: "pointer",
-            opacity: 0.6,
-          },
-          buttonClose: {
-            display: "none",
-          },
-          spotlight: {
-            borderRadius: "12px",
-          },
-          beacon: {
-            inner: isDark ? "#f59e0b" : "#ea580c",
-            outer: isDark ? "rgba(245,158,11,0.3)" : "rgba(234,88,12,0.3)",
-          },
-        }}
-        locale={{
-          back: "Back",
-          close: "Close",
-          last: "Get Started",
-          next: "Next",
-          open: "Open",
-          skip: "Skip",
-        }}
-      />
-    </>
+    <Joyride
+      steps={steps}
+      run={run}
+      continuous={true}
+      showProgress={true}
+      showSkipButton={true}
+      disableOverlay={true}
+      disableOverlayClose={true}
+      disableCloseOnEsc={false}
+      hideCloseButton={false}
+      spotlightClicks={false}
+      spotlightPadding={10}
+      hideBackButton={false}
+      callback={handleJoyrideCallback}
+      scrollToFirstStep={true}
+      disableScrolling={false}
+      disableScrollParentFix={true}
+      styles={{
+        options: {
+          arrowColor: isDark ? "#2b2d31" : "#ffffff",
+          backgroundColor: isDark ? "#2b2d31" : "#ffffff",
+          overlayColor: "transparent",
+          primaryColor: isDark ? "#f59e0b" : "#ea580c",
+          textColor: isDark ? "#ffffff" : "#000000",
+          width: 420,
+          zIndex: 99999,
+        },
+        overlay: {
+          display: "none",
+        },
+        tooltip: {
+          borderRadius: "18px",
+          padding: "26px",
+          fontSize: "14px",
+          boxShadow: isDark 
+            ? "0 20px 50px rgba(0, 0, 0, 0.4)" 
+            : "0 18px 40px rgba(15, 23, 42, 0.12)",
+          border: isDark 
+            ? "1px solid #3b3f45" 
+            : "1px solid #e6ddd0",
+        },
+        tooltipContainer: {
+          textAlign: "left",
+        },
+        tooltipTitle: {
+          fontSize: "17px",
+          fontWeight: "700",
+          marginBottom: "12px",
+          fontFamily: "'DM Sans', sans-serif",
+          letterSpacing: "-0.02em",
+          color: isDark ? "#ffffff" : "#000000",
+        },
+        tooltipContent: {
+          padding: "0",
+          fontFamily: "'DM Sans', sans-serif",
+        },
+        buttonNext: {
+          backgroundColor: isDark ? "#f59e0b" : "#ea580c",
+          color: "#ffffff",
+          borderRadius: "12px",
+          fontSize: "13px",
+          fontWeight: "700",
+          padding: "11px 24px",
+          border: "none",
+          outline: "none",
+          fontFamily: "'DM Sans', sans-serif",
+          cursor: "pointer",
+          transition: "all 0.2s ease",
+        },
+        buttonBack: {
+          color: isDark ? "#ffffff" : "#000000",
+          fontSize: "13px",
+          fontWeight: "600",
+          marginRight: "14px",
+          fontFamily: "'DM Sans', sans-serif",
+          cursor: "pointer",
+          opacity: 0.7,
+        },
+        buttonSkip: {
+          color: isDark ? "#ffffff" : "#000000",
+          fontSize: "14px",
+          fontWeight: "600",
+          fontFamily: "'DM Sans', sans-serif",
+          cursor: "pointer",
+          opacity: 0.9,
+        },
+        buttonClose: {
+          display: "none",
+        },
+        spotlight: {
+          borderRadius: "12px",
+        },
+        beacon: {
+          inner: isDark ? "#f59e0b" : "#ea580c",
+          outer: isDark ? "rgba(245,158,11,0.3)" : "rgba(234,88,12,0.3)",
+        },
+      }}
+      locale={{
+        back: "Back",
+        close: "Close",
+        last: "Get Started",
+        next: "Next",
+        open: "Open",
+        skip: "Skip",
+      }}
+    />
   );
 }
