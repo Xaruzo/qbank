@@ -11,9 +11,9 @@ import MockAttemptDetail from "./views/components/MockAttemptDetail";
 import MockExamRunner from "./views/components/MockExamRunner";
 import TipsPage from "./views/components/TipsPage";
 import TipDetailPage from "./views/components/TipDetailPage";
-import TutorialTour from "./views/components/TutorialTour";
 import LoadingSpinner from "./views/components/LoadingSpinner";
 import HelpModal from "./views/components/HelpModal";
+import TutorialGuide from "./views/components/TutorialGuide";
 import { useAuthController } from "./controllers/useAuthController";
 import { useQuestionsController } from "./controllers/useQuestionsController";
 import { useThemeController } from "./controllers/useThemeController";
@@ -81,8 +81,8 @@ export default function App() {
   const [hasLoadedActiveMockExam, setHasLoadedActiveMockExam] = useState(false);
   const [selectedMockAttemptId, setSelectedMockAttemptId] = useState(null);
   const [isMobile, setIsMobile] = useState(() => window.matchMedia ? window.matchMedia("(max-width: 600px)").matches : false);
-  const [runTour, setRunTour] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [runGuide, setRunGuide] = useState(false);
   const mainRef = useRef(null);
   const qsRef = useRef(qs);
   const examRef = useRef(exam);
@@ -102,14 +102,13 @@ export default function App() {
     if (window.matchMedia && window.matchMedia("(max-width: 600px)").matches) setNavOpen(false);
   }, []);
 
-  // Check if this is the user's first visit and show tour
+  // Check if this is the user's first visit and show guide
   useEffect(() => {
-    const hasSeenTour = localStorage.getItem("qbank-tour-completed");
-    if (!hasSeenTour && !loading && view === "list" && qs.length > 0) {
-      // Delay tour start slightly to ensure elements are rendered
+    const hasSeenGuide = localStorage.getItem("qbank-guide-completed");
+    if (!hasSeenGuide && !loading && view === "list" && qs.length > 0) {
       const timer = setTimeout(() => {
-        setRunTour(true);
-      }, 800);
+        setRunGuide(true);
+      }, 500);
       return () => clearTimeout(timer);
     }
   }, [loading, view, qs.length]);
@@ -601,29 +600,26 @@ export default function App() {
     if (view === "mockRun") handleGoMockExam();
   };
 
-  const handleTourFinish = () => {
-    setRunTour(false);
-    localStorage.setItem("qbank-tour-completed", "true");
+  const handleOpenHelp = () => {
+    setShowHelpModal(true);
   };
 
-  const handleRestartTour = () => {
+  const handleGuideFinish = () => {
+    setRunGuide(false);
+    localStorage.setItem("qbank-guide-completed", "true");
+  };
+
+  const handleRestartGuide = () => {
     setShowHelpModal(false);
     
-    // Navigate to list view if not already there
     if (view !== 'list') {
       handleGoHome();
     }
     
-    // Reset runTour to false first, then set to true to trigger restart
-    setRunTour(false);
-    
+    setRunGuide(false);
     setTimeout(() => {
-      setRunTour(true);
+      setRunGuide(true);
     }, 200);
-  };
-
-  const handleOpenHelp = () => {
-    setShowHelpModal(true);
   };
 
   const selectedQuestion = qs.find(q => q.id === selectedId);
@@ -931,13 +927,13 @@ export default function App() {
         )}
       </div>
 
-      <TutorialTour run={runTour} onFinish={handleTourFinish} isDark={isDark} />
-      
+      <TutorialGuide run={runGuide} onFinish={handleGuideFinish} isDark={isDark} />
+
       {showHelpModal && (
         <HelpModal
           isDark={isDark}
           onClose={() => setShowHelpModal(false)}
-          onRestartTour={handleRestartTour}
+          onRestartTour={handleRestartGuide}
         />
       )}
     </div>

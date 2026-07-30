@@ -1,12 +1,12 @@
 import React, { useState } from "react";
-import { X, Keyboard, Play, HelpCircle, ArrowLeft } from "lucide-react";
+import { X, Keyboard, HelpCircle, ArrowLeft, Play } from "lucide-react";
 
 export default function HelpModal({ isDark, onClose, onRestartTour }) {
   const [activeTab, setActiveTab] = useState("main");
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 600;
   const isTablet = typeof window !== 'undefined' && window.innerWidth > 600 && window.innerWidth <= 900;
 
-  const handleRestartTour = () => {
+  const handleRestartGuide = () => {
     if (!onRestartTour) return;
     onClose();
     setTimeout(() => {
@@ -15,7 +15,7 @@ export default function HelpModal({ isDark, onClose, onRestartTour }) {
   };
 
   const shortcuts = [
-    { key: "Esc", description: "Close modals, exit overlays, or skip tour" },
+    { key: "Esc", description: "Close modals, exit overlays, or skip guide" },
     { key: "Ctrl + K", description: "Focus search box (quick find)" },
     { key: "←/→", description: "Navigate between questions in detail view" },
     { key: "Space", description: "Scroll down in question detail" },
@@ -196,10 +196,10 @@ export default function HelpModal({ isDark, onClose, onRestartTour }) {
         }}>
           {activeTab === "main" ? (
             <div style={{ display: "grid", gap: isMobile ? "10px" : "12px" }}>
-              {/* Restart Tour Card */}
+              {/* Restart Guide Card */}
               <button
                 type="button"
-                onClick={handleRestartTour}
+                onClick={handleRestartGuide}
                 style={{
                   background: isDark ? "rgba(245,158,11,0.14)" : "rgba(234,88,12,0.08)",
                   border: isDark ? "1px solid rgba(245,158,11,0.30)" : "1px solid rgba(234,88,12,0.18)",
@@ -247,7 +247,7 @@ export default function HelpModal({ isDark, onClose, onRestartTour }) {
                     color: isDark ? "#ffffff" : "#0f1b2d",
                     marginBottom: isMobile ? "4px" : "6px"
                   }}>
-                    Restart Tutorial Tour
+                    Restart Tutorial Guide
                   </div>
                   <div style={{
                     fontFamily: "'DM Sans', sans-serif",
@@ -255,7 +255,7 @@ export default function HelpModal({ isDark, onClose, onRestartTour }) {
                     lineHeight: "1.6",
                     color: isDark ? "#ffffff" : "#000000"
                   }}>
-                    {isMobile ? "Take a guided walkthrough of QBANK's features." : "Take a guided walkthrough of QBANK's key features. Great for first-time users or as a refresher."}
+                    {isMobile ? "Quick walkthrough of QBANK's features." : "A quick walkthrough of QBANK's key features. Great for first-time users or as a refresher."}
                   </div>
                 </div>
               </button>

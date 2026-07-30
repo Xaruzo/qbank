@@ -378,130 +378,32 @@ body {
    ══════════════════════════════════════════════════════════════════════════ */
 
 /* Create dark blocking overlay using ::before */
-body.qb-tour-active::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 99998;
-  pointer-events: auto;
-  background: rgba(0, 0, 0, 0.6);
-  cursor: not-allowed;
-}
-
-/* Block pointer events on the entire app */
-body.qb-tour-active .qb {
-  pointer-events: none !important;
-  user-select: none !important;
-}
-
-body.qb-tour-active .qb * {
-  pointer-events: none !important;
-  cursor: not-allowed !important;
-}
-
-/* ONLY when tour is active: allow Joyride elements to be clickable */
-body.qb-tour-active [class*="react-joyride"],
-body.qb-tour-active [class*="react-joyride"] *,
-body.qb-tour-active .__floater,
-body.qb-tour-active .__floater *,
-body.qb-tour-active [class*="__floater"],
-body.qb-tour-active [class*="__floater"] * {
-  pointer-events: auto !important;
-  cursor: default !important;
-}
-
-/* Joyride buttons should have pointer cursor */
-body.qb-tour-active button[data-action],
-body.qb-tour-active [class*="react-joyride"] button {
-  cursor: pointer !important;
-}
-
-/* Ensure proper stacking: blocking layer (9997) < overlay (9998) < tooltip (9999) */
-body.qb-tour-active [class*="react-joyride__overlay"] {
-  z-index: 10000 !important;
-  pointer-events: auto !important; /* Capture clicks to prevent them reaching app behind */
-}
-
-body.qb-tour-active [class*="react-joyride__tooltip"],
-body.qb-tour-active [class*="__floater"] {
-  z-index: 10001 !important;
-}
-
-/* After tour ends: ensure normal scrolling resumes */
-body:not(.qb-tour-active) {
-  overflow: visible !important;
-  position: static !important;
-  width: auto !important;
-  height: auto !important;
-}
-
-/* Ensure header stays visible during tour */
+/* Ensure header stays visible */
 .qb-hdr {
   position: sticky !important;
   top: 0 !important;
   z-index: 400 !important;
 }
 
-body.qb-tour-active .qb-hdr {
-  z-index: 10001 !important;
+/* Tutorial Guide Overlay - Block all outside clicks */
+body.qb-guide-active {
+  overflow: hidden !important;
 }
 
-/* Ensure tour tooltips match theme perfectly */
-/* Default: Light mode (white background, black text) */
-div[class*="react-joyride__tooltip"] {
-  filter: none !important;
-  font-family: 'DM Sans', sans-serif !important;
-  background-color: #ffffff !important;
-  color: #000000 !important;
+body.qb-guide-active .qb {
+  pointer-events: none !important;
 }
 
-/* Dark theme overrides for Joyride (when .light class is NOT present) */
-.qb:not(.light) div[class*="react-joyride__tooltip"] {
-  background-color: #2b2d31 !important;
-  color: #ffffff !important;
+.qb-guide-overlay {
+  pointer-events: auto !important;
 }
 
-/* Tour beacon pulse animation */
-@keyframes qb-tour-pulse {
-  0% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.15);
-    opacity: 0.7;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
+.qb-guide-modal {
+  pointer-events: auto !important;
 }
 
-.react-joyride__beacon {
-  animation: qb-tour-pulse 1.8s ease-in-out infinite;
-}
-
-/* Enhanced button hover states for tour */
-button[data-action="primary"]:hover,
-button[data-action="next"]:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-}
-
-button[data-action="back"]:hover,
-button[data-action="skip"]:hover {
-  opacity: 1;
-}
-
-/* Progress bar styling */
-div[class*="react-joyride__tooltip"] + div {
-  margin-top: 16px;
-}
-
-/* Step counter badge styling */
-span[class*="react-joyride"] {
-  font-family: 'DM Sans', sans-serif !important;
-  font-weight: 600 !important;
+.qb-guide-modal * {
+  pointer-events: auto !important;
 }
 
 .qb-dashboard { display:flex; flex-direction:column; gap:24px; }
