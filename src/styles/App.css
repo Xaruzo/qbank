@@ -413,13 +413,13 @@ body.qb-tour-active [class*="react-joyride"] button {
 
 /* Ensure proper stacking: blocking layer (9997) < overlay (9998) < tooltip (9999) */
 body.qb-tour-active [class*="react-joyride__overlay"] {
-  z-index: 9998 !important;
+  z-index: 10000 !important;
   pointer-events: auto !important; /* Capture clicks to prevent them reaching app behind */
 }
 
 body.qb-tour-active [class*="react-joyride__tooltip"],
 body.qb-tour-active [class*="__floater"] {
-  z-index: 9999 !important;
+  z-index: 10001 !important;
 }
 
 /* After tour ends: ensure normal scrolling resumes */
@@ -438,7 +438,7 @@ body:not(.qb-tour-active) {
 }
 
 body.qb-tour-active .qb-hdr {
-  z-index: 9999 !important;
+  z-index: 10001 !important;
 }
 
 /* Ensure tour tooltips match theme perfectly */
