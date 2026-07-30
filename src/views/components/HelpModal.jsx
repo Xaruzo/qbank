@@ -80,7 +80,6 @@ export default function HelpModal({ isDark, onClose, onRestartTour }) {
         onClick={(e) => e.stopPropagation()}
         style={{
           width: isMobile ? "calc(100vw - 24px)" : isTablet ? "min(600px, 90vw)" : "min(680px, 90vw)",
-          maxHeight: isMobile ? "calc(100vh - 60px)" : isTablet ? "85vh" : "85vh",
           maxHeight: isMobile ? "calc(100dvh - 60px)" : "85vh",
           background: isDark ? "#2b2d31" : "#ffffff",
           border: isDark ? "1px solid #3b3f45" : "1px solid #e6ddd0",
