@@ -12,6 +12,7 @@ import MockExamRunner from "./views/components/MockExamRunner";
 import TipsPage from "./views/components/TipsPage";
 import TipDetailPage from "./views/components/TipDetailPage";
 import LoadingSpinner from "./views/components/LoadingSpinner";
+import SkeletonLoader from "./views/components/SkeletonLoader";
 import HelpModal from "./views/components/HelpModal";
 import TutorialGuide from "./views/components/TutorialGuide";
 import { useAuthController } from "./controllers/useAuthController";
@@ -83,7 +84,6 @@ export default function App() {
   const [isMobile, setIsMobile] = useState(() => window.matchMedia ? window.matchMedia("(max-width: 600px)").matches : false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [runGuide, setRunGuide] = useState(false);
-  const [showLoadingSpinner, setShowLoadingSpinner] = useState(false);
   const mainRef = useRef(null);
   const qsRef = useRef(qs);
   const examRef = useRef(exam);
@@ -102,22 +102,6 @@ export default function App() {
   useEffect(() => {
     if (window.matchMedia && window.matchMedia("(max-width: 600px)").matches) setNavOpen(false);
   }, []);
-
-  // Delayed loading spinner - only show if loading takes longer than 400ms
-  useEffect(() => {
-    if (!loading) {
-      setShowLoadingSpinner(false);
-      return;
-    }
-    
-    const timer = setTimeout(() => {
-      if (loading) {
-        setShowLoadingSpinner(true);
-      }
-    }, 400); // 400ms delay - feels instant on good connections
-    
-    return () => clearTimeout(timer);
-  }, [loading]);
 
   // Check if this is the user's first visit and show guide
   useEffect(() => {
@@ -733,8 +717,8 @@ export default function App() {
                 view === "add" ? " qb-main-inner-editor" : view === "mockRun" ? " qb-main-inner-exam" : view === "mockAttempt" ? " qb-main-inner-mock-attempt" : ""
               }`}
             >
-            {showLoadingSpinner ? (
-              <LoadingSpinner fullScreen text="Loading questions..." />
+            {loading ? (
+              <SkeletonLoader />
             ) : view === "list" ? (
               <div className="fu qb-dashboard">
                 <section className="qb-list-hero">
