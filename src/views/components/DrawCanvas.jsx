@@ -67,6 +67,12 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
   const HR_LINE_THICKNESS = 2;
   const FONT_SIZE_MIN = 8;
   const FONT_SIZE_MAX = 120;
+  const LONG_DIVISION_DEFAULT_WIDTH = 54;
+  const LONG_DIVISION_DEFAULT_HEIGHT = 62;
+  const LONG_DIVISION_PRESET_WIDTH = 58;
+  const LONG_DIVISION_PRESET_HEIGHT = 66;
+  const LONG_DIVISION_MIN_AUTO_WIDTH = 50;
+  const LONG_DIVISION_MIN_AUTO_HEIGHT = 36;
   
   // History for undo/redo
   const history = useRef([]);
@@ -88,20 +94,20 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
   const sanitizeIntegerInput = (value) => String(value ?? "").replace(/[^\d]/g, "");
   const clampFontSizeValue = (value) => Math.max(FONT_SIZE_MIN, Math.min(FONT_SIZE_MAX, Math.round(value)));
   const clampLongDivisionWidth = (value) => Math.max(48, Math.min(420, Math.round(value || 0)));
-  const clampLongDivisionHeight = (value) => Math.max(60, Math.min(420, Math.round(value || 0)));
+  const clampLongDivisionHeight = (value) => Math.max(36, Math.min(420, Math.round(value || 0)));
   const buildLongDivisionPath = (rawWidth, rawHeight) => {
     const width = clampLongDivisionWidth(rawWidth);
     const height = clampLongDivisionHeight(rawHeight);
-    const startX = Math.max(10, Math.min(20, width * 0.18));
-    const topY = Math.max(6, Math.min(14, height * 0.1));
-    const curveDepth = Math.max(16, Math.min(34, height * 0.22, width * 0.32));
-    const cp1Y = topY + Math.max(10, height * 0.14);
-    const cp2Y = topY + Math.max(24, height * 0.66);
-    const endY = Math.max(topY + 28, height - 8);
+    const startX = Math.max(8, Math.min(14, width * 0.14));
+    const topY = Math.max(4, Math.min(10, height * 0.08));
+    const curveDepth = Math.max(10, Math.min(20, height * 0.16, width * 0.22));
+    const cp1Y = topY + Math.max(8, height * 0.16);
+    const cp2Y = topY + Math.max(18, height * 0.56);
+    const endY = Math.max(topY + 24, height - 6);
     return {
       width,
       height,
-      path: `M ${startX} ${topY} H ${width - 6} M ${startX} ${topY} C ${startX + curveDepth} ${cp1Y} ${startX + curveDepth} ${cp2Y} ${startX} ${endY}`,
+      path: `M ${startX} ${topY} H ${width - 8} M ${startX} ${topY} C ${startX + curveDepth} ${cp1Y} ${startX + curveDepth} ${cp2Y} ${startX} ${endY}`,
     };
   };
   const configureLongDivisionBracket = (obj) => {
@@ -1597,16 +1603,16 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       const divisorH = divisor.height || 24;
       const dividendW = dividend.width || 36;
       const dividendH = dividend.height || 24;
-      const currentBracketWidth = bracket.longDivisionWidth || bracket.width || 84;
-      const currentBracketHeight = bracket.longDivisionHeight || bracket.height || 96;
-      const nextBracketWidth = Math.max(dividendW + 26, currentBracketWidth, 84);
-      const nextBracketHeight = Math.max(dividendH + 22, divisorH + 40, currentBracketHeight, 96);
-      const dividendInset = Math.max(20, Math.min(28, nextBracketWidth * 0.24));
-      const divisorGap = 12;
-      const divisorOffsetY = Math.max(12, Math.round(nextBracketHeight * 0.34 - divisorH / 2));
-      const dividendOffsetY = 4;
+      const currentBracketWidth = bracket.longDivisionWidth || bracket.width || LONG_DIVISION_PRESET_WIDTH;
+      const currentBracketHeight = bracket.longDivisionHeight || bracket.height || LONG_DIVISION_PRESET_HEIGHT;
+      const contentWidth = Math.max(dividendW + 12, LONG_DIVISION_MIN_AUTO_WIDTH);
+      const contentHeight = Math.max(dividendH + 8, divisorH + 10, LONG_DIVISION_MIN_AUTO_HEIGHT);
+      const divisorGap = 3;
+      const dividendOffsetY = 1;
 
-      const placeFromBracket = (bracketLeft, bracketTop) => {
+      const placeFromBracket = (bracketLeft, bracketTop, nextBracketWidth, nextBracketHeight) => {
+        const dividendInset = Math.max(10, Math.min(16, nextBracketWidth * 0.14));
+        const divisorOffsetY = dividendOffsetY + Math.round((dividendH - divisorH) / 2);
         applyLongDivisionGeometry(bracket, nextBracketWidth, nextBracketHeight, {
           point: new fabric.Point(bracketLeft, bracketTop),
           originX: "left",
@@ -1623,27 +1629,36 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       };
 
       if (target.type === "i-text") {
+        const nextBracketWidth = contentWidth;
+        const nextBracketHeight = contentHeight;
         if (target === divisor) {
           const bracketLeft = divisor.left + divisorW + divisorGap;
-          const bracketTop = divisor.top - divisorOffsetY;
-          placeFromBracket(bracketLeft, bracketTop);
+          const bracketTop = divisor.top - Math.max(7, Math.round(nextBracketHeight * 0.24 - divisorH / 2));
+          placeFromBracket(bracketLeft, bracketTop, nextBracketWidth, nextBracketHeight);
         } else if (target === dividend) {
-          const bracketLeft = dividend.left - dividendInset;
+          const bracketLeft = dividend.left - Math.max(10, Math.min(16, nextBracketWidth * 0.14));
           const bracketTop = dividend.top - dividendOffsetY;
-          placeFromBracket(bracketLeft, bracketTop);
+          placeFromBracket(bracketLeft, bracketTop, nextBracketWidth, nextBracketHeight);
         }
       } else if (target === divisor || target === dividend || target === bracket) {
+        const nextBracketWidth = target === bracket
+          ? Math.max(currentBracketWidth, contentWidth)
+          : contentWidth;
+        const nextBracketHeight = target === bracket
+          ? Math.max(currentBracketHeight, contentHeight)
+          : contentHeight;
         if (target === divisor) {
           const bracketLeft = divisor.left + divisorW + divisorGap;
-          const bracketTop = divisor.top - divisorOffsetY;
-          placeFromBracket(bracketLeft, bracketTop);
+          const bracketTop = divisor.top - Math.max(7, Math.round(nextBracketHeight * 0.24 - divisorH / 2));
+          placeFromBracket(bracketLeft, bracketTop, nextBracketWidth, nextBracketHeight);
         } else if (target === dividend) {
-          const bracketLeft = dividend.left - dividendInset;
+          const bracketLeft = dividend.left - Math.max(10, Math.min(16, nextBracketWidth * 0.14));
           const bracketTop = dividend.top - dividendOffsetY;
-          placeFromBracket(bracketLeft, bracketTop);
+          placeFromBracket(bracketLeft, bracketTop, nextBracketWidth, nextBracketHeight);
         } else {
-          const bounds = bracket.getBoundingRect();
-          placeFromBracket(bounds.left, bounds.top);
+          const bracketLeft = Number.isFinite(bracket.left) ? bracket.left : bracket.getBoundingRect().left;
+          const bracketTop = Number.isFinite(bracket.top) ? bracket.top : bracket.getBoundingRect().top;
+          placeFromBracket(bracketLeft, bracketTop, nextBracketWidth, nextBracketHeight);
         }
       }
 
@@ -2659,12 +2674,12 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
 
   const addLongDivision = () => {
     if (!fabricRef.current) return;
-    const geometry = buildLongDivisionPath(84, 96);
+    const geometry = buildLongDivisionPath(LONG_DIVISION_DEFAULT_WIDTH, LONG_DIVISION_DEFAULT_HEIGHT);
     const bracket = new fabric.Path(geometry.path, {
       left: 100,
       top: 100,
       stroke: color,
-      strokeWidth: 5,
+      strokeWidth: 4,
       strokeLineCap: "round",
       strokeLineJoin: "round",
       fill: "",
@@ -2687,12 +2702,12 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
     const longDivisionId = `long-division-${Date.now()}`;
     const bracketLeft = 176;
     const bracketTop = 92;
-    const geometry = buildLongDivisionPath(92, 96);
+    const geometry = buildLongDivisionPath(LONG_DIVISION_PRESET_WIDTH, LONG_DIVISION_PRESET_HEIGHT);
     const divisor = new fabric.IText("2", {
-      left: bracketLeft - 28,
-      top: bracketTop + 18,
+      left: bracketLeft - 18,
+      top: bracketTop + 1,
       fontFamily: "DM Sans",
-      fontSize: 22,
+      fontSize: 24,
       fill: color,
       textAlign: "right",
       originX: "right",
@@ -2702,10 +2717,10 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       hasControls: false,
     });
     const dividend = new fabric.IText("12", {
-      left: bracketLeft + 24,
-      top: bracketTop + 4,
+      left: bracketLeft + 10,
+      top: bracketTop + 1,
       fontFamily: "DM Sans",
-      fontSize: 22,
+      fontSize: 24,
       fill: color,
       textAlign: "left",
       originX: "left",
@@ -2718,7 +2733,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       left: bracketLeft,
       top: bracketTop,
       stroke: color,
-      strokeWidth: 5,
+      strokeWidth: 4,
       strokeLineCap: "round",
       strokeLineJoin: "round",
       fill: "",
@@ -2735,6 +2750,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
 
     canvas.add(bracket, divisor, dividend);
     canvas.setActiveObject(dividend);
+    canvas.fire("text:changed", { target: dividend });
     dividend.enterEditing();
     dividend.selectAll();
     canvas.requestRenderAll();
@@ -3088,6 +3104,13 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
               </button>
               <button className="draw-tb" onClick={addFraction} title="Add Fraction (Auto-layout)">
                 <Divide size={16} />
+              </button>
+              <button className="draw-tb" onClick={addLongDivisionPreset} title="Add Long Division Preset (Auto-layout)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <text x="3.5" y="14.2" fontSize="7" fill="currentColor" fontFamily="Arial, sans-serif">2</text>
+                  <text x="11" y="10.5" fontSize="6" fill="currentColor" fontFamily="Arial, sans-serif">12</text>
+                  <path d="M9 6H21M9 6C11.8 8.4 11.8 14.8 9 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
               </button>
               <button className="draw-tb" onClick={addLongDivision} title="Add Long Division Bracket">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
