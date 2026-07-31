@@ -16,8 +16,6 @@ export default function QuestionDetail({
   onNext,
   forceShowSolution,
   canManageQuestions,
-  isAuthenticated,
-  onRequireAuth,
 }) {
   const [pick, setPick] = useState(null);
   const [showSol, setShowSol] = useState(false);
@@ -303,23 +301,17 @@ export default function QuestionDetail({
           >
             <Star size={16} fill={question.favorite ? "currentColor" : "none"} />
           </button>
-          {!canManageQuestions ? (
-            isAuthenticated ? (
-              <button className="qb-edit-btn" type="button" disabled>Admin Only</button>
-            ) : (
-              <button className="qb-edit-btn" onClick={onRequireAuth}>Sign In to Edit</button>
-            )
-          ) : !confirmDel ? (
+          {canManageQuestions && !confirmDel ? (
             <>
               <button className="qb-edit-btn" onClick={() => onEdit(question)}>Edit</button>
               <button className="qb-del-btn" onClick={() => setConfirmDel(true)}>Delete</button>
             </>
-          ) : (
+          ) : canManageQuestions && confirmDel ? (
             <>
               <button className="qb-del-cancel" onClick={() => setConfirmDel(false)}>Cancel</button>
               <button className="qb-del-confirm" onClick={() => onDelete(question.id)}>Confirm Delete</button>
             </>
-          )}
+          ) : null}
         </div>
       </div>
       <div className="qb-det-card">

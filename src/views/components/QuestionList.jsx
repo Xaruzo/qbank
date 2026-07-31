@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { TOPICS, SORT_OPTIONS } from "../../constants/appConstants";
-import { ClipboardList, ChevronRight, Lock, LogIn, Plus, Star, ChevronDown, Lightbulb, Palette, BookOpen } from "lucide-react";
+import { ClipboardList, ChevronRight, Plus, Star, ChevronDown, Lightbulb, Palette, BookOpen } from "lucide-react";
 import MarkdownText from "./MarkdownText";
 
 export default function QuestionList({
@@ -11,15 +11,10 @@ export default function QuestionList({
   sortBy,
   onSortChange,
   canManageQuestions,
-  authAvailable,
-  isAuthenticated,
   onAddQuestion,
   onNavigateToTips, // NEW: Navigate to Tips page
 }) {
   const getTopic = id => TOPICS.find(t => t.id===id) || TOPICS[0];
-  const canAdd = canManageQuestions || !authAvailable;
-  const needsAuth = authAvailable && !isAuthenticated;
-  const isForbidden = authAvailable && isAuthenticated && !canManageQuestions;
   const [sortOpen, setSortOpen] = useState(false);
   const [sortDir, setSortDir] = useState("down");
   const sortRef = useRef(null);
@@ -52,15 +47,16 @@ export default function QuestionList({
           <span className="qb-list-label">Question Feed</span>
           <span className="qb-list-value">{questions.length} shown</span>
         </div>
-        <button
-          type="button"
-          className="qb-add-btn qb-list-add-btn"
-          onClick={isForbidden ? undefined : onAddQuestion}
-          disabled={isForbidden}
-        >
-          {canAdd ? <Plus size={16} /> : needsAuth ? <LogIn size={16} /> : <Lock size={16} />}
-          {canAdd ? "Add Question" : needsAuth ? "Sign In to Add" : "Admin Only"}
-        </button>
+        {canManageQuestions && (
+          <button
+            type="button"
+            className="qb-add-btn qb-list-add-btn"
+            onClick={onAddQuestion}
+          >
+            <Plus size={16} />
+            Add Question
+          </button>
+        )}
         <div className="qb-list-meta-right">
           <div className="qb-sort-wrap">
             <span className="qb-sort-label">Sort</span>
