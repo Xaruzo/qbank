@@ -49,6 +49,51 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
 
   const topicLabel = useMemo(() => TOPICS.find(t => t.id === form.topic)?.label || "Topic", [form.topic]);
 
+  const undoStacks = useRef({ question: [], solution: [], choices: [[], [], [], [], []] });
+
+  const pushUndo = (field, index, prev) => {
+    if (typeof prev !== "string") return;
+    const stack = field === "choices" ? undoStacks.current.choices[index] : undoStacks.current[field];
+    if (!stack) return;
+    if (stack[stack.length - 1] !== prev) stack.push(prev);
+    if (stack.length > 100) stack.shift();
+  };
+
+  const handleUndo = (field, index) => {
+    const stack = field === "choices" ? undoStacks.current.choices[index] : undoStacks.current[field];
+    if (!stack || !stack.length) return;
+    const prev = stack.pop();
+    if (field === "question") setForm(f => ({ ...f, question: prev }));
+    else if (field === "solution") setForm(f => ({ ...f, solution: prev }));
+    else setForm(f => {
+      const nc = [...f.choices];
+      nc[index] = prev;
+      return { ...f, choices: nc };
+    });
+  };
+
+  const undoKeyHandler = (field, index) => (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+      e.preventDefault();
+      handleUndo(field, index);
+    }
+  };
+
+  const trimWordSelection = (el) => {
+    if (!el) return;
+    requestAnimationFrame(() => {
+      const start = el.selectionStart;
+      const end = el.selectionEnd;
+      if (start === null || end === null || start === end) return;
+      const value = el.value;
+      let s = start;
+      let e = end;
+      while (e > s && /\s/.test(value[e - 1])) e--;
+      while (s < e && /\s/.test(value[s])) s++;
+      if (s !== start || e !== end) el.setSelectionRange(s, e);
+    });
+  };
+
   useEffect(() => {
     if (!topicOpen) return;
     const handle = (e) => {
@@ -306,8 +351,11 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
       <div className="qb-fsec">
         <label className="qb-flabel">Question</label>
         <textarea ref={questionRef} className="qb-fta" placeholder="Type the question here..." value={form.question}
+          onKeyDown={undoKeyHandler("question", null)}
+          onDoubleClick={() => trimWordSelection(questionRef.current)}
           onChange={e => {
             const val = e.target.value;
+            pushUndo("question", null, form.question);
             setForm({...form, question: val});
             handleSymbolShortcuts(e.target, val, v => setForm(f => ({...f, question: v})));
           }} rows={3} />
@@ -326,8 +374,11 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
             <span className="qb-cletter">{LETTERS[i]}.</span>
             <input ref={el => { choiceRefs.current[i] = el; }} className="qb-finput" placeholder={`Choice ${LETTERS[i]}${i === 4 ? " (optional)" : ""}`} value={c}
               onFocus={() => { setActiveChoice(i); activeChoiceRef.current = choiceRefs.current[i]; }}
+              onKeyDown={undoKeyHandler("choices", i)}
+              onDoubleClick={() => trimWordSelection(choiceRefs.current[i])}
               onChange={e => {
                 const val = e.target.value;
+                pushUndo("choices", i, form.choices[i]);
                 const nc=[...form.choices];
                 nc[i]=val;
                 setForm({...form, choices:nc});
@@ -393,8 +444,11 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
         </label>
 
         <textarea ref={solutionRef} className="qb-fta" placeholder="Write the step-by-step solution here..." value={form.solution}
+          onKeyDown={undoKeyHandler("solution", null)}
+          onDoubleClick={() => trimWordSelection(solutionRef.current)}
           onChange={e => {
             const val = e.target.value;
+            pushUndo("solution", null, form.solution);
             setForm({...form, solution: val});
             handleSymbolShortcuts(e.target, val, v => setForm(f => ({...f, solution: v})));
           }} rows={5} />
