@@ -1576,7 +1576,7 @@ body.qb-guide-active .qb {
 @media (max-width:600px) {
   :root { --hdr-height:56px; }
   .qb-stats { grid-template-columns:repeat(2,1fr); }
-  .qb-stats .qb-stat:last-child:nth-child(5) { grid-column:span 2; }
+  .qb-stats .qb-stat:last-child:nth-child(5) { grid-column:1 / -1; justify-self:center; width:calc(50% - 6px); }
   .qb-main-inner { padding:18px 14px 24px; min-height:100%; }
   .qb-main-inner.qb-main-inner-editor { padding:18px 14px 24px; min-height:100%; display:block; }
   .qb-main-inner.qb-main-inner-exam { padding:20px 16px 32px; padding-bottom:calc(32px + env(safe-area-inset-bottom, 0px)); min-height:auto; height:auto; display:block; overflow:auto; }
@@ -2960,6 +2960,10 @@ button[data-action="skip"] {
   .qb-stats {
     grid-template-columns: 1fr !important;
     gap: 10px !important;
+  }
+
+  .qb-stats .qb-stat:last-child:nth-child(5) {
+    width: 100%;
   }
 
   .qb-stat {
