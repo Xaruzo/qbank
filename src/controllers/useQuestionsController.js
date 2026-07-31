@@ -7,6 +7,7 @@ import { supabase } from "../utils/supabaseClient";
 export function useQuestionsController(userId = null, isAuthLoading = false) {
   const [qs, setQs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [favoritesLoading, setFavoritesLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [topicFilter, setTopicFilter] = useState("all");
@@ -145,6 +146,8 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
     if (userId) setFavoritesLoading(true);
     else setFavoritesLoading(false);
 
+    if (renderedInitialState) setRefreshing(true);
+
     void (async () => {
       try {
         const [freshQuestionsValue, freshFavoriteIds] = await Promise.all([
@@ -178,6 +181,7 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
       } finally {
         if (initRequestRef.current === requestId) {
           setFavoritesLoading(false);
+          setRefreshing(false);
         }
       }
     })();
@@ -335,6 +339,7 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
   return {
     qs,
     loading,
+    refreshing,
     favoritesLoading,
     search,
     setSearch,
