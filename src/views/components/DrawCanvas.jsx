@@ -22,7 +22,12 @@ import {
   Divide,
   X,
   ZoomIn,
-  ZoomOut
+  ZoomOut,
+  Copy,
+  ClipboardPaste,
+  CopyPlus,
+  Layers,
+  Ungroup
 } from "lucide-react";
 
 export default function DrawCanvas({ value, onChange, layersHost }) {
@@ -3286,56 +3291,63 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
               borderRadius: 10,
               padding: 6,
               boxShadow: "0 14px 40px rgba(0,0,0,0.35)",
-              width: 76,
-              minWidth: 0
+              width: 124,
+              minWidth: 0,
+              padding: 8
             }}
           >
             <button
               className="draw-tb"
-              style={{ width: "100%", textAlign: "left", marginBottom: 4, padding: "4px 7px", fontSize: 11 }}
+              style={{ width: "100%", textAlign: "left", marginBottom: 5, padding: "6px 9px", fontSize: 12.5, display: "flex", alignItems: "center", gap: 8 }}
               disabled={!canCopy}
               onClick={() => { fabricRef.current?.copySelection?.(); setCtxMenu(null); }}
             >
+              <Copy size={15} />
               Copy
             </button>
             <button
               className="draw-tb"
-              style={{ width: "100%", textAlign: "left", marginBottom: 4, padding: "4px 7px", fontSize: 11 }}
+              style={{ width: "100%", textAlign: "left", marginBottom: 5, padding: "6px 9px", fontSize: 12.5, display: "flex", alignItems: "center", gap: 8 }}
               disabled={!canPaste}
               onClick={() => { fabricRef.current?.pasteSelection?.(); setCtxMenu(null); }}
             >
+              <ClipboardPaste size={15} />
               Paste
             </button>
             <button
               className="draw-tb"
-              style={{ width: "100%", textAlign: "left", marginBottom: 4, padding: "4px 7px", fontSize: 11 }}
+              style={{ width: "100%", textAlign: "left", marginBottom: 5, padding: "6px 9px", fontSize: 12.5, display: "flex", alignItems: "center", gap: 8 }}
               disabled={!canCopy}
               onClick={() => { fabricRef.current?.duplicateSelection?.(); setCtxMenu(null); }}
             >
+              <CopyPlus size={15} />
               Duplicate
             </button>
             <button
               className="draw-tb"
-              style={{ width: "100%", textAlign: "left", marginBottom: 4, padding: "4px 7px", fontSize: 11 }}
+              style={{ width: "100%", textAlign: "left", marginBottom: 5, padding: "6px 9px", fontSize: 12.5, display: "flex", alignItems: "center", gap: 8 }}
               disabled={!canCopy}
               onClick={() => { fabricRef.current?.deleteSelection?.(); setCtxMenu(null); }}
             >
+              <Trash2 size={15} />
               Delete
             </button>
             <button
               className="draw-tb"
-              style={{ width: "100%", textAlign: "left", marginBottom: 4, padding: "4px 7px", fontSize: 11 }}
+              style={{ width: "100%", textAlign: "left", marginBottom: 5, padding: "6px 9px", fontSize: 12.5, display: "flex", alignItems: "center", gap: 8 }}
               disabled={!canGroup}
               onClick={() => { fabricRef.current?.groupSelection?.(); setCtxMenu(null); }}
             >
+              <Layers size={15} />
               Group
             </button>
             <button
               className="draw-tb"
-              style={{ width: "100%", textAlign: "left", padding: "4px 7px", fontSize: 11 }}
+              style={{ width: "100%", textAlign: "left", padding: "6px 9px", fontSize: 12.5, display: "flex", alignItems: "center", gap: 8 }}
               disabled={!canUngroup}
               onClick={() => { fabricRef.current?.ungroupSelection?.(); setCtxMenu(null); }}
             >
+              <Ungroup size={15} />
               Ungroup
             </button>
           </div>
