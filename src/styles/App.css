@@ -1591,6 +1591,7 @@ body.qb-guide-active .qb {
   .qb-mock-blueprint {
     grid-template-columns:1fr;
   }
+  .qb-label-filter-col { justify-self:start; width:min(280px, 100%); }
   .qb-list-hero-side { grid-template-columns:repeat(2, minmax(0,1fr)); }
   .qb-stats { grid-template-columns:repeat(3, minmax(0,1fr)); }
   .qb-stats .qb-stat:last-child:nth-child(5) { grid-column:span 2; }

@@ -70,7 +70,7 @@ export default function SearchAndFilter({
         </label>
 
         {labelOptions.length > 0 && (
-          <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+          <div className="qb-label-filter-col" style={{ display:"flex", flexDirection:"column", gap:6 }}>
             <span className="qb-filter-label">Problem Label</span>
             <div className="qb-select" ref={labelFilterRef} data-dir={labelFilterDir} data-open={labelFilterOpen}>
               <button className="qb-select-btn" type="button" onClick={() => {
