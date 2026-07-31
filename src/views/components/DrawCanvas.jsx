@@ -3286,12 +3286,13 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
               borderRadius: 10,
               padding: 6,
               boxShadow: "0 14px 40px rgba(0,0,0,0.35)",
-              minWidth: 160
+              width: 76,
+              minWidth: 0
             }}
           >
             <button
               className="draw-tb"
-              style={{ width: "100%", textAlign: "left", marginBottom: 4 }}
+              style={{ width: "100%", textAlign: "left", marginBottom: 4, padding: "4px 7px", fontSize: 11 }}
               disabled={!canCopy}
               onClick={() => { fabricRef.current?.copySelection?.(); setCtxMenu(null); }}
             >
@@ -3299,7 +3300,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
             </button>
             <button
               className="draw-tb"
-              style={{ width: "100%", textAlign: "left", marginBottom: 4 }}
+              style={{ width: "100%", textAlign: "left", marginBottom: 4, padding: "4px 7px", fontSize: 11 }}
               disabled={!canPaste}
               onClick={() => { fabricRef.current?.pasteSelection?.(); setCtxMenu(null); }}
             >
@@ -3307,7 +3308,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
             </button>
             <button
               className="draw-tb"
-              style={{ width: "100%", textAlign: "left", marginBottom: 4 }}
+              style={{ width: "100%", textAlign: "left", marginBottom: 4, padding: "4px 7px", fontSize: 11 }}
               disabled={!canCopy}
               onClick={() => { fabricRef.current?.duplicateSelection?.(); setCtxMenu(null); }}
             >
@@ -3315,7 +3316,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
             </button>
             <button
               className="draw-tb"
-              style={{ width: "100%", textAlign: "left", marginBottom: 4 }}
+              style={{ width: "100%", textAlign: "left", marginBottom: 4, padding: "4px 7px", fontSize: 11 }}
               disabled={!canCopy}
               onClick={() => { fabricRef.current?.deleteSelection?.(); setCtxMenu(null); }}
             >
@@ -3323,7 +3324,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
             </button>
             <button
               className="draw-tb"
-              style={{ width: "100%", textAlign: "left", marginBottom: 4 }}
+              style={{ width: "100%", textAlign: "left", marginBottom: 4, padding: "4px 7px", fontSize: 11 }}
               disabled={!canGroup}
               onClick={() => { fabricRef.current?.groupSelection?.(); setCtxMenu(null); }}
             >
@@ -3331,7 +3332,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
             </button>
             <button
               className="draw-tb"
-              style={{ width: "100%", textAlign: "left" }}
+              style={{ width: "100%", textAlign: "left", padding: "4px 7px", fontSize: 11 }}
               disabled={!canUngroup}
               onClick={() => { fabricRef.current?.ungroupSelection?.(); setCtxMenu(null); }}
             >
