@@ -12,7 +12,7 @@ import MockExamRunner from "./views/components/MockExamRunner";
 import TipsPage from "./views/components/TipsPage";
 import TipDetailPage from "./views/components/TipDetailPage";
 import LoadingSpinner from "./views/components/LoadingSpinner";
-import SkeletonLoader from "./views/components/SkeletonLoader";
+import SkeletonLoader, { MockSkeletonLoader } from "./views/components/SkeletonLoader";
 import HelpModal from "./views/components/HelpModal";
 import TutorialGuide from "./views/components/TutorialGuide";
 import { useAuthController } from "./controllers/useAuthController";
@@ -786,8 +786,6 @@ export default function App() {
                 hasPrev={!!prevQuestion}
                 hasNext={!!nextQuestion}
                 canManageQuestions={canManageQuestions}
-                isAuthenticated={isAuthenticated}
-                onRequireAuth={handleSignIn}
                 onPrev={() => {
                   if (prevQuestion) handleSelectQuestion(prevQuestion.id);
                 }}
@@ -811,20 +809,24 @@ export default function App() {
                 onOpenQuestion={handleSelectQuestion}
               />
             ) : view === "mock" ? (
-              <MockExam
-                totalQuestions={Math.min(qs.length, PRO_EXAM_TOTAL)}
-                onStartProfessional={handleStartProfessional}
-                activeExam={savedActiveMockExam}
-                isActiveExamLoading={isActiveMockExamLoading}
-                onResumeActiveExam={handleResumeActiveMockExam}
-                history={mockHistory}
-                isHistoryLoading={isMockHistoryLoading}
-                onReviewAttempt={handleReviewAttempt}
-                onOpenAttempt={handleOpenMockAttempt}
-                isAuthenticated={isAuthenticated}
-                authAvailable={authAvailable}
-                onRequireAuth={handleSignIn}
-              />
+              isMockHistoryLoading || isActiveMockExamLoading ? (
+                <MockSkeletonLoader />
+              ) : (
+                <MockExam
+                  totalQuestions={Math.min(qs.length, PRO_EXAM_TOTAL)}
+                  onStartProfessional={handleStartProfessional}
+                  activeExam={savedActiveMockExam}
+                  isActiveExamLoading={isActiveMockExamLoading}
+                  onResumeActiveExam={handleResumeActiveMockExam}
+                  history={mockHistory}
+                  isHistoryLoading={isMockHistoryLoading}
+                  onReviewAttempt={handleReviewAttempt}
+                  onOpenAttempt={handleOpenMockAttempt}
+                  isAuthenticated={isAuthenticated}
+                  authAvailable={authAvailable}
+                  onRequireAuth={handleSignIn}
+                />
+              )
             ) : view === "mockAttempt" ? (
               selectedMockAttempt ? (
                 <MockAttemptDetail

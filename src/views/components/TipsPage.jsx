@@ -3,6 +3,7 @@ import { TOPICS } from "../../constants/appConstants";
 import { tipsModel, TIP_CATEGORIES, MASTERY_LEVELS } from "../../models/tipsModel";
 import MathText from "./MathText";
 import CustomSelect from "./CustomSelect";
+import { TipsSkeletonLoader } from "./SkeletonLoader";
 import { ChevronLeft, Search, Filter, Palette, FileText, Tag, TrendingUp } from "lucide-react";
 
 export default function TipsPage({
@@ -12,6 +13,7 @@ export default function TipsPage({
   onSelectQuestion,
 }) {
   const [tipsMap, setTipsMap] = useState({});
+  const [tipsLoading, setTipsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterMastery, setFilterMastery] = useState("all");
@@ -19,9 +21,11 @@ export default function TipsPage({
 
   useEffect(() => {
     let active = true;
+    setTipsLoading(true);
     tipsModel.getAll(userId).then((map) => {
       if (!active) return;
       setTipsMap(map || {});
+      setTipsLoading(false);
     });
     return () => {
       active = false;
@@ -67,6 +71,10 @@ export default function TipsPage({
   const getTopic = (id) => TOPICS.find((t) => t.id === id) || TOPICS[0];
 
   const activeFiltersCount = (filterCategory !== "all" ? 1 : 0) + (filterMastery !== "all" ? 1 : 0);
+
+  if (tipsLoading) {
+    return <TipsSkeletonLoader />;
+  }
 
   return (
     <div className="fu">
