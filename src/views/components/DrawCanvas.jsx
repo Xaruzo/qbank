@@ -1599,7 +1599,6 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
 
       if (!divisor || !dividend || !bracket) return;
 
-      const divisorW = divisor.width || 24;
       const divisorH = divisor.height || 24;
       const dividendW = dividend.width || 36;
       const dividendH = dividend.height || 24;
@@ -1607,7 +1606,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       const currentBracketHeight = bracket.longDivisionHeight || bracket.height || LONG_DIVISION_PRESET_HEIGHT;
       const contentWidth = Math.max(dividendW + 12, LONG_DIVISION_MIN_AUTO_WIDTH);
       const contentHeight = Math.max(dividendH + 8, divisorH + 10, LONG_DIVISION_MIN_AUTO_HEIGHT);
-      const divisorGap = 3;
+      const divisorGap = -4;
       const dividendOffsetY = 1;
 
       const placeFromBracket = (bracketLeft, bracketTop, nextBracketWidth, nextBracketHeight) => {
@@ -1619,7 +1618,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
           originY: "top",
         });
         divisor.set({
-          left: bracketLeft - divisorW - divisorGap,
+          left: bracketLeft - divisorGap,
           top: bracketTop + divisorOffsetY,
         });
         dividend.set({
@@ -1632,8 +1631,9 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
         const nextBracketWidth = contentWidth;
         const nextBracketHeight = contentHeight;
         if (target === divisor) {
-          const bracketLeft = divisor.left + divisorW + divisorGap;
-          const bracketTop = divisor.top - Math.max(7, Math.round(nextBracketHeight * 0.24 - divisorH / 2));
+          const bracketLeft = divisor.left + divisorGap;
+          const divisorOffsetY = dividendOffsetY + Math.round((dividendH - divisorH) / 2);
+          const bracketTop = divisor.top - divisorOffsetY;
           placeFromBracket(bracketLeft, bracketTop, nextBracketWidth, nextBracketHeight);
         } else if (target === dividend) {
           const bracketLeft = dividend.left - Math.max(10, Math.min(16, nextBracketWidth * 0.14));
@@ -1648,8 +1648,9 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
           ? Math.max(currentBracketHeight, contentHeight)
           : contentHeight;
         if (target === divisor) {
-          const bracketLeft = divisor.left + divisorW + divisorGap;
-          const bracketTop = divisor.top - Math.max(7, Math.round(nextBracketHeight * 0.24 - divisorH / 2));
+          const bracketLeft = divisor.left + divisorGap;
+          const divisorOffsetY = dividendOffsetY + Math.round((dividendH - divisorH) / 2);
+          const bracketTop = divisor.top - divisorOffsetY;
           placeFromBracket(bracketLeft, bracketTop, nextBracketWidth, nextBracketHeight);
         } else if (target === dividend) {
           const bracketLeft = dividend.left - Math.max(10, Math.min(16, nextBracketWidth * 0.14));
@@ -2679,7 +2680,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       left: 100,
       top: 100,
       stroke: color,
-      strokeWidth: 4,
+      strokeWidth: HR_LINE_THICKNESS,
       strokeLineCap: "round",
       strokeLineJoin: "round",
       fill: "",
@@ -2704,7 +2705,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
     const bracketTop = 92;
     const geometry = buildLongDivisionPath(LONG_DIVISION_PRESET_WIDTH, LONG_DIVISION_PRESET_HEIGHT);
     const divisor = new fabric.IText("2", {
-      left: bracketLeft - 18,
+      left: bracketLeft + 4,
       top: bracketTop + 1,
       fontFamily: "DM Sans",
       fontSize: 24,
@@ -2733,7 +2734,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       left: bracketLeft,
       top: bracketTop,
       stroke: color,
-      strokeWidth: 4,
+      strokeWidth: HR_LINE_THICKNESS,
       strokeLineCap: "round",
       strokeLineJoin: "round",
       fill: "",
