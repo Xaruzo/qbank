@@ -27,7 +27,9 @@ import {
   ClipboardPaste,
   CopyPlus,
   Layers,
-  Ungroup
+  Ungroup,
+  Palette,
+  Ruler
 } from "lucide-react";
 
 export default function DrawCanvas({ value, onChange, layersHost }) {
@@ -63,7 +65,10 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
   const [ctxMenu, setCtxMenu] = useState(null);
   const [draggingLayerId, setDraggingLayerId] = useState(null);
   const [dragOverLayerId, setDragOverLayerId] = useState(null);
+  const [colorPickerOpen, setColorPickerOpen] = useState(false);
+  const [hexInput, setHexInput] = useState("#1a2540");
   const ctxMenuRef = useRef(null);
+  const colorPickerRef = useRef(null);
   const layerDragRef = useRef(null);
   const dragJustEndedRef = useRef(false);
   const MIN_H = 260;
@@ -2078,6 +2083,8 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
         if (e.shiftKey) ungroupSelection();
         else groupSelection();
         e.preventDefault();
+      } else if (key === 's' && !ctrlKey && !isTyping && !isEditingText) {
+        straightenSelection();
       } else if ((e.key === "Delete" || e.key === "Backspace") && !e.target.tagName.match(/INPUT|TEXTAREA/)) {
         deleteSelection();
       }
@@ -2110,6 +2117,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
     fabricRef.current.ungroupSelection = ungroupSelection;
     fabricRef.current.zoomBy = zoomBy;
     fabricRef.current.resetZoom = resetZoom;
+    fabricRef.current.refreshUI = refreshUI;
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
@@ -2142,6 +2150,23 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
     };
   }, [ctxMenu]);
 
+  useEffect(() => {
+    if (!colorPickerOpen) return;
+    const onMouseDown = (e) => {
+      if (colorPickerRef.current && colorPickerRef.current.contains(e.target)) return;
+      setColorPickerOpen(false);
+    };
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") setColorPickerOpen(false);
+    };
+    window.addEventListener("mousedown", onMouseDown);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("mousedown", onMouseDown);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [colorPickerOpen]);
+
   // Update tool settings
   useEffect(() => {
     if (!fabricRef.current) return;
@@ -2161,6 +2186,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       } else {
         canvas.freeDrawingBrush.color = color;
         canvas.freeDrawingBrush.width = size;
+        canvas.freeDrawingBrush.straightLineKey = "shiftKey";
       }
       canvas.forEachObject(obj => { obj.selectable = false; obj.evented = false; });
     } else {
@@ -2327,6 +2353,50 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
     canvas.fire("object:modified", { target: obj });
     if (obj.fractionId) canvas.fire("text:changed", { target: obj });
   }, []);
+
+  const applyColor = useCallback((c) => {
+    setColor(c);
+    setHexInput(c);
+    const canvas = fabricRef.current;
+    const active = canvas?.getActiveObject();
+    if (!canvas || !active) return;
+    if (isTextObj(active)) active.set("fill", c);
+    else if (active.type === "path") active.set("stroke", c);
+    else if (isHrLine(active) && active.type === "line") active.set("stroke", c);
+    else if (active.type === "rect") {
+      if (active.shapeKind === "hrLine" || active.height <= 5) active.set("fill", c);
+      else active.set("stroke", c);
+    }
+    else if (active.type === "circle" || active.type === "triangle" || active.type === "polygon") {
+      active.set("stroke", c);
+    }
+    canvas.requestRenderAll();
+    commitCanvasChange(active);
+  }, [commitCanvasChange]);
+
+  const straightenSelection = useCallback(() => {
+    const canvas = fabricRef.current;
+    const active = canvas?.getActiveObject();
+    if (!canvas || !active || active.type !== "path" || active.shapeKind === "longDivision") return;
+    const data = Array.isArray(active.path) ? active.path : null;
+    if (!data || data.length < 2) return;
+    const first = data[0];
+    const last = data[data.length - 1];
+    const x1 = first[1];
+    const y1 = first[2];
+    const x2 = last[last.length - 2];
+    const y2 = last[last.length - 1];
+    if (![x1, y1, x2, y2].every(Number.isFinite)) return;
+    try {
+      active._setPath([["M", x1, y1], ["L", x2, y2]]);
+    } catch (err) {
+      return;
+    }
+    active.setCoords();
+    canvas.requestRenderAll();
+    commitCanvasChange(active);
+    if (typeof fabricRef.current?.refreshUI === "function") fabricRef.current.refreshUI();
+  }, [commitCanvasChange]);
 
   const applyFontSize = useCallback((next, updateInput = true) => {
     const canvas = fabricRef.current;
@@ -2828,6 +2898,13 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
   };
 
   const COLORS = ["#1a2540", "#1d4ed8", "#dc2626", "#15803d", "#7c3aed", "#ea7c0a"];
+  const PICKER_COLORS = [
+    "#000000", "#1a2540", "#4b5563", "#9ca3af", "#e5e7eb", "#ffffff",
+    "#dc2626", "#f97316", "#f59e0b", "#facc15", "#84cc16", "#22c55e",
+    "#15803d", "#10b981", "#14b8a6", "#06b6d4", "#0ea5e9", "#3b82f6",
+    "#1d4ed8", "#6366f1", "#8b5cf6", "#a855f7", "#d946ef", "#ec4899",
+    "#f43f5e", "#e11d48", "#92400e", "#78716c", "#0f766e", "#b45309",
+  ];
   const canvasObjects = fabricRef.current?.getObjects?.().filter(o => !o.isGuide) || [];
   const activeLayerIdSet = new Set(activeLayerIds);
   const activeObj = (activeLayerIds.length === 1 ? canvasObjects.find(o => o.layerId === activeLayerIds[0]) : null) || fabricRef.current?.getActiveObject();
@@ -2843,6 +2920,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
   const canPaste = !!(clipboardData.current?.objects?.length || clipboardClone.current || clipboard.current);
   const canGroup = activeCanvasObj?.type === "activeSelection";
   const canUngroup = activeCanvasObj?.type === "group";
+  const canStraighten = activeCanvasObj?.type === "path" && activeCanvasObj?.shapeKind !== "longDivision";
   const bumpBoardHeight = (delta) => {
     const cur = Math.round(boardRef.current?.getBoundingClientRect?.().height || height);
     const next = Math.max(MIN_H, Math.min(cur + delta, MAX_H));
@@ -3139,26 +3217,9 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
         </div>
 
         <div className="draw-bar-row draw-bar-row-secondary">
-          <div className="draw-bar-group" style={{ display: "flex", gap: 4, alignItems: "center", background: "var(--surface-h)", padding: "3px 8px", borderRadius: "8px" }}>
+          <div className="draw-bar-group" style={{ position: "relative", display: "flex", gap: 4, alignItems: "center", background: "var(--surface-h)", padding: "3px 8px", borderRadius: "8px" }} ref={colorPickerRef}>
             {COLORS.map(c => (
-              <div key={c} onClick={() => { 
-                setColor(c); 
-                const active = fabricRef.current?.getActiveObject();
-                if (active) {
-                  if (isTextObj(active)) active.set('fill', c);
-                  else if (active.type === 'path') active.set('stroke', c);
-                  else if (isHrLine(active) && active.type === 'line') active.set('stroke', c);
-                  else if (active.type === 'rect') {
-                    if (active.shapeKind === 'hrLine' || active.height <= 5) active.set('fill', c);
-                    else active.set('stroke', c);
-                  }
-                  else if (active.type === 'circle' || active.type === 'triangle' || active.type === 'polygon') {
-                    active.set('stroke', c);
-                  }
-                  fabricRef.current.requestRenderAll();
-                  commitCanvasChange(active);
-                }
-              }}
+              <div key={c} onClick={() => applyColor(c)}
                 style={{
                   width: 18, height: 18, borderRadius: "50%", background: c, cursor: "pointer", flexShrink: 0,
                   border: color === c ? "2px solid #fff" : "1px solid rgba(0,0,0,0.1)",
@@ -3166,6 +3227,63 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
                 }}
               />
             ))}
+            <button
+              type="button"
+              className={`draw-tb${colorPickerOpen ? " draw-on" : ""}`}
+              onClick={() => setColorPickerOpen(o => !o)}
+              title="Open Color Picker"
+              style={{ display: "flex", alignItems: "center", gap: 5, padding: "3px 7px" }}
+            >
+              <Palette size={14} />
+            </button>
+            {colorPickerOpen && (
+              <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, zIndex: 20, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: 12, boxShadow: "0 16px 44px rgba(0,0,0,0.4)", width: 240 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, opacity: 0.75, marginBottom: 10 }}>Color Picker</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: 6, marginBottom: 12 }}>
+                  {PICKER_COLORS.map(c => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => applyColor(c)}
+                      title={c}
+                      style={{
+                        width: 22, height: 22, borderRadius: "50%", background: c, cursor: "pointer", padding: 0,
+                        border: color === c ? "2px solid var(--text)" : "1px solid rgba(0,0,0,0.15)",
+                        boxShadow: color === c ? "0 0 0 2px #f5a623" : "none"
+                      }}
+                    />
+                  ))}
+                </div>
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <input
+                    type="color"
+                    value={/^#[0-9a-fA-F]{6}$/.test(color) ? color : "#1a2540"}
+                    onChange={e => applyColor(e.target.value)}
+                    title="Native color picker"
+                    style={{ width: 34, height: 30, padding: 0, border: "1px solid var(--border)", borderRadius: 6, background: "transparent", cursor: "pointer" }}
+                  />
+                  <input
+                    type="text"
+                    value={hexInput}
+                    onChange={e => {
+                      const v = e.target.value;
+                      setHexInput(v);
+                      if (/^#[0-9a-fA-F]{6}$/.test(v)) applyColor(v);
+                    }}
+                    onKeyDown={e => {
+                      if (e.key === "Enter") {
+                        if (/^#[0-9a-fA-F]{6}$/.test(hexInput)) applyColor(hexInput);
+                        e.currentTarget.blur();
+                      }
+                      if (e.key === "Escape") e.currentTarget.blur();
+                    }}
+                    placeholder="#1a2540"
+                    title="Enter a hex color code (e.g. #ff5722) and press Enter"
+                    style={{ flex: 1, minWidth: 0, padding: "5px 8px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--input-bg)", color: "var(--text)", fontFamily: "'Fira Mono',monospace", fontSize: 12, outline: "none" }}
+                  />
+                </div>
+              </div>
+            )}
             <div style={{ width: "1px", height: "20px", background: "var(--border)", margin: "0 4px" }} />
             <input type="range" min={1} max={20} value={size} onChange={e => setSize(+e.target.value)}
               style={{ width: 50, accentColor: "#f5a623" }} />
@@ -3187,6 +3305,12 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
               </button>
               <button className="draw-tb" onClick={() => fabricRef.current?.ungroupSelection?.()} disabled={!canUngroup} title="Ungroup">
                 Ungroup
+              </button>
+            </div>
+
+            <div className="draw-bar-group" style={{ display: "flex", gap: 4, background: "var(--surface-h)", padding: "3px", borderRadius: "8px" }}>
+              <button className="draw-tb" onClick={straightenSelection} disabled={!canStraighten} title="Straighten Line (S)">
+                <Ruler size={16} />
               </button>
             </div>
 
@@ -3289,7 +3413,6 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
               background: "var(--surface)",
               border: "1px solid var(--border)",
               borderRadius: 10,
-              padding: 6,
               boxShadow: "0 14px 40px rgba(0,0,0,0.35)",
               width: 124,
               minWidth: 0,
