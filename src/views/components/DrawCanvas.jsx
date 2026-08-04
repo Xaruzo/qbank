@@ -454,17 +454,14 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
     };
     canvas.on("mouse:wheel", handleWheelZoom);
 
-    const handleContextMenu = (ev) => {
+    const openContextMenuAt = (clientX, clientY, sourceEv) => {
       try {
-        ev.preventDefault();
-      } catch {}
-      try {
-        const p = canvas.getPointer(ev);
+        const p = canvas.getPointer(sourceEv);
         lastPointer.current = p;
       } catch {}
       let target = null;
       try {
-        target = canvas.findTarget(ev, true);
+        target = canvas.findTarget(sourceEv, true);
       } catch {}
       if (target && !target.isGuide) {
         const cur = canvas.getActiveObjects?.() || [];
@@ -480,13 +477,74 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
         refreshUI();
       }
       const rect = menuHostRef.current?.getBoundingClientRect?.();
-      const x = rect ? ev.clientX - rect.left : ev.clientX;
-      const y = rect ? ev.clientY - rect.top : ev.clientY;
+      const x = rect ? clientX - rect.left : clientX;
+      const y = rect ? clientY - rect.top : clientY;
       setCtxMenu({ x: Math.max(8, x), y: Math.max(8, y) });
+    };
+
+    const handleContextMenu = (ev) => {
+      try {
+        ev.preventDefault();
+        ev.stopPropagation?.();
+      } catch {}
+      const p = getClientPoint(ev);
+      openContextMenuAt(p.x, p.y, ev);
     };
 
     const ctxEl = canvas.upperCanvasEl || canvasEl;
     ctxEl?.addEventListener?.("contextmenu", handleContextMenu);
+
+    // Long-press opens the context menu on touch devices (mobile "right-click")
+    let longPressTimer = null;
+    let longPressStartPoint = null;
+
+    const clearLongPressTimer = () => {
+      if (longPressTimer) {
+        window.clearTimeout(longPressTimer);
+        longPressTimer = null;
+      }
+    };
+
+    const onCanvasTouchStart = (ev) => {
+      clearLongPressTimer();
+      const touches = ev?.touches;
+      if (!touches || touches.length !== 1) return;
+      const t = touches[0];
+      longPressStartPoint = { x: t.clientX, y: t.clientY };
+      longPressTimer = window.setTimeout(() => {
+        longPressTimer = null;
+        const point = longPressStartPoint;
+        longPressStartPoint = null;
+        if (!point) return;
+        try {
+          ev.preventDefault();
+        } catch {}
+        openContextMenuAt(point.x, point.y, {
+          clientX: point.x,
+          clientY: point.y,
+          touches: [{ clientX: point.x, clientY: point.y }],
+        });
+      }, 520);
+    };
+
+    const onCanvasTouchMove = (ev) => {
+      if (!longPressTimer || !longPressStartPoint) return;
+      const t = ev?.touches?.[0];
+      if (!t) return;
+      const dx = t.clientX - longPressStartPoint.x;
+      const dy = t.clientY - longPressStartPoint.y;
+      if (dx * dx + dy * dy > 36) clearLongPressTimer();
+    };
+
+    const onCanvasTouchEnd = () => {
+      clearLongPressTimer();
+      longPressStartPoint = null;
+    };
+
+    ctxEl?.addEventListener?.("touchstart", onCanvasTouchStart, { passive: true });
+    ctxEl?.addEventListener?.("touchmove", onCanvasTouchMove, { passive: true });
+    ctxEl?.addEventListener?.("touchend", onCanvasTouchEnd, { passive: true });
+    ctxEl?.addEventListener?.("touchcancel", onCanvasTouchEnd, { passive: true });
 
     const ensureLayerId = (obj) => {
       if (!obj || obj.isGuide) return;
@@ -619,6 +677,12 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       redoStack.current = []; // Clear redo on new action
     }
 
+    const exportDataURL = () => {
+      const currentWidth = typeof canvas.getWidth === "function" ? canvas.getWidth() : BASE_W;
+      const multiplier = Math.max(2, (BASE_W / (currentWidth || BASE_W)) * 2);
+      return canvas.toDataURL({ format: "png", quality: 0.8, multiplier });
+    };
+
     const handleChange = () => {
       saveHistory();
       const guides = canvas.getObjects().filter(o => o.isGuide);
@@ -627,7 +691,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
         canvas.renderAll();
       }
       const state = canvas.toJSON();
-      const dataURL = canvas.toDataURL({ format: 'png', quality: 0.8, multiplier: 2 });
+      const dataURL = exportDataURL();
       onChange({ state, dataURL, zoom: canvas.getZoom(), vpt: [...canvas.viewportTransform] });
     };
 
@@ -639,7 +703,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
         canvas.renderAll();
       }
       const state = canvas.toJSON();
-      const dataURL = canvas.toDataURL({ format: 'png', quality: 0.8, multiplier: 2 });
+      const dataURL = exportDataURL();
       onChange({ state, dataURL, zoom: canvas.getZoom(), vpt: [...canvas.viewportTransform] });
     };
 
@@ -1731,7 +1795,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
         canvas.renderAll();
         isInternalChange.current = false;
         const state = canvas.toJSON();
-        const dataURL = canvas.toDataURL({ format: 'png', quality: 0.8 });
+        const dataURL = exportDataURL();
         onChange({ state, dataURL });
         refreshUI();
       });
@@ -1754,7 +1818,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
         canvas.renderAll();
         isInternalChange.current = false;
         const state = canvas.toJSON();
-        const dataURL = canvas.toDataURL({ format: 'png', quality: 0.8 });
+        const dataURL = exportDataURL();
         onChange({ state, dataURL });
         refreshUI();
       });
@@ -2123,6 +2187,11 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
       ctxEl?.removeEventListener?.("contextmenu", handleContextMenu);
+      ctxEl?.removeEventListener?.("touchstart", onCanvasTouchStart);
+      ctxEl?.removeEventListener?.("touchmove", onCanvasTouchMove);
+      ctxEl?.removeEventListener?.("touchend", onCanvasTouchEnd);
+      ctxEl?.removeEventListener?.("touchcancel", onCanvasTouchEnd);
+      clearLongPressTimer();
       if (keyboardMoveCommitTimer.current) window.clearTimeout(keyboardMoveCommitTimer.current);
       if (textLiveTimer.current) window.clearTimeout(textLiveTimer.current);
       if (changeCommitTimer.current) window.clearTimeout(changeCommitTimer.current);
@@ -2139,13 +2208,19 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       if (ctxMenuRef.current && ctxMenuRef.current.contains(e.target)) return;
       setCtxMenu(null);
     };
+    const onTouchStart = (e) => {
+      if (ctxMenuRef.current && ctxMenuRef.current.contains(e.target)) return;
+      setCtxMenu(null);
+    };
     const onKeyDown = (e) => {
       if (e.key === "Escape") setCtxMenu(null);
     };
     window.addEventListener("mousedown", onMouseDown);
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
     window.addEventListener("keydown", onKeyDown);
     return () => {
       window.removeEventListener("mousedown", onMouseDown);
+      window.removeEventListener("touchstart", onTouchStart);
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [ctxMenu]);
@@ -3323,6 +3398,15 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
               </button>
             </div>
 
+            <div className="draw-bar-group" style={{ display: "flex", gap: 4, background: "var(--surface-h)", padding: "3px", borderRadius: "8px" }}>
+              <button className="draw-tb" onClick={() => fabricRef.current?.copySelection?.()} disabled={!canCopy} title="Copy (Ctrl+C)">
+                <Copy size={16} />
+              </button>
+              <button className="draw-tb" onClick={() => fabricRef.current?.pasteSelection?.()} disabled={!canPaste} title="Paste (Ctrl+V)">
+                <ClipboardPaste size={16} />
+              </button>
+            </div>
+
             <div className="draw-bar-group" style={{ display: "flex", gap: 4 }}>
               {(narrow || (useExternalLayers && isMobile)) && (
                 <button className="draw-tb" onClick={() => setLayersOpen(o => !o)} title={layersOpen ? "Hide Layers" : "Show Layers"}>
@@ -3481,7 +3565,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
           background: "linear-gradient(180deg, rgba(244,246,250,0.98), rgba(236,239,245,0.92))", padding: "12px", flex: 1, minWidth: 0,
           display: "flex", justifyContent: "center", alignItems: "flex-start",
           touchAction: "none"
-        }} ref={boardRef}>
+        }} className="draw-board-shell" ref={boardRef}>
           <div style={{ boxShadow: "0 18px 38px rgba(15,23,42,0.12)", width: "fit-content", margin: 0, borderRadius: 16, overflow: "hidden" }}>
             <div ref={canvasHostRef} />
           </div>
@@ -3498,7 +3582,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       </div>
 
       <p style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 8, textAlign: "right", fontStyle: "italic" }}>
-        Canva Mode: [Del] deletes, Arrow keys nudge, [Shift]+Arrow moves 10px, Double-click text to edit.
+        Canva Mode: [Del] deletes, Arrow keys nudge, [Shift]+Arrow moves 10px, Double-click text to edit, Long-press on touch opens the right-click menu.
       </p>
     </div>
   );
