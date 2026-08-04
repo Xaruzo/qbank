@@ -5,6 +5,7 @@ import DrawCanvas from "./DrawCanvas";
 import CustomSelect from "./CustomSelect";
 import FileUploadZone from "./FileUploadZone";
 import { ChevronLeft, Palette, Tag, TrendingUp, Paperclip, BookOpen, BookMarked, CheckCircle2 } from "lucide-react";
+import usePlainTextCopy from "../../utils/usePlainTextCopy";
 
 export default function TipDetailPage({
   question,
@@ -21,6 +22,8 @@ export default function TipDetailPage({
   const [attachmentType, setAttachmentType] = useState("");
   const [attachmentName, setAttachmentName] = useState("");
   const canvasLayersRef = useRef(null);
+  const copyAreaRef = useRef(null);
+  usePlainTextCopy(copyAreaRef);
 
   useEffect(() => {
     let active = true;
@@ -80,7 +83,7 @@ export default function TipDetailPage({
   const hasContent = !!(tipText.trim() || canvasData);
 
   return (
-    <div className="fu">
+    <div className="fu" ref={copyAreaRef}>
       <div className="qb-form-hdr">
         <button className="qb-back" onClick={onBack} style={{ display: "flex", alignItems: "center" }}>
           <ChevronLeft size={16} style={{ marginRight: 4 }} />

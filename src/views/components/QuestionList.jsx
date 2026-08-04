@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { TOPICS, SORT_OPTIONS } from "../../constants/appConstants";
 import { ClipboardList, ChevronRight, Plus, Star, ChevronDown, Lightbulb, Palette, BookOpen } from "lucide-react";
 import MarkdownText from "./MarkdownText";
+import usePlainTextCopy from "../../utils/usePlainTextCopy";
 
 export default function QuestionList({
   questions,
@@ -18,6 +19,8 @@ export default function QuestionList({
   const [sortOpen, setSortOpen] = useState(false);
   const [sortDir, setSortDir] = useState("down");
   const sortRef = useRef(null);
+  const copyAreaRef = useRef(null);
+  usePlainTextCopy(copyAreaRef);
 
   useEffect(() => {
     if (!sortOpen) return;
@@ -41,7 +44,7 @@ export default function QuestionList({
   }, [sortOpen]);
 
   return (
-    <section className="qb-question-section">
+    <section className="qb-question-section" ref={copyAreaRef}>
       <div className="qb-list-meta">
         <div className="qb-list-meta-left">
           <span className="qb-list-label">Question Feed</span>

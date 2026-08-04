@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { TOPICS, LETTERS } from "../../constants/appConstants";
 import { ChevronLeft, ChevronRight, X, Check, Search, ChevronDown, Star, Link2, Lightbulb } from "lucide-react";
 import MarkdownText from "./MarkdownText";
+import usePlainTextCopy from "../../utils/usePlainTextCopy";
 
 export default function QuestionDetail({
   question,
@@ -26,6 +27,8 @@ export default function QuestionDetail({
   const [shareLabel, setShareLabel] = useState("Share");
   const timerStartRef = useRef(0);
   const timerIdRef = useRef(null);
+  const copyAreaRef = useRef(null);
+  usePlainTextCopy(copyAreaRef);
 
   const prevRef = useRef(onPrev);
   const nextRef = useRef(onNext);
@@ -216,7 +219,7 @@ export default function QuestionDetail({
   };
 
   return (
-    <div className="fu">
+    <div className="fu" ref={copyAreaRef}>
       {expanded && solImg && (
         <div className="qb-modal-ov" onClick={() => setExpanded(false)}>
           <button className="qb-modal-close" onClick={(e) => { e.stopPropagation(); setExpanded(false); }}>

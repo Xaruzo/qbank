@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Flag, X, Search, AlertTriangle, CheckCircle2
 import MarkdownText from "./MarkdownText";
 import { LETTERS, TOPICS } from "../../constants/appConstants";
 import { calculateExamMetrics } from "../../utils/mockExamAnalytics";
+import usePlainTextCopy from "../../utils/usePlainTextCopy";
 
 const formatClock = (ms) => {
   const t = Math.max(0, Math.floor(ms / 1000));
@@ -19,6 +20,8 @@ export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit }) {
   const questionScrollRef = useRef(null);
   const expandedScrollRef = useRef(null);
   const expandedImgRef = useRef(null);
+  const copyAreaRef = useRef(null);
+  usePlainTextCopy(copyAreaRef);
   const [expandedZoom, setExpandedZoom] = useState(1);
 
   const endAt = exam.startedAt + exam.durationMs;
@@ -308,7 +311,7 @@ export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit }) {
 
   if (!q) {
     return (
-      <div className="qb-exam-run fu">
+    <div className="qb-exam-run fu" ref={copyAreaRef}>
         <div className="qb-exam-shell">
           {examHeader}
           {examSidePanel}
