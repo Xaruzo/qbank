@@ -77,10 +77,10 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
   const HR_LINE_THICKNESS = 2;
   const FONT_SIZE_MIN = 8;
   const FONT_SIZE_MAX = 120;
-  const LONG_DIVISION_DEFAULT_WIDTH = 54;
-  const LONG_DIVISION_DEFAULT_HEIGHT = 62;
   const LONG_DIVISION_PRESET_WIDTH = 58;
   const LONG_DIVISION_PRESET_HEIGHT = 66;
+  const LONG_DIVISION_DEFAULT_WIDTH = 50;
+  const LONG_DIVISION_DEFAULT_HEIGHT = 36;
   const LONG_DIVISION_MIN_AUTO_WIDTH = 50;
   const LONG_DIVISION_MIN_AUTO_HEIGHT = 36;
   
@@ -569,8 +569,12 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
 
     const convertLegacyITextToTextbox = (obj) => {
       if (!obj || obj.type !== "i-text") return null;
-      if (obj.fractionId) return null;
-      const center = typeof obj.getCenterPoint === "function" ? obj.getCenterPoint() : null;
+      if (obj.fractionId || obj.longDivisionId) return null;
+      const originX = obj.originX || "left";
+      const originY = obj.originY || "top";
+      const anchorPoint = typeof obj.getPointByOrigin === "function"
+        ? obj.getPointByOrigin(originX, originY)
+        : new fabric.Point(obj.left || 0, obj.top || 0);
       const o = typeof obj.toObject === "function" ? obj.toObject() : {};
       const text = obj.text ?? "";
       const layerId = obj.layerId;
@@ -582,8 +586,8 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       if (layerId) tb.layerId = layerId;
       if (Number.isFinite(o.height)) tb.boxHeight = o.height;
       configureTextObj(tb);
-      if (center) {
-        tb.setPositionByOrigin(center, "center", "center");
+      if (anchorPoint) {
+        tb.setPositionByOrigin(anchorPoint, originX, originY);
         tb.setCoords?.();
       }
       return tb;
@@ -746,8 +750,8 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
             : t.getPointByOrigin(ox, oy);
           applyLongDivisionGeometry(
             t,
-            (t.longDivisionWidth || t.width || 84) * sx,
-            (t.longDivisionHeight || t.height || 96) * sy,
+            (t.longDivisionWidth || t.width || LONG_DIVISION_DEFAULT_WIDTH) * sx,
+            (t.longDivisionHeight || t.height || LONG_DIVISION_DEFAULT_HEIGHT) * sy,
             { point: anchorPoint, originX: ox, originY: oy },
           );
         } else {
@@ -1349,8 +1353,8 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
         }
         applyLongDivisionGeometry(
           obj,
-          (obj.longDivisionWidth || obj.width || 84) * Math.abs(obj.scaleX || 1),
-          (obj.longDivisionHeight || obj.height || 96) * Math.abs(obj.scaleY || 1),
+          (obj.longDivisionWidth || obj.width || LONG_DIVISION_DEFAULT_WIDTH) * Math.abs(obj.scaleX || 1),
+          (obj.longDivisionHeight || obj.height || LONG_DIVISION_DEFAULT_HEIGHT) * Math.abs(obj.scaleY || 1),
           anchorOrigin && anchorPoint
             ? { point: anchorPoint, originX: anchorOrigin.originX, originY: anchorOrigin.originY }
             : null,

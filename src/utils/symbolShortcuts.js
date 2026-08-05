@@ -1,9 +1,4 @@
 const SHORTCUTS = [
-  { key: "1/2 ", char: "½ " },
-  { key: "1/3 ", char: "⅓ " },
-  { key: "2/3 ", char: "⅔ " },
-  { key: "1/4 ", char: "¼ " },
-  { key: "3/4 ", char: "¾ " },
   { key: "+-", char: "±" },
   { key: "^0", char: "⁰" },
   { key: "^1", char: "¹" },
@@ -30,7 +25,7 @@ const SHORTCUTS = [
 
 /**
  * Handles symbol shortcuts in an input/textarea.
- * Replaces patterns like "1/2 " with "½ ".
+ * Replaces patterns like "^2 " with "² ".
  * @param {HTMLInputElement|HTMLTextAreaElement} el 
  * @param {string} value 
  * @param {Function} onChange 
