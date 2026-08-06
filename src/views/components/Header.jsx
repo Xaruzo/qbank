@@ -93,24 +93,6 @@ export default function Header({
         </div>
         <div className="qb-spacer" />
         <div className="qb-hdr-right">
-          <button
-            type="button"
-            className="qb-theme-btn"
-            onClick={handleOpenHelp}
-            title="Open help center"
-          >
-            <HelpCircle size={16} />
-            <span className="qb-theme-btn-text">Help</span>
-          </button>
-          <button
-            type="button"
-            className="qb-theme-btn"
-            onClick={onToggleTheme}
-            title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-          >
-            {isDark ? <Sun size={16} /> : <Moon size={16} />}
-            <span className="qb-theme-btn-text">{isDark ? "Light" : "Dark"}</span>
-          </button>
           {!authAvailable ? (
             <button
               type="button"
