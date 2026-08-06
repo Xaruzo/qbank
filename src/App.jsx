@@ -451,6 +451,11 @@ export default function App() {
     setView("add");
   };
 
+  const handleCancelEdit = () => {
+    if (editId) goToQuestionDetail(editId);
+    else handleGoHome();
+  };
+
   const handleSelectQuestion = (id) => {
     setSelectedId(id);
     setDeepLinkShowSol(false);
@@ -562,10 +567,20 @@ export default function App() {
     setView("mockRun");
   };
 
+  const goToQuestionDetail = (id) => {
+    setEditId(null);
+    setSelectedId(id);
+    setDeepLinkShowSol(false);
+    setExam(null);
+    window.history.pushState({}, "", `?q=${encodeURIComponent(id)}`);
+    setView("detail");
+  };
+
   const handleSave = async (formData) => {
     if (!canManageQuestions) return;
     await saveQuestion(formData, editId);
-    handleGoHome();
+    if (editId) goToQuestionDetail(editId);
+    else handleGoHome();
   };
 
   const handleDelete = async (id) => {
@@ -890,7 +905,7 @@ export default function App() {
                   <QuestionForm 
                     initialData={editId ? qs.find(q => q.id === editId) : null} 
                     onSave={handleSave} 
-                    onCancel={handleGoHome} 
+                    onCancel={handleCancelEdit} 
                     layersHost={layersHostEl}
                     sideRailHost={editorAsideHostEl}
                   />
