@@ -2728,7 +2728,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       originY: "center",
       fill: "transparent",
       stroke: color,
-      strokeWidth: 5,
+      strokeWidth: HR_LINE_THICKNESS,
       strokeUniform: true,
       strokeLineCap: "butt",
       strokeLineJoin: "miter",
