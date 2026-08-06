@@ -49,16 +49,25 @@ const normalizeTipsMap = (value) => {
         category: 'general',
         masteryLevel: 'learning',
         lastReviewed: null,
+        attachmentUrl: "",
+        attachmentType: "",
+        attachmentName: "",
+        attachmentPath: "",
       };
     } else if (tipData && typeof tipData === "object") {
       const text = typeof tipData.text === "string" ? tipData.text : "";
-      if (!text.trim() && !tipData.canvasData) return acc;
+      const attachmentUrl = typeof tipData.attachmentUrl === "string" ? tipData.attachmentUrl : "";
+      if (!text.trim() && !tipData.canvasData && !attachmentUrl.trim()) return acc;
       acc[questionId] = {
         text,
         canvasData: tipData.canvasData || null,
         category: tipData.category || 'general',
         masteryLevel: tipData.masteryLevel || 'learning',
         lastReviewed: tipData.lastReviewed || null,
+        attachmentUrl,
+        attachmentType: typeof tipData.attachmentType === "string" ? tipData.attachmentType : "",
+        attachmentName: typeof tipData.attachmentName === "string" ? tipData.attachmentName : "",
+        attachmentPath: typeof tipData.attachmentPath === "string" ? tipData.attachmentPath : "",
       };
     }
     return acc;
@@ -81,7 +90,8 @@ const normalizePendingMap = (value) => {
     }
 
     const text = typeof op.text === "string" ? op.text : "";
-    if (!text.trim() && !op.canvasData) return acc;
+    const attachmentUrl = typeof op.attachmentUrl === "string" ? op.attachmentUrl : "";
+    if (!text.trim() && !op.canvasData && !attachmentUrl.trim()) return acc;
     
     acc[questionId] = {
       questionId,
@@ -90,6 +100,10 @@ const normalizePendingMap = (value) => {
       category: op.category || 'general',
       masteryLevel: op.masteryLevel || 'learning',
       lastReviewed: op.lastReviewed || null,
+      attachmentUrl,
+      attachmentType: typeof op.attachmentType === "string" ? op.attachmentType : "",
+      attachmentName: typeof op.attachmentName === "string" ? op.attachmentName : "",
+      attachmentPath: typeof op.attachmentPath === "string" ? op.attachmentPath : "",
       deleted: false,
       updatedAt: typeof op.updatedAt === "string" ? op.updatedAt : new Date().toISOString(),
     };
@@ -185,10 +199,40 @@ const applyPendingToTipsMap = (baseMap, pendingMap) => {
       category: operation.category || 'general',
       masteryLevel: operation.masteryLevel || 'learning',
       lastReviewed: operation.lastReviewed || null,
+      attachmentUrl: operation.attachmentUrl || "",
+      attachmentType: operation.attachmentType || "",
+      attachmentName: operation.attachmentName || "",
+      attachmentPath: operation.attachmentPath || "",
     };
   });
 
   return next;
+};
+
+const mergeCachedAttachmentFields = (baseMap, cachedMap) => {
+  const normalizedBase = normalizeTipsMap(baseMap);
+  const normalizedCache = normalizeTipsMap(cachedMap);
+  const questionIds = new Set([
+    ...Object.keys(normalizedBase),
+    ...Object.keys(normalizedCache),
+  ]);
+
+  return Array.from(questionIds).reduce((acc, questionId) => {
+    const tipData = normalizedBase[questionId] || {};
+    const cachedTip = normalizedCache[questionId];
+
+    if (!cachedTip && !normalizedBase[questionId]) return acc;
+
+    acc[questionId] = {
+      ...cachedTip,
+      ...tipData,
+      attachmentUrl: tipData.attachmentUrl || cachedTip?.attachmentUrl || "",
+      attachmentType: tipData.attachmentType || cachedTip?.attachmentType || "",
+      attachmentName: tipData.attachmentName || cachedTip?.attachmentName || "",
+      attachmentPath: tipData.attachmentPath || cachedTip?.attachmentPath || "",
+    };
+    return acc;
+  }, {});
 };
 
 const isMissingQuestionTipsTableError = (error) =>
@@ -234,6 +278,10 @@ const fetchRemoteTipsMap = async (userId) => {
           masteryLevel: row?.mastery_level || 'learning',
           lastReviewed: row?.last_reviewed || null,
           linkedQuestionId: row?.linked_question_id || null,
+          attachmentUrl: "",
+          attachmentType: "",
+          attachmentName: "",
+          attachmentPath: "",
         };
         return acc;
       }, {})
@@ -342,7 +390,8 @@ export const tipsModel = {
       }
 
       const latestPendingMap = await readPendingMap(userId);
-      const mergedMap = applyPendingToTipsMap(remoteMap, latestPendingMap);
+      const mergedRemoteMap = mergeCachedAttachmentFields(remoteMap, cachedMap);
+      const mergedMap = applyPendingToTipsMap(mergedRemoteMap, latestPendingMap);
       await writeTipsCache(mergedMap, userId);
       return mergedMap;
     } catch (error) {
@@ -369,6 +418,10 @@ export const tipsModel = {
         category: 'general',
         masteryLevel: 'learning',
         lastReviewed: null,
+        attachmentUrl: "",
+        attachmentType: "",
+        attachmentName: "",
+        attachmentPath: "",
       };
     } else if (tipData && typeof tipData === "object") {
       normalizedData = {
@@ -377,6 +430,10 @@ export const tipsModel = {
         category: tipData.category || 'general',
         masteryLevel: tipData.masteryLevel || 'learning',
         lastReviewed: tipData.lastReviewed || null,
+        attachmentUrl: typeof tipData.attachmentUrl === "string" ? tipData.attachmentUrl : "",
+        attachmentType: typeof tipData.attachmentType === "string" ? tipData.attachmentType : "",
+        attachmentName: typeof tipData.attachmentName === "string" ? tipData.attachmentName : "",
+        attachmentPath: typeof tipData.attachmentPath === "string" ? tipData.attachmentPath : "",
       };
     } else {
       normalizedData = {
@@ -385,11 +442,15 @@ export const tipsModel = {
         category: 'general',
         masteryLevel: 'learning',
         lastReviewed: null,
+        attachmentUrl: "",
+        attachmentType: "",
+        attachmentName: "",
+        attachmentPath: "",
       };
     }
 
     const trimmedText = normalizedData.text.trim();
-    const hasContent = trimmedText || normalizedData.canvasData;
+    const hasContent = trimmedText || normalizedData.canvasData || normalizedData.attachmentUrl.trim();
 
     if (!hasContent) {
       if (map[questionId] !== undefined) {
@@ -418,7 +479,11 @@ export const tipsModel = {
       && existingData.text === normalizedData.text
       && JSON.stringify(existingData.canvasData) === JSON.stringify(normalizedData.canvasData)
       && existingData.category === normalizedData.category
-      && existingData.masteryLevel === normalizedData.masteryLevel;
+      && existingData.masteryLevel === normalizedData.masteryLevel
+      && (existingData.attachmentUrl || "") === normalizedData.attachmentUrl
+      && (existingData.attachmentType || "") === normalizedData.attachmentType
+      && (existingData.attachmentName || "") === normalizedData.attachmentName
+      && (existingData.attachmentPath || "") === normalizedData.attachmentPath;
     
     if (isSame) return;
     
@@ -468,6 +533,10 @@ export const tipsModel = {
             category: operation.category || 'general',
             masteryLevel: operation.masteryLevel || 'learning',
             lastReviewed: operation.lastReviewed || null,
+            attachmentUrl: operation.attachmentUrl || "",
+            attachmentType: operation.attachmentType || "",
+            attachmentName: operation.attachmentName || "",
+            attachmentPath: operation.attachmentPath || "",
           };
           await syncRemoteTip(operation.questionId, tipData, userId);
         }

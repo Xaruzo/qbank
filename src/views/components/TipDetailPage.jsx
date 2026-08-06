@@ -21,6 +21,7 @@ export default function TipDetailPage({
   const [attachmentUrl, setAttachmentUrl] = useState("");
   const [attachmentType, setAttachmentType] = useState("");
   const [attachmentName, setAttachmentName] = useState("");
+  const [attachmentPath, setAttachmentPath] = useState("");
   const canvasLayersRef = useRef(null);
   const copyAreaRef = useRef(null);
   usePlainTextCopy(copyAreaRef);
@@ -38,6 +39,8 @@ export default function TipDetailPage({
         setAttachmentUrl(tipData.attachmentUrl || "");
         setAttachmentType(tipData.attachmentType || "");
         setAttachmentName(tipData.attachmentName || "");
+        setAttachmentPath(tipData.attachmentPath || "");
+        setActiveTab(tipData.attachmentUrl ? "attachment" : "diagram");
       } else if (typeof tipData === "string") {
         // Legacy string format
         setTipText(tipData);
@@ -47,6 +50,8 @@ export default function TipDetailPage({
         setAttachmentUrl("");
         setAttachmentType("");
         setAttachmentName("");
+        setAttachmentPath("");
+        setActiveTab("diagram");
       } else {
         setTipText("");
         setCanvasData(null);
@@ -55,6 +60,8 @@ export default function TipDetailPage({
         setAttachmentUrl("");
         setAttachmentType("");
         setAttachmentName("");
+        setAttachmentPath("");
+        setActiveTab("diagram");
       }
     });
     return () => {
@@ -72,15 +79,16 @@ export default function TipDetailPage({
         attachmentUrl,
         attachmentType,
         attachmentName,
+        attachmentPath,
         lastReviewed: new Date().toISOString(),
       }, userId).catch(() => {});
     }, 350);
     return () => window.clearTimeout(timeoutId);
-  }, [question.id, tipText, canvasData, category, masteryLevel, attachmentUrl, attachmentType, attachmentName, userId]);
+  }, [question.id, tipText, canvasData, category, masteryLevel, attachmentUrl, attachmentType, attachmentName, attachmentPath, userId]);
 
   const categoryInfo = Object.values(TIP_CATEGORIES).find(c => c.id === category) || TIP_CATEGORIES.GENERAL;
   const masteryInfo = Object.values(MASTERY_LEVELS).find(m => m.id === masteryLevel) || MASTERY_LEVELS.LEARNING;
-  const hasContent = !!(tipText.trim() || canvasData);
+  const hasContent = !!(tipText.trim() || canvasData || attachmentUrl.trim());
 
   return (
     <div className="fu" ref={copyAreaRef}>
@@ -216,16 +224,19 @@ export default function TipDetailPage({
             </div>
 
             <FileUploadZone
-              file={attachmentUrl ? { url: attachmentUrl, type: attachmentType, name: attachmentName } : null}
+              currentFile={attachmentUrl ? { url: attachmentUrl, type: attachmentType, name: attachmentName, path: attachmentPath } : null}
+              userId={userId}
               onFileUploaded={(fileData) => {
                 setAttachmentUrl(fileData.url);
                 setAttachmentType(fileData.type);
                 setAttachmentName(fileData.name);
+                setAttachmentPath(fileData.path || "");
               }}
               onRemoveFile={() => {
                 setAttachmentUrl("");
                 setAttachmentType("");
                 setAttachmentName("");
+                setAttachmentPath("");
               }}
             />
 
@@ -251,6 +262,7 @@ export default function TipDetailPage({
               setAttachmentUrl("");
               setAttachmentType("");
               setAttachmentName("");
+              setAttachmentPath("");
               tipsModel.deleteTip(question.id, userId).catch(() => {});
             }}
           >

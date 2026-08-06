@@ -4,12 +4,11 @@ import { tipsModel, TIP_CATEGORIES, MASTERY_LEVELS } from "../../models/tipsMode
 import MathText from "./MathText";
 import CustomSelect from "./CustomSelect";
 import { TipsSkeletonLoader } from "./SkeletonLoader";
-import { ChevronLeft, Search, Filter, Palette, FileText, Tag, TrendingUp } from "lucide-react";
+import { Search, Filter, Palette, FileText, Tag, TrendingUp, Image as ImageIcon, Paperclip } from "lucide-react";
 
 export default function TipsPage({
   questions,
   userId,
-  onBack,
   onSelectQuestion,
 }) {
   const [tipsMap, setTipsMap] = useState({});
@@ -34,7 +33,7 @@ export default function TipsPage({
 
   const filteredQuestions = useMemo(() => {
     const q = search.trim().toLowerCase();
-    let filtered = questions;
+    let filtered = [...questions];
 
     // Text search
     if (q) {
@@ -65,12 +64,46 @@ export default function TipsPage({
       });
     }
 
-    return filtered;
+    return filtered.sort((a, b) => {
+      const tipA = tipsMap?.[a.id];
+      const tipB = tipsMap?.[b.id];
+      const score = (tipData) => {
+        if (!tipData) return 0;
+        const isObject = typeof tipData === "object";
+        const attachmentBoost = isObject && tipData.attachmentUrl ? 4 : 0;
+        const imageBoost = isObject && String(tipData.attachmentType || "").startsWith("image/") ? 3 : 0;
+        const canvasBoost = isObject && tipData.canvasData ? 2 : 0;
+        const textBoost = (typeof tipData === "string" && tipData.trim()) || (isObject && tipData.text?.trim()) ? 1 : 0;
+        return attachmentBoost + imageBoost + canvasBoost + textBoost;
+      };
+
+      const scoreDiff = score(tipB) - score(tipA);
+      if (scoreDiff !== 0) return scoreDiff;
+      return String(a.label || a.question || "").localeCompare(String(b.label || b.question || ""));
+    });
   }, [questions, search, tipsMap, filterCategory, filterMastery]);
 
   const getTopic = (id) => TOPICS.find((t) => t.id === id) || TOPICS[0];
 
   const activeFiltersCount = (filterCategory !== "all" ? 1 : 0) + (filterMastery !== "all" ? 1 : 0);
+  const overview = useMemo(() => {
+    return filteredQuestions.reduce((acc, item) => {
+      const tipData = tipsMap?.[item.id];
+      const hasTip = !!(tipData && (
+        (typeof tipData === "string" && tipData.trim()) ||
+        (typeof tipData === "object" && (tipData.text?.trim() || tipData.canvasData || tipData.attachmentUrl))
+      ));
+      const hasAttachment = !!(tipData && typeof tipData === "object" && tipData.attachmentUrl);
+      const hasImage = !!(tipData && typeof tipData === "object" && String(tipData.attachmentType || "").startsWith("image/"));
+      const hasDiagram = !!(tipData && typeof tipData === "object" && tipData.canvasData);
+
+      if (hasTip) acc.saved += 1;
+      if (hasAttachment) acc.attachments += 1;
+      if (hasImage) acc.images += 1;
+      if (hasDiagram) acc.diagrams += 1;
+      return acc;
+    }, { saved: 0, attachments: 0, images: 0, diagrams: 0 });
+  }, [filteredQuestions, tipsMap]);
 
   if (tipsLoading) {
     return <TipsSkeletonLoader />;
@@ -80,8 +113,11 @@ export default function TipsPage({
     <div className="fu">
       <div className="qb-section-head" style={{ marginBottom: 24 }}>
         <div>
-          <span className="qb-section-kicker">Study Notes</span>
+          <span className="qb-section-kicker">Tips Workspace</span>
           <h2 className="qb-section-title">Tips & Tricks</h2>
+          <p className="qb-list-hero-copy" style={{ marginTop: 10, maxWidth: 720 }}>
+            A lighter review view for reminders, tense cues, formulas, and uploaded reference images without repeating the full home feed.
+          </p>
         </div>
       </div>
 
@@ -89,7 +125,7 @@ export default function TipsPage({
         <div className="qb-list-meta qb-list-meta-tips">
           <div className="qb-list-meta-left qb-list-meta-left-tips">
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <span className="qb-list-label">Pick a Question</span>
+              <span className="qb-list-label">Tip Library</span>
               <span className="qb-list-value">{filteredQuestions.length} shown</span>
             </div>
             <button
@@ -208,7 +244,30 @@ export default function TipsPage({
           </div>
         )}
 
-        <div className="qb-question-stack">
+        <div className="qb-tips-overview">
+          <div className="qb-tips-overview-card">
+            <span className="qb-list-label">Saved Tips</span>
+            <strong>{overview.saved}</strong>
+            <p>Questions that already have notes, diagrams, or uploads.</p>
+          </div>
+          <div className="qb-tips-overview-card">
+            <span className="qb-list-label">Uploads</span>
+            <strong>{overview.attachments}</strong>
+            <p>Attached files or references stored inside your tip space.</p>
+          </div>
+          <div className="qb-tips-overview-card">
+            <span className="qb-list-label">Images</span>
+            <strong>{overview.images}</strong>
+            <p>Image-based memory aids that can be scanned quickly while reviewing.</p>
+          </div>
+          <div className="qb-tips-overview-card">
+            <span className="qb-list-label">Diagrams</span>
+            <strong>{overview.diagrams}</strong>
+            <p>Visual sketches and whiteboard diagrams linked to question methods.</p>
+          </div>
+        </div>
+
+        <div className="qb-tips-grid">
           {filteredQuestions.length === 0 ? (
             <div className="qb-empty">
               <div className="qb-empty-t">No results found</div>
@@ -220,7 +279,7 @@ export default function TipsPage({
               const tipData = tipsMap?.[q.id];
               const hasTip = !!(tipData && (
                 (typeof tipData === "string" && tipData.trim()) ||
-                (typeof tipData === "object" && (tipData.text?.trim() || tipData.canvasData))
+                (typeof tipData === "object" && (tipData.text?.trim() || tipData.canvasData || tipData.attachmentUrl))
               ));
               const hasCanvas = !!(tipData && typeof tipData === "object" && tipData.canvasData);
               const hasText = !!(tipData && (
@@ -231,28 +290,48 @@ export default function TipsPage({
               const categoryInfo = Object.values(TIP_CATEGORIES).find(c => c.id === category) || TIP_CATEGORIES.GENERAL;
               const mastery = tipData && typeof tipData === "object" ? tipData.masteryLevel : "learning";
               const masteryInfo = Object.values(MASTERY_LEVELS).find(m => m.id === mastery) || MASTERY_LEVELS.LEARNING;
+              const hasAttachment = !!(tipData && typeof tipData === "object" && tipData.attachmentUrl);
+              const attachmentUrl = tipData && typeof tipData === "object" ? tipData.attachmentUrl : "";
+              const attachmentType = tipData && typeof tipData === "object" ? tipData.attachmentType : "";
+              const attachmentName = tipData && typeof tipData === "object" ? tipData.attachmentName : "";
+              const hasImageAttachment = hasAttachment && String(attachmentType || "").startsWith("image/");
 
               return (
                 <div
                   key={q.id}
-                  className="qb-qcard"
+                  className={`qb-tip-card${hasTip ? " qb-tip-card-has-content" : ""}${hasImageAttachment ? " qb-tip-card-has-image" : ""}`}
                   onClick={() => onSelectQuestion(q.id)}
                 >
+                  {hasImageAttachment && (
+                    <div className="qb-tip-card-preview">
+                      <img src={attachmentUrl} alt={attachmentName || q.label || "Tip attachment"} />
+                    </div>
+                  )}
+
                   <div className="qb-qcard-top">
                     <div className="qb-qcard-top-left">
-                      <span className="qb-qnum">Question {String(i + 1).padStart(3, "0")}</span>
+                      <span className="qb-qnum">Tip {String(i + 1).padStart(3, "0")}</span>
                       <span className="qb-badge" style={{ color: t.color, background: `${t.color}20` }}>
                         {t.short}
                       </span>
+                      {hasAttachment && !hasImageAttachment && (
+                        <span className="qb-tip-badge" style={{ background: "#2563eb14", color: "#60a5fa", border: "1px solid #2563eb33" }}>
+                          <Paperclip size={12} />
+                          Upload
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="qb-qcard-body">
                     <div className="qb-qcard-heading">
                       <span className="qb-qcard-label">{q.label || "General Review"}</span>
                     </div>
-                    <span className="qb-qtext">
+                    <span className="qb-qtext qb-tip-card-question">
                       <MathText text={q.question} />
                     </span>
+                    {attachmentName && !hasImageAttachment && (
+                      <div className="qb-tip-card-file-name">{attachmentName}</div>
+                    )}
                   </div>
                   <div className="qb-qcard-foot">
                     <div className="qb-qcard-meta">
@@ -297,6 +376,20 @@ export default function TipsPage({
                               Notes
                             </span>
                           )}
+                          {hasAttachment && (
+                            <span
+                              className="qb-tip-badge"
+                              style={{
+                                background: "#0ea5e920",
+                                color: "#0ea5e9",
+                                border: "1px solid #0ea5e940",
+                              }}
+                              title={hasImageAttachment ? "Has uploaded image" : "Has uploaded file"}
+                            >
+                              {hasImageAttachment ? <ImageIcon size={12} /> : <Paperclip size={12} />}
+                              {hasImageAttachment ? "Image" : "File"}
+                            </span>
+                          )}
                           {hasCanvas && (
                             <span
                               className="qb-tip-badge"
@@ -314,7 +407,7 @@ export default function TipsPage({
                         </>
                       )}
                     </div>
-                    <span className="qb-qcard-open">Open Tip</span>
+                    <span className="qb-qcard-open">{hasTip ? "Open Tip" : "Add Tip"}</span>
                   </div>
                 </div>
               );

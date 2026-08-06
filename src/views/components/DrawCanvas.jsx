@@ -49,6 +49,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
   const resizeAutoScrollGuardRef = useRef({ skipUntil: 0 });
   const fontCommitTimer = useRef(null);
   const textLiveTimer = useRef(null);
+  const textExportTimer = useRef(null);
   const changeCommitTimer = useRef(null);
   const keyboardMoveCommitTimer = useRef(null);
   const [tool, setTool] = useState("move");
@@ -683,7 +684,8 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
 
     const exportDataURL = () => {
       const currentWidth = typeof canvas.getWidth === "function" ? canvas.getWidth() : BASE_W;
-      const multiplier = Math.max(2, (BASE_W / (currentWidth || BASE_W)) * 2);
+      // Cap the multiplier so narrow/tall canvases don't rasterize huge images on every change.
+      const multiplier = Math.min(2.5, Math.max(2, (BASE_W / (currentWidth || BASE_W)) * 2));
       return canvas.toDataURL({ format: "png", quality: 0.8, multiplier });
     };
 
@@ -699,13 +701,27 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       onChange({ state, dataURL, zoom: canvas.getZoom(), vpt: [...canvas.viewportTransform] });
     };
 
-    const handleLiveChange = () => {
-      if (isInternalChange.current) return;
+    const removeStrayGuides = () => {
       const guides = canvas.getObjects().filter(o => o.isGuide);
       if (guides.length) {
         guides.forEach(g => canvas.remove(g));
         canvas.renderAll();
       }
+    };
+
+    // Cheap push used while typing: serializes state only, no PNG rasterization.
+    const handleLiveState = () => {
+      if (isInternalChange.current) return;
+      removeStrayGuides();
+      const state = canvas.toJSON();
+      onChange({ state, zoom: canvas.getZoom(), vpt: [...canvas.viewportTransform] });
+    };
+
+    // Full push including the PNG preview. Fired once the user pauses typing,
+    // so the expensive dataURL export never runs in a per-keystroke loop.
+    const handleLiveExport = () => {
+      if (isInternalChange.current) return;
+      removeStrayGuides();
       const state = canvas.toJSON();
       const dataURL = exportDataURL();
       onChange({ state, dataURL, zoom: canvas.getZoom(), vpt: [...canvas.viewportTransform] });
@@ -715,8 +731,16 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       if (textLiveTimer.current) window.clearTimeout(textLiveTimer.current);
       textLiveTimer.current = window.setTimeout(() => {
         textLiveTimer.current = null;
-        handleLiveChange();
+        handleLiveState();
       }, 160);
+    };
+
+    const scheduleLiveExport = () => {
+      if (textExportTimer.current) window.clearTimeout(textExportTimer.current);
+      textExportTimer.current = window.setTimeout(() => {
+        textExportTimer.current = null;
+        handleLiveExport();
+      }, 600);
     };
 
     const scheduleCommitChange = () => {
@@ -1752,7 +1776,10 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
     canvas.on("text:changed", (e) => {
       syncFraction(e.target);
       syncLongDivision(e.target);
-      if (!e?.target?.isGuide) scheduleLiveChange();
+      if (!e?.target?.isGuide) {
+        scheduleLiveChange();
+        scheduleLiveExport();
+      }
     });
 
     // Handle fraction part deletion to prevent locking
@@ -2087,6 +2114,16 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       const activeNow = canvas.getActiveObject();
       const isEditingText = isTextObj(activeNow) && !!activeNow.isEditing;
 
+      // Guaranteed way out of a stuck text edit: fabric normally handles Escape
+      // on its hidden textarea, but if that listener is ever lost this still
+      // lets the user cancel the edit instead of locking the canvas.
+      if (e.key === "Escape" && isEditingText && typeof activeNow.exitEditing === "function") {
+        activeNow.exitEditing();
+        refreshUI();
+        scheduleCommitChange();
+        return;
+      }
+
       if (e.code === "Space" && !isTyping && !isEditingText) {
         spaceDownRef.current = true;
         e.preventDefault();
@@ -2153,7 +2190,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
         e.preventDefault();
       } else if (key === 's' && !ctrlKey && !isTyping && !isEditingText) {
         straightenSelection();
-      } else if ((e.key === "Delete" || e.key === "Backspace") && !e.target.tagName.match(/INPUT|TEXTAREA/)) {
+      } else if ((e.key === "Delete" || e.key === "Backspace") && !(e.target?.tagName && e.target.tagName.match(/INPUT|TEXTAREA/))) {
         deleteSelection();
       }
     };
@@ -2175,6 +2212,24 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
 
+    const handleWindowBlur = () => {
+      spaceDownRef.current = false;
+      if (isPanningRef.current) {
+        isPanningRef.current = false;
+        canvas.skipTargetFind = toolRef.current === "pan";
+        canvas.selection = (!canvas.isDrawingMode && toolRef.current === "move");
+        canvas.defaultCursor = canvas.isDrawingMode ? "crosshair" : "default";
+        canvas.requestRenderAll();
+      }
+      const editing = canvas.getActiveObject();
+      if (isTextObj(editing) && editing.isEditing && typeof editing.exitEditing === "function") {
+        editing.exitEditing();
+        refreshUI();
+        scheduleCommitChange();
+      }
+    };
+    window.addEventListener("blur", handleWindowBlur);
+
     fabricRef.current.performUndo = performUndo;
     fabricRef.current.performRedo = performRedo;
     fabricRef.current.copySelection = copySelection;
@@ -2190,6 +2245,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
+      window.removeEventListener("blur", handleWindowBlur);
       ctxEl?.removeEventListener?.("contextmenu", handleContextMenu);
       ctxEl?.removeEventListener?.("touchstart", onCanvasTouchStart);
       ctxEl?.removeEventListener?.("touchmove", onCanvasTouchMove);
@@ -2198,6 +2254,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       clearLongPressTimer();
       if (keyboardMoveCommitTimer.current) window.clearTimeout(keyboardMoveCommitTimer.current);
       if (textLiveTimer.current) window.clearTimeout(textLiveTimer.current);
+      if (textExportTimer.current) window.clearTimeout(textExportTimer.current);
       if (changeCommitTimer.current) window.clearTimeout(changeCommitTimer.current);
       canvas.off("object:scaling");
       canvas.off("mouse:wheel", handleWheelZoom);
