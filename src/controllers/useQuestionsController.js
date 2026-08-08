@@ -146,20 +146,27 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
     if (userId) setFavoritesLoading(true);
     else setFavoritesLoading(false);
 
-    if (renderedInitialState) setRefreshing(true);
+    const canReachNetwork =
+      !!supabase && (typeof navigator === "undefined" || navigator.onLine !== false);
+    const shouldFetchFreshQuestions = canReachNetwork;
+
+    if (renderedInitialState && shouldFetchFreshQuestions) setRefreshing(true);
 
     void (async () => {
       try {
-        const [freshQuestionsValue, freshFavoriteIds] = await Promise.all([
-          storageModel.getFreshQuestions().catch((error) => {
-            console.error("Failed to refresh questions:", error);
-            return null;
-          }),
-          favoritesModel.getAll(userId).catch((error) => {
-            console.error("Failed to refresh favorites:", error);
-            return null;
-          }),
-        ]);
+        const freshQuestionsValue = !shouldFetchFreshQuestions
+          ? null
+          : await storageModel.getFreshQuestions(true).catch((error) => {
+              console.error("Failed to refresh questions:", error);
+              return null;
+            });
+
+        if (initRequestRef.current !== requestId) return;
+
+        const freshFavoriteIds = await favoritesModel.getAll(userId).catch((error) => {
+          console.error("Failed to refresh favorites:", error);
+          return null;
+        });
 
         if (initRequestRef.current !== requestId) return;
 
