@@ -4,7 +4,7 @@ import { tipsModel, TIP_CATEGORIES, MASTERY_LEVELS } from "../../models/tipsMode
 import MathText from "./MathText";
 import CustomSelect from "./CustomSelect";
 import { TipsSkeletonLoader } from "./SkeletonLoader";
-import { Search, Filter, Palette, FileText, Tag, TrendingUp, Image as ImageIcon, Paperclip } from "lucide-react";
+import { Search, Filter, Palette, FileText, Tag, TrendingUp, Image as ImageIcon, Paperclip, RefreshCw } from "lucide-react";
 
 export default function TipsPage({
   questions,
@@ -13,6 +13,7 @@ export default function TipsPage({
 }) {
   const [tipsMap, setTipsMap] = useState({});
   const [tipsLoading, setTipsLoading] = useState(true);
+  const [pendingSyncCount, setPendingSyncCount] = useState(0);
   const [search, setSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterMastery, setFilterMastery] = useState("all");
@@ -25,9 +26,44 @@ export default function TipsPage({
       if (!active) return;
       setTipsMap(map || {});
       setTipsLoading(false);
+    }).catch(() => {
+      if (active) setTipsLoading(false);
     });
     return () => {
       active = false;
+    };
+  }, [userId]);
+
+  useEffect(() => {
+    let active = true;
+
+    const refreshSync = async () => {
+      if (!userId) {
+        if (active) setPendingSyncCount(0);
+        return;
+      }
+      try {
+        const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+        const count = await tipsModel.getPendingCount(userId);
+        if (!active) return;
+        setPendingSyncCount(count);
+        if (count > 0 && !offline) {
+          const map = await tipsModel.getAll(userId);
+          if (!active) return;
+          setTipsMap(map || {});
+          const remaining = await tipsModel.getPendingCount(userId);
+          if (active) setPendingSyncCount(remaining);
+        }
+      } catch {
+        // keep polling; a transient failure should not break the page
+      }
+    };
+
+    refreshSync();
+    const intervalId = window.setInterval(refreshSync, 12000);
+    return () => {
+      active = false;
+      window.clearInterval(intervalId);
     };
   }, [userId]);
 
@@ -291,6 +327,24 @@ export default function TipsPage({
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               <span className="qb-list-label">Tip Library</span>
               <span className="qb-list-value">{filteredQuestions.length} shown</span>
+              {pendingSyncCount > 0 && (
+                <span
+                  className="qb-tip-badge"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                    background: "#f59e0b20",
+                    color: "#f59e0b",
+                    border: "1px solid #f59e0b40",
+                    animation: pendingSyncCount > 0 && navigator.onLine !== false ? "qb-sync-pulse 1.6s ease-in-out infinite" : "none",
+                  }}
+                  title="Changes waiting to sync to Supabase - they will upload automatically when the connection is ready"
+                >
+                  <RefreshCw size={12} />
+                  Syncing {pendingSyncCount} change{pendingSyncCount > 1 ? "s" : ""}
+                </span>
+              )}
             </div>
             <button
               className="qb-filter-toggle"

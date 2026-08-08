@@ -5,7 +5,9 @@ const TIPS_CACHE_KEY = "cse-qbank-tips-cache-v2";
 const TIPS_PENDING_KEY = "cse-qbank-tips-pending-v2";
 const QUESTION_TIPS_TABLE = "question_tips";
 let remoteTipsTableAvailable = true;
+let remoteTipsDisabledAt = 0;
 let hasLoggedMissingTipsTable = false;
+const REMOTE_TIPS_DISABLED_MS = 60 * 1000;
 
 // Tip categories
 export const TIP_CATEGORIES = {
@@ -241,17 +243,39 @@ const isMissingQuestionTipsTableError = (error) =>
   && typeof error.message === "string"
   && error.message.includes(`public.${QUESTION_TIPS_TABLE}`);
 
+const isRemoteTipsEnabledNow = () =>
+  remoteTipsTableAvailable || Date.now() >= remoteTipsDisabledAt + REMOTE_TIPS_DISABLED_MS;
+
+const logRemoteTipError = (context, error) => {
+  if (!error) return;
+  const message = typeof error.message === "string" ? error.message : "";
+  const isRlsBlocked =
+    error.code === "42501"
+    || /row-level security|permission denied|new row violates/i.test(message)
+    || /pgrst301|pgrst204/i.test(error.code || "");
+  if (isRlsBlocked) {
+    console.error(
+      `[${context}] Supabase rejected the request (row-level security). `
+      + `The '${QUESTION_TIPS_TABLE}' table has no per-user policies yet - run 'supabase/setup-policies.sql' in the Supabase SQL editor. `
+      + `The tip is kept pending and will sync automatically once policies exist.`
+    );
+  } else {
+    console.error(`[${context}]`, error);
+  }
+};
+
 const markRemoteTipsUnavailable = () => {
   remoteTipsTableAvailable = false;
+  remoteTipsDisabledAt = Date.now();
   if (hasLoggedMissingTipsTable) return;
   hasLoggedMissingTipsTable = true;
   console.warn(
-    `Supabase table '${QUESTION_TIPS_TABLE}' is not available. Tips will continue using local storage until the table is created.`
+    `Supabase table '${QUESTION_TIPS_TABLE}' is not available. Tips will continue using local storage; retrying again in ${REMOTE_TIPS_DISABLED_MS / 1000}s.`
   );
 };
 
 const fetchRemoteTipsMap = async (userId) => {
-  if (!remoteTipsTableAvailable) return {};
+  if (!isRemoteTipsEnabledNow()) return {};
 
   const { data, error } = await supabase
     .from(QUESTION_TIPS_TABLE)
@@ -263,6 +287,8 @@ const fetchRemoteTipsMap = async (userId) => {
     return {};
   }
   if (error) throw error;
+
+  remoteTipsTableAvailable = true;
 
   return Array.isArray(data)
     ? data.reduce((acc, row) => {
@@ -289,7 +315,7 @@ const fetchRemoteTipsMap = async (userId) => {
 };
 
 const syncRemoteTip = async (questionId, tipData, userId) => {
-  if (!remoteTipsTableAvailable) return;
+  if (!isRemoteTipsEnabledNow()) return;
 
   const { error } = await supabase
     .from(QUESTION_TIPS_TABLE)
@@ -312,10 +338,12 @@ const syncRemoteTip = async (questionId, tipData, userId) => {
     return;
   }
   if (error) throw error;
+
+  remoteTipsTableAvailable = true;
 };
 
 const deleteRemoteTip = async (questionId, userId) => {
-  if (!remoteTipsTableAvailable) return;
+  if (!isRemoteTipsEnabledNow()) return;
 
   const { error } = await supabase
     .from(QUESTION_TIPS_TABLE)
@@ -328,6 +356,8 @@ const deleteRemoteTip = async (questionId, userId) => {
     return;
   }
   if (error) throw error;
+
+  remoteTipsTableAvailable = true;
 };
 
 const migrateLegacyTipsToUser = async (userId) => {
@@ -468,7 +498,7 @@ export const tipsModel = {
         await deleteRemoteTip(questionId, userId);
         await dequeuePendingOperation(questionId, userId);
       } catch (error) {
-        console.error("Failed to delete tip from Supabase:", error);
+        logRemoteTipError("Failed to delete tip from Supabase", error);
       }
 
       return;
@@ -500,7 +530,7 @@ export const tipsModel = {
       await syncRemoteTip(questionId, normalizedData, userId);
       await dequeuePendingOperation(questionId, userId);
     } catch (error) {
-      console.error("Failed to save tip to Supabase:", error);
+      logRemoteTipError("Failed to save tip to Supabase", error);
     }
   },
 
@@ -508,9 +538,15 @@ export const tipsModel = {
     await this.setTip(questionId, { text: "", canvasData: null }, userId);
   },
 
+  async getPendingCount(userId) {
+    if (!userId) return 0;
+    const pending = await readPendingMap(userId);
+    return Object.keys(pending).length;
+  },
+
   async flushPending(userId) {
     if (!userId || !supabase) return false;
-    if (!remoteTipsTableAvailable) return false;
+    if (!isRemoteTipsEnabledNow()) return false;
     if (typeof navigator !== "undefined" && navigator.onLine === false) return false;
 
     const pending = Object.values(await readPendingMap(userId)).sort((a, b) =>
@@ -542,7 +578,7 @@ export const tipsModel = {
         }
         syncedAny = true;
       } catch (error) {
-        console.error("Failed to sync pending tip:", error);
+        logRemoteTipError("Failed to sync pending tip", error);
         failed[operation.questionId] = operation;
       }
     }
