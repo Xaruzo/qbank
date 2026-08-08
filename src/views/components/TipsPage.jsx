@@ -85,6 +85,31 @@ export default function TipsPage({
 
   const getTopic = (id) => TOPICS.find((t) => t.id === id) || TOPICS[0];
 
+  const tipIndexMap = useMemo(() => {
+    const m = new Map();
+    filteredQuestions.forEach((q, idx) => m.set(q.id, idx));
+    return m;
+  }, [filteredQuestions]);
+
+  const tipColumns = useMemo(() => {
+    const cols = [[], []];
+    const sums = [0, 0];
+    filteredQuestions.forEach((q) => {
+      const tipData = tipsMap?.[q.id];
+      const hasImage = !!(
+        tipData &&
+        typeof tipData === "object" &&
+        tipData.attachmentUrl &&
+        String(tipData.attachmentType || "").startsWith("image/")
+      );
+      const weight = hasImage ? 2 : 1;
+      const col = sums[0] <= sums[1] ? 0 : 1;
+      cols[col].push(q);
+      sums[col] += weight;
+    });
+    return cols;
+  }, [filteredQuestions, tipsMap]);
+
   const activeFiltersCount = (filterCategory !== "all" ? 1 : 0) + (filterMastery !== "all" ? 1 : 0);
   const overview = useMemo(() => {
     return filteredQuestions.reduce((acc, item) => {
@@ -108,6 +133,145 @@ export default function TipsPage({
   if (tipsLoading) {
     return <TipsSkeletonLoader />;
   }
+
+  const renderTipCard = (q, i, stretch) => {
+    const t = getTopic(q.topic);
+    const tipData = tipsMap?.[q.id];
+    const hasTip = !!(tipData && (
+      (typeof tipData === "string" && tipData.trim()) ||
+      (typeof tipData === "object" && (tipData.text?.trim() || tipData.canvasData || tipData.attachmentUrl))
+    ));
+    const hasCanvas = !!(tipData && typeof tipData === "object" && tipData.canvasData);
+    const hasText = !!(tipData && (
+      (typeof tipData === "string" && tipData.trim()) ||
+      (typeof tipData === "object" && tipData.text?.trim())
+    ));
+    const category = tipData && typeof tipData === "object" ? tipData.category : "general";
+    const categoryInfo = Object.values(TIP_CATEGORIES).find(c => c.id === category) || TIP_CATEGORIES.GENERAL;
+    const mastery = tipData && typeof tipData === "object" ? tipData.masteryLevel : "learning";
+    const masteryInfo = Object.values(MASTERY_LEVELS).find(m => m.id === mastery) || MASTERY_LEVELS.LEARNING;
+    const hasAttachment = !!(tipData && typeof tipData === "object" && tipData.attachmentUrl);
+    const attachmentUrl = tipData && typeof tipData === "object" ? tipData.attachmentUrl : "";
+    const attachmentType = tipData && typeof tipData === "object" ? tipData.attachmentType : "";
+    const attachmentName = tipData && typeof tipData === "object" ? tipData.attachmentName : "";
+    const hasImageAttachment = hasAttachment && String(attachmentType || "").startsWith("image/");
+
+    return (
+      <div
+        key={q.id}
+        className={`qb-tip-card${hasTip ? " qb-tip-card-has-content" : ""}${hasImageAttachment ? " qb-tip-card-has-image" : ""}${stretch && hasImageAttachment ? " qb-tip-card-stretch" : ""}`}
+        onClick={() => onSelectQuestion(q.id)}
+      >
+        {hasImageAttachment && (
+          <div className="qb-tip-card-preview">
+            <img src={attachmentUrl} alt={attachmentName || q.label || "Tip attachment"} />
+          </div>
+        )}
+
+        <div className="qb-qcard-top">
+          <div className="qb-qcard-top-left">
+            <span className="qb-qnum">Tip {String(i + 1).padStart(3, "0")}</span>
+            <span className="qb-badge" style={{ color: t.color, background: `${t.color}20` }}>
+              {t.short}
+            </span>
+            {hasAttachment && !hasImageAttachment && (
+              <span className="qb-tip-badge" style={{ background: "#2563eb14", color: "#60a5fa", border: "1px solid #2563eb33" }}>
+                <Paperclip size={12} />
+                Upload
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="qb-qcard-body">
+          <div className="qb-qcard-heading">
+            <span className="qb-qcard-label">{q.label || "General Review"}</span>
+          </div>
+          <span className="qb-qtext qb-tip-card-question">
+            <MathText text={q.question} />
+          </span>
+          {attachmentName && !hasImageAttachment && (
+            <div className="qb-tip-card-file-name">{attachmentName}</div>
+          )}
+        </div>
+        <div className="qb-qcard-foot">
+          <div className="qb-qcard-meta">
+            <span className="qb-qcard-meta-chip">{t.label}</span>
+            {hasTip && (
+              <>
+                <span
+                  className="qb-tip-badge"
+                  style={{
+                    background: `${categoryInfo.color}20`,
+                    color: categoryInfo.color,
+                    border: `1px solid ${categoryInfo.color}40`,
+                  }}
+                  title={categoryInfo.label}
+                >
+                  <Tag size={12} />
+                  {categoryInfo.label}
+                </span>
+                <span
+                  className="qb-tip-badge"
+                  style={{
+                    background: `${masteryInfo.color}20`,
+                    color: masteryInfo.color,
+                    border: `1px solid ${masteryInfo.color}40`,
+                  }}
+                  title={masteryInfo.label}
+                >
+                  <span style={{ fontSize: 11 }}>{masteryInfo.icon}</span>
+                  {masteryInfo.label}
+                </span>
+                {hasText && (
+                  <span
+                    className="qb-tip-badge"
+                    style={{
+                      background: "#3b82f620",
+                      color: "#3b82f6",
+                      border: "1px solid #3b82f640",
+                    }}
+                    title="Has text notes"
+                  >
+                    <FileText size={12} />
+                    Notes
+                  </span>
+                )}
+                {hasAttachment && (
+                  <span
+                    className="qb-tip-badge"
+                    style={{
+                      background: "#0ea5e920",
+                      color: "#0ea5e9",
+                      border: "1px solid #0ea5e940",
+                    }}
+                    title={hasImageAttachment ? "Has uploaded image" : "Has uploaded file"}
+                  >
+                    {hasImageAttachment ? <ImageIcon size={12} /> : <Paperclip size={12} />}
+                    {hasImageAttachment ? "Image" : "File"}
+                  </span>
+                )}
+                {hasCanvas && (
+                  <span
+                    className="qb-tip-badge"
+                    style={{
+                      background: "#8b5cf620",
+                      color: "#8b5cf6",
+                      border: "1px solid #8b5cf640",
+                    }}
+                    title="Has visual diagram"
+                  >
+                    <Palette size={12} />
+                    Diagram
+                  </span>
+                )}
+              </>
+            )}
+          </div>
+          <span className="qb-qcard-open">{hasTip ? "Open Tip" : "Add Tip"}</span>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="fu">
@@ -274,144 +438,11 @@ export default function TipsPage({
               <div className="qb-empty-s">Try adjusting your search.</div>
             </div>
           ) : (
-            filteredQuestions.map((q, i) => {
-              const t = getTopic(q.topic);
-              const tipData = tipsMap?.[q.id];
-              const hasTip = !!(tipData && (
-                (typeof tipData === "string" && tipData.trim()) ||
-                (typeof tipData === "object" && (tipData.text?.trim() || tipData.canvasData || tipData.attachmentUrl))
-              ));
-              const hasCanvas = !!(tipData && typeof tipData === "object" && tipData.canvasData);
-              const hasText = !!(tipData && (
-                (typeof tipData === "string" && tipData.trim()) ||
-                (typeof tipData === "object" && tipData.text?.trim())
-              ));
-              const category = tipData && typeof tipData === "object" ? tipData.category : "general";
-              const categoryInfo = Object.values(TIP_CATEGORIES).find(c => c.id === category) || TIP_CATEGORIES.GENERAL;
-              const mastery = tipData && typeof tipData === "object" ? tipData.masteryLevel : "learning";
-              const masteryInfo = Object.values(MASTERY_LEVELS).find(m => m.id === mastery) || MASTERY_LEVELS.LEARNING;
-              const hasAttachment = !!(tipData && typeof tipData === "object" && tipData.attachmentUrl);
-              const attachmentUrl = tipData && typeof tipData === "object" ? tipData.attachmentUrl : "";
-              const attachmentType = tipData && typeof tipData === "object" ? tipData.attachmentType : "";
-              const attachmentName = tipData && typeof tipData === "object" ? tipData.attachmentName : "";
-              const hasImageAttachment = hasAttachment && String(attachmentType || "").startsWith("image/");
-
-              return (
-                <div
-                  key={q.id}
-                  className={`qb-tip-card${hasTip ? " qb-tip-card-has-content" : ""}${hasImageAttachment ? " qb-tip-card-has-image" : ""}`}
-                  onClick={() => onSelectQuestion(q.id)}
-                >
-                  {hasImageAttachment && (
-                    <div className="qb-tip-card-preview">
-                      <img src={attachmentUrl} alt={attachmentName || q.label || "Tip attachment"} />
-                    </div>
-                  )}
-
-                  <div className="qb-qcard-top">
-                    <div className="qb-qcard-top-left">
-                      <span className="qb-qnum">Tip {String(i + 1).padStart(3, "0")}</span>
-                      <span className="qb-badge" style={{ color: t.color, background: `${t.color}20` }}>
-                        {t.short}
-                      </span>
-                      {hasAttachment && !hasImageAttachment && (
-                        <span className="qb-tip-badge" style={{ background: "#2563eb14", color: "#60a5fa", border: "1px solid #2563eb33" }}>
-                          <Paperclip size={12} />
-                          Upload
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="qb-qcard-body">
-                    <div className="qb-qcard-heading">
-                      <span className="qb-qcard-label">{q.label || "General Review"}</span>
-                    </div>
-                    <span className="qb-qtext qb-tip-card-question">
-                      <MathText text={q.question} />
-                    </span>
-                    {attachmentName && !hasImageAttachment && (
-                      <div className="qb-tip-card-file-name">{attachmentName}</div>
-                    )}
-                  </div>
-                  <div className="qb-qcard-foot">
-                    <div className="qb-qcard-meta">
-                      <span className="qb-qcard-meta-chip">{t.label}</span>
-                      {hasTip && (
-                        <>
-                          <span
-                            className="qb-tip-badge"
-                            style={{
-                              background: `${categoryInfo.color}20`,
-                              color: categoryInfo.color,
-                              border: `1px solid ${categoryInfo.color}40`,
-                            }}
-                            title={categoryInfo.label}
-                          >
-                            <Tag size={12} />
-                            {categoryInfo.label}
-                          </span>
-                          <span
-                            className="qb-tip-badge"
-                            style={{
-                              background: `${masteryInfo.color}20`,
-                              color: masteryInfo.color,
-                              border: `1px solid ${masteryInfo.color}40`,
-                            }}
-                            title={masteryInfo.label}
-                          >
-                            <span style={{ fontSize: 11 }}>{masteryInfo.icon}</span>
-                            {masteryInfo.label}
-                          </span>
-                          {hasText && (
-                            <span
-                              className="qb-tip-badge"
-                              style={{
-                                background: "#3b82f620",
-                                color: "#3b82f6",
-                                border: "1px solid #3b82f640",
-                              }}
-                              title="Has text notes"
-                            >
-                              <FileText size={12} />
-                              Notes
-                            </span>
-                          )}
-                          {hasAttachment && (
-                            <span
-                              className="qb-tip-badge"
-                              style={{
-                                background: "#0ea5e920",
-                                color: "#0ea5e9",
-                                border: "1px solid #0ea5e940",
-                              }}
-                              title={hasImageAttachment ? "Has uploaded image" : "Has uploaded file"}
-                            >
-                              {hasImageAttachment ? <ImageIcon size={12} /> : <Paperclip size={12} />}
-                              {hasImageAttachment ? "Image" : "File"}
-                            </span>
-                          )}
-                          {hasCanvas && (
-                            <span
-                              className="qb-tip-badge"
-                              style={{
-                                background: "#8b5cf620",
-                                color: "#8b5cf6",
-                                border: "1px solid #8b5cf640",
-                              }}
-                              title="Has visual diagram"
-                            >
-                              <Palette size={12} />
-                              Diagram
-                            </span>
-                          )}
-                        </>
-                      )}
-                    </div>
-                    <span className="qb-qcard-open">{hasTip ? "Open Tip" : "Add Tip"}</span>
-                  </div>
-                </div>
-              );
-            })
+            tipColumns.map((col, ci) => (
+              <div className="qb-tip-col" key={ci}>
+                {col.map((q, i) => renderTipCard(q, tipIndexMap.get(q.id), i === col.length - 1))}
+              </div>
+            ))
           )}
         </div>
       </section>
