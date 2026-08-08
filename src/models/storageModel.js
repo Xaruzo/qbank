@@ -14,27 +14,6 @@ const ACTIVE_MOCK_EXAM_KEY = "cse-active-mock-exam-v1";
 const MOCK_EXAM_ATTEMPTS_TABLE = "mock_exam_attempts";
 const MOCK_EXAM_HISTORY_LIMIT = 12;
 
-const QUESTIONS_KEY = "cse-qbank-v1";
-const QUESTIONS_SYNCED_AT_KEY = "cse-qbank-v1-synced-at";
-const QUESTIONS_SYNC_TTL_MS = 2 * 60 * 1000; // serve from cache when synced within this window
-
-const readQuestionsSyncTime = async () => {
-  const raw = await readLocalValue(QUESTIONS_SYNCED_AT_KEY);
-  const ts = Number(raw);
-  return Number.isFinite(ts) && ts > 0 ? ts : 0;
-};
-
-const writeQuestionsSyncTime = async () => {
-  const value = String(Date.now());
-  if (window.storage && typeof window.storage.set === "function") {
-    try {
-      await window.storage.set(QUESTIONS_SYNCED_AT_KEY, value);
-      return;
-    } catch {}
-  }
-  try { localStorage.setItem(QUESTIONS_SYNCED_AT_KEY, value); } catch (_) {}
-};
-
 const parseTime = (value) => {
   const t = Date.parse(value || "");
   return Number.isFinite(t) ? t : 0;
@@ -357,7 +336,6 @@ const fetchFreshQuestionsValue = async (storageApi) => {
     }
   }
 
-  await writeQuestionsSyncTime();
   return JSON.stringify(Array.from(merged.values()));
 };
 
@@ -728,17 +706,8 @@ export const storageModel = {
     return readLocalValue(key);
   },
 
-  async isQuestionsCacheFresh() {
-    if (!supabase) return true;
-    const lastSync = await readQuestionsSyncTime();
-    return Date.now() - lastSync < QUESTIONS_SYNC_TTL_MS;
-  },
-
-  async getFreshQuestions(force = false) {
-    if (!supabase) return this.getLocal(QUESTIONS_KEY);
-    if (!force && await this.isQuestionsCacheFresh()) {
-      return this.getLocal(QUESTIONS_KEY);
-    }
+  async getFreshQuestions() {
+    if (!supabase) return this.getLocal("cse-qbank-v1");
     return fetchFreshQuestionsValue(this);
   },
 
