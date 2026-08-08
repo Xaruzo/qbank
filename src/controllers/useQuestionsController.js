@@ -72,7 +72,7 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
 
   useEffect(() => {
     const onOnline = () => {
-      init();
+      init(true);
     };
     window.addEventListener("online", onOnline);
     return () => window.removeEventListener("online", onOnline);
@@ -96,7 +96,7 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
           console.log("✅ Realtime update received:", payload);
           console.log("Event type:", payload.eventType);
           // Refresh questions from Supabase
-          await init();
+          await init(true);
         }
       )
       .subscribe((status) => {
@@ -109,7 +109,7 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
     };
   }, []);
 
-  async function init() {
+  async function init(forceRefresh = false) {
     const requestId = initRequestRef.current + 1;
     initRequestRef.current = requestId;
     let renderedInitialState = false;
@@ -146,20 +146,32 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
     if (userId) setFavoritesLoading(true);
     else setFavoritesLoading(false);
 
-    if (renderedInitialState) setRefreshing(true);
+    let useCachedOnly = false;
+    if (!forceRefresh) {
+      try {
+        useCachedOnly = await storageModel.isQuestionsCacheFresh();
+      } catch {
+        useCachedOnly = false;
+      }
+    }
+
+    if (renderedInitialState && !useCachedOnly) setRefreshing(true);
 
     void (async () => {
       try {
-        const [freshQuestionsValue, freshFavoriteIds] = await Promise.all([
-          storageModel.getFreshQuestions().catch((error) => {
-            console.error("Failed to refresh questions:", error);
-            return null;
-          }),
-          favoritesModel.getAll(userId).catch((error) => {
-            console.error("Failed to refresh favorites:", error);
-            return null;
-          }),
-        ]);
+        const freshQuestionsValue = useCachedOnly
+          ? null
+          : await storageModel.getFreshQuestions(forceRefresh).catch((error) => {
+              console.error("Failed to refresh questions:", error);
+              return null;
+            });
+
+        if (initRequestRef.current !== requestId) return;
+
+        const freshFavoriteIds = await favoritesModel.getAll(userId).catch((error) => {
+          console.error("Failed to refresh favorites:", error);
+          return null;
+        });
 
         if (initRequestRef.current !== requestId) return;
 
