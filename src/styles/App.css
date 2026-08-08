@@ -3823,3 +3823,58 @@ button[data-action="skip"] {
     font-size: 36px;
   }
 }
+
+@media (max-width: 960px), ((orientation: landscape) and (max-height: 560px)) {
+  .qb-list-hero,
+  .qb-control-grid,
+  .qb-mock-grid,
+  .qb-form-hero,
+  .qb-editor,
+  .qb-exam-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .qb-exam-shell {
+    grid-template-rows: auto auto auto;
+    grid-template-areas:
+      "top"
+      "main"
+      "side";
+    height: auto;
+    overflow: visible;
+  }
+
+  .qb-list-hero-side,
+  .qb-form-hero-meta,
+  .qb-mock-insights,
+  .qb-mock-blueprint,
+  .qb-mock-detail-stats,
+  .qb-mock-strength-grid,
+  .qb-mock-question-list {
+    grid-template-columns: 1fr;
+  }
+
+  .qb-editor-side,
+  .qb-exam-side {
+    position: static;
+    top: auto;
+    height: auto;
+    overflow: visible;
+  }
+
+  .qb-exam-side-inner,
+  .qb-layers-host {
+    max-height: none;
+    height: auto;
+  }
+
+  .qb-main.qb-main-exam {
+    overflow: auto;
+  }
+
+  .qb-main-inner.qb-main-inner-exam {
+    height: auto;
+    overflow: visible;
+    padding-right: 18px;
+  }
+}

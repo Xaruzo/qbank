@@ -48,3 +48,6 @@ Supabase schema.txt
 # Personal notes and setup instructions
 SETUP_INSTRUCTIONS_FOR_FRIEND.md
 TIPS_ENHANCEMENT_SQL.txt
+
+# Database CSV exports
+qbank database/
