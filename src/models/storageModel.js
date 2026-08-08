@@ -35,6 +35,18 @@ const writeQuestionsSyncTime = async () => {
   try { localStorage.setItem(QUESTIONS_SYNCED_AT_KEY, value); } catch (_) {}
 };
 
+const writeQuestionsCacheValue = async (value) => {
+  if (window.storage && typeof window.storage.set === "function") {
+    try {
+      await window.storage.set(QUESTIONS_KEY, value);
+      return;
+    } catch (e) {
+      console.warn(`window.storage.set failed for key ${QUESTIONS_KEY}:`, e);
+    }
+  }
+  try { localStorage.setItem(QUESTIONS_KEY, value); } catch (_) {}
+};
+
 const parseTime = (value) => {
   const t = Date.parse(value || "");
   return Number.isFinite(t) ? t : 0;
@@ -357,7 +369,6 @@ const fetchFreshQuestionsValue = async (storageApi) => {
     }
   }
 
-  await writeQuestionsSyncTime();
   return JSON.stringify(Array.from(merged.values()));
 };
 
@@ -739,7 +750,14 @@ export const storageModel = {
     if (!force && await this.isQuestionsCacheFresh()) {
       return this.getLocal(QUESTIONS_KEY);
     }
-    return fetchFreshQuestionsValue(this);
+    const freshValue = await fetchFreshQuestionsValue(this);
+    if (freshValue !== null) {
+      // Persist the fetched payload before marking it fresh so a page reload
+      // cannot reopen an older partial cache.
+      await writeQuestionsCacheValue(freshValue);
+      await writeQuestionsSyncTime();
+    }
+    return freshValue;
   },
 
   async get(key) {
