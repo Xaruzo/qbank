@@ -430,7 +430,7 @@ body {
 @media (max-width: 600px) {
   .qb-skel-stats { grid-template-columns:repeat(2, 1fr); }
   .qb-skel-stats .qb-skel-stat:last-child:nth-child(5) { grid-column:1 / -1; justify-self:center; width:calc(50% - 6px); }
-  .qb-skel-hero .qb-list-hero-side { grid-template-columns:1fr; }
+  .qb-skel-hero .qb-list-hero-side { grid-template-columns:repeat(2, minmax(0,1fr)); }
 }
 
 /* ── Tutorial Tour Custom Styles ── */
@@ -834,8 +834,9 @@ body.qb-guide-active .qb {
 .qb-mock-hero-top { display:flex; flex-direction:column; gap:14px; }
 .qb-mock-insights { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
 .qb-mock-hero-copy { color:var(--text-muted); font-size:14px; line-height:1.72; max-width:56ch; }
-.qb-mock-blueprint { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:12px; }
-.qb-mock-blueprint-card { border:1px solid var(--border); background:var(--input-bg); border-radius:18px; padding:16px; display:flex; flex-direction:column; gap:8px; min-height:148px; }
+.qb-mock-blueprint { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px; }
+.qb-mock-blueprint-card:last-child:nth-child(odd) { grid-column:1 / -1; }
+.qb-mock-blueprint-card { border:1px solid var(--border); background:var(--input-bg); border-radius:18px; padding:16px; display:flex; flex-direction:column; gap:8px; }
 .qb-mock-blueprint-label { font-family:'Fira Mono',monospace; font-size:10px; color:var(--text-faint); letter-spacing:1px; text-transform:uppercase; }
 .qb-mock-blueprint-card strong { color:var(--text-heading); font-size:16px; font-weight:700; }
 .qb-mock-blueprint-card p { color:var(--text-muted); font-size:12px; line-height:1.6; }
@@ -1618,14 +1619,12 @@ body.qb-guide-active .qb {
 @media (max-width:900px) {
   .qb-list-hero,
   .qb-control-grid,
-  .qb-mock-grid,
-  .qb-mock-blueprint {
+  .qb-mock-grid {
     grid-template-columns:1fr;
   }
   .qb-label-filter-col { justify-self:start; width:min(280px, 100%); }
   .qb-list-hero-side { grid-template-columns:repeat(2, minmax(0,1fr)); }
   .qb-stats { grid-template-columns:repeat(3, minmax(0,1fr)); }
-  .qb-stats .qb-stat:last-child:nth-child(5) { grid-column:span 2; }
   .qb-section-note { text-align:left; max-width:none; }
   .qb-exam-shell {
     grid-template-columns:1fr;
@@ -1683,7 +1682,6 @@ body.qb-guide-active .qb {
 @media (max-width:600px) {
   :root { --hdr-height:56px; }
   .qb-stats { grid-template-columns:repeat(2,1fr); }
-  .qb-stats .qb-stat:last-child:nth-child(5) { grid-column:1 / -1; justify-self:center; width:calc(50% - 6px); }
   .qb-main-inner { padding:18px 14px 24px; min-height:100%; }
   .qb-main-inner.qb-main-inner-editor { padding:18px 14px 24px; min-height:100%; display:block; }
   .qb-main-inner.qb-main-inner-exam { padding:20px 16px 32px; padding-bottom:calc(32px + env(safe-area-inset-bottom, 0px)); min-height:auto; height:auto; display:block; overflow:auto; }
@@ -1968,7 +1966,7 @@ body.qb-guide-active .qb {
 
 @media (max-width:420px) {
   .qb-mock-insights { grid-template-columns:repeat(2,1fr); }
-  .qb-mock-blueprint { grid-template-columns:1fr; }
+  .qb-mock-blueprint { grid-template-columns:repeat(2, minmax(0,1fr)); }
   .qb-mock-mini-card { min-height:auto; }
   .qb-det-meta {
     flex-direction:column;
@@ -2324,7 +2322,7 @@ body.qb-guide-active .qb {
 }
 
 .qb-list-hero-side {
-  grid-template-columns:1fr;
+  grid-template-columns:repeat(2, minmax(0,1fr));
 }
 
 .qb-list-hero-panel {
@@ -2604,6 +2602,9 @@ body.qb-guide-active .qb {
     padding:0 14px;
   }
 
+  .qb-list-hero-side {
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+  }
 
   .qb-list-hero,
   .qb-control-panel,
@@ -3847,11 +3848,19 @@ button[data-action="skip"] {
   .qb-list-hero-side,
   .qb-form-hero-meta,
   .qb-mock-insights,
-  .qb-mock-blueprint,
   .qb-mock-detail-stats,
   .qb-mock-strength-grid,
   .qb-mock-question-list {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0,1fr);
+  }
+
+  .qb-list-hero-side {
+    grid-template-columns: repeat(2, minmax(0,1fr));
+  }
+
+  .qb-mock-insights {
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap: 10px;
   }
 
   .qb-editor-side,
