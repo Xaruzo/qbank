@@ -4,6 +4,10 @@ import { ClipboardList, ChevronRight, Plus, Star, ChevronDown, Lightbulb, Palett
 import MarkdownText from "./MarkdownText";
 import usePlainTextCopy from "../../utils/usePlainTextCopy";
 
+// Cards rendered initially / per "Show more" step. Keeps the markdown+KaTeX
+// render cost bounded for large result sets instead of rendering every match.
+const PAGE_SIZE = 30;
+
 export default function QuestionList({
   questions,
   onSelect,
@@ -14,6 +18,7 @@ export default function QuestionList({
   canManageQuestions,
   onAddQuestion,
   onNavigateToTips, // NEW: Navigate to Tips page
+  resetKey, // when it changes (search/filter/sort intent), collapse to first page
 }) {
   const getTopic = id => TOPICS.find(t => t.id===id) || TOPICS[0];
   const [sortOpen, setSortOpen] = useState(false);
@@ -21,6 +26,16 @@ export default function QuestionList({
   const sortRef = useRef(null);
   const copyAreaRef = useRef(null);
   usePlainTextCopy(copyAreaRef);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  // Reset pagination only on filter/sort/search intent (resetKey change) —
+  // NOT when the questions array identity changes (e.g. a favorite toggle),
+  // so the user's position in the list is preserved.
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [resetKey]);
+
+  const visibleQuestions = questions.slice(0, visibleCount);
 
   useEffect(() => {
     if (!sortOpen) return;
@@ -48,7 +63,11 @@ export default function QuestionList({
       <div className="qb-list-meta">
         <div className="qb-list-meta-left">
           <span className="qb-list-label">Question Feed</span>
-          <span className="qb-list-value">{questions.length} shown</span>
+          <span className="qb-list-value">
+            {visibleCount < questions.length
+              ? `${visibleCount} of ${questions.length} shown`
+              : `${questions.length} shown`}
+          </span>
         </div>
         {canManageQuestions && (
           <button
@@ -128,7 +147,7 @@ export default function QuestionList({
           <div className="qb-empty-s">{totalInProject===0 ? "Add your first CSE question to get started." : "Try adjusting your search or filter."}</div>
         </div>
       ) : (
-        questions.map((q, i) => {
+        visibleQuestions.map((q, i) => {
           const t = getTopic(q.topic);
           return (
             <div key={q.id} className={`qb-qcard${q.favorite ? " qb-qcard-fav" : ""}`} onClick={() => onSelect(q.id)}>
@@ -171,6 +190,17 @@ export default function QuestionList({
         })
       )}
       </div>
+      {visibleCount < questions.length && (
+        <div style={{ display: "flex", justifyContent: "center", paddingTop: 14 }}>
+          <button
+            type="button"
+            className="qb-pill"
+            onClick={() => setVisibleCount((c) => Math.min(c + PAGE_SIZE, questions.length))}
+          >
+            Show more ({questions.length - visibleCount} remaining)
+          </button>
+        </div>
+      )}
     </section>
   );
 }

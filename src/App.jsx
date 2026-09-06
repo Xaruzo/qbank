@@ -1,16 +1,19 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Header from "./views/components/Header";
 import Stats from "./views/components/Stats";
 import SearchAndFilter from "./views/components/SearchAndFilter";
 import QuestionList from "./views/components/QuestionList";
 import QuestionDetail from "./views/components/QuestionDetail";
-import QuestionForm from "./views/components/QuestionForm";
 import SideNav from "./views/components/SideNav";
-import MockExam from "./views/components/MockExam";
-import MockAttemptDetail from "./views/components/MockAttemptDetail";
-import MockExamRunner from "./views/components/MockExamRunner";
-import TipsPage from "./views/components/TipsPage";
-import TipDetailPage from "./views/components/TipDetailPage";
+
+// Route-level code splitting: heavy screens (drawing editor, mock exam runner,
+// tips with canvas) are fetched on demand so the question bank paints fast.
+const QuestionForm = lazy(() => import("./views/components/QuestionForm"));
+const MockExam = lazy(() => import("./views/components/MockExam"));
+const MockAttemptDetail = lazy(() => import("./views/components/MockAttemptDetail"));
+const MockExamRunner = lazy(() => import("./views/components/MockExamRunner"));
+const TipsPage = lazy(() => import("./views/components/TipsPage"));
+const TipDetailPage = lazy(() => import("./views/components/TipDetailPage"));
 import LoadingSpinner from "./views/components/LoadingSpinner";
 import SkeletonLoader, { MockSkeletonLoader } from "./views/components/SkeletonLoader";
 import HelpModal from "./views/components/HelpModal";
@@ -24,6 +27,8 @@ import { favoritesModel } from "./models/favoritesModel";
 import { buildMockExamAttempt, buildReviewExamFromAttempt } from "./utils/mockExamAnalytics";
 import { Home, ClipboardList, Lightbulb } from "lucide-react";
 import { QUESTION_ADMIN_UIDS } from "./constants/appConstants";
+
+const PageLoader = () => <LoadingSpinner text="Loading…" />;
 
 const PRO_EXAM_DURATION_MS = (3 * 60 * 60 + 10 * 60) * 1000;
 const PRO_EXAM_TOTAL = 170;
@@ -82,6 +87,7 @@ export default function App() {
   const [hasLoadedActiveMockExam, setHasLoadedActiveMockExam] = useState(false);
   const [selectedMockAttemptId, setSelectedMockAttemptId] = useState(null);
   const [isMobile, setIsMobile] = useState(() => window.matchMedia ? window.matchMedia("(max-width: 600px)").matches : false);
+  const [isCompact, setIsCompact] = useState(() => window.matchMedia ? window.matchMedia("(min-width: 601px) and (max-width: 1099px)").matches : false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [runGuide, setRunGuide] = useState(false);
   const mainRef = useRef(null);
@@ -127,8 +133,25 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const mql = window.matchMedia("(min-width: 601px) and (max-width: 1099px)");
+    const apply = () => setIsCompact(mql.matches);
+    apply();
+    if (mql.addEventListener) mql.addEventListener("change", apply);
+    else mql.addListener(apply);
+    return () => {
+      if (mql.removeEventListener) mql.removeEventListener("change", apply);
+      else mql.removeListener(apply);
+    };
+  }, []);
+
+  useEffect(() => {
     if (isMobile) setNavOpen(false);
   }, [isMobile]);
+
+  useEffect(() => {
+    // Entering compact width: never start with the drawer covering content.
+    if (isCompact) setNavOpen(false);
+  }, [isCompact]);
 
   useEffect(() => {
     qsRef.current = qs;
@@ -717,7 +740,17 @@ export default function App() {
         )}
 
         <div className="qb-shell">
-          {!isMobile && (
+          {!isMobile && (isCompact ? (
+            <SideNav
+              variant="overlay"
+              open={navOpen}
+              active={primaryView}
+              onHome={handleGoHome}
+              onMockExam={handleGoMockExam}
+              onTips={() => handleGoTips()}
+              onClose={() => setNavOpen(false)}
+            />
+          ) : (
             <SideNav
               open={navOpen}
               active={primaryView}
@@ -725,7 +758,7 @@ export default function App() {
               onMockExam={handleGoMockExam}
               onTips={() => handleGoTips()}
             />
-          )}
+          ))}
           <main ref={mainRef} className={`qb-main${view === "mockRun" ? " qb-main-exam" : ""}`}>
             <div
               className={`qb-main-inner${
@@ -734,7 +767,9 @@ export default function App() {
             >
             {loading ? (
               <SkeletonLoader />
-            ) : view === "list" ? (
+            ) : (
+            <Suspense fallback={<PageLoader />}>
+            {view === "list" ? (
               <div className="fu qb-dashboard">
                 <section className="qb-list-hero">
                   <div className="qb-list-hero-main">
@@ -793,6 +828,7 @@ export default function App() {
                   authAvailable={authAvailable}
                   isAuthenticated={isAuthenticated}
                   onAddQuestion={handleAddQuestionAction}
+                  resetKey={`${search}|${topicFilter}|${labelFilter}|${sortBy}`}
                 />
               </div>
             ) : view === "detail" && selectedQuestion ? (
@@ -926,6 +962,8 @@ export default function App() {
               </div>
               </div>
             ) : null}
+            </Suspense>
+            )}
             </div>
           </main>
         </div>

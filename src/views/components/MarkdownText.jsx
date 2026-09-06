@@ -210,7 +210,7 @@ const inlineComponents = {
   },
 };
 
-export default function MarkdownText({ text, className, inline = false }) {
+function MarkdownText({ text, className, inline = false }) {
   const raw = typeof text === "string" ? text : "";
   const source = inline ? raw : normalizeSingleLineDisplayMath(autoWrapLatex(raw));
   const RootTag = inline ? "span" : "div";
@@ -227,3 +227,8 @@ export default function MarkdownText({ text, className, inline = false }) {
     </RootTag>
   );
 }
+
+// Memoized: only re-renders when text/className/inline actually change. The
+// question list re-renders on every search keystroke — without memo, each
+// visible card would re-run the full remark/KaTeX pipeline for identical text.
+export default React.memo(MarkdownText);

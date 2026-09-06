@@ -1,8 +1,70 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useDeferredValue } from "react";
 import { KEY, SAMPLES, TOPICS } from "../constants/appConstants";
 import { storageModel } from "../models/storageModel";
 import { favoritesModel } from "../models/favoritesModel";
 import { supabase } from "../utils/supabaseClient";
+
+const getLabelValue = (q) => typeof q.label === "string" ? q.label.trim() : "";
+
+const getSortTimestamp = ({ q, index }) => {
+  const directTime = Date.parse(q.dateAdded || "");
+  if (Number.isFinite(directTime)) return directTime;
+  const idTime = Number(q.id);
+  if (Number.isFinite(idTime)) return idTime;
+  return index;
+};
+
+const compareByLabel = (a, b, direction = "asc") => {
+  const left = getLabelValue(a.q).toLowerCase();
+  const right = getLabelValue(b.q).toLowerCase();
+
+  if (!left && !right) return a.q.question.localeCompare(b.q.question) || a.index - b.index;
+  if (!left) return 1;
+  if (!right) return -1;
+
+  const comparison = left.localeCompare(right);
+  if (comparison !== 0) return direction === "asc" ? comparison : -comparison;
+
+  return a.q.question.localeCompare(b.q.question) || a.index - b.index;
+};
+
+// Lowercased searchable text per question object, cached in a WeakMap so
+// typing in the search box never rebuilds these strings per keystroke —
+// the per-keystroke cost becomes a plain `includes` over prebuilt text.
+const searchTextCache = new WeakMap();
+
+const getSearchText = (q) => {
+  let cached = searchTextCache.get(q);
+  if (cached === undefined) {
+    cached = [q.question, q.label, ...q.choices, q.solution]
+      .map((s) => (typeof s === "string" ? s.toLowerCase() : ""))
+      .join("\n");
+    searchTextCache.set(q, cached);
+  }
+  return cached;
+};
+
+// Pure filter+sort pipeline (module scope so it stays testable and free of
+// hook state). `search` must already be lowercased by the caller.
+const filterAndSortQuestions = (qs, { search, topicFilter, labelFilter, sortBy }) =>
+  qs
+    .map((q, index) => ({ q, index }))
+    .filter(({ q }) => {
+      const matchesTopic = topicFilter === "all" || q.topic === topicFilter;
+      const matchesLabel = labelFilter === "all" || getLabelValue(q) === labelFilter;
+      const matchesSearch = !search || getSearchText(q).includes(search);
+      return matchesTopic && matchesLabel && matchesSearch;
+    })
+    .sort((a, b) => {
+      if (sortBy === "newest") return getSortTimestamp(b) - getSortTimestamp(a) || b.index - a.index;
+      if (sortBy === "oldest") return getSortTimestamp(a) - getSortTimestamp(b) || a.index - b.index;
+      if (sortBy === "a-z") return a.q.question.localeCompare(b.q.question) || a.index - b.index;
+      if (sortBy === "z-a") return b.q.question.localeCompare(a.q.question) || a.index - b.index;
+      if (sortBy === "label-a-z") return compareByLabel(a, b, "asc");
+      if (sortBy === "label-z-a") return compareByLabel(a, b, "desc");
+      return Number(b.q.favorite) - Number(a.q.favorite) || a.index - b.index;
+    })
+    .map(({ q }) => q);
 
 export function useQuestionsController(userId = null, isAuthLoading = false) {
   const [qs, setQs] = useState([]);
@@ -14,8 +76,6 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
   const [labelFilter, setLabelFilter] = useState("all");
   const [sortBy, setSortBy] = useState("favorites");
   const initRequestRef = useRef(0);
-
-  const getLabelValue = (q) => typeof q.label === "string" ? q.label.trim() : "";
 
   const normalizeQuestion = (q, favoriteIds = new Set()) => ({
     ...q,
@@ -41,28 +101,6 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
 
   const persistQuestionsCache = (next) => {
     storageModel.set(KEY, JSON.stringify(next)).catch(() => {});
-  };
-
-  const getSortTimestamp = ({ q, index }) => {
-    const directTime = Date.parse(q.dateAdded || "");
-    if (Number.isFinite(directTime)) return directTime;
-    const idTime = Number(q.id);
-    if (Number.isFinite(idTime)) return idTime;
-    return index;
-  };
-
-  const compareByLabel = (a, b, direction = "asc") => {
-    const left = getLabelValue(a.q).toLowerCase();
-    const right = getLabelValue(b.q).toLowerCase();
-
-    if (!left && !right) return a.q.question.localeCompare(b.q.question) || a.index - b.index;
-    if (!left) return 1;
-    if (!right) return -1;
-
-    const comparison = left.localeCompare(right);
-    if (comparison !== 0) return direction === "asc" ? comparison : -comparison;
-
-    return a.q.question.localeCompare(b.q.question) || a.index - b.index;
   };
 
   useEffect(() => {
@@ -322,26 +360,20 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
       count: labelCounts[label],
     }));
 
-  const filteredQuestions = qs
-    .map((q, index) => ({ q, index }))
-    .filter(({ q }) => {
-      const matchesTopic = topicFilter === "all" || q.topic === topicFilter;
-      const matchesLabel = labelFilter === "all" || getLabelValue(q) === labelFilter;
-      const matchesSearch = !search || [q.question, q.label, ...q.choices, q.solution].some(s =>
-        s.toLowerCase().includes(search.toLowerCase())
-      );
-      return matchesTopic && matchesLabel && matchesSearch;
-    })
-    .sort((a, b) => {
-      if (sortBy === "newest") return getSortTimestamp(b) - getSortTimestamp(a) || b.index - a.index;
-      if (sortBy === "oldest") return getSortTimestamp(a) - getSortTimestamp(b) || a.index - b.index;
-      if (sortBy === "a-z") return a.q.question.localeCompare(b.q.question) || a.index - b.index;
-      if (sortBy === "z-a") return b.q.question.localeCompare(a.q.question) || a.index - b.index;
-      if (sortBy === "label-a-z") return compareByLabel(a, b, "asc");
-      if (sortBy === "label-z-a") return compareByLabel(a, b, "desc");
-      return Number(b.q.favorite) - Number(a.q.favorite) || a.index - b.index;
-    })
-    .map(({ q }) => q);
+  // Keep the raw `search` for the controlled input (typing stays instant)
+  // but run the filter/sort pipeline against a deferred copy, so a burst of
+  // keystrokes never blocks rendering of the whole app (React 18).
+  const deferredSearch = useDeferredValue(search);
+
+  const filteredQuestions = useMemo(
+    () => filterAndSortQuestions(qs, {
+      search: deferredSearch.toLowerCase(),
+      topicFilter,
+      labelFilter,
+      sortBy,
+    }),
+    [qs, deferredSearch, topicFilter, labelFilter, sortBy]
+  );
 
   return {
     qs,
