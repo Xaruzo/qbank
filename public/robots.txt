@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://qbank-vr5s.onrender.com/sitemap.xml
