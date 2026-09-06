@@ -1,6 +1,12 @@
-const CACHE_VERSION = "qbank-sw-v1";
+const CACHE_VERSION = "qbank-sw-v2";
 const APP_SHELL_CACHE = `${CACHE_VERSION}:app-shell`;
 const RUNTIME_CACHE = `${CACHE_VERSION}:runtime`;
+
+// Cap for the runtime (hashed-asset) cache. Without it, every deploy leaves
+// its old hashed JS/CSS chunks in the user's storage forever. caches.keys()
+// returns keys in creation order, so trimming from the front evicts the
+// least-recently-added entries.
+const MAX_RUNTIME_ENTRIES = 100;
 
 const APP_SHELL_URLS = ["/", "/index.html", "/manifest.webmanifest", "/icon.svg"];
 
@@ -17,6 +23,14 @@ self.addEventListener("activate", (event) => {
     ).then(() => self.clients.claim())
   );
 });
+
+function trimRuntimeCache(cache) {
+  return cache.keys().then((keys) => {
+    if (keys.length <= MAX_RUNTIME_ENTRIES) return undefined;
+    const excess = keys.length - MAX_RUNTIME_ENTRIES;
+    return Promise.all(keys.slice(0, excess).map((k) => cache.delete(k)));
+  });
+}
 
 self.addEventListener("fetch", (event) => {
   const req = event.request;
@@ -45,7 +59,9 @@ self.addEventListener("fetch", (event) => {
       if (cached) return cached;
       return fetch(req).then((res) => {
         const copy = res.clone();
-        caches.open(RUNTIME_CACHE).then((c) => c.put(req, copy));
+        caches.open(RUNTIME_CACHE).then((cache) => {
+          cache.put(req, copy).then(() => trimRuntimeCache(cache));
+        });
         return res;
       });
     })
