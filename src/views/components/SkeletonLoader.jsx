@@ -144,8 +144,9 @@ export function MockSkeletonLoader() {
           {[0, 1, 2, 3].map((i) => (
             <div className="qb-mock-mini-card qb-skel-panel" key={i}>
               {Bar({ w: "72px", h: "10px" })}
-              {Bar({ w: "64px", h: "28px" })}
-              {Bar({ w: "88%", h: "12px" })}
+              {Bar({ w: "88px", h: "30px" })}
+              {Bar({ w: "100%", h: "6px", extra: { borderRadius: 999 } })}
+              {Bar({ w: "64px", h: "10px" })}
             </div>
           ))}
         </div>

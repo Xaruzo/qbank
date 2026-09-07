@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { ArrowUpRight, PlayCircle, RotateCcw } from "lucide-react";
+import { ArrowUpRight, PlayCircle, RotateCcw, TrendingDown, TrendingUp, Minus } from "lucide-react";
 import { formatAttemptDate, formatExamDuration } from "../../utils/mockExamAnalytics";
 import LoadingSpinner from "./LoadingSpinner";
 
@@ -121,7 +121,13 @@ export default function MockExam({
         <div className="qb-mock-insights">
           <div className="qb-mock-mini-card">
             <div className="qb-mock-mini-label">Latest Score</div>
-            <div className="qb-mock-mini-value">{latestAttempt ? `${latestAttempt.scorePercent}%` : "--"}</div>
+            <div className={`qb-mock-mini-value${latestAttempt ? "" : " qb-mock-mini-empty"}`}>{latestAttempt ? `${latestAttempt.scorePercent}%` : "--"}</div>
+            <div className="qb-mock-meter" aria-hidden="true">
+              <span
+                className={`qb-mock-meter-fill${latestAttempt ? "" : " qb-mock-meter-idle"}`}
+                style={latestAttempt ? { width: `${Math.max(0, Math.min(100, latestAttempt.scorePercent || 0))}%` } : null}
+              />
+            </div>
             <div className="qb-mock-mini-sub">
               {latestAttempt
                 ? `${latestAttempt.correctCount}/${latestAttempt.totalCount} correct`
@@ -133,7 +139,13 @@ export default function MockExam({
 
           <div className="qb-mock-mini-card">
             <div className="qb-mock-mini-label">Recent Average</div>
-            <div className="qb-mock-mini-value">{sortedHistory.length ? `${recentAverage}%` : "--"}</div>
+            <div className={`qb-mock-mini-value${sortedHistory.length ? "" : " qb-mock-mini-empty"}`}>{sortedHistory.length ? `${recentAverage}%` : "--"}</div>
+            <div className="qb-mock-meter" aria-hidden="true">
+              <span
+                className={`qb-mock-meter-fill${sortedHistory.length ? "" : " qb-mock-meter-idle"}`}
+                style={sortedHistory.length ? { width: `${Math.max(0, Math.min(100, recentAverage))}%` } : null}
+              />
+            </div>
             <div className="qb-mock-mini-sub">
               {sortedHistory.length
                 ? `Based on last ${Math.min(sortedHistory.length, 5)} attempts`
@@ -145,8 +157,19 @@ export default function MockExam({
 
           <div className="qb-mock-mini-card">
             <div className="qb-mock-mini-label">Trend</div>
-            <div className="qb-mock-mini-value">
-              {improvement === null ? "--" : `${improvement > 0 ? "+" : ""}${improvement}%`}
+            <div className={`qb-mock-mini-value${improvement === null ? " qb-mock-mini-empty" : improvement > 0 ? " qb-mock-mini-up" : improvement < 0 ? " qb-mock-mini-down" : ""}`}>
+              {improvement === null ? "--" : (
+                <>
+                  {improvement > 0 ? <TrendingUp size={26} strokeWidth={2.4} /> : improvement < 0 ? <TrendingDown size={26} strokeWidth={2.4} /> : <Minus size={26} strokeWidth={2.4} />}
+                  <span>{improvement > 0 ? "+" : ""}{improvement}%</span>
+                </>
+              )}
+            </div>
+            <div className="qb-mock-meter" aria-hidden="true">
+              <span
+                className={`qb-mock-meter-fill${improvement === null ? " qb-mock-meter-idle" : improvement > 0 ? " qb-mock-meter-up" : improvement < 0 ? " qb-mock-meter-down" : ""}`}
+                style={improvement === null ? null : { width: `${Math.max(0, Math.min(100, 50 + improvement / 2))}%` }}
+              />
             </div>
             <div className="qb-mock-mini-sub">
               {improvement === null ? "Need at least 2 attempts" : improvement >= 0 ? "Moving upward" : "Recent dip to review"}
@@ -155,7 +178,13 @@ export default function MockExam({
 
           <div className="qb-mock-mini-card">
             <div className="qb-mock-mini-label">Best Attempt</div>
-            <div className="qb-mock-mini-value">{bestAttempt ? `${bestAttempt.scorePercent}%` : "--"}</div>
+            <div className={`qb-mock-mini-value${bestAttempt ? "" : " qb-mock-mini-empty"}`}>{bestAttempt ? `${bestAttempt.scorePercent}%` : "--"}</div>
+            <div className="qb-mock-meter" aria-hidden="true">
+              <span
+                className={`qb-mock-meter-fill${bestAttempt ? "" : " qb-mock-meter-idle"}`}
+                style={bestAttempt ? { width: `${Math.max(0, Math.min(100, bestAttempt.scorePercent || 0))}%` } : null}
+              />
+            </div>
             <div className="qb-mock-mini-sub">
               {bestAttempt ? formatAttemptDate(bestAttempt.completedAt) : isAuthenticated ? "No record yet" : "Sign in to track progress"}
             </div>
