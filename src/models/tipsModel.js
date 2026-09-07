@@ -9,6 +9,15 @@ let remoteTipsDisabledAt = 0;
 let hasLoggedMissingTipsTable = false;
 const REMOTE_TIPS_DISABLED_MS = 60 * 1000;
 
+// In-memory snapshot of the last fully-loaded tips map per user. TipsPage
+// remounts on every navigation, and without this each visit pays a Supabase
+// round-trip plus localStorage reads before it can paint. The localStorage
+// cache covers cold starts; this covers in-session remounts. Entries expire
+// after MEMORY_TIPS_CACHE_TTL_MS so changes from another tab or device are
+// still picked up on later visits.
+const MEMORY_TIPS_CACHE_TTL_MS = 60 * 1000;
+const memoryTipsCache = new Map();
+
 // Tip categories
 export const TIP_CATEGORIES = {
   FORMULA: { id: 'formula', label: 'Formula', color: '#3b82f6' },
@@ -152,6 +161,24 @@ const readTipsCache = async (userId = null) => {
 
 const writeTipsCache = async (map, userId = null) => {
   await writeValue(getTipsCacheKey(userId), JSON.stringify(normalizeTipsMap(map)));
+};
+
+const readMemoryTipsCache = (userId = null) => {
+  const key = getTipsCacheKey(userId);
+  const entry = memoryTipsCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.at > MEMORY_TIPS_CACHE_TTL_MS) {
+    memoryTipsCache.delete(key);
+    return null;
+  }
+  return entry.map;
+};
+
+const writeMemoryTipsCache = (map, userId = null) => {
+  memoryTipsCache.set(getTipsCacheKey(userId), {
+    map: normalizeTipsMap(map),
+    at: Date.now(),
+  });
 };
 
 const readPendingMap = async (userId) => {
@@ -402,8 +429,14 @@ const migrateLegacyTipsToUser = async (userId) => {
 
 export const tipsModel = {
   async getAll(userId = null) {
+    // Repeat loads within the TTL resolve instantly (no storage or network).
+    const memoryMap = readMemoryTipsCache(userId);
+    if (memoryMap) return memoryMap;
+
     if (!userId || !supabase) {
-      return readTipsCache(userId);
+      const cachedOnly = await readTipsCache(userId);
+      writeMemoryTipsCache(cachedOnly, userId);
+      return cachedOnly;
     }
 
     await migrateLegacyTipsToUser(userId);
@@ -423,6 +456,7 @@ export const tipsModel = {
       const mergedRemoteMap = mergeCachedAttachmentFields(remoteMap, cachedMap);
       const mergedMap = applyPendingToTipsMap(mergedRemoteMap, latestPendingMap);
       await writeTipsCache(mergedMap, userId);
+      writeMemoryTipsCache(mergedMap, userId);
       return mergedMap;
     } catch (error) {
       if (isMissingQuestionTipsTableError(error)) {
@@ -486,6 +520,7 @@ export const tipsModel = {
       if (map[questionId] !== undefined) {
         delete map[questionId];
         await writeTipsCache(map, userId);
+        writeMemoryTipsCache(map, userId);
       }
 
       if (!userId || !supabase) return;
@@ -519,6 +554,7 @@ export const tipsModel = {
     
     map[questionId] = normalizedData;
     await writeTipsCache(map, userId);
+    writeMemoryTipsCache(map, userId);
 
     if (!userId || !supabase) return;
 
