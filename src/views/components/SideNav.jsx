@@ -1,4 +1,5 @@
-import React, { useEffect } from "react";
+import { useRef } from "react";
+import { useOverlayDialogA11y } from "../../controllers/useOverlayDialogA11y";
 import { Home, ClipboardList, Lightbulb } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -15,16 +16,14 @@ const NAV_ITEMS = [
  *   center page width. The header's hamburger button already becomes an X
  *   (close) control while the drawer is open, so no separate close button is
  *   rendered here. Also closes on scrim tap, Escape, or navigation.
+ *
+ *   Focus is managed as a proper modal dialog (useOverlayDialogA11y): focus
+ *   moves into the drawer on open, Tab is trapped inside it, and focus is
+ *   restored to the hamburger button on close.
  */
 export default function SideNav({ variant = "rail", open, active, onHome, onMockExam, onTips, onClose }) {
-  useEffect(() => {
-    if (variant !== "overlay" || !open) return undefined;
-    const handleKey = (e) => {
-      if (e.key === "Escape" && onClose) onClose();
-    };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [variant, open, onClose]);
+  const cardRef = useRef(null);
+  useOverlayDialogA11y(variant === "overlay" && open, onClose, cardRef);
 
   if (variant === "overlay") {
     if (!open) return null;
@@ -35,6 +34,7 @@ export default function SideNav({ variant = "rail", open, active, onHome, onMock
     return (
       <div className="qb-mnav-ov" onClick={onClose}>
         <aside
+          ref={cardRef}
           className="qb-mnav-card"
           role="dialog"
           aria-modal="true"

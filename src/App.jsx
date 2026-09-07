@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Header from "./views/components/Header";
 import Stats from "./views/components/Stats";
 import SearchAndFilter from "./views/components/SearchAndFilter";
@@ -25,11 +25,20 @@ import { storageModel } from "./models/storageModel";
 import { tipsModel } from "./models/tipsModel";
 import { favoritesModel } from "./models/favoritesModel";
 import { buildMockExamAttempt, buildReviewExamFromAttempt } from "./utils/mockExamAnalytics";
+import { useOverlayDialogA11y } from "./controllers/useOverlayDialogA11y";
 import { Home, ClipboardList, Lightbulb } from "lucide-react";
 import { QUESTION_ADMIN_UIDS } from "./constants/appConstants";
 
 const PageLoader = () => <LoadingSpinner text="Loading…" />;
 
+// Civil Service exam format — DO NOT TUNE DOWN.
+// These mirror the official CSE Professional-level format: 170 items in
+// 3h10m (190 minutes). This app simulates the real civil service exam, so
+// the target item count and the time limit are fixed to the official
+// format. See handleStartProfessional: the exam always aims for
+// PRO_EXAM_TOTAL items at the full PRO_EXAM_DURATION_MS, and the session
+// simply contains fewer items while the question bank is still growing.
+// Never scale the timer to the bank size.
 const PRO_EXAM_DURATION_MS = (3 * 60 * 60 + 10 * 60) * 1000;
 const PRO_EXAM_TOTAL = 170;
 
@@ -152,6 +161,13 @@ export default function App() {
     // Entering compact width: never start with the drawer covering content.
     if (isCompact) setNavOpen(false);
   }, [isCompact]);
+
+  const mobileNavCardRef = useRef(null);
+  // The inline mobile drawer (rendered below while isMobile) gets the same
+  // modal-dialog a11y treatment as the compact SideNav overlay: focus moves
+  // into the drawer on open, Tab is trapped inside, Escape closes it, and
+  // focus returns to the hamburger button on close.
+  useOverlayDialogA11y(isMobile && navOpen, () => setNavOpen(false), mobileNavCardRef);
 
   useEffect(() => {
     qsRef.current = qs;
@@ -545,6 +561,11 @@ export default function App() {
       return;
     }
     const ids = qs.map(q => q.id);
+    // Official CSE Professional format: always target 170 items and keep the
+    // full 3h10m timer regardless of bank size (see the PRO_EXAM_* constants
+    // above). A smaller bank temporarily yields a shorter paper — the target
+    // and time limit must never change, because this simulates the real
+    // civil service exam, not a reduced-question quiz.
     const orderIds = shuffleIds(ids).slice(0, PRO_EXAM_TOTAL);
     const nextExam = {
       sessionId: `exam-${Date.now()}`,
@@ -710,7 +731,14 @@ export default function App() {
 
         {isMobile && navOpen && (
           <div className="qb-mnav-ov" onClick={() => setNavOpen(false)}>
-            <div className="qb-mnav-card" onClick={(e) => e.stopPropagation()}>
+            <div
+              ref={mobileNavCardRef}
+              className="qb-mnav-card"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Navigation menu"
+              onClick={(e) => e.stopPropagation()}
+            >
               <button
                 type="button"
                 className={`qb-nav-item${view === "mock" || view === "mockRun" || view === "mockAttempt" || view === "tips" || view === "tipDetail" ? "" : " on"}`}
