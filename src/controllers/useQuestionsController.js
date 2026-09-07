@@ -396,3 +396,6 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
     filteredQuestions,
   };
 }
+
+// Exported for unit tests (see tests/filterQuestions.test.js)
+export { filterAndSortQuestions };
