@@ -119,11 +119,10 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
   // Real-time subscription to questions table
   useEffect(() => {
     if (!supabase) {
+      // No Supabase connection (e.g. local dev without credentials)
       console.log("Supabase not available, skipping realtime subscription");
       return;
     }
-
-    console.log("Setting up realtime subscription for questions...");
 
     const channel = supabase
       .channel("public:questions")
@@ -131,18 +130,13 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
         "postgres_changes",
         { event: "*", schema: "public", table: "questions" },
         async (payload) => {
-          console.log("✅ Realtime update received:", payload);
-          console.log("Event type:", payload.eventType);
           // Refresh questions from Supabase
           await init();
         }
       )
-      .subscribe((status) => {
-        console.log("Realtime subscription status:", status);
-      });
+      .subscribe();
 
     return () => {
-      console.log("Removing realtime channel...");
       supabase.removeChannel(channel);
     };
   }, []);

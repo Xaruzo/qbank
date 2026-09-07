@@ -3887,3 +3887,19 @@ button[data-action="skip"] {
     padding-right: 18px;
   }
 }
+
+/* ── Reduced motion: honor the OS accessibility setting ──
+   Kills spinners, shimmer, pulses, and fade-ins for users who ask for
+   less animation. Deliberately does NOT disable transitions on hover
+   feedback (which is also how focus states read here) but makes them
+   effectively instant. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -13,7 +13,6 @@ export default defineConfig({
       output: {
         manualChunks: {
           'vendor-react': ['react', 'react-dom'],
-          'vendor-supabase': ['@supabase/supabase-js'],
           'vendor-fabric': ['fabric'],
           'vendor-markdown-math': ['react-markdown', 'remark-math', 'rehype-katex', 'remark-gfm'],
         },

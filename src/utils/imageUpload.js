@@ -76,10 +76,8 @@ export async function uploadImageToSupabase(file, folder = "solutions", userId =
     // Compress image if it's larger than 1MB
     let uploadFile = file;
     if (file.size > 1024 * 1024) {
-      console.log("Compressing image...");
       const compressed = await compressImage(file);
       uploadFile = new File([compressed], file.name, { type: file.type });
-      console.log(`Compressed from ${(file.size / 1024 / 1024).toFixed(2)}MB to ${(uploadFile.size / 1024 / 1024).toFixed(2)}MB`);
     }
 
     // Generate unique filename

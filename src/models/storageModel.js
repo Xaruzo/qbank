@@ -815,14 +815,11 @@ export const storageModel = {
   },
 
   async delete(id) {
-    console.log("Deleting question with id:", id);
     await this.dequeuePendingUpsert(id);
 
     if (supabase) {
       try {
-        console.log("Attempting to soft delete from Supabase...");
         await this.syncQuestionDelete(id);
-        console.log("✅ Question soft deleted from Supabase successfully!");
       } catch (e) {
         console.warn("Supabase soft delete failed, queueing pending delete:", e);
         await this.enqueuePendingDelete(id);

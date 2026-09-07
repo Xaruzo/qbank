@@ -3,6 +3,7 @@
 Your comprehensive study companion for Civil Service Exam preparation.
 
 [![Live Demo](https://img.shields.io/badge/demo-live-success)](https://qbank-vr5s.onrender.com/)
+[![CI](https://github.com/Xaruzo/qbank/actions/workflows/ci.yml/badge.svg)](https://github.com/Xaruzo/qbank/actions/workflows/ci.yml)
 
 ## 🎯 What is QBANK?
 
@@ -75,6 +76,17 @@ Speed up your study sessions with these shortcuts:
 - Click the **Help** icon (?) in the header for tutorials and FAQ
 - Restart the guided tour anytime from the Help menu
 - All your data is private and secured with your Google account
+
+## 🛠️ Development
+
+```bash
+npm install
+npm run dev        # Vite dev server
+npm run lint       # ESLint — fails when the warning count grows (ratcheted)
+npm test           # Vitest suite
+npm run test:watch # Vitest in watch mode
+npm run build      # Production build to dist/
+```
 
 ## 🔗 Access QBANK
 

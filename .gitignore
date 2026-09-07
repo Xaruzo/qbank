@@ -33,10 +33,7 @@ dist-ssr
 screenshot issues/
 
 # Graphify cache and artifacts
-graphify-out/cache/
-graphify-out/.graphify_*
-graphify-out/graph.json
-graphify-out/graph.html
+graphify-out/
 
 # Agent instructions (local only, not for repo)
 /AGENTS.md

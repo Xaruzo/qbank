@@ -4,6 +4,9 @@ import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
+// KaTeX ships its stylesheet with the package; load it beside its only
+// consumer (this component) instead of render-blocking the entry bundle.
+import "katex/dist/katex.min.css";
 import remarkUnderline from "../../utils/remarkUnderline";
 import MathText from "./MathText";
 
