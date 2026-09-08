@@ -286,9 +286,22 @@ const logRemoteTipError = (context, error) => {
       + `The '${QUESTION_TIPS_TABLE}' table has no per-user policies yet - run 'supabase/setup-policies.sql' in the Supabase SQL editor. `
       + `The tip is kept pending and will sync automatically once policies exist.`
     );
-  } else {
-    console.error(`[${context}]`, error);
+    return;
   }
+  const isForeignKeyBlocked =
+    error.code === "23503"
+    || /foreign key|violates foreign key constraint/i.test(message);
+  if (isForeignKeyBlocked) {
+    console.error(
+      `[${context}] Supabase rejected the tip because '${QUESTION_TIPS_TABLE}.question_id' `
+      + `has a foreign-key constraint on 'public.questions(id)' and this question does not exist in the remote pool. `
+      + `Questions can be created locally, so drop that constraint in the Supabase SQL editor: `
+      + `ALTER TABLE public.${QUESTION_TIPS_TABLE} DROP CONSTRAINT IF EXISTS question_tips_question_id_fkey; `
+      + `The tip is kept pending and will sync automatically once the constraint is removed.`
+    );
+    return;
+  }
+  console.error(`[${context}]`, error);
 };
 
 const markRemoteTipsUnavailable = () => {

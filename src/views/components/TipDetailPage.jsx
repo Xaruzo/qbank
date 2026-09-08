@@ -22,69 +22,118 @@ export default function TipDetailPage({
   const [attachmentType, setAttachmentType] = useState("");
   const [attachmentName, setAttachmentName] = useState("");
   const [attachmentPath, setAttachmentPath] = useState("");
+  const [tipLoaded, setTipLoaded] = useState(false);
   const canvasLayersRef = useRef(null);
   const copyAreaRef = useRef(null);
+  // Tracks the latest payload that still has a pending debounced save, so it
+  // can be flushed if the page unmounts before the timer fires.
+  const pendingSaveRef = useRef(null);
+  // Guards the initial load: if the user has already drawn/typed while tips
+  // are still loading, don't clobber their edits with the stored snapshot.
+  const hasUserEditedRef = useRef(false);
   usePlainTextCopy(copyAreaRef);
 
   useEffect(() => {
     let active = true;
-    tipsModel.getAll(userId).then((map) => {
-      if (!active) return;
-      const tipData = map?.[question.id];
-      if (tipData && typeof tipData === "object") {
-        setTipText(typeof tipData.text === "string" ? tipData.text : "");
-        setCanvasData(tipData.canvasData || null);
-        setCategory(tipData.category || "general");
-        setMasteryLevel(tipData.masteryLevel || "learning");
-        setAttachmentUrl(tipData.attachmentUrl || "");
-        setAttachmentType(tipData.attachmentType || "");
-        setAttachmentName(tipData.attachmentName || "");
-        setAttachmentPath(tipData.attachmentPath || "");
-        setActiveTab(tipData.attachmentUrl ? "attachment" : "diagram");
-      } else if (typeof tipData === "string") {
-        // Legacy string format
-        setTipText(tipData);
-        setCanvasData(null);
-        setCategory("general");
-        setMasteryLevel("learning");
-        setAttachmentUrl("");
-        setAttachmentType("");
-        setAttachmentName("");
-        setAttachmentPath("");
-        setActiveTab("diagram");
-      } else {
-        setTipText("");
-        setCanvasData(null);
-        setCategory("general");
-        setMasteryLevel("learning");
-        setAttachmentUrl("");
-        setAttachmentType("");
-        setAttachmentName("");
-        setAttachmentPath("");
-        setActiveTab("diagram");
-      }
-    });
+    tipsModel.getAll(userId)
+      .then((map) => {
+        if (!active) return;
+        if (!hasUserEditedRef.current) {
+          const tipData = map?.[question.id];
+          if (tipData && typeof tipData === "object") {
+            setTipText(typeof tipData.text === "string" ? tipData.text : "");
+            setCanvasData(tipData.canvasData || null);
+            setCategory(tipData.category || "general");
+            setMasteryLevel(tipData.masteryLevel || "learning");
+            setAttachmentUrl(tipData.attachmentUrl || "");
+            setAttachmentType(tipData.attachmentType || "");
+            setAttachmentName(tipData.attachmentName || "");
+            setAttachmentPath(tipData.attachmentPath || "");
+            setActiveTab(tipData.attachmentUrl ? "attachment" : "diagram");
+          } else if (typeof tipData === "string") {
+            // Legacy string format
+            setTipText(tipData);
+            setCanvasData(null);
+            setCategory("general");
+            setMasteryLevel("learning");
+            setAttachmentUrl("");
+            setAttachmentType("");
+            setAttachmentName("");
+            setAttachmentPath("");
+            setActiveTab("diagram");
+          } else {
+            setTipText("");
+            setCanvasData(null);
+            setCategory("general");
+            setMasteryLevel("learning");
+            setAttachmentUrl("");
+            setAttachmentType("");
+            setAttachmentName("");
+            setAttachmentPath("");
+            setActiveTab("diagram");
+          }
+        }
+        setTipLoaded(true);
+      })
+      .catch(() => {
+        if (!active) return;
+        if (!hasUserEditedRef.current) {
+          setTipText("");
+          setCanvasData(null);
+          setCategory("general");
+          setMasteryLevel("learning");
+          setAttachmentUrl("");
+          setAttachmentType("");
+          setAttachmentName("");
+          setAttachmentPath("");
+          setActiveTab("diagram");
+        }
+        setTipLoaded(true);
+      });
     return () => {
       active = false;
     };
   }, [question.id, userId]);
 
+  const buildTipPayload = () => ({
+    text: tipText,
+    canvasData,
+    category,
+    masteryLevel,
+    attachmentUrl,
+    attachmentType,
+    attachmentName,
+    attachmentPath,
+    lastReviewed: new Date().toISOString(),
+  });
+
+  // Debounced autosave. The 350ms delay coalesces rapid typing/drawing into a
+  // single call, but also means the very last edit would be dropped if the
+  // page unmounted before the timer fired — so the latest payload is kept in
+  // a ref and flushed synchronously on unmount (see the cleanup effect below).
   useEffect(() => {
+    if (!tipLoaded) return;
+    const payload = buildTipPayload();
+    pendingSaveRef.current = { questionId: question.id, userId, payload };
     const timeoutId = window.setTimeout(() => {
-      tipsModel.setTip(question.id, {
-        text: tipText,
-        canvasData,
-        category,
-        masteryLevel,
-        attachmentUrl,
-        attachmentType,
-        attachmentName,
-        attachmentPath,
-        lastReviewed: new Date().toISOString(),
-      }, userId).catch(() => {});
+      pendingSaveRef.current = null;
+      tipsModel.setTip(question.id, payload, userId).catch(() => {});
     }, 350);
     return () => window.clearTimeout(timeoutId);
-  }, [question.id, tipText, canvasData, category, masteryLevel, attachmentUrl, attachmentType, attachmentName, attachmentPath, userId]);
+  }, [tipLoaded, question.id, tipText, canvasData, category, masteryLevel, attachmentUrl, attachmentType, attachmentName, attachmentPath, userId]);
+
+  // Flush any still-debounced save when the page unmounts (e.g. clicking Back
+  // right after finishing a drawing) so the last change is never lost.
+  useEffect(() => {
+    return () => {
+      const pending = pendingSaveRef.current;
+      if (!pending) return;
+      pendingSaveRef.current = null;
+      tipsModel.setTip(pending.questionId, pending.payload, pending.userId).catch(() => {});
+    };
+    // Empty deps: cleanup must run only on unmount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const categoryInfo = Object.values(TIP_CATEGORIES).find(c => c.id === category) || TIP_CATEGORIES.GENERAL;
   const masteryInfo = Object.values(MASTERY_LEVELS).find(m => m.id === masteryLevel) || MASTERY_LEVELS.LEARNING;
@@ -114,7 +163,10 @@ export default function TipDetailPage({
           </label>
           <CustomSelect
             value={category}
-            onChange={setCategory}
+            onChange={(value) => {
+              hasUserEditedRef.current = true;
+              setCategory(value);
+            }}
             options={Object.values(TIP_CATEGORIES).map(cat => ({
               value: cat.id,
               label: cat.label,
@@ -135,7 +187,10 @@ export default function TipDetailPage({
                 <button
                   key={level.id}
                   type="button"
-                  onClick={() => setMasteryLevel(level.id)}
+                  onClick={() => {
+                    hasUserEditedRef.current = true;
+                    setMasteryLevel(level.id);
+                  }}
                   className="qb-mastery-btn"
                   data-active={masteryLevel === level.id}
                   style={{
@@ -197,7 +252,10 @@ export default function TipDetailPage({
             <div style={{ position: "relative" }}>
               <DrawCanvas
                 value={canvasData}
-                onChange={(data) => setCanvasData(data)}
+                onChange={(data) => {
+                  hasUserEditedRef.current = true;
+                  setCanvasData(data);
+                }}
                 layersHost={canvasLayersRef.current}
               />
             </div>
@@ -227,12 +285,14 @@ export default function TipDetailPage({
               currentFile={attachmentUrl ? { url: attachmentUrl, type: attachmentType, name: attachmentName, path: attachmentPath } : null}
               userId={userId}
               onFileUploaded={(fileData) => {
+                hasUserEditedRef.current = true;
                 setAttachmentUrl(fileData.url);
                 setAttachmentType(fileData.type);
                 setAttachmentName(fileData.name);
                 setAttachmentPath(fileData.path || "");
               }}
               onRemoveFile={() => {
+                hasUserEditedRef.current = true;
                 setAttachmentUrl("");
                 setAttachmentType("");
                 setAttachmentName("");
@@ -255,6 +315,7 @@ export default function TipDetailPage({
           <button
             className="qb-del-btn"
             onClick={() => {
+              hasUserEditedRef.current = true;
               setTipText("");
               setCanvasData(null);
               setCategory("general");

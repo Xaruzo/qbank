@@ -675,6 +675,14 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       }
     }
 
+    // A brand-new canvas still needs one history entry: without it the very
+    // first stroke has no prior snapshot to restore, so Ctrl+Z (or the Undo
+    // toolbar button) is a no-op and can never remove the first thing drawn.
+    // This also covers the edge case where a saved value fails to load.
+    if (history.current.length === 0) {
+      history.current.push(JSON.stringify(canvas.toJSON()));
+    }
+
     function saveHistory() {
       if (isInternalChange.current) return;
       history.current.push(JSON.stringify(canvas.toJSON()));
