@@ -5,6 +5,9 @@ import LoadingSpinner from "./LoadingSpinner";
 
 const DURATION_MS = (3 * 60 * 60 + 10 * 60) * 1000;
 
+// Solid tier color for score meters: red < 50, amber 50–74, green 75+.
+const scoreMeterClass = (pct) => (pct >= 75 ? " qb-mock-meter-high" : pct >= 50 ? " qb-mock-meter-mid" : " qb-mock-meter-low");
+
 export default function MockExam({
   totalQuestions,
   onStartProfessional,
@@ -124,7 +127,7 @@ export default function MockExam({
             <div className={`qb-mock-mini-value${latestAttempt ? "" : " qb-mock-mini-empty"}`}>{latestAttempt ? `${latestAttempt.scorePercent}%` : "--"}</div>
             <div className="qb-mock-meter" aria-hidden="true">
               <span
-                className={`qb-mock-meter-fill${latestAttempt ? "" : " qb-mock-meter-idle"}`}
+                className={`qb-mock-meter-fill${latestAttempt ? scoreMeterClass(latestAttempt.scorePercent || 0) : " qb-mock-meter-idle"}`}
                 style={latestAttempt ? { width: `${Math.max(0, Math.min(100, latestAttempt.scorePercent || 0))}%` } : null}
               />
             </div>
@@ -142,7 +145,7 @@ export default function MockExam({
             <div className={`qb-mock-mini-value${sortedHistory.length ? "" : " qb-mock-mini-empty"}`}>{sortedHistory.length ? `${recentAverage}%` : "--"}</div>
             <div className="qb-mock-meter" aria-hidden="true">
               <span
-                className={`qb-mock-meter-fill${sortedHistory.length ? "" : " qb-mock-meter-idle"}`}
+                className={`qb-mock-meter-fill${sortedHistory.length ? scoreMeterClass(recentAverage) : " qb-mock-meter-idle"}`}
                 style={sortedHistory.length ? { width: `${Math.max(0, Math.min(100, recentAverage))}%` } : null}
               />
             </div>
@@ -181,7 +184,7 @@ export default function MockExam({
             <div className={`qb-mock-mini-value${bestAttempt ? "" : " qb-mock-mini-empty"}`}>{bestAttempt ? `${bestAttempt.scorePercent}%` : "--"}</div>
             <div className="qb-mock-meter" aria-hidden="true">
               <span
-                className={`qb-mock-meter-fill${bestAttempt ? "" : " qb-mock-meter-idle"}`}
+                className={`qb-mock-meter-fill${bestAttempt ? scoreMeterClass(bestAttempt.scorePercent || 0) : " qb-mock-meter-idle"}`}
                 style={bestAttempt ? { width: `${Math.max(0, Math.min(100, bestAttempt.scorePercent || 0))}%` } : null}
               />
             </div>

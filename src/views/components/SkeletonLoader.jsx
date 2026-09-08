@@ -145,7 +145,7 @@ export function MockSkeletonLoader() {
             <div className="qb-mock-mini-card qb-skel-panel" key={i}>
               {Bar({ w: "72px", h: "10px" })}
               {Bar({ w: "88px", h: "30px" })}
-              {Bar({ w: "100%", h: "6px", extra: { borderRadius: 999 } })}
+              {Bar({ w: "100%", h: "10px", extra: { borderRadius: 999 } })}
               {Bar({ w: "64px", h: "10px" })}
             </div>
           ))}
