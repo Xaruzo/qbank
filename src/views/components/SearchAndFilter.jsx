@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from "react";
-import { Search, SlidersHorizontal, ChevronDown } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Search, SlidersHorizontal, ChevronDown, X, Star, RotateCcw } from "lucide-react";
 import { TOPICS } from "../../constants/appConstants";
 
 export default function SearchAndFilter({
@@ -14,9 +14,13 @@ export default function SearchAndFilter({
   counts,
   filteredCount,
   favoriteCount,
+  favoriteOnly = false,
+  onFavoriteOnlyChange,
+  onResetFilters,
 }) {
   const getTopicColor = id => TOPICS.find(t => t.id===id)?.color || "inherit";
-  const activeFilters = [search.trim(), topicFilter !== "all" ? topicFilter : "", labelFilter !== "all" ? labelFilter : ""].filter(Boolean).length;
+  const hasActiveFilters = Boolean(search.trim() || topicFilter !== "all" || labelFilter !== "all" || favoriteOnly);
+  const activeFiltersCount = [search.trim(), topicFilter !== "all" ? topicFilter : "", labelFilter !== "all" ? labelFilter : "", favoriteOnly ? "fav" : ""].filter(Boolean).length;
   const [labelFilterOpen, setLabelFilterOpen] = useState(false);
   const [labelFilterDir, setLabelFilterDir] = useState("down");
   const labelFilterRef = useRef(null);
@@ -43,16 +47,39 @@ export default function SearchAndFilter({
   }, [labelFilterOpen]);
 
   return (
-    <section className="qb-control-panel">
+    <section className="qb-control-panel" aria-label="Search and Filter Questions">
       <div className="qb-section-head qb-section-head-compact">
         <div>
-          <div className="qb-section-kicker">Search and Filter</div>
-          <h2 className="qb-section-title">Find questions quickly and narrow the list.</h2>
+          <div className="qb-section-kicker">Search & Filters</div>
+          <h2 className="qb-section-title">Refine & Focus Your Practice</h2>
         </div>
         <div className="qb-control-summary">
-          <span>{filteredCount} shown</span>
-          <span>{favoriteCount} favorites</span>
-          <span>{activeFilters} active filters</span>
+          <span className="qb-control-stat">
+            <strong>{filteredCount}</strong> of {total} items
+          </span>
+          {favoriteCount > 0 && onFavoriteOnlyChange && (
+            <button
+              type="button"
+              className={`qb-filter-fav-btn${favoriteOnly ? " on" : ""}`}
+              onClick={() => onFavoriteOnlyChange(!favoriteOnly)}
+              aria-pressed={favoriteOnly}
+              title={favoriteOnly ? "Show all questions" : "Show starred questions only"}
+            >
+              <Star size={13} fill={favoriteOnly ? "currentColor" : "none"} />
+              <span>Starred ({favoriteCount})</span>
+            </button>
+          )}
+          {hasActiveFilters && onResetFilters && (
+            <button
+              type="button"
+              className="qb-filter-reset-btn"
+              onClick={onResetFilters}
+              title="Clear all active filters"
+            >
+              <RotateCcw size={12} />
+              <span>Reset filters ({activeFiltersCount})</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -63,10 +90,21 @@ export default function SearchAndFilter({
           </span>
           <input 
             className="qb-search" 
-            placeholder="Search questions, labels, choices, or solutions..." 
+            placeholder="Search keywords, formulas, concepts, or problem text..." 
             value={search} 
             onChange={e => onSearchChange(e.target.value)} 
           />
+          {search && (
+            <button
+              type="button"
+              className="qb-search-clear-btn"
+              onClick={() => onSearchChange("")}
+              aria-label="Clear search text"
+              title="Clear search"
+            >
+              <X size={15} />
+            </button>
+          )}
         </label>
 
         {labelOptions.length > 0 && (
@@ -115,20 +153,34 @@ export default function SearchAndFilter({
 
       <div className="qb-filter-row">
         <div className="qb-filter-row-title">
-          <SlidersHorizontal size={16} />
-          <span>Topic focus</span>
+          <SlidersHorizontal size={14} />
+          <span>Subject Focus</span>
         </div>
-        <div className="qb-pills">
-          {[{ id:"all", label:`All (${total})` }, ...TOPICS.map(t => ({ id:t.id, label:`${t.label} (${counts[t.id]||0})` }))].map(p => (
-            <button 
-              key={p.id} 
-              className={`qb-pill${topicFilter===p.id?" on":""}`}
-              style={topicFilter===p.id && p.id!=="all" ? { color:getTopicColor(p.id), borderColor:`${getTopicColor(p.id)}55` } : {}}
-              onClick={() => onTopicChange(p.id)}
-            >
-              {p.label}
-            </button>
-          ))}
+        <div className="qb-pills" role="tablist" aria-label="Subject filter tabs">
+          {[{ id:"all", label:"All Subjects", count: total }, ...TOPICS.map(t => ({ id:t.id, label:t.label, count: counts[t.id]||0 }))].map(p => {
+            const isSelected = topicFilter === p.id;
+            const topicCol = getTopicColor(p.id);
+            return (
+              <button 
+                key={p.id} 
+                role="tab"
+                aria-selected={isSelected}
+                className={`qb-pill${isSelected ? " on" : ""}`}
+                style={isSelected && p.id !== "all" ? { borderColor: `${topicCol}66`, color: topicCol } : {}}
+                onClick={() => onTopicChange(p.id)}
+              >
+                {p.id !== "all" && (
+                  <span
+                    className="qb-pill-dot"
+                    style={{ backgroundColor: topicCol }}
+                    aria-hidden="true"
+                  />
+                )}
+                <span>{p.label}</span>
+                <span className="qb-pill-count">{p.count}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
     </section>

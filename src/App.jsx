@@ -25,22 +25,20 @@ import { storageModel } from "./models/storageModel";
 import { tipsModel } from "./models/tipsModel";
 import { favoritesModel } from "./models/favoritesModel";
 import { buildMockExamAttempt, buildReviewExamFromAttempt } from "./utils/mockExamAnalytics";
-import { useOverlayDialogA11y } from "./controllers/useOverlayDialogA11y";
-import { Home, ClipboardList, Lightbulb } from "lucide-react";
-import { QUESTION_ADMIN_UIDS } from "./constants/appConstants";
+import { Home, ClipboardList, Lightbulb, PlayCircle, ArrowRight, BookOpen, Plus, ShieldCheck } from "lucide-react";
+import { QUESTION_ADMIN_UIDS, EXAM_PRESETS } from "./constants/appConstants";
 
 const PageLoader = () => <LoadingSpinner text="Loading…" />;
 
 // Civil Service exam format — DO NOT TUNE DOWN.
-// These mirror the official CSE Professional-level format: 170 items in
-// 3h10m (190 minutes). This app simulates the real civil service exam, so
-// the target item count and the time limit are fixed to the official
-// format. See handleStartProfessional: the exam always aims for
-// PRO_EXAM_TOTAL items at the full PRO_EXAM_DURATION_MS, and the session
-// simply contains fewer items while the question bank is still growing.
-// Never scale the timer to the bank size.
-const PRO_EXAM_DURATION_MS = (3 * 60 * 60 + 10 * 60) * 1000;
-const PRO_EXAM_TOTAL = 170;
+// These mirror the official CSC Professional (170 items, 3h10m) and Subprofessional (165 items, 2h40m) formats.
+// The target item count and time limits are fixed to the official specifications.
+// A smaller bank temporarily yields a shorter paper — the target and time limit must never change,
+// because this simulates the real civil service exam.
+const PRO_EXAM_DURATION_MS = EXAM_PRESETS.professional.durationMs;
+const PRO_EXAM_TOTAL = EXAM_PRESETS.professional.totalItems;
+const SUBPRO_EXAM_DURATION_MS = EXAM_PRESETS.subprofessional.durationMs;
+const SUBPRO_EXAM_TOTAL = EXAM_PRESETS.subprofessional.totalItems;
 
 const shuffleIds = (ids) => {
   const a = [...ids];
@@ -77,6 +75,7 @@ export default function App() {
   
   const { 
     qs, loading, refreshing, favoritesLoading, search, setSearch, topicFilter, setTopicFilter, labelFilter, setLabelFilter,
+    favoriteOnly, setFavoriteOnly,
     sortBy, setSortBy, saveQuestion, deleteQuestion, toggleFavorite, counts, labelOptions, filteredQuestions 
   } = useQuestionsController(user?.id, isAuthLoading);
 
@@ -109,6 +108,8 @@ export default function App() {
   const canManageQuestions = isQuestionAdmin;
   const favoriteCount = useMemo(() => qs.filter((q) => q.favorite).length, [qs]);
   const labeledCount = useMemo(() => qs.filter((q) => `${q.label || ""}`.trim().length > 0).length, [qs]);
+  const proQuestionsCount = useMemo(() => qs.filter((q) => q.topic !== "clerical").length, [qs]);
+  const subProQuestionsCount = useMemo(() => qs.filter((q) => q.topic !== "analytical").length, [qs]);
   const activeTopicCount = useMemo(
     () => Object.values(counts || {}).filter((value) => Number(value) > 0).length,
     [counts]
@@ -161,13 +162,6 @@ export default function App() {
     // Entering compact width: never start with the drawer covering content.
     if (isCompact) setNavOpen(false);
   }, [isCompact]);
-
-  const mobileNavCardRef = useRef(null);
-  // The inline mobile drawer (rendered below while isMobile) gets the same
-  // modal-dialog a11y treatment as the compact SideNav overlay: focus moves
-  // into the drawer on open, Tab is trapped inside, Escape closes it, and
-  // focus returns to the hamburger button on close.
-  useOverlayDialogA11y(isMobile && navOpen, () => setNavOpen(false), mobileNavCardRef);
 
   useEffect(() => {
     qsRef.current = qs;
@@ -555,24 +549,23 @@ export default function App() {
     setView("mockAttempt");
   };
 
-  const handleStartProfessional = () => {
+  const handleStartExam = (presetId = "professional") => {
     if (!isAuthenticated) {
       handleSignIn();
       return;
     }
-    const ids = qs.map(q => q.id);
-    // Official CSE Professional format: always target 170 items and keep the
-    // full 3h10m timer regardless of bank size (see the PRO_EXAM_* constants
-    // above). A smaller bank temporarily yields a shorter paper — the target
-    // and time limit must never change, because this simulates the real
-    // civil service exam, not a reduced-question quiz.
-    const orderIds = shuffleIds(ids).slice(0, PRO_EXAM_TOTAL);
+    const preset = EXAM_PRESETS[presetId] || EXAM_PRESETS.professional;
+    // Filter out topics excluded in this preset (e.g. clerical for pro, analytical for subpro)
+    const candidates = qs.filter((q) => !preset.excludedTopics?.includes(q.topic));
+    const ids = candidates.map((q) => q.id);
+    const orderIds = shuffleIds(ids).slice(0, preset.totalItems);
     const nextExam = {
       sessionId: `exam-${Date.now()}`,
-      mode: "professional",
+      mode: preset.id,
       startedAt: Date.now(),
-      durationMs: PRO_EXAM_DURATION_MS,
+      durationMs: preset.durationMs,
       totalCount: orderIds.length,
+      targetCount: preset.totalItems,
       orderIds,
       answers: {},
       review: {},
@@ -588,6 +581,24 @@ export default function App() {
     });
     window.history.pushState({}, "", `?page=mock-run`);
     setView("mockRun");
+  };
+
+  const handleStartProfessional = () => handleStartExam("professional");
+  const handleStartSubprofessional = () => handleStartExam("subprofessional");
+
+  const handleResetFilters = () => {
+    setSearch("");
+    setTopicFilter("all");
+    setLabelFilter("all");
+    setFavoriteOnly(false);
+  };
+
+  const handleSelectTopic = (topicId) => {
+    setTopicFilter(topicId);
+    const feed = document.getElementById("qb-question-feed");
+    if (feed) {
+      feed.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   };
 
   const handleResumeActiveMockExam = () => {
@@ -717,7 +728,7 @@ export default function App() {
           isDark={isDark} 
           onToggleTheme={toggleTheme} 
           onHome={handleGoHome}
-          showNavToggle={!isMobile}
+          showNavToggle={true}
           navOpen={navOpen}
           onToggleNav={() => setNavOpen(v => !v)}
           authAvailable={authAvailable}
@@ -727,66 +738,53 @@ export default function App() {
           onSignIn={handleSignIn}
           onSignOut={handleSignOut}
           onOpenHelp={handleOpenHelp}
+          currentView={primaryView}
+          onMockExam={handleGoMockExam}
+          onTips={handleGoTips}
         />
 
-        {isMobile && navOpen && (
-          <div className="qb-mnav-ov" onClick={() => setNavOpen(false)}>
-            <div
-              ref={mobileNavCardRef}
-              className="qb-mnav-card"
-              role="dialog"
-              aria-modal="true"
-              aria-label="Navigation menu"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                type="button"
-                className={`qb-nav-item${view === "mock" || view === "mockRun" || view === "mockAttempt" || view === "tips" || view === "tipDetail" ? "" : " on"}`}
-                onClick={() => { setNavOpen(false); handleGoHome(); }}
-              >
-                <Home size={18} />
-                <span>Home</span>
-              </button>
-              <button
-                type="button"
-                className={`qb-nav-item${view === "mock" || view === "mockRun" || view === "mockAttempt" ? " on" : ""}`}
-                onClick={() => { setNavOpen(false); handleGoMockExam(); }}
-              >
-                <ClipboardList size={18} />
-                <span>Mock Exam</span>
-              </button>
-              <button
-                type="button"
-                className={`qb-nav-item${view === "tips" || view === "tipDetail" ? " on" : ""}`}
-                onClick={() => { setNavOpen(false); handleGoTips(); }}
-              >
-                <Lightbulb size={18} />
-                <span>Tips</span>
-              </button>
-            </div>
-          </div>
+        {/* Unified Overlay Navigation Drawer for Mobile & Tablet/Compact */}
+        {(isMobile || isCompact) && (
+          <SideNav
+            variant="overlay"
+            open={navOpen}
+            active={primaryView}
+            onHome={handleGoHome}
+            onMockExam={handleGoMockExam}
+            onTips={handleGoTips}
+            onClose={() => setNavOpen(false)}
+            totalQuestions={qs.length}
+            starredCount={favoriteCount}
+            isDark={isDark}
+            onToggleTheme={toggleTheme}
+            onOpenHelp={handleOpenHelp}
+            isAuthenticated={isAuthenticated}
+            profile={profile}
+            onSignIn={handleSignIn}
+            onSignOut={handleSignOut}
+          />
         )}
 
         <div className="qb-shell">
-          {!isMobile && (isCompact ? (
+          {!isMobile && !isCompact && (
             <SideNav
-              variant="overlay"
+              variant="rail"
               open={navOpen}
               active={primaryView}
               onHome={handleGoHome}
               onMockExam={handleGoMockExam}
-              onTips={() => handleGoTips()}
-              onClose={() => setNavOpen(false)}
+              onTips={handleGoTips}
+              totalQuestions={qs.length}
+              starredCount={favoriteCount}
+              isDark={isDark}
+              onToggleTheme={toggleTheme}
+              onOpenHelp={handleOpenHelp}
+              isAuthenticated={isAuthenticated}
+              profile={profile}
+              onSignIn={handleSignIn}
+              onSignOut={handleSignOut}
             />
-          ) : (
-            <SideNav
-              open={navOpen}
-              active={primaryView}
-              onHome={handleGoHome}
-              onMockExam={handleGoMockExam}
-              onTips={() => handleGoTips()}
-            />
-          ))}
+          )}
           <main ref={mainRef} className={`qb-main${view === "mockRun" ? " qb-main-exam" : ""}`}>
             <div
               className={`qb-main-inner${
@@ -799,39 +797,134 @@ export default function App() {
             <Suspense fallback={<PageLoader />}>
             {view === "list" ? (
               <div className="fu qb-dashboard">
-                <section className="qb-list-hero">
+                <section className="qb-list-hero" aria-label="Civil Service Reviewer Workspace">
                   <div className="qb-list-hero-main">
-                    <span className="qb-section-kicker">Question Bank</span>
-                    <h1 className="qb-list-hero-title">A clean workspace for daily review and exam practice.</h1>
+                    <div className="qb-hero-badge-wrap">
+                      <span className="qb-hero-kicker-tag">
+                        <ShieldCheck size={14} />
+                        Philippine Civil Service Exam Reviewer
+                      </span>
+                    </div>
+                    <h1 className="qb-list-hero-title">Master the Civil Service Exam with Confidence.</h1>
                     <p className="qb-list-hero-copy">
-                      Manage your question bank, filter by topic, and move into mock exam mode without the visual noise.
+                      Practice with authentic multiple-choice questions, take realistic timed simulations matching official CSC specifications, and master concepts through step-by-step visual solutions.
                     </p>
-                    <div className="qb-list-hero-chips">
-                      <span className="qb-list-hero-chip">{filteredQuestions.length} questions available</span>
-                      <span className="qb-list-hero-chip">{activeTopicCount} topics in use</span>
-                      <span className="qb-list-hero-chip">{favoriteCount} starred items{favoritesLoading ? "..." : ""}</span>
+
+                    <div className="qb-hero-stats-meta" aria-label="Question Bank Summary">
+                      <span><strong>{qs.length}</strong> Total Questions</span>
+                      <span className="qb-hero-stats-sep" aria-hidden="true">·</span>
+                      <span><strong>{activeTopicCount}</strong> Subjects Active</span>
+                      <span className="qb-hero-stats-sep" aria-hidden="true">·</span>
+                      <span><strong>{favoriteCount}</strong> Starred Items</span>
                       {refreshing && (
-                        <span className="qb-list-hero-chip qb-sync-chip">
-                          <span className="qb-sync-dot" />
-                          Syncing latest questions
-                        </span>
+                        <>
+                          <span className="qb-hero-stats-sep" aria-hidden="true">·</span>
+                          <span className="qb-sync-inline">
+                            <span className="qb-sync-dot" />
+                            Syncing questions
+                          </span>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="qb-hero-actions">
+                      <button
+                        type="button"
+                        className="qb-hero-cta"
+                        onClick={handleGoMockExam}
+                      >
+                        <PlayCircle size={18} />
+                        Take Timed Mock Exam
+                      </button>
+                      <button
+                        type="button"
+                        className="qb-hero-secondary"
+                        onClick={() => handleGoTips()}
+                      >
+                        <Lightbulb size={18} />
+                        Study Tips & Methods
+                      </button>
+                      {canManageQuestions && (
+                        <button
+                          type="button"
+                          className="qb-hero-ghost"
+                          onClick={handleAddQuestionAction}
+                          title="Add a new question to the bank"
+                        >
+                          <Plus size={15} className="qb-add-btn-icon" />
+                          <span className="qb-add-btn-text">Add Question</span>
+                        </button>
                       )}
                     </div>
                   </div>
+
                   <div className="qb-list-hero-side">
-                    <div className="qb-list-hero-panel">
-                      <span className="qb-list-hero-panel-label">Questions</span>
-                      <strong>{qs.length}</strong>
-                      <p>Total items currently stored in your bank.</p>
-                    </div>
-                    <div className="qb-list-hero-panel">
-                      <span className="qb-list-hero-panel-label">Labeled</span>
-                      <strong>{labeledCount}</strong>
-                      <p>Questions already organized with labels.</p>
+                    <div className="qb-hero-exam-hub">
+                      <div className="qb-hero-hub-header">
+                        <div>
+                          <div className="qb-hero-hub-kicker">CSC Exam Presets</div>
+                          <div className="qb-hero-hub-title">Official Test Formats</div>
+                        </div>
+                        <button
+                          type="button"
+                          className="qb-hero-hub-link"
+                          onClick={handleGoMockExam}
+                          title="Open Mock Exam Center"
+                        >
+                          View Center <ArrowRight size={13} />
+                        </button>
+                      </div>
+
+                      <div className="qb-hero-preset-item">
+                        <div className="qb-hero-preset-info">
+                          <div className="qb-hero-preset-name">Professional Level</div>
+                          <div className="qb-hero-preset-specs">170 items · 3h 10m · 80% passing</div>
+                        </div>
+                        <button
+                          type="button"
+                          className="qb-hero-preset-btn"
+                          onClick={() => {
+                            if (!isAuthenticated) {
+                              handleSignIn();
+                            } else {
+                              handleStartExam("professional");
+                            }
+                          }}
+                        >
+                          Start <ArrowRight size={13} />
+                        </button>
+                      </div>
+
+                      <div className="qb-hero-preset-item">
+                        <div className="qb-hero-preset-info">
+                          <div className="qb-hero-preset-name">Subprofessional Level</div>
+                          <div className="qb-hero-preset-specs">165 items · 2h 40m · 80% passing</div>
+                        </div>
+                        <button
+                          type="button"
+                          className="qb-hero-preset-btn"
+                          onClick={() => {
+                            if (!isAuthenticated) {
+                              handleSignIn();
+                            } else {
+                              handleStartExam("subprofessional");
+                            }
+                          }}
+                        >
+                          Start <ArrowRight size={13} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </section>
-                <Stats total={qs.length} counts={counts} />
+
+                <Stats
+                  total={qs.length}
+                  counts={counts}
+                  topicFilter={topicFilter}
+                  onSelectTopic={handleSelectTopic}
+                />
+
                 <SearchAndFilter 
                   search={search} 
                   onSearchChange={setSearch} 
@@ -844,7 +937,11 @@ export default function App() {
                   counts={counts} 
                   filteredCount={filteredQuestions.length}
                   favoriteCount={favoriteCount}
+                  favoriteOnly={favoriteOnly}
+                  onFavoriteOnlyChange={setFavoriteOnly}
+                  onResetFilters={handleResetFilters}
                 />
+
                 <QuestionList 
                   questions={filteredQuestions} 
                   onSelect={handleSelectQuestion} 
@@ -856,7 +953,8 @@ export default function App() {
                   authAvailable={authAvailable}
                   isAuthenticated={isAuthenticated}
                   onAddQuestion={handleAddQuestionAction}
-                  resetKey={`${search}|${topicFilter}|${labelFilter}|${sortBy}`}
+                  onNavigateToTips={() => handleGoTips()}
+                  resetKey={`${search}|${topicFilter}|${labelFilter}|${favoriteOnly}|${sortBy}`}
                 />
               </div>
             ) : view === "detail" && selectedQuestion ? (
@@ -899,7 +997,12 @@ export default function App() {
               ) : (
                 <MockExam
                   totalQuestions={Math.min(qs.length, PRO_EXAM_TOTAL)}
+                  proQuestionsCount={proQuestionsCount}
+                  subProQuestionsCount={subProQuestionsCount}
+                  presets={EXAM_PRESETS}
                   onStartProfessional={handleStartProfessional}
+                  onStartSubprofessional={handleStartSubprofessional}
+                  onStartExam={handleStartExam}
                   activeExam={savedActiveMockExam}
                   isActiveExamLoading={isActiveMockExamLoading}
                   onResumeActiveExam={handleResumeActiveMockExam}
@@ -923,7 +1026,12 @@ export default function App() {
               ) : (
                 <MockExam
                   totalQuestions={Math.min(qs.length, PRO_EXAM_TOTAL)}
+                  proQuestionsCount={proQuestionsCount}
+                  subProQuestionsCount={subProQuestionsCount}
+                  presets={EXAM_PRESETS}
                   onStartProfessional={handleStartProfessional}
+                  onStartSubprofessional={handleStartSubprofessional}
+                  onStartExam={handleStartExam}
                   activeExam={savedActiveMockExam}
                   isActiveExamLoading={isActiveMockExamLoading}
                   onResumeActiveExam={handleResumeActiveMockExam}

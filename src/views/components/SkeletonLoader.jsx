@@ -106,49 +106,50 @@ export function MockSkeletonLoader() {
         <Chip w={150} h={34} br={999} />
       </div>
 
-      <div className="qb-mock-grid">
-        <div className="qb-det-card qb-mock-hero-card">
-          <div className="qb-exam-card">
-            <div className="qb-mock-hero-top">
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {Bar({ w: "170px", h: "20px" })}
-                {Bar({ w: "min(430px, 92%)", h: "13px", extra: { maxWidth: "92%" } })}
-                {Bar({ w: "min(380px, 78%)", h: "13px", extra: { maxWidth: "78%" } })}
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-                <Chip w={130} h={28} />
-                <Chip w={120} h={28} />
-                <Chip w={140} h={28} />
-              </div>
+      <div className="qb-mock-insights">
+        {[0, 1, 2, 3].map((i) => (
+          <div className="qb-mock-mini-card qb-skel-panel" key={i}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              {Bar({ w: "80px", h: "10px" })}
+              {Chip({ w: 44, h: 18, br: 999 })}
             </div>
+            {Bar({ w: "68px", h: "26px" })}
+            {Bar({ w: "100%", h: "6px", extra: { borderRadius: 999 } })}
+            {Bar({ w: "90px", h: "10px" })}
+          </div>
+        ))}
+      </div>
 
-            <div className="qb-mock-blueprint">
-              {[0, 1, 2].map((i) => (
-                <div className="qb-mock-blueprint-card qb-skel-panel" key={i}>
-                  {Bar({ w: "52px", h: "9px" })}
-                  {Bar({ w: "72%", h: "16px" })}
-                  {Bar({ w: "92%", h: "12px" })}
-                  {Bar({ w: "62%", h: "12px" })}
-                </div>
-              ))}
+      <div className="qb-det-card qb-mock-hero-card">
+        <div className="qb-exam-card">
+          <div className="qb-mock-hero-top">
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {Bar({ w: "170px", h: "20px" })}
+              {Bar({ w: "min(430px, 92%)", h: "13px", extra: { maxWidth: "92%" } })}
+              {Bar({ w: "min(380px, 78%)", h: "13px", extra: { maxWidth: "78%" } })}
             </div>
-
-            <div className="qb-mock-hero-actions">
-              <Chip w={190} h={44} br={10} />
-              <Chip w={170} h={44} br={10} />
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+              <Chip w={130} h={28} />
+              <Chip w={120} h={28} />
+              <Chip w={140} h={28} />
             </div>
           </div>
-        </div>
 
-        <div className="qb-mock-insights">
-          {[0, 1, 2, 3].map((i) => (
-            <div className="qb-mock-mini-card qb-skel-panel" key={i}>
-              {Bar({ w: "72px", h: "10px" })}
-              {Bar({ w: "88px", h: "30px" })}
-              {Bar({ w: "100%", h: "10px", extra: { borderRadius: 999 } })}
-              {Bar({ w: "64px", h: "10px" })}
-            </div>
-          ))}
+          <div className="qb-mock-blueprint">
+            {[0, 1, 2].map((i) => (
+              <div className="qb-mock-blueprint-card qb-skel-panel" key={i}>
+                {Bar({ w: "52px", h: "9px" })}
+                {Bar({ w: "72%", h: "16px" })}
+                {Bar({ w: "92%", h: "12px" })}
+                {Bar({ w: "62%", h: "12px" })}
+              </div>
+            ))}
+          </div>
+
+          <div className="qb-mock-hero-actions">
+            <Chip w={190} h={44} br={10} />
+            <Chip w={170} h={44} br={10} />
+          </div>
         </div>
       </div>
 

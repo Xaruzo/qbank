@@ -36,8 +36,8 @@ export default function MockAttemptDetail({ attempt, qMap, onBack, onReviewAttem
           Back to Mock Exam
         </button>
         <div className="qb-mock-attempt-toolbar">
-          <span className="qb-badge qb-exam-mode-badge qb-mock-attempt-badge">
-            Attempt Details
+          <span className={`qb-badge qb-exam-mode-badge qb-mock-attempt-badge${attempt.mode === "subprofessional" ? " subpro" : " pro"}`}>
+            {attempt.mode === "subprofessional" ? "Subprofessional Level (165 Items)" : "Professional Level (170 Items)"}
           </span>
           <button type="button" className="qb-mock-secondary-btn qb-mock-attempt-open-btn" onClick={() => onReviewAttempt(attempt)}>
             <ArrowUpRight size={16} />
@@ -49,11 +49,11 @@ export default function MockAttemptDetail({ attempt, qMap, onBack, onReviewAttem
 
       <div className="qb-exam-summary" style={{ marginBottom: 18 }}>
         <div className="qb-exam-summary-primary">
-          <div className="qb-exam-summary-kicker">Saved Attempt</div>
+          <div className="qb-exam-summary-kicker">Saved Attempt ({attempt.mode === "subprofessional" ? "Subprofessional Preset" : "Professional Preset"})</div>
           <div className="qb-exam-summary-scoreline">
             <div className="qb-exam-summary-n">{attempt.scorePercent}%</div>
             <div className="qb-exam-summary-copy">
-              <span>{attempt.correctCount} correct out of {attempt.totalCount}</span>
+              <span>{attempt.correctCount} correct out of {attempt.totalCount} items</span>
               <span>{formatExamDuration(attempt.timeSpentMs)} spent on this run</span>
             </div>
           </div>

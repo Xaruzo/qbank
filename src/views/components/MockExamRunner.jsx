@@ -149,7 +149,11 @@ export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit }) {
   const answeredCount = metrics.answeredCount;
   const reviewCount = metrics.reviewCount;
   const score = finished ? metrics.correctCount : null;
-  const examLabel = exam.isReviewSession ? "Saved Review" : "Professional";
+  const examLabel = exam.isReviewSession
+    ? "Saved Review"
+    : exam.mode === "subprofessional"
+      ? "Subprofessional • 165 Items"
+      : "Professional • 170 Items";
   const examStats = [
     { value: `${exam.currentIndex + 1}/${totalCount}`, label: "Question" },
     { value: answeredCount, label: "Answered" },

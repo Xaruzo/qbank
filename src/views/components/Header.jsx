@@ -1,12 +1,26 @@
-import React, { useEffect, useRef, useState } from "react";
-import { LogIn, LogOut, Menu, Moon, Settings, Sun, UserCircle2, X, HelpCircle } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  LogIn,
+  LogOut,
+  Menu,
+  Moon,
+  Settings,
+  Sun,
+  UserCircle2,
+  X,
+  HelpCircle,
+  Home,
+  ClipboardList,
+  Lightbulb,
+  CheckCircle2,
+} from "lucide-react";
 import brandLogo from "../../models/Image/logo.png";
 
 export default function Header({
   isDark,
   onToggleTheme,
   onHome,
-  showNavToggle,
+  showNavToggle = true,
   navOpen,
   onToggleNav,
   authAvailable,
@@ -16,6 +30,9 @@ export default function Header({
   onSignIn,
   onSignOut,
   onOpenHelp,
+  currentView = "home",
+  onMockExam,
+  onTips,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -60,58 +77,142 @@ export default function Header({
 
   const accountIcon = (
     <span className="qb-account-avatar" aria-hidden="true">
-      <UserCircle2 size={22} strokeWidth={1.9} />
+      {profile?.fullName ? (
+        profile.fullName.slice(0, 2).toUpperCase()
+      ) : (
+        <UserCircle2 size={22} strokeWidth={1.9} />
+      )}
     </span>
   );
 
   return (
     <>
       <header className="qb-hdr">
+        {/* Left: Hamburger & Brand */}
         <div className="qb-hdr-left">
           {showNavToggle && (
             <button
               type="button"
-              className="qb-hdr-menu-btn"
+              className={`qb-hdr-menu-btn${navOpen ? " is-active" : ""}`}
               onClick={onToggleNav}
-              aria-label={navOpen ? "Close menu" : "Open menu"}
-              title={navOpen ? "Close menu" : "Open menu"}
+              aria-label={navOpen ? "Close sidebar menu" : "Open sidebar menu"}
+              title={navOpen ? "Close sidebar menu" : "Open sidebar menu"}
             >
               {navOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
           )}
+
           <div className="qb-logo-block">
-            <button type="button" className="qb-logo" onClick={onHome} title="Go to question list">
+            <button
+              type="button"
+              className="qb-logo"
+              onClick={onHome}
+              title="Return to Question Bank"
+            >
               <img className="qb-logo-img" src={brandLogo} alt="QBank logo" />
-              <span>QBANK</span>
-              <span className="qb-logo-tag">REVIEW WORKSPACE</span>
+              <div className="qb-logo-text-group">
+                <span className="qb-logo-title">QBANK</span>
+                <span className="qb-logo-sub">Civil Service Reviewer</span>
+              </div>
             </button>
-            <div className="qb-hdr-meta-stack" aria-hidden="true">
-              <span className="qb-hdr-meta-label">Dashboard</span>
-              <span className="qb-hdr-meta-value">Questions, practice history, and mock exams</span>
-            </div>
           </div>
         </div>
-        <div className="qb-spacer" />
+
+        {/* Center: Desktop Quick Nav Links */}
+        <nav className="qb-hdr-nav" aria-label="Quick Navigation">
+          <button
+            type="button"
+            className={`qb-hdr-nav-item${
+              currentView === "home" || currentView === "list" ? " is-active" : ""
+            }`}
+            onClick={onHome}
+            title="Question Bank"
+          >
+            <Home size={15} />
+            <span>Question Bank</span>
+          </button>
+
+          {onMockExam && (
+            <button
+              type="button"
+              className={`qb-hdr-nav-item${
+                currentView === "mock" ||
+                currentView === "mockRun" ||
+                currentView === "mockAttempt"
+                  ? " is-active"
+                  : ""
+              }`}
+              onClick={onMockExam}
+              title="Timed Mock Exam"
+            >
+              <ClipboardList size={15} />
+              <span>Timed Mock Exam</span>
+            </button>
+          )}
+
+          {onTips && (
+            <button
+              type="button"
+              className={`qb-hdr-nav-item${
+                currentView === "tips" || currentView === "tipDetail" ? " is-active" : ""
+              }`}
+              onClick={onTips}
+              title="Tips & Methods"
+            >
+              <Lightbulb size={15} />
+              <span>Tips & Tricks</span>
+            </button>
+          )}
+        </nav>
+
+        {/* Right: Actions, Theme, Help & User Profile */}
         <div className="qb-hdr-right">
+          {/* Quick Theme Switcher */}
+          <button
+            type="button"
+            className="qb-hdr-action-btn"
+            onClick={onToggleTheme}
+            title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+            aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {isDark ? <Sun size={17} /> : <Moon size={17} />}
+          </button>
+
+          {/* Quick Help Guide */}
+          {onOpenHelp && (
+            <button
+              type="button"
+              className="qb-hdr-action-btn"
+              onClick={handleOpenHelp}
+              title="Open reviewer guide & help"
+              aria-label="Open reviewer guide & help"
+            >
+              <HelpCircle size={17} />
+            </button>
+          )}
+
+          {/* User Account / Auth */}
           {!authAvailable ? (
             <button
               type="button"
-              className="qb-auth-btn"
+              className="qb-auth-btn qb-auth-off-btn"
               onClick={openSettings}
-              title="Auth is not configured. Open settings"
+              title="Auth is not configured. Click to configure settings."
             >
-              <UserCircle2 size={17} />
-              Auth Off
+              <UserCircle2 size={16} />
+              <span>Guest Mode</span>
             </button>
           ) : isAuthenticated ? (
             <div className="qb-account-wrap" ref={menuRef}>
               <button
                 type="button"
-                className="qb-account-btn qb-account-btn-avatar"
+                className={`qb-account-btn qb-account-btn-avatar${
+                  menuOpen ? " is-active" : ""
+                }`}
                 onClick={() => setMenuOpen((open) => !open)}
                 aria-expanded={menuOpen}
                 aria-haspopup="menu"
-                title={profile.email || profile.fullName}
+                title={profile?.email || profile?.fullName || "Account menu"}
               >
                 {accountIcon}
               </button>
@@ -121,69 +222,122 @@ export default function Header({
                   <div className="qb-profile-menu-head">
                     {accountIcon}
                     <div className="qb-profile-meta">
-                      <div className="qb-profile-name">{profile.fullName}</div>
-                      <div className="qb-profile-email">{profile.email}</div>
+                      <div className="qb-profile-name">
+                        {profile?.fullName || "Reviewer"}
+                      </div>
+                      <div className="qb-profile-email">{profile?.email || ""}</div>
+                      <span className="qb-profile-status-badge">
+                        <CheckCircle2 size={11} /> Verified Account
+                      </span>
                     </div>
                   </div>
 
-                  <button type="button" className="qb-profile-menu-item" onClick={onToggleTheme}>
+                  <div className="qb-profile-menu-divider" />
+
+                  <button
+                    type="button"
+                    className="qb-profile-menu-item"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      onToggleTheme();
+                    }}
+                  >
                     {isDark ? <Sun size={16} /> : <Moon size={16} />}
-                    {isDark ? "Light Mode" : "Dark Mode"}
+                    <span>{isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}</span>
                   </button>
-                  <button type="button" className="qb-profile-menu-item" onClick={handleOpenHelp}>
+
+                  <button
+                    type="button"
+                    className="qb-profile-menu-item"
+                    onClick={handleOpenHelp}
+                  >
                     <HelpCircle size={16} />
-                    Help Center
+                    <span>Reviewer Guide & Shortcuts</span>
                   </button>
-                  <button type="button" className="qb-profile-menu-item" onClick={openSettings}>
+
+                  <button
+                    type="button"
+                    className="qb-profile-menu-item"
+                    onClick={openSettings}
+                  >
                     <Settings size={16} />
-                    Settings
+                    <span>Settings & Preferences</span>
                   </button>
-                  <button type="button" className="qb-profile-menu-item danger" onClick={handleSignOut}>
+
+                  <div className="qb-profile-menu-divider" />
+
+                  <button
+                    type="button"
+                    className="qb-profile-menu-item danger"
+                    onClick={handleSignOut}
+                  >
                     <LogOut size={16} />
-                    Sign Out
+                    <span>Sign Out</span>
                   </button>
                 </div>
               )}
             </div>
           ) : (
-            <button type="button" className="qb-auth-btn" onClick={onSignIn} disabled={isAuthLoading}>
-              <LogIn size={17} />
-              {isAuthLoading ? "Loading..." : "Sign In"}
+            <button
+              type="button"
+              className="qb-auth-btn qb-auth-signin-btn"
+              onClick={onSignIn}
+              disabled={isAuthLoading}
+              title="Sign in with your Google account"
+            >
+              <LogIn size={15} />
+              <span>{isAuthLoading ? "Signing in..." : "Sign In"}</span>
             </button>
           )}
         </div>
       </header>
 
+      {/* Settings Modal */}
       {settingsOpen && (
         <div className="qb-settings-ov" onClick={() => setSettingsOpen(false)}>
-          <div className="qb-settings-card" onClick={(event) => event.stopPropagation()}>
+          <div
+            className="qb-settings-card"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Settings"
+          >
             <div className="qb-settings-head">
               <div>
-                <div className="qb-settings-kicker">Preferences</div>
-                <div className="qb-settings-title">Settings</div>
+                <span className="qb-settings-kicker">Preferences</span>
+                <h3 className="qb-settings-title">App Settings</h3>
               </div>
-              <button type="button" className="qb-settings-close" onClick={() => setSettingsOpen(false)}>
+              <button
+                type="button"
+                className="qb-settings-close"
+                onClick={() => setSettingsOpen(false)}
+                title="Close settings"
+              >
                 <X size={18} />
               </button>
             </div>
 
             <div className="qb-settings-section">
-              <div className="qb-settings-label">Theme</div>
-              <button type="button" className="qb-profile-menu-item qb-settings-action" onClick={onToggleTheme}>
+              <span className="qb-settings-label">Color Theme</span>
+              <button
+                type="button"
+                className="qb-profile-menu-item qb-settings-action"
+                onClick={onToggleTheme}
+              >
                 {isDark ? <Sun size={16} /> : <Moon size={16} />}
-                {isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                <span>{isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}</span>
               </button>
             </div>
 
             <div className="qb-settings-section">
-              <div className="qb-settings-label">Account</div>
-              <div className="qb-settings-text">
+              <span className="qb-settings-label">Account & Sync</span>
+              <p className="qb-settings-text">
                 {isAuthenticated
-                  ? `Signed in as ${profile.email || profile.fullName}.`
+                  ? `Signed in as ${profile?.email || profile?.fullName}. Your exam progress, favorites, and study tips are backed up to the cloud.`
                   : authAvailable
-                    ? "Sign in with Google to add, edit, and manage questions."
-                    : "Supabase auth is not configured yet."}
-              </div>
+                  ? "Sign in with Google to sync your mock exams, starred questions, and custom tips across devices."
+                  : "Offline mode active. Questions and tips are stored in your browser's local cache."}
+              </p>
             </div>
           </div>
         </div>

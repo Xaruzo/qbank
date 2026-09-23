@@ -46,14 +46,15 @@ const getSearchText = (q) => {
 
 // Pure filter+sort pipeline (module scope so it stays testable and free of
 // hook state). `search` must already be lowercased by the caller.
-const filterAndSortQuestions = (qs, { search, topicFilter, labelFilter, sortBy }) =>
+const filterAndSortQuestions = (qs, { search, topicFilter, labelFilter, sortBy, favoriteOnly = false }) =>
   qs
     .map((q, index) => ({ q, index }))
     .filter(({ q }) => {
       const matchesTopic = topicFilter === "all" || q.topic === topicFilter;
       const matchesLabel = labelFilter === "all" || getLabelValue(q) === labelFilter;
       const matchesSearch = !search || getSearchText(q).includes(search);
-      return matchesTopic && matchesLabel && matchesSearch;
+      const matchesFavorite = !favoriteOnly || Boolean(q.favorite);
+      return matchesTopic && matchesLabel && matchesSearch && matchesFavorite;
     })
     .sort((a, b) => {
       if (sortBy === "newest") return getSortTimestamp(b) - getSortTimestamp(a) || b.index - a.index;
@@ -74,6 +75,7 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
   const [search, setSearch] = useState("");
   const [topicFilter, setTopicFilter] = useState("all");
   const [labelFilter, setLabelFilter] = useState("all");
+  const [favoriteOnly, setFavoriteOnly] = useState(false);
   const [sortBy, setSortBy] = useState("favorites");
   const initRequestRef = useRef(0);
 
@@ -365,8 +367,9 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
       topicFilter,
       labelFilter,
       sortBy,
+      favoriteOnly,
     }),
-    [qs, deferredSearch, topicFilter, labelFilter, sortBy]
+    [qs, deferredSearch, topicFilter, labelFilter, sortBy, favoriteOnly]
   );
 
   return {
@@ -380,6 +383,8 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
     setTopicFilter,
     labelFilter,
     setLabelFilter,
+    favoriteOnly,
+    setFavoriteOnly,
     sortBy,
     setSortBy,
     saveQuestion,

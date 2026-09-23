@@ -56,6 +56,10 @@ describe("filterAndSortQuestions — filtering", () => {
     expect(ids(run({ search: "alpha", topicFilter: "t1" }))).toEqual(["1", "3"]);
     expect(ids(run({ search: "alpha", topicFilter: "t2" }))).toEqual([]);
   });
+
+  it("filters to favorites only when favoriteOnly is true", () => {
+    expect(ids(run({ favoriteOnly: true }))).toEqual(["1"]);
+  });
 });
 
 describe("filterAndSortQuestions — sorting", () => {

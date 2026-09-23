@@ -59,7 +59,7 @@ export default function QuestionList({
   }, [sortOpen]);
 
   return (
-    <section className="qb-question-section" ref={copyAreaRef}>
+    <section className="qb-question-section" ref={copyAreaRef} id="qb-question-feed">
       <div className="qb-list-meta">
         <div className="qb-list-meta-left">
           <span className="qb-list-label">Question Feed</span>
@@ -75,8 +75,8 @@ export default function QuestionList({
             className="qb-add-btn qb-list-add-btn"
             onClick={onAddQuestion}
           >
-            <Plus size={16} />
-            Add Question
+            <Plus size={15} className="qb-add-btn-icon" />
+            <span className="qb-add-btn-text">Add Question</span>
           </button>
         )}
         <div className="qb-list-meta-right">
