@@ -20,13 +20,13 @@ const memoryTipsCache = new Map();
 
 // Tip categories
 export const TIP_CATEGORIES = {
-  FORMULA: { id: 'formula', label: 'Formula', color: '#3b82f6' },
-  SHORTCUT: { id: 'shortcut', label: 'Shortcut', color: '#8b5cf6' },
-  METHOD: { id: 'method', label: 'Method', color: '#10b981' },
-  TRICK: { id: 'trick', label: 'Trick', color: '#f59e0b' },
-  EXAMPLE: { id: 'example', label: 'Example', color: '#06b6d4' },
-  MNEMONIC: { id: 'mnemonic', label: 'Mnemonic', color: '#ec4899' },
-  GENERAL: { id: 'general', label: 'General', color: '#6b7280' },
+  FORMULA: { id: 'formula', label: 'Formula', color: '#60a5fa' },
+  SHORTCUT: { id: 'shortcut', label: 'Shortcut', color: '#a78bfa' },
+  METHOD: { id: 'method', label: 'Method', color: '#34d399' },
+  TRICK: { id: 'trick', label: 'Trick', color: '#fbbf24' },
+  EXAMPLE: { id: 'example', label: 'Example', color: '#38bdf8' },
+  MNEMONIC: { id: 'mnemonic', label: 'Mnemonic', color: '#f472b6' },
+  GENERAL: { id: 'general', label: 'General', color: '#cbd5e1' },
 };
 
 // Mastery levels
