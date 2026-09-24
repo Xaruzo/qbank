@@ -104,17 +104,16 @@ export default function MockExam({
       <div className="qb-mock-insights" role="region" aria-label="Exam Performance Overview">
         {/* Card 1: Latest Score */}
         <div className="qb-mock-mini-card">
-          <div className="qb-mock-mini-top">
-            <div className="qb-mock-mini-label-wrap">
-              <span className="qb-mock-mini-icon score-icon" aria-hidden="true">
-                <Target size={14} />
-              </span>
-              <span className="qb-mock-mini-label">Latest Score</span>
-            </div>
+          <div className="qb-mock-mini-header">
+            <span className="qb-mock-mini-icon score-icon" aria-hidden="true">
+              <Target size={15} />
+            </span>
             <span className="qb-mock-mini-tag">
               {latestAttempt ? (latestAttempt.mode === "subprofessional" ? "Subpro" : "Pro") : "Goal 80%+"}
             </span>
           </div>
+
+          <div className="qb-mock-mini-label">Latest Score</div>
 
           <div className="qb-mock-mini-value-row">
             <div className={`qb-mock-mini-value${latestAttempt ? "" : " qb-mock-mini-empty"}`}>
@@ -145,17 +144,16 @@ export default function MockExam({
 
         {/* Card 2: Recent Average */}
         <div className="qb-mock-mini-card">
-          <div className="qb-mock-mini-top">
-            <div className="qb-mock-mini-label-wrap">
-              <span className="qb-mock-mini-icon avg-icon" aria-hidden="true">
-                <Activity size={14} />
-              </span>
-              <span className="qb-mock-mini-label">Recent Average</span>
-            </div>
+          <div className="qb-mock-mini-header">
+            <span className="qb-mock-mini-icon avg-icon" aria-hidden="true">
+              <Activity size={15} />
+            </span>
             <span className="qb-mock-mini-tag">
               {sortedHistory.length > 0 ? `Last ${Math.min(sortedHistory.length, 5)} runs` : "0 runs"}
             </span>
           </div>
+
+          <div className="qb-mock-mini-label">Recent Average</div>
 
           <div className="qb-mock-mini-value-row">
             <div className={`qb-mock-mini-value${sortedHistory.length ? "" : " qb-mock-mini-empty"}`}>
@@ -186,17 +184,16 @@ export default function MockExam({
 
         {/* Card 3: Trend */}
         <div className="qb-mock-mini-card">
-          <div className="qb-mock-mini-top">
-            <div className="qb-mock-mini-label-wrap">
-              <span className={`qb-mock-mini-icon trend-icon${improvement > 0 ? " is-up" : improvement < 0 ? " is-down" : ""}`} aria-hidden="true">
-                {improvement > 0 ? <TrendingUp size={14} /> : improvement < 0 ? <TrendingDown size={14} /> : <Minus size={14} />}
-              </span>
-              <span className="qb-mock-mini-label">Performance Trend</span>
-            </div>
+          <div className="qb-mock-mini-header">
+            <span className={`qb-mock-mini-icon trend-icon${improvement > 0 ? " is-up" : improvement < 0 ? " is-down" : ""}`} aria-hidden="true">
+              {improvement > 0 ? <TrendingUp size={15} /> : improvement < 0 ? <TrendingDown size={15} /> : <Minus size={15} />}
+            </span>
             <span className="qb-mock-mini-tag">
               {improvement === null ? "Min 2 runs" : improvement > 0 ? "Rising" : improvement < 0 ? "Dip" : "Stable"}
             </span>
           </div>
+
+          <div className="qb-mock-mini-label">Performance Trend</div>
 
           <div className="qb-mock-mini-value-row">
             <div className={`qb-mock-mini-value${improvement === null ? " qb-mock-mini-empty" : improvement > 0 ? " qb-mock-mini-up" : improvement < 0 ? " qb-mock-mini-down" : ""}`}>
@@ -233,17 +230,16 @@ export default function MockExam({
 
         {/* Card 4: Best Attempt */}
         <div className="qb-mock-mini-card">
-          <div className="qb-mock-mini-top">
-            <div className="qb-mock-mini-label-wrap">
-              <span className="qb-mock-mini-icon best-icon" aria-hidden="true">
-                <Trophy size={14} />
-              </span>
-              <span className="qb-mock-mini-label">Best Attempt</span>
-            </div>
+          <div className="qb-mock-mini-header">
+            <span className="qb-mock-mini-icon best-icon" aria-hidden="true">
+              <Trophy size={15} />
+            </span>
             <span className="qb-mock-mini-tag">
               {bestAttempt ? (bestAttempt.mode === "subprofessional" ? "Subpro" : "Pro") : "Record"}
             </span>
           </div>
+
+          <div className="qb-mock-mini-label">Best Attempt</div>
 
           <div className="qb-mock-mini-value-row">
             <div className={`qb-mock-mini-value${bestAttempt ? "" : " qb-mock-mini-empty"}`}>

@@ -139,7 +139,7 @@ export default function QuestionList({
         </div>
       )}
 
-      <div className="qb-question-stack">
+      <div className="qb-question-stack" id="qb-question-cards">
       {questions.length === 0 ? (
         <div className="qb-empty">
           <ClipboardList size={48} className="qb-empty-ico" style={{ margin: "0 auto 14px", opacity: 0.2 }} />

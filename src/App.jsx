@@ -599,10 +599,12 @@ export default function App() {
 
   const handleSelectTopic = (topicId) => {
     setTopicFilter(topicId);
-    const feed = document.getElementById("qb-question-feed");
-    if (feed) {
-      feed.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
+    setTimeout(() => {
+      const cards = document.getElementById("qb-question-cards") || document.getElementById("qb-question-feed");
+      if (cards) {
+        cards.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 50);
   };
 
   const handleResumeActiveMockExam = () => {
