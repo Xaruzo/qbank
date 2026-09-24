@@ -291,55 +291,51 @@ export default function QuestionDetail({
       {/* Top Header & Action Toolbar */}
       <div className="qb-det-hdr">
         <div className="qb-det-meta">
-          <button
-            type="button"
-            className="qb-back-btn"
-            onClick={onBack}
-            title="Return to Question Bank"
-          >
-            <ChevronLeft size={16} />
-            <span>Bank</span>
-          </button>
+          <div className="qb-det-meta-left">
+            <button
+              type="button"
+              className="qb-back-btn"
+              onClick={onBack}
+              title="Return to Question Bank"
+            >
+              <ChevronLeft size={15} />
+              <span>Bank</span>
+            </button>
 
-          <span
-            className="qb-det-topic-badge"
-            style={{
-              color: topic.color,
-              backgroundColor: `${topic.color}18`,
-              borderColor: `${topic.color}35`,
-            }}
-          >
             <span
-              className="qb-det-topic-dot"
-              style={{ backgroundColor: topic.color }}
-            />
-            {topic.label}
-          </span>
-
-          {questionIndex && totalQuestions && (
-            <span className="qb-det-index-badge">
-              Item {questionIndex} of {totalQuestions}
+              className="qb-det-topic-badge"
+              style={{
+                color: topic.color,
+                backgroundColor: `${topic.color}16`,
+                borderColor: `${topic.color}35`,
+              }}
+              title={topic.label}
+            >
+              <span
+                className="qb-det-topic-dot"
+                style={{ backgroundColor: topic.color }}
+              />
+              <span className="qb-det-topic-label">{topic.label}</span>
             </span>
-          )}
+
+            {questionIndex && totalQuestions && (
+              <span
+                className="qb-det-index-badge"
+                title={`Item ${questionIndex} of ${totalQuestions}`}
+              >
+                <span className="qb-det-index-full">Item {questionIndex} of {totalQuestions}</span>
+                <span className="qb-det-index-short">{questionIndex} / {totalQuestions}</span>
+              </span>
+            )}
+          </div>
+
+          <div className="qb-timer-pill" title="Time spent on this question">
+            <Clock size={12} className="qb-timer-icon" />
+            <span>{answerTimeText}</span>
+          </div>
         </div>
 
         <div className="qb-det-actions">
-          <div className="qb-timer-pill" title="Time spent on this question">
-            <Clock size={13} className="qb-timer-icon" />
-            <span>{answerTimeText}</span>
-          </div>
-
-          <button
-            type="button"
-            className="qb-det-action-btn"
-            aria-label="Share question link"
-            title="Share question link"
-            onClick={handleShare}
-          >
-            <Link2 size={15} />
-            <span>{shareLabel}</span>
-          </button>
-
           {onTips && (
             <button
               type="button"
@@ -348,58 +344,71 @@ export default function QuestionDetail({
               title="Open tips and methods"
               onClick={onTips}
             >
-              <Lightbulb size={15} />
+              <Lightbulb size={14} />
               <span>Tips</span>
             </button>
           )}
 
-          <button
-            type="button"
-            className={`qb-det-fav-btn${question.favorite ? " on" : ""}`}
-            aria-label={question.favorite ? "Remove from favorites" : "Add to favorites"}
-            title={question.favorite ? "Unfavorite question" : "Favorite question"}
-            onClick={() => onToggleFavorite(question.id)}
-          >
-            <Star size={16} fill={question.favorite ? "currentColor" : "none"} />
-          </button>
+          <div className="qb-det-actions-group">
+            <button
+              type="button"
+              className="qb-det-action-btn qb-det-share-btn"
+              aria-label="Share question link"
+              title="Share question link"
+              onClick={handleShare}
+            >
+              <Link2 size={14} />
+              <span>{shareLabel}</span>
+            </button>
 
-          {canManageQuestions && !confirmDel ? (
-            <>
-              <button
-                type="button"
-                className="qb-edit-btn"
-                onClick={() => onEdit(question)}
-                title="Edit question"
-              >
-                Edit
-              </button>
-              <button
-                type="button"
-                className="qb-del-btn"
-                onClick={() => setConfirmDel(true)}
-                title="Delete question"
-              >
-                Delete
-              </button>
-            </>
-          ) : canManageQuestions && confirmDel ? (
-            <>
-              <button
-                type="button"
-                className="qb-del-cancel"
-                onClick={() => setConfirmDel(false)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="qb-del-confirm"
-                onClick={() => onDelete(question.id)}
-              >
-                Confirm Delete
-              </button>
-            </>
-          ) : null}
+            <button
+              type="button"
+              className={`qb-det-fav-btn${question.favorite ? " on" : ""}`}
+              aria-label={question.favorite ? "Remove from favorites" : "Add to favorites"}
+              title={question.favorite ? "Unfavorite question" : "Favorite question"}
+              onClick={() => onToggleFavorite(question.id)}
+            >
+              <Star size={15} fill={question.favorite ? "currentColor" : "none"} />
+            </button>
+
+            {canManageQuestions && !confirmDel ? (
+              <div className="qb-det-admin-group">
+                <button
+                  type="button"
+                  className="qb-edit-btn"
+                  onClick={() => onEdit(question)}
+                  title="Edit question"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  className="qb-del-btn"
+                  onClick={() => setConfirmDel(true)}
+                  title="Delete question"
+                >
+                  Delete
+                </button>
+              </div>
+            ) : canManageQuestions && confirmDel ? (
+              <div className="qb-det-admin-group">
+                <button
+                  type="button"
+                  className="qb-del-cancel"
+                  onClick={() => setConfirmDel(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="qb-del-confirm"
+                  onClick={() => onDelete(question.id)}
+                >
+                  Confirm Delete
+                </button>
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
 
