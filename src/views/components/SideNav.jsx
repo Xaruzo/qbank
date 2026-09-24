@@ -5,9 +5,6 @@ import {
   ClipboardList,
   Lightbulb,
   X,
-  Sun,
-  Moon,
-  HelpCircle,
   LogIn,
   LogOut,
   UserCircle2,
@@ -53,9 +50,9 @@ export default function SideNav({
   onClose,
   totalQuestions = 0,
   starredCount = 0,
-  isDark,
-  onToggleTheme,
-  onOpenHelp,
+  _isDark,
+  _onToggleTheme,
+  _onOpenHelp,
   isAuthenticated,
   profile,
   onSignIn,
@@ -194,46 +191,6 @@ export default function SideNav({
     </div>
   );
 
-  // Civil Service Pacing Tip Box
-  const renderTipBox = () => (
-    <div className="qb-side-block qb-side-foot">
-      <span className="qb-side-foot-label">Civil Service Tip</span>
-      <span className="qb-side-foot-text">
-        Pacing is critical: 170 items in 3 hours 10 minutes equals roughly 67 seconds per item.
-      </span>
-    </div>
-  );
-
-  // Reusable Footer Utilities (Theme switcher + Help & Guide modal button)
-  const renderFooterUtilities = (isOverlay = false) => (
-    <div className="qb-drawer-footer">
-      {onToggleTheme && (
-        <button
-          type="button"
-          className="qb-drawer-util-btn"
-          onClick={onToggleTheme}
-        >
-          {isDark ? <Sun size={16} /> : <Moon size={16} />}
-          <span>{isDark ? "Light Mode" : "Dark Mode"}</span>
-        </button>
-      )}
-
-      {onOpenHelp && (
-        <button
-          type="button"
-          className="qb-drawer-util-btn"
-          onClick={() => {
-            if (isOverlay && onClose) onClose();
-            onOpenHelp();
-          }}
-        >
-          <HelpCircle size={16} />
-          <span>Help & Guide</span>
-        </button>
-      )}
-    </div>
-  );
-
   // Overlay variant (Mobile & Tablet Drawer)
   if (variant === "overlay") {
     if (!open) return null;
@@ -272,7 +229,6 @@ export default function SideNav({
           {renderUserSection(true)}
           {renderNavList(true)}
           {renderStatsWidget()}
-          {renderFooterUtilities(true)}
         </aside>
       </div>
     );
@@ -287,8 +243,6 @@ export default function SideNav({
             {renderUserSection(false)}
             {renderNavList(false)}
             {renderStatsWidget()}
-            {renderTipBox()}
-            {renderFooterUtilities(false)}
           </>
         ) : (
           <>
@@ -314,31 +268,6 @@ export default function SideNav({
                 );
               })}
             </nav>
-
-            <div className="qb-side-collapsed-footer">
-              {onToggleTheme && (
-                <button
-                  type="button"
-                  className="qb-side-collapsed-util-btn"
-                  onClick={onToggleTheme}
-                  title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-                  aria-label="Toggle theme"
-                >
-                  {isDark ? <Sun size={17} /> : <Moon size={17} />}
-                </button>
-              )}
-              {onOpenHelp && (
-                <button
-                  type="button"
-                  className="qb-side-collapsed-util-btn"
-                  onClick={onOpenHelp}
-                  title="Help & Guide"
-                  aria-label="Help & Guide"
-                >
-                  <HelpCircle size={17} />
-                </button>
-              )}
-            </div>
           </>
         )}
       </div>

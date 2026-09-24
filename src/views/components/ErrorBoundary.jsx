@@ -1,4 +1,5 @@
 import React from "react";
+import { AlertTriangle, RotateCcw, Home } from "lucide-react";
 
 /**
  * Top-level error boundary. Catches any render-time crash in the component
@@ -58,7 +59,23 @@ class ErrorBoundary extends React.Component {
             boxShadow: "var(--shadow-card, 0 10px 30px rgba(0,0,0,.35))",
           }}
         >
-          <div style={{ fontSize: 40, marginBottom: 8 }} aria-hidden="true">⚠️</div>
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 52,
+              height: 52,
+              borderRadius: "50%",
+              background: "rgba(245, 158, 11, 0.14)",
+              color: "var(--accent, #f59e0b)",
+              margin: "0 auto 14px",
+              border: "1px solid rgba(245, 158, 11, 0.3)",
+            }}
+            aria-hidden="true"
+          >
+            <AlertTriangle size={26} />
+          </div>
           <h1 style={{ fontSize: 18, marginBottom: 8 }}>
             Something went wrong
           </h1>
@@ -71,8 +88,11 @@ class ErrorBoundary extends React.Component {
               type="button"
               onClick={this.handleReload}
               style={{
-                background: "var(--accent, #4f7cff)",
-                color: "#fff",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                background: "var(--accent, #f59e0b)",
+                color: "#070c18",
                 border: "none",
                 borderRadius: 999,
                 padding: "10px 20px",
@@ -81,12 +101,16 @@ class ErrorBoundary extends React.Component {
                 cursor: "pointer",
               }}
             >
-              Reload app
+              <RotateCcw size={15} />
+              <span>Reload app</span>
             </button>
             <button
               type="button"
               onClick={this.handleGoHome}
               style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
                 background: "transparent",
                 color: "var(--text, #fff)",
                 border: "1px solid var(--border, rgba(255,255,255,.14))",
@@ -97,7 +121,8 @@ class ErrorBoundary extends React.Component {
                 cursor: "pointer",
               }}
             >
-              Go to home
+              <Home size={15} />
+              <span>Go to home</span>
             </button>
           </div>
         </div>

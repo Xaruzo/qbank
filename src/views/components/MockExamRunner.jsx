@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Flag, X, Search, AlertTriangle, CheckCircle2, Clock3, Target } from "lucide-react";
+import { ChevronLeft, ChevronRight, Flag, X, Check, Search, AlertTriangle, CheckCircle2, Clock3, Target } from "lucide-react";
 import MarkdownText from "./MarkdownText";
 import { LETTERS, TOPICS } from "../../constants/appConstants";
 import { calculateExamMetrics } from "../../utils/mockExamAnalytics";
@@ -461,27 +461,40 @@ export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit }) {
                 <MarkdownText text={q.question} />
               </div>
 
-              {q.choices.map((c, i) => {
-                let cls = "qb-choice";
-                if (!showReview) {
-                  if (pick === i) cls += " qb-choice-sel";
-                } else {
-                  if (i === q.correct) cls += " correct";
-                  else if (pick === i) cls += " wrong";
-                  else if (pick !== null) cls += " faded";
-                }
-                return (
-                  <button
-                    key={i}
-                    className={cls}
-                    onClick={() => onPick(i)}
-                    disabled={showReview}
-                  >
-                    <span className="qb-choice-l">{LETTERS[i]}</span>
-                    <MarkdownText text={c} inline className="qb-choice-content" />
-                  </button>
-                );
-              })}
+              <div className="qb-choices-group" role="radiogroup" aria-label="Answer choices">
+                {q.choices.map((c, i) => {
+                  let cls = "qb-choice";
+                  if (!showReview) {
+                    if (pick === i) cls += " qb-choice-sel";
+                  } else {
+                    if (i === q.correct) cls += " correct";
+                    else if (pick === i) cls += " wrong";
+                    else if (pick !== null) cls += " faded";
+                  }
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      className={cls}
+                      onClick={() => onPick(i)}
+                      disabled={showReview}
+                    >
+                      <span className="qb-choice-l">{LETTERS[i]}</span>
+                      <MarkdownText text={c} inline className="qb-choice-content" />
+                      {showReview && i === q.correct && (
+                        <span className="qb-choice-indicator ok">
+                          <Check size={16} />
+                        </span>
+                      )}
+                      {showReview && pick === i && i !== q.correct && (
+                        <span className="qb-choice-indicator no">
+                          <X size={16} />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
 
               {showReview && (q.solution || q.solutionDraw || q.solutionUpload) && !showSol && (
                 <button className="qb-reveal" onClick={() => setShowSol(true)} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%" }}>

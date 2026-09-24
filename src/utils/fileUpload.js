@@ -6,21 +6,21 @@ import { compressImage } from "./imageUpload";
  */
 export const SUPPORTED_FILE_TYPES = {
   // Images
-  "image/png": { ext: "png", label: "PNG Image", icon: "🖼️" },
-  "image/jpeg": { ext: "jpg", label: "JPEG Image", icon: "🖼️" },
-  "image/jpg": { ext: "jpg", label: "JPG Image", icon: "🖼️" },
-  "image/webp": { ext: "webp", label: "WebP Image", icon: "🖼️" },
-  "image/gif": { ext: "gif", label: "GIF Image", icon: "🖼️" },
+  "image/png": { ext: "png", label: "PNG Image", icon: "image" },
+  "image/jpeg": { ext: "jpg", label: "JPEG Image", icon: "image" },
+  "image/jpg": { ext: "jpg", label: "JPG Image", icon: "image" },
+  "image/webp": { ext: "webp", label: "WebP Image", icon: "image" },
+  "image/gif": { ext: "gif", label: "GIF Image", icon: "image" },
   
   // Documents
-  "application/pdf": { ext: "pdf", label: "PDF Document", icon: "📄" },
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": { ext: "docx", label: "Word Document", icon: "📝" },
-  "application/msword": { ext: "doc", label: "Word Document", icon: "📝" },
-  "text/plain": { ext: "txt", label: "Text File", icon: "📃" },
+  "application/pdf": { ext: "pdf", label: "PDF Document", icon: "document" },
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": { ext: "docx", label: "Word Document", icon: "document" },
+  "application/msword": { ext: "doc", label: "Word Document", icon: "document" },
+  "text/plain": { ext: "txt", label: "Text File", icon: "document" },
   
   // Spreadsheets
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": { ext: "xlsx", label: "Excel Spreadsheet", icon: "📊" },
-  "application/vnd.ms-excel": { ext: "xls", label: "Excel Spreadsheet", icon: "📊" },
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": { ext: "xlsx", label: "Excel Spreadsheet", icon: "spreadsheet" },
+  "application/vnd.ms-excel": { ext: "xls", label: "Excel Spreadsheet", icon: "spreadsheet" },
 };
 
 /**
@@ -188,5 +188,5 @@ export function formatFileSize(bytes) {
  * @returns {string}
  */
 export function getFileIcon(mimeType) {
-  return SUPPORTED_FILE_TYPES[mimeType]?.icon || "📎";
+  return SUPPORTED_FILE_TYPES[mimeType]?.icon || "file";
 }

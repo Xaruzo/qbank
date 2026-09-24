@@ -139,7 +139,13 @@ export default function FileUploadZone({
     if (!currentFile) return null;
 
     const isImage = isImageFile(currentFile.type);
-    const icon = getFileIcon(currentFile.type);
+    const renderIcon = () => {
+      const t = currentFile.type || "";
+      if (t.includes("spreadsheet") || t.includes("excel")) return <FileSpreadsheet size={20} />;
+      if (t.includes("pdf") || t.includes("word") || t.includes("text") || t.includes("officedocument")) return <FileText size={20} />;
+      if (t.includes("image")) return <Image size={20} />;
+      return <File size={20} />;
+    };
 
     return (
       <div className="qb-file-preview">
@@ -150,7 +156,7 @@ export default function FileUploadZone({
             </div>
           ) : (
             <div className="qb-file-preview-doc">
-              <span className="qb-file-preview-icon">{icon}</span>
+              <span className="qb-file-preview-icon">{renderIcon()}</span>
               <div className="qb-file-preview-info">
                 <span className="qb-file-preview-name">{currentFile.name}</span>
                 <span className="qb-file-preview-type">{getFileTypeLabel(currentFile.type)}</span>
