@@ -1908,10 +1908,24 @@ body.qb-guide-active .qb {
   background: var(--input-bg);
   border: 1px solid var(--border);
   color: var(--text-muted);
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+  outline: none;
   transition: all 0.15s ease;
+}
+.qb-filter-fav-btn span,
+.qb-filter-reset-btn span {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  min-height: auto !important;
+  box-shadow: none !important;
+  color: inherit !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  border-radius: 0 !important;
 }
 .qb-filter-fav-btn:hover {
   border-color: rgba(245, 166, 35, 0.4);
@@ -1932,9 +1946,11 @@ body.qb-guide-active .qb {
   background: transparent;
   border: 1px dashed var(--border);
   color: var(--text-muted);
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
+  outline: none;
   transition: all 0.15s ease;
 }
 .qb-filter-reset-btn:hover {
@@ -5313,7 +5329,7 @@ body.qb-guide-active .qb {
   }
   .qb-control-summary { gap:6px; }
   .qb-control-summary { width:100%; justify-content:flex-start; }
-  .qb-control-summary span { min-height:30px; font-size:11px; }
+  .qb-control-summary .qb-control-stat { min-height:30px; font-size:11px; }
   .qb-filter-card { align-items:flex-start; }
   .qb-filter-select { width:100%; min-width:0; }
   .qb-pill { flex:0 0 auto; }
@@ -5765,7 +5781,7 @@ body.qb-guide-active .qb {
   color:rgba(255,255,255,.92);
 }
 
-.qb:not(.light) .qb-control-summary span,
+.qb:not(.light) .qb-control-summary .qb-control-stat,
 .qb:not(.light) .qb-pill,
 .qb:not(.light) .qb-timer,
 .qb:not(.light) .qb-exam-progress,
@@ -5881,7 +5897,7 @@ body.qb-guide-active .qb {
 }
 
 .qb-list-hero-chip,
-.qb-control-summary span,
+.qb-control-summary .qb-control-stat,
 .qb-qcard-meta-chip,
 .qb-exam-progress,
 .qb-exam-summary-stat,
@@ -5890,10 +5906,7 @@ body.qb-guide-active .qb {
 .qb-exam-meta > span,
 .qb-exam-progress,
 .qb-timer,
-.qb-exam-mode-badge,
-.qb-control-summary span,
-.qb-control-summary span,
-.qb-control-summary span {
+.qb-exam-mode-badge {
   background:var(--input-bg);
   border:1px solid var(--border);
   color:var(--text-muted);
@@ -6233,7 +6246,7 @@ body.qb-guide-active .qb {
 .qb:not(.light) .qb-stat-note,
 .qb:not(.light) .qb-section-note,
 .qb:not(.light) .qb-filter-label,
-.qb:not(.light) .qb-control-summary span,
+.qb:not(.light) .qb-control-summary .qb-control-stat,
 .qb:not(.light) .qb-list-label,
 .qb:not(.light) .qb-sort-label,
 .qb:not(.light) .qb-pill,
@@ -6565,7 +6578,7 @@ button[data-action="skip"] {
   /* Pills / Category buttons */
   .qb-pill,
   .qb-list-hero-chip,
-  .qb-control-summary span,
+  .qb-control-summary .qb-control-stat,
   .qb-qcard-meta-chip,
   .qb-exam-meta > span,
   .qb-mock-attempt-meta > span {
