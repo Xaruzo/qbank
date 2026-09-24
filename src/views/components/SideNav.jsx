@@ -20,6 +20,7 @@ const NAV_ITEMS = [
   {
     id: "home",
     label: "Question Bank",
+    shortLabel: "Bank",
     subtitle: "Practice authentic CSC questions",
     title: "Question Bank",
     icon: Home,
@@ -27,6 +28,7 @@ const NAV_ITEMS = [
   {
     id: "mock",
     label: "Timed Mock Exam",
+    shortLabel: "Mock Exam",
     subtitle: "Full-length CSC simulations & stats",
     title: "Timed Mock Exam",
     icon: ClipboardList,
@@ -34,6 +36,7 @@ const NAV_ITEMS = [
   {
     id: "tips",
     label: "Tips & Methods",
+    shortLabel: "Tips",
     subtitle: "Whiteboard diagrams, formulas & cues",
     title: "Tips & Tricks",
     icon: Lightbulb,
@@ -61,13 +64,179 @@ export default function SideNav({
   const cardRef = useRef(null);
   useOverlayDialogA11y(variant === "overlay" && open, onClose, cardRef);
 
+  const handlers = { home: onHome, mock: onMockExam, tips: onTips };
+
+  const handleNavigate = (action) => () => {
+    if (action) action();
+    if (onClose) onClose();
+  };
+
+  // Reusable User Section (Profile or Guest Sign In)
+  const renderUserSection = (isOverlay = false) => (
+    <div className="qb-drawer-user-section">
+      {isAuthenticated ? (
+        <div className="qb-drawer-user-card">
+          <div className="qb-drawer-avatar">
+            {profile?.fullName ? (
+              profile.fullName.slice(0, 2).toUpperCase()
+            ) : (
+              <UserCircle2 size={24} />
+            )}
+          </div>
+          <div className="qb-drawer-user-meta">
+            <div className="qb-drawer-user-name">
+              {profile?.fullName || "Reviewer"}
+            </div>
+            <div className="qb-drawer-user-email">
+              {profile?.email || "Signed in"}
+            </div>
+          </div>
+          {onSignOut && (
+            <button
+              type="button"
+              className="qb-drawer-signout-btn"
+              onClick={() => {
+                if (isOverlay && onClose) onClose();
+                onSignOut();
+              }}
+              title="Sign Out"
+              aria-label="Sign Out"
+            >
+              <LogOut size={15} />
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="qb-drawer-guest-card">
+          <div className="qb-drawer-guest-info">
+            <span className="qb-drawer-guest-label">Guest Reviewer</span>
+            <span className="qb-drawer-guest-sub">Sign in to sync your mock exams</span>
+          </div>
+          {onSignIn && (
+            <button
+              type="button"
+              className="qb-drawer-signin-btn"
+              onClick={() => {
+                if (isOverlay && onClose) onClose();
+                onSignIn();
+              }}
+            >
+              <LogIn size={14} />
+              <span>Sign In</span>
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  // Reusable Nav List with Badges and Descriptions
+  const renderNavList = (isOverlay = false) => (
+    <div className="qb-drawer-nav-section">
+      <span className="qb-drawer-section-label">STUDY AREAS</span>
+      <nav className="qb-drawer-nav" aria-label="Study Areas">
+        {NAV_ITEMS.map(({ id, label, subtitle, icon: Icon }) => {
+          const isSelected = active === id;
+          const clickHandler = handlers[id];
+
+          return (
+            <button
+              key={id}
+              type="button"
+              className={`qb-drawer-nav-item${isSelected ? " is-active" : ""}`}
+              onClick={isOverlay ? handleNavigate(clickHandler) : clickHandler}
+            >
+              <div className="qb-drawer-nav-icon-wrap">
+                <Icon size={19} />
+              </div>
+              <div className="qb-drawer-nav-text-wrap">
+                <div className="qb-drawer-nav-label-row">
+                  <span className="qb-drawer-nav-title">{label}</span>
+                  {id === "home" && totalQuestions > 0 && (
+                    <span className="qb-drawer-item-badge">
+                      {totalQuestions}
+                    </span>
+                  )}
+                  {id === "mock" && (
+                    <span className="qb-drawer-item-badge accent">
+                      Timed
+                    </span>
+                  )}
+                </div>
+                <span className="qb-drawer-nav-desc">{subtitle}</span>
+              </div>
+              <ChevronRight size={14} className="qb-drawer-nav-arrow" />
+            </button>
+          );
+        })}
+      </nav>
+    </div>
+  );
+
+  // Reusable Quick Stats Widget
+  const renderStatsWidget = () => (
+    <div className="qb-drawer-stats-card">
+      <div className="qb-drawer-stats-head">
+        <Sparkles size={14} className="qb-drawer-stats-icon" />
+        <span>Study Progress</span>
+      </div>
+      <div className="qb-drawer-stats-grid">
+        <div className="qb-drawer-stat-col">
+          <strong>{totalQuestions}</strong>
+          <span>Items in Bank</span>
+        </div>
+        <div className="qb-drawer-stat-sep" />
+        <div className="qb-drawer-stat-col">
+          <strong>{starredCount}</strong>
+          <span>Starred</span>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Civil Service Pacing Tip Box
+  const renderTipBox = () => (
+    <div className="qb-side-block qb-side-foot">
+      <span className="qb-side-foot-label">Civil Service Tip</span>
+      <span className="qb-side-foot-text">
+        Pacing is critical: 170 items in 3 hours 10 minutes equals roughly 67 seconds per item.
+      </span>
+    </div>
+  );
+
+  // Reusable Footer Utilities (Theme switcher + Help & Guide modal button)
+  const renderFooterUtilities = (isOverlay = false) => (
+    <div className="qb-drawer-footer">
+      {onToggleTheme && (
+        <button
+          type="button"
+          className="qb-drawer-util-btn"
+          onClick={onToggleTheme}
+        >
+          {isDark ? <Sun size={16} /> : <Moon size={16} />}
+          <span>{isDark ? "Light Mode" : "Dark Mode"}</span>
+        </button>
+      )}
+
+      {onOpenHelp && (
+        <button
+          type="button"
+          className="qb-drawer-util-btn"
+          onClick={() => {
+            if (isOverlay && onClose) onClose();
+            onOpenHelp();
+          }}
+        >
+          <HelpCircle size={16} />
+          <span>Help & Guide</span>
+        </button>
+      )}
+    </div>
+  );
+
+  // Overlay variant (Mobile & Tablet Drawer)
   if (variant === "overlay") {
     if (!open) return null;
-
-    const handleNavigate = (action) => () => {
-      action();
-      if (onClose) onClose();
-    };
 
     return (
       <div className="qb-mnav-ov" onClick={onClose}>
@@ -100,207 +269,77 @@ export default function SideNav({
             </button>
           </div>
 
-          {/* User Status Bar in Drawer */}
-          <div className="qb-drawer-user-section">
-            {isAuthenticated ? (
-              <div className="qb-drawer-user-card">
-                <div className="qb-drawer-avatar">
-                  {profile?.fullName ? (
-                    profile.fullName.slice(0, 2).toUpperCase()
-                  ) : (
-                    <UserCircle2 size={24} />
-                  )}
-                </div>
-                <div className="qb-drawer-user-meta">
-                  <div className="qb-drawer-user-name">
-                    {profile?.fullName || "Reviewer"}
-                  </div>
-                  <div className="qb-drawer-user-email">
-                    {profile?.email || "Signed in"}
-                  </div>
-                </div>
-                {onSignOut && (
-                  <button
-                    type="button"
-                    className="qb-drawer-signout-btn"
-                    onClick={() => {
-                      if (onClose) onClose();
-                      onSignOut();
-                    }}
-                    title="Sign Out"
-                  >
-                    <LogOut size={15} />
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className="qb-drawer-guest-card">
-                <div className="qb-drawer-guest-info">
-                  <span className="qb-drawer-guest-label">Guest Reviewer</span>
-                  <span className="qb-drawer-guest-sub">Sign in to sync your mock exams</span>
-                </div>
-                {onSignIn && (
-                  <button
-                    type="button"
-                    className="qb-drawer-signin-btn"
-                    onClick={() => {
-                      if (onClose) onClose();
-                      onSignIn();
-                    }}
-                  >
-                    <LogIn size={14} />
-                    <span>Sign In</span>
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Main Navigation List */}
-          <div className="qb-drawer-nav-section">
-            <span className="qb-drawer-section-label">STUDY AREAS</span>
-            <nav className="qb-drawer-nav">
-              {NAV_ITEMS.map(({ id, label, subtitle, icon: Icon }) => {
-                const isSelected = active === id;
-                const clickHandler =
-                  id === "home" ? onHome : id === "mock" ? onMockExam : onTips;
-
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    className={`qb-drawer-nav-item${isSelected ? " is-active" : ""}`}
-                    onClick={handleNavigate(clickHandler)}
-                  >
-                    <div className="qb-drawer-nav-icon-wrap">
-                      <Icon size={19} />
-                    </div>
-                    <div className="qb-drawer-nav-text-wrap">
-                      <div className="qb-drawer-nav-label-row">
-                        <span className="qb-drawer-nav-title">{label}</span>
-                        {id === "home" && totalQuestions > 0 && (
-                          <span className="qb-drawer-item-badge">
-                            {totalQuestions}
-                          </span>
-                        )}
-                        {id === "mock" && (
-                          <span className="qb-drawer-item-badge accent">
-                            Timed
-                          </span>
-                        )}
-                      </div>
-                      <span className="qb-drawer-nav-desc">{subtitle}</span>
-                    </div>
-                    <ChevronRight size={14} className="qb-drawer-nav-arrow" />
-                  </button>
-                );
-              })}
-            </nav>
-          </div>
-
-          {/* Quick Stats Widget */}
-          <div className="qb-drawer-stats-card">
-            <div className="qb-drawer-stats-head">
-              <Sparkles size={14} className="qb-drawer-stats-icon" />
-              <span>Study Progress</span>
-            </div>
-            <div className="qb-drawer-stats-grid">
-              <div className="qb-drawer-stat-col">
-                <strong>{totalQuestions}</strong>
-                <span>Items in Bank</span>
-              </div>
-              <div className="qb-drawer-stat-sep" />
-              <div className="qb-drawer-stat-col">
-                <strong>{starredCount}</strong>
-                <span>Starred</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Drawer Footer Utilities */}
-          <div className="qb-drawer-footer">
-            {onToggleTheme && (
-              <button
-                type="button"
-                className="qb-drawer-util-btn"
-                onClick={onToggleTheme}
-              >
-                {isDark ? <Sun size={16} /> : <Moon size={16} />}
-                <span>{isDark ? "Light Mode" : "Dark Mode"}</span>
-              </button>
-            )}
-
-            {onOpenHelp && (
-              <button
-                type="button"
-                className="qb-drawer-util-btn"
-                onClick={() => {
-                  if (onClose) onClose();
-                  onOpenHelp();
-                }}
-              >
-                <HelpCircle size={16} />
-                <span>Help & Guide</span>
-              </button>
-            )}
-          </div>
+          {renderUserSection(true)}
+          {renderNavList(true)}
+          {renderStatsWidget()}
+          {renderFooterUtilities(true)}
         </aside>
       </div>
     );
   }
 
-  // Desktop rail variant
-  const iconSize = open ? 18 : 22;
-  const handlers = { home: onHome, mock: onMockExam, tips: onTips };
-
+  // Desktop Rail variant (Expanded or Collapsed)
   return (
     <aside className={`qb-side${open ? " qb-side-expanded" : " qb-side-collapsed"}`}>
       <div className="qb-side-inner">
-        {open && (
-          <div className="qb-side-block qb-side-intro">
-            <span className="qb-side-kicker">Workspace</span>
-            <strong className="qb-side-title">Study Center</strong>
-            <p className="qb-side-copy">
-              Practice questions, run official exam simulations, and create whiteboard formulas.
-            </p>
-          </div>
-        )}
+        {open ? (
+          <>
+            {renderUserSection(false)}
+            {renderNavList(false)}
+            {renderStatsWidget()}
+            {renderTipBox()}
+            {renderFooterUtilities(false)}
+          </>
+        ) : (
+          <>
+            <nav className="qb-side-nav qb-side-nav-collapsed" aria-label="Desktop Sidebar">
+              {NAV_ITEMS.map(({ id, label, shortLabel, title, icon: Icon }) => {
+                const isSelected = active === id;
 
-        <nav className="qb-side-nav" aria-label="Desktop Sidebar">
-          {NAV_ITEMS.map(({ id, label, title, subtitle, icon: Icon }) => {
-            const isSelected = active === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    className={`qb-nav-item-collapsed${isSelected ? " on" : ""}`}
+                    onClick={handlers[id]}
+                    title={`${label} - ${title}`}
+                    aria-label={label}
+                  >
+                    <div className="qb-drawer-nav-icon-wrap">
+                      <Icon size={20} />
+                      {id === "mock" && <span className="qb-nav-dot-accent" title="Timed Mock Exam" />}
+                    </div>
+                    <span className="qb-nav-text-collapsed">{shortLabel || label}</span>
+                  </button>
+                );
+              })}
+            </nav>
 
-            return (
-              <button
-                key={id}
-                type="button"
-                className={`qb-nav-item${isSelected ? " on" : ""}`}
-                onClick={handlers[id]}
-                title={title}
-              >
-                <div className="qb-nav-item-icon-box">
-                  <Icon size={iconSize} />
-                </div>
-                {open ? (
-                  <div className="qb-nav-item-body">
-                    <span className="qb-nav-text">{label}</span>
-                    <span className="qb-nav-subtext">{subtitle}</span>
-                  </div>
-                ) : (
-                  <span className="qb-nav-text qb-nav-text-collapsed">{label}</span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
-
-        {open && (
-          <div className="qb-side-block qb-side-foot">
-            <span className="qb-side-foot-label">Civil Service Tip</span>
-            <span className="qb-side-foot-text">
-              Pacing is critical: 170 items in 3 hours 10 minutes equals roughly 67 seconds per item.
-            </span>
-          </div>
+            <div className="qb-side-collapsed-footer">
+              {onToggleTheme && (
+                <button
+                  type="button"
+                  className="qb-side-collapsed-util-btn"
+                  onClick={onToggleTheme}
+                  title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                  aria-label="Toggle theme"
+                >
+                  {isDark ? <Sun size={17} /> : <Moon size={17} />}
+                </button>
+              )}
+              {onOpenHelp && (
+                <button
+                  type="button"
+                  className="qb-side-collapsed-util-btn"
+                  onClick={onOpenHelp}
+                  title="Help & Guide"
+                  aria-label="Help & Guide"
+                >
+                  <HelpCircle size={17} />
+                </button>
+              )}
+            </div>
+          </>
         )}
       </div>
     </aside>

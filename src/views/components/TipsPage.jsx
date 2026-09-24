@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { TOPICS } from "../../constants/appConstants";
 import { tipsModel, TIP_CATEGORIES, MASTERY_LEVELS } from "../../models/tipsModel";
-import MathText from "./MathText";
+import MarkdownText from "./MarkdownText";
 import CustomSelect from "./CustomSelect";
 import { TipsSkeletonLoader } from "./SkeletonLoader";
 import {
@@ -338,7 +338,7 @@ export default function TipsPage({
           </div>
 
           <div className="qb-tip-card-question">
-            <MathText text={q.question} />
+            <MarkdownText text={q.question} inline />
           </div>
 
           {/* User's quick note excerpt if available */}
