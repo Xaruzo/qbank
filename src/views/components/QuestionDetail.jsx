@@ -1,6 +1,20 @@
 import React, { useEffect, useRef, useState } from "react";
 import { TOPICS, LETTERS } from "../../constants/appConstants";
-import { ChevronLeft, ChevronRight, X, Check, Search, ChevronDown, Star, Link2, Lightbulb } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Check,
+  Search,
+  ChevronDown,
+  Star,
+  Link2,
+  Lightbulb,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  MousePointerClick
+} from "lucide-react";
 import MarkdownText from "./MarkdownText";
 import usePlainTextCopy from "../../utils/usePlainTextCopy";
 
@@ -17,6 +31,8 @@ export default function QuestionDetail({
   onNext,
   forceShowSolution,
   canManageQuestions,
+  questionIndex,
+  totalQuestions,
 }) {
   const [pick, setPick] = useState(null);
   const [showSol, setShowSol] = useState(false);
@@ -28,6 +44,7 @@ export default function QuestionDetail({
   const timerStartRef = useRef(0);
   const timerIdRef = useRef(null);
   const copyAreaRef = useRef(null);
+  const cardScrollRef = useRef(null);
   usePlainTextCopy(copyAreaRef);
 
   const prevRef = useRef(onPrev);
@@ -50,6 +67,7 @@ export default function QuestionDetail({
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [hasPrev, hasNext]);
+
   const [expandedZoom, setExpandedZoom] = useState(1);
   const expandedScrollRef = useRef(null);
   const expandedImgRef = useRef(null);
@@ -60,6 +78,7 @@ export default function QuestionDetail({
   const topic = TOPICS.find(t => t.id === question.topic) || TOPICS[0];
   const label = typeof question.label === "string" ? question.label.trim() : "";
   const solImg = question.solutionDraw ? (typeof question.solutionDraw === 'string' ? question.solutionDraw : question.solutionDraw.dataURL) : question.solutionUpload || null;
+  const hasSolution = !!(question.solution || question.solutionDraw || question.solutionUpload);
 
   useEffect(() => {
     setPick(null);
@@ -67,16 +86,19 @@ export default function QuestionDetail({
     setConfirmDel(false);
     setExpanded(false);
     setAnswerMs(0);
-    timerStartRef.current = performance.now();
+    timerStartRef.current = Date.now();
     setTimerRunning(true);
     setExpandedZoom(1);
     setShareLabel("Share");
+    if (cardScrollRef.current) {
+      cardScrollRef.current.scrollTop = 0;
+    }
   }, [question.id, forceShowSolution]);
 
   useEffect(() => {
     if (!timerRunning) return;
     timerIdRef.current = window.setInterval(() => {
-      setAnswerMs(performance.now() - timerStartRef.current);
+      setAnswerMs(Date.now() - timerStartRef.current);
     }, 100);
     return () => {
       if (timerIdRef.current) window.clearInterval(timerIdRef.current);
@@ -91,7 +113,6 @@ export default function QuestionDetail({
 
   useEffect(() => {
     if (!expanded) return;
-    setExpandedZoom(1);
     lastTapRef.current = { t: 0, x: 0, y: 0 };
     const el = expandedScrollRef.current;
     if (!el) return;
@@ -133,7 +154,7 @@ export default function QuestionDetail({
   };
 
   const handleExpandedMouseDown = (e) => {
-    if (e.pointerType === "touch") return; // Let touch events be handled separately
+    if (e.pointerType === "touch") return;
     const now = Date.now();
     const last = lastMouseClickRef.current;
     const dx = e.clientX - last.x;
@@ -211,21 +232,26 @@ export default function QuestionDetail({
 
   const onPick = (i) => {
     if (pick !== null) return;
-    if (timerRunning) {
-      setAnswerMs(performance.now() - timerStartRef.current);
-      setTimerRunning(false);
-    }
+    setTimerRunning(false);
     setPick(i);
   };
 
   return (
-    <div className="fu" ref={copyAreaRef}>
+    <div className="qb-det-page fu" ref={copyAreaRef}>
       {expanded && solImg && (
         <div className="qb-modal-ov" onClick={() => setExpanded(false)}>
-          <button className="qb-modal-close" onClick={(e) => { e.stopPropagation(); setExpanded(false); }}>
+          <button
+            type="button"
+            className="qb-modal-close"
+            onClick={(e) => {
+              e.stopPropagation();
+              setExpanded(false);
+            }}
+            aria-label="Close image preview"
+          >
             <X size={24} />
           </button>
-          <div className="qb-modal-content" onClick={e => e.stopPropagation()}>
+          <div className="qb-modal-content" onClick={(e) => e.stopPropagation()}>
             <div
               className="qb-modal-scroll"
               ref={expandedScrollRef}
@@ -244,7 +270,7 @@ export default function QuestionDetail({
               <img
                 ref={expandedImgRef}
                 src={solImg}
-                alt="expanded solution"
+                alt="Expanded solution illustration"
                 className="qb-modal-img"
                 onMouseDown={handleExpandedMouseDown}
                 style={{
@@ -254,47 +280,79 @@ export default function QuestionDetail({
                   cursor: expandedZoom === 1 ? "zoom-in" : "zoom-out",
                   touchAction: "manipulation",
                   userSelect: "none",
-                  pointerEvents: "auto"
+                  pointerEvents: "auto",
                 }}
               />
             </div>
           </div>
         </div>
       )}
+
+      {/* Top Header & Action Toolbar */}
       <div className="qb-det-hdr">
         <div className="qb-det-meta">
-          <button className="qb-back" onClick={onBack} style={{ display: "flex", alignItems: "center" }}>
-            <ChevronLeft size={16} style={{ marginRight: 4 }} />
-            Back
-          </button>
-          <span className="qb-badge" style={{ color:topic.color, background:`${topic.color}20`, padding:"4px 10px", borderRadius:5 }}>
-            {topic.label}
-          </span>
-        </div>
-        <div className="qb-det-actions">
-          <span className="qb-timer">{answerTimeText}</span>
           <button
             type="button"
-            className="qb-share-btn"
+            className="qb-back-btn"
+            onClick={onBack}
+            title="Return to Question Bank"
+          >
+            <ChevronLeft size={16} />
+            <span>Bank</span>
+          </button>
+
+          <span
+            className="qb-det-topic-badge"
+            style={{
+              color: topic.color,
+              backgroundColor: `${topic.color}18`,
+              borderColor: `${topic.color}35`,
+            }}
+          >
+            <span
+              className="qb-det-topic-dot"
+              style={{ backgroundColor: topic.color }}
+            />
+            {topic.label}
+          </span>
+
+          {questionIndex && totalQuestions && (
+            <span className="qb-det-index-badge">
+              Item {questionIndex} of {totalQuestions}
+            </span>
+          )}
+        </div>
+
+        <div className="qb-det-actions">
+          <div className="qb-timer-pill" title="Time spent on this question">
+            <Clock size={13} className="qb-timer-icon" />
+            <span>{answerTimeText}</span>
+          </div>
+
+          <button
+            type="button"
+            className="qb-det-action-btn"
             aria-label="Share question link"
             title="Share question link"
             onClick={handleShare}
           >
-            <Link2 size={16} />
-            {shareLabel}
+            <Link2 size={15} />
+            <span>{shareLabel}</span>
           </button>
+
           {onTips && (
             <button
               type="button"
-              className="qb-share-btn"
-              aria-label="Open tips and tricks"
-              title="Open tips and tricks"
+              className="qb-det-action-btn qb-det-tips-btn"
+              aria-label="Open tips and methods for this question"
+              title="Open tips and methods"
               onClick={onTips}
             >
-              <Lightbulb size={16} />
-              Tips
+              <Lightbulb size={15} />
+              <span>Tips</span>
             </button>
           )}
+
           <button
             type="button"
             className={`qb-det-fav-btn${question.favorite ? " on" : ""}`}
@@ -304,86 +362,187 @@ export default function QuestionDetail({
           >
             <Star size={16} fill={question.favorite ? "currentColor" : "none"} />
           </button>
+
           {canManageQuestions && !confirmDel ? (
             <>
-              <button className="qb-edit-btn" onClick={() => onEdit(question)}>Edit</button>
-              <button className="qb-del-btn" onClick={() => setConfirmDel(true)}>Delete</button>
+              <button
+                type="button"
+                className="qb-edit-btn"
+                onClick={() => onEdit(question)}
+                title="Edit question"
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                className="qb-del-btn"
+                onClick={() => setConfirmDel(true)}
+                title="Delete question"
+              >
+                Delete
+              </button>
             </>
           ) : canManageQuestions && confirmDel ? (
             <>
-              <button className="qb-del-cancel" onClick={() => setConfirmDel(false)}>Cancel</button>
-              <button className="qb-del-confirm" onClick={() => onDelete(question.id)}>Confirm Delete</button>
+              <button
+                type="button"
+                className="qb-del-cancel"
+                onClick={() => setConfirmDel(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="qb-del-confirm"
+                onClick={() => onDelete(question.id)}
+              >
+                Confirm Delete
+              </button>
             </>
           ) : null}
         </div>
       </div>
-      <div className="qb-det-card">
-        {label && <div className="qb-det-label">{label}</div>}
-        <div className="qb-det-q">
-          <MarkdownText text={question.question} />
-        </div>
-        {pick!==null && (
-          <div className={`qb-banner ${pick===question.correct?"ok":"no"}`}>
-            {pick===question.correct ? "Correct!" : `Incorrect — correct answer is ${LETTERS[question.correct]}`}
-          </div>
-        )}
-        {question.choices.map((c,i) => {
-          let cls = "qb-choice";
-          if (pick!==null) {
-            if (i===question.correct)        cls += " correct";
-            else if (i===pick)               cls += " wrong";
-            else                         cls += " faded";
-          }
-          return (
-            <button key={i} className={cls} onClick={() => onPick(i)} disabled={pick!==null}>
-              <span className="qb-choice-l">{LETTERS[i]}</span>
-              <MarkdownText text={c} inline className="qb-choice-content" />
-              {pick!==null && i===question.correct && <Check size={16} className="qb-choice-tag" style={{ color:"#16a34a" }} />}
-              {pick!==null && i===pick && i!==question.correct && <X size={16} className="qb-choice-tag" style={{ color:"#e0365a" }} />}
-            </button>
-          );
-        })}
-        <div className="qb-next-row">
-          {hasPrev && (
-            <button type="button" className="qb-next-btn" onClick={onPrev}>
-              <ChevronLeft size={16} />
-              Prev
-            </button>
+
+      {/* Main Contained Question Card with Internal Scroll */}
+      <div className="qb-det-card qb-det-card-fixed">
+        <div ref={cardScrollRef} className="qb-det-card-scroll">
+          {label && (
+            <div className="qb-det-label-wrap">
+              <span className="qb-det-label">{label}</span>
+            </div>
           )}
-          <button
-            className="qb-next-btn"
-            onClick={onNext}
-          >
-            {hasNext ? "Next" : "Finish"}
-            <ChevronRight size={16} />
-          </button>
-        </div>
-        {canRevealSolution && (question.solution||question.solutionDraw||question.solutionUpload) && !showSol && (
-          <button className="qb-reveal" onClick={() => setShowSol(true)} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%" }}>
-            Show Solution
-            <ChevronDown size={16} style={{ marginLeft: 6 }} />
-          </button>
-        )}
-        {showSol && (question.solution||question.solutionDraw||question.solutionUpload) && (
-                  <div className="qb-sol">
-                    <div className="qb-sol-title">Solution</div>
-                    {question.solution && <div className="qb-sol-body"><MarkdownText text={question.solution} /></div>}
-                    {(question.solutionDraw||question.solutionUpload) && (
-                      <div style={{ cursor: "zoom-in" }} onClick={() => setExpanded(true)}>
-                        <img 
-                          src={solImg} 
-                          alt="solution"
-                          style={{ width:"100%", borderRadius:6, display:"block", marginTop:question.solution?14:0, border:"1px solid var(--border)" }}
-                        />
-                        <p className="qb-expand-hint" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          <Search size={12} style={{ marginRight: 4 }} />
-                          Click to expand
-                        </p>
-                      </div>
-                    )}
+
+          <div className="qb-det-q">
+            <MarkdownText text={question.question} />
+          </div>
+
+          {pick !== null && (
+            <div className={`qb-banner ${pick === question.correct ? "ok" : "no"}`}>
+              {pick === question.correct ? (
+                <div className="qb-banner-inner">
+                  <CheckCircle2 size={18} className="qb-banner-icon" />
+                  <div className="qb-banner-text">
+                    <strong>Correct!</strong> Choice {LETTERS[question.correct]} is right.
                   </div>
-                )}
-        {pick===null && <p className="qb-hint">Tap a choice to check your answer</p>}
+                </div>
+              ) : (
+                <div className="qb-banner-inner">
+                  <AlertCircle size={18} className="qb-banner-icon" />
+                  <div className="qb-banner-text">
+                    <strong>Incorrect.</strong> The correct answer is Choice <strong>{LETTERS[question.correct]}</strong>.
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="qb-choices-group" role="radiogroup" aria-label="Answer choices">
+            {question.choices.map((c, i) => {
+              let cls = "qb-choice";
+              if (pick !== null) {
+                if (i === question.correct) cls += " correct";
+                else if (i === pick) cls += " wrong";
+                else cls += " faded";
+              }
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  className={cls}
+                  onClick={() => onPick(i)}
+                  disabled={pick !== null}
+                >
+                  <span className="qb-choice-l">{LETTERS[i]}</span>
+                  <MarkdownText text={c} inline className="qb-choice-content" />
+                  {pick !== null && i === question.correct && (
+                    <span className="qb-choice-indicator ok">
+                      <Check size={16} />
+                    </span>
+                  )}
+                  {pick !== null && i === pick && i !== question.correct && (
+                    <span className="qb-choice-indicator no">
+                      <X size={16} />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {showSol && hasSolution && (
+            <div className="qb-sol">
+              <div className="qb-sol-header">
+                <div className="qb-sol-title">
+                  <Lightbulb size={14} className="qb-sol-icon" />
+                  <span>Step-by-Step Solution & Explanation</span>
+                </div>
+              </div>
+              {question.solution && (
+                <div className="qb-sol-body">
+                  <MarkdownText text={question.solution} />
+                </div>
+              )}
+              {(question.solutionDraw || question.solutionUpload) && (
+                <div className="qb-sol-media-box" onClick={() => { setExpanded(true); setExpandedZoom(1); }}>
+                  <img
+                    src={solImg}
+                    alt="Solution diagram"
+                    className="qb-sol-img"
+                  />
+                  <p className="qb-expand-hint">
+                    <Search size={13} />
+                    <span>Click diagram to expand & zoom</span>
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Pinned Bottom Controls Footer */}
+        <div className="qb-det-footer">
+          <div className="qb-det-footer-left">
+            {canRevealSolution && hasSolution && (
+              <button
+                type="button"
+                className={`qb-reveal-toggle${showSol ? " is-active" : ""}`}
+                onClick={() => setShowSol((prev) => !prev)}
+              >
+                <Lightbulb size={15} />
+                <span>{showSol ? "Hide Solution" : "Show Solution"}</span>
+                <ChevronDown size={15} className={`qb-reveal-caret${showSol ? " is-open" : ""}`} />
+              </button>
+            )}
+            {pick === null && (
+              <div className="qb-det-footer-hint">
+                <MousePointerClick size={14} className="qb-det-footer-hint-ico" />
+                <span>Tap a choice to check your answer</span>
+              </div>
+            )}
+          </div>
+
+          <div className="qb-det-footer-right">
+            <button
+              type="button"
+              className="qb-det-navbtn qb-det-navbtn-prev"
+              onClick={onPrev}
+              disabled={!hasPrev}
+              title={hasPrev ? "Previous question (←)" : "No previous question"}
+            >
+              <ChevronLeft size={16} />
+              <span>Prev</span>
+            </button>
+            <button
+              type="button"
+              className="qb-det-navbtn qb-det-navbtn-next"
+              onClick={onNext}
+              title={hasNext ? "Next question (→)" : "Finish review"}
+            >
+              <span>{hasNext ? "Next" : "Finish"}</span>
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

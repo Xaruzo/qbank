@@ -785,10 +785,10 @@ export default function App() {
               onSignOut={handleSignOut}
             />
           )}
-          <main ref={mainRef} className={`qb-main${view === "mockRun" ? " qb-main-exam" : ""}`}>
+          <main ref={mainRef} className={`qb-main${view === "mockRun" ? " qb-main-exam" : view === "detail" ? " qb-main-detail" : ""}`}>
             <div
               className={`qb-main-inner${
-                view === "add" ? " qb-main-inner-editor" : view === "mockRun" ? " qb-main-inner-exam" : view === "mockAttempt" ? " qb-main-inner-mock-attempt" : ""
+                view === "add" ? " qb-main-inner-editor" : view === "mockRun" ? " qb-main-inner-exam" : view === "mockAttempt" ? " qb-main-inner-mock-attempt" : view === "detail" ? " qb-main-inner-detail" : ""
               }`}
             >
             {loading ? (
@@ -969,6 +969,8 @@ export default function App() {
                 hasPrev={!!prevQuestion}
                 hasNext={!!nextQuestion}
                 canManageQuestions={canManageQuestions}
+                questionIndex={selectedIndexInFiltered >= 0 ? selectedIndexInFiltered + 1 : undefined}
+                totalQuestions={filteredQuestions.length > 0 ? filteredQuestions.length : qs.length}
                 onPrev={() => {
                   if (prevQuestion) handleSelectQuestion(prevQuestion.id);
                 }}
