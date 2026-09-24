@@ -8,7 +8,7 @@ const Chip = ({ w = 130, h = 34, br = 999, extra }) => (
   <span className="qb-skel-chip" style={{ width: w, height: h, borderRadius: br, ...extra }} />
 );
 
-const SKEL_STATS = [0, 1, 2, 3, 4];
+const SKEL_STATS = [0, 1, 2, 3, 4, 5];
 const SKEL_QUESTIONS = [0, 1, 2, 3];
 
 export default function SkeletonLoader() {
