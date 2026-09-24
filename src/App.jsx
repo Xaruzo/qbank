@@ -15,7 +15,7 @@ const MockExamRunner = lazy(() => import("./views/components/MockExamRunner"));
 const TipsPage = lazy(() => import("./views/components/TipsPage"));
 const TipDetailPage = lazy(() => import("./views/components/TipDetailPage"));
 import LoadingSpinner from "./views/components/LoadingSpinner";
-import SkeletonLoader, { MockSkeletonLoader } from "./views/components/SkeletonLoader";
+import SkeletonLoader, { MockSkeletonLoader, TipsSkeletonLoader } from "./views/components/SkeletonLoader";
 import HelpModal from "./views/components/HelpModal";
 import TutorialGuide from "./views/components/TutorialGuide";
 import { useAuthController } from "./controllers/useAuthController";
@@ -28,7 +28,11 @@ import { buildMockExamAttempt, buildReviewExamFromAttempt } from "./utils/mockEx
 import { Home, ClipboardList, Lightbulb, PlayCircle, ArrowRight, BookOpen, Plus, ShieldCheck } from "lucide-react";
 import { QUESTION_ADMIN_UIDS, EXAM_PRESETS } from "./constants/appConstants";
 
-const PageLoader = () => <LoadingSpinner text="Loading…" />;
+const PageLoader = ({ view }) => {
+  if (view === "tips" || view === "tipDetail") return <TipsSkeletonLoader />;
+  if (view === "mock" || view === "mockAttempt" || view === "mockRun") return <MockSkeletonLoader />;
+  return <SkeletonLoader />;
+};
 
 // Civil Service exam format — DO NOT TUNE DOWN.
 // These mirror the official CSC Professional (170 items, 3h10m) and Subprofessional (165 items, 2h40m) formats.
@@ -794,7 +798,7 @@ export default function App() {
             {loading ? (
               <SkeletonLoader />
             ) : (
-            <Suspense fallback={<PageLoader />}>
+            <Suspense fallback={<PageLoader view={view} />}>
             {view === "list" ? (
               <div className="fu qb-dashboard">
                 <section className="qb-list-hero" aria-label="Civil Service Reviewer Workspace">
