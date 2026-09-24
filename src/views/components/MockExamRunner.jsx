@@ -13,10 +13,12 @@ const formatClock = (ms) => {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 };
 
-export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit, onBackToAttempt }) {
+export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit, onBackToAttempt, onStartDrillMistakes }) {
   const [now, setNow] = useState(Date.now());
   const [showSol, setShowSol] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [reviewFilter, setReviewFilter] = useState("all");
+  const [autoRevealSol, setAutoRevealSol] = useState(true);
   const questionScrollRef = useRef(null);
   const expandedScrollRef = useRef(null);
   const expandedImgRef = useRef(null);
@@ -31,6 +33,56 @@ export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit, onBac
   const questionLookup = metrics.questionLookup;
   const currentId = exam.orderIds[exam.currentIndex] || null;
   const q = currentId ? questionLookup.get(currentId) : null;
+
+  const questionStatuses = useMemo(() => {
+    const statuses = {};
+    if (!finished) return statuses;
+    exam.orderIds.forEach((id) => {
+      if (!id) return;
+      const question = questionLookup.get(id);
+      const userPick = exam.answers[id];
+      if (userPick === undefined || userPick === null) {
+        statuses[id] = "skipped";
+      } else if (Number.isInteger(question?.correct) && userPick === question.correct) {
+        statuses[id] = "correct";
+      } else {
+        statuses[id] = "wrong";
+      }
+    });
+    return statuses;
+  }, [finished, exam.orderIds, exam.answers, questionLookup]);
+
+  const mistakeIndices = useMemo(() => {
+    if (!finished) return [];
+    const indices = [];
+    exam.orderIds.forEach((id, idx) => {
+      if (questionStatuses[id] === "wrong" || questionStatuses[id] === "skipped") {
+        indices.push(idx);
+      }
+    });
+    return indices;
+  }, [finished, exam.orderIds, questionStatuses]);
+
+  const goNextMistake = () => {
+    if (!mistakeIndices.length) return;
+    const next = mistakeIndices.find((idx) => idx > exam.currentIndex);
+    if (next !== undefined) {
+      jumpTo(next);
+    } else {
+      jumpTo(mistakeIndices[0]);
+    }
+  };
+
+  const goPrevMistake = () => {
+    if (!mistakeIndices.length) return;
+    const prevList = [...mistakeIndices].reverse();
+    const prev = prevList.find((idx) => idx < exam.currentIndex);
+    if (prev !== undefined) {
+      jumpTo(prev);
+    } else {
+      jumpTo(mistakeIndices[mistakeIndices.length - 1]);
+    }
+  };
 
   const jumpTo = (index) => {
     onUpdateExam((prev) => {
@@ -126,10 +178,19 @@ export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit, onBac
   }, [finished, exam.finished, onUpdateExam]);
 
   useEffect(() => {
-    setShowSol(false);
+    if (!finished) {
+      setShowSol(false);
+    } else {
+      if (autoRevealSol && currentId) {
+        const isCorrect = questionStatuses[currentId] === "correct";
+        setShowSol(!isCorrect);
+      } else {
+        setShowSol(false);
+      }
+    }
     setExpanded(false);
     setExpandedZoom(1);
-  }, [currentId, finished]);
+  }, [currentId, finished, autoRevealSol, questionStatuses]);
 
   useEffect(() => {
     const el = questionScrollRef.current;
@@ -151,9 +212,11 @@ export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit, onBac
   const score = finished ? metrics.correctCount : null;
   const examLabel = exam.isReviewSession
     ? "Saved Review"
-    : exam.mode === "subprofessional"
-      ? "Subprofessional • 165 Items"
-      : "Professional • 170 Items";
+    : exam.mode === "drill"
+      ? (exam.title || `Mistake Drill • ${totalCount} Items`)
+      : exam.mode === "subprofessional"
+        ? "Subprofessional • 165 Items"
+        : "Professional • 170 Items";
   const examStats = [
     { value: `${exam.currentIndex + 1}/${totalCount}`, label: "Question" },
     { value: answeredCount, label: "Answered" },
@@ -202,7 +265,7 @@ export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit, onBac
               Exit
             </button>
           )}
-          <span className={`qb-exam-mode-badge${exam.isReviewSession ? " review" : exam.mode === "subprofessional" ? " subpro" : " pro"}`}>
+          <span className={`qb-exam-mode-badge${exam.isReviewSession ? " review" : exam.mode === "drill" ? " drill" : exam.mode === "subprofessional" ? " subpro" : " pro"}`}>
             {examLabel}
           </span>
         </div>
@@ -251,15 +314,58 @@ export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit, onBac
             Questions
             <span className="qb-exam-qgrid-hs">{exam.currentIndex + 1}/{totalCount}</span>
           </div>
+
+          {finished && (
+            <div className="qb-exam-review-filter-bar">
+              <button
+                type="button"
+                className={`qb-exam-review-pill${reviewFilter === "all" ? " active" : ""}`}
+                onClick={() => setReviewFilter("all")}
+              >
+                All {totalCount}
+              </button>
+              <button
+                type="button"
+                className={`qb-exam-review-pill wrong${reviewFilter === "wrong" ? " active" : ""}`}
+                onClick={() => setReviewFilter("wrong")}
+              >
+                Wrong {metrics.wrongCount}
+              </button>
+              <button
+                type="button"
+                className={`qb-exam-review-pill skipped${reviewFilter === "skipped" ? " active" : ""}`}
+                onClick={() => setReviewFilter("skipped")}
+              >
+                Skipped {metrics.unansweredCount}
+              </button>
+              <button
+                type="button"
+                className={`qb-exam-review-pill correct${reviewFilter === "correct" ? " active" : ""}`}
+                onClick={() => setReviewFilter("correct")}
+              >
+                Correct {metrics.correctCount}
+              </button>
+            </div>
+          )}
+
           <div className="qb-exam-qgrid">
             {Array.from({ length: totalCount }).map((_, i) => {
               const id = exam.orderIds[i];
               const answered = id ? (exam.answers[id] !== undefined) : false;
               const review = id ? !!reviewMap[id] : false;
               const isCurrent = i === exam.currentIndex;
+              const status = finished && id ? questionStatuses[id] : null;
+
               let cls = "qb-qnum-btn";
               if (!id) cls += " qb-qnum-dis";
-              else if (review) cls += " qb-qnum-review";
+              else if (finished) {
+                if (status === "correct") cls += " qb-qnum-correct";
+                else if (status === "wrong") cls += " qb-qnum-wrong";
+                else cls += " qb-qnum-skipped";
+                if (reviewFilter !== "all" && status !== reviewFilter) {
+                  cls += " qb-qnum-dim";
+                }
+              } else if (review) cls += " qb-qnum-review";
               else if (answered) cls += " qb-qnum-ans";
               else cls += " qb-qnum-empty";
               if (isCurrent) cls += " qb-qnum-cur";
@@ -271,27 +377,51 @@ export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit, onBac
                   className={cls}
                   onClick={() => jumpTo(i)}
                   disabled={!id}
-                  title={id ? `Go to question ${i + 1}` : `Question ${i + 1} unavailable`}
+                  title={
+                    !id
+                      ? `Question ${i + 1} unavailable`
+                      : finished
+                        ? `Q${i + 1}: ${status === "correct" ? "Correct" : status === "wrong" ? "Incorrect" : "Skipped"}`
+                        : `Go to question ${i + 1}`
+                  }
                 >
                   {i + 1}
                 </button>
               );
             })}
           </div>
-          <div className="qb-exam-legend">
-            <div className="qb-exam-legend-item">
-              <span className="qb-exam-dot qb-exam-dot-empty" />
-              Unanswered
+
+          {finished ? (
+            <div className="qb-exam-legend">
+              <div className="qb-exam-legend-item">
+                <span className="qb-exam-dot qb-exam-dot-correct" />
+                <span>Correct ({metrics.correctCount})</span>
+              </div>
+              <div className="qb-exam-legend-item">
+                <span className="qb-exam-dot qb-exam-dot-wrong" />
+                <span>Wrong ({metrics.wrongCount})</span>
+              </div>
+              <div className="qb-exam-legend-item">
+                <span className="qb-exam-dot qb-exam-dot-skipped" />
+                <span>Skipped ({metrics.unansweredCount})</span>
+              </div>
             </div>
-            <div className="qb-exam-legend-item">
-              <span className="qb-exam-dot qb-exam-dot-ans" />
-              Answered
+          ) : (
+            <div className="qb-exam-legend">
+              <div className="qb-exam-legend-item">
+                <span className="qb-exam-dot qb-exam-dot-empty" />
+                Unanswered
+              </div>
+              <div className="qb-exam-legend-item">
+                <span className="qb-exam-dot qb-exam-dot-ans" />
+                Answered
+              </div>
+              <div className="qb-exam-legend-item">
+                <span className="qb-exam-dot qb-exam-dot-review" />
+                Needs review
+              </div>
             </div>
-            <div className="qb-exam-legend-item">
-              <span className="qb-exam-dot qb-exam-dot-review" />
-              Needs review
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
@@ -459,9 +589,59 @@ export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit, onBac
                     </span>
                   </div>
                 </div>
+
+                {(metrics.wrongCount > 0 || metrics.unansweredCount > 0) && onStartDrillMistakes && (
+                  <div className="qb-exam-summary-drill-bar">
+                    <button
+                      type="button"
+                      className="qb-exam-drill-btn"
+                      onClick={() => onStartDrillMistakes({
+                        id: exam.archivedAttemptId || exam.sessionId,
+                        mode: exam.mode,
+                        questions: exam.orderIds.map((id, index) => ({
+                          id,
+                          index,
+                          isCorrect: questionStatuses[id] === "correct",
+                          wasAnswered: questionStatuses[id] !== "skipped",
+                          correct: questionLookup.get(id)?.correct,
+                          userAnswer: exam.answers[id]
+                        }))
+                      })}
+                    >
+                      <Target size={16} />
+                      <span>Drill Missed Questions ({metrics.wrongCount + metrics.unansweredCount})</span>
+                    </button>
+                  </div>
+                )}
               </div>
             )}
             <div ref={questionScrollRef} className="qb-exam-card-scroll">
+              {finished && currentId && (
+                <div className={`qb-review-qstatus-banner ${questionStatuses[currentId]}`}>
+                  {questionStatuses[currentId] === "correct" ? (
+                    <>
+                      <CheckCircle2 size={16} className="qb-review-qstatus-icon good" />
+                      <div className="qb-review-qstatus-content">
+                        <strong>Correct!</strong> You selected Option {LETTERS[pick]}.
+                      </div>
+                    </>
+                  ) : questionStatuses[currentId] === "wrong" ? (
+                    <>
+                      <AlertTriangle size={16} className="qb-review-qstatus-icon bad" />
+                      <div className="qb-review-qstatus-content">
+                        <strong>Incorrect.</strong> You chose Option {pick !== null && pick !== undefined ? LETTERS[pick] : "--"}, but the correct answer is <strong>Option {LETTERS[q.correct]}</strong>.
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <Clock3 size={16} className="qb-review-qstatus-icon warn" />
+                      <div className="qb-review-qstatus-content">
+                        <strong>Skipped.</strong> You left this item blank. Correct answer is <strong>Option {LETTERS[q.correct]}</strong>.
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
               {q.topic && (
                 <div style={{ marginBottom: 12 }}>
                   {(() => {
@@ -591,6 +771,33 @@ export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit, onBac
                 <ChevronLeft size={16} />
                 Prev
               </button>
+
+              {finished && mistakeIndices.length > 0 && (
+                <div className="qb-exam-nav-mistakes">
+                  <button
+                    type="button"
+                    className="qb-exam-navbtn-mistake"
+                    onClick={goPrevMistake}
+                    title="Jump to previous incorrect/skipped question"
+                  >
+                    <ChevronLeft size={14} />
+                    <span>Prev Mistake</span>
+                  </button>
+                  <span className="qb-exam-nav-mistake-count">
+                    {metrics.wrongCount + metrics.unansweredCount} Mistakes
+                  </span>
+                  <button
+                    type="button"
+                    className="qb-exam-navbtn-mistake"
+                    onClick={goNextMistake}
+                    title="Jump to next incorrect/skipped question"
+                  >
+                    <span>Next Mistake</span>
+                    <ChevronRight size={14} />
+                  </button>
+                </div>
+              )}
+
               <button type="button" className="qb-exam-navbtn" onClick={goNext} disabled={exam.currentIndex >= exam.orderIds.length - 1}>
                 Next
                 <ChevronRight size={16} />

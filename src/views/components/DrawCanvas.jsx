@@ -9,6 +9,16 @@ import {
   AlignCenter,
   AlignRight,
   AlignJustify,
+  AlignStartHorizontal,
+  AlignCenterHorizontal,
+  AlignEndHorizontal,
+  AlignStartVertical,
+  AlignCenterVertical,
+  AlignEndVertical,
+  AlignHorizontalDistributeCenter,
+  AlignVerticalDistributeCenter,
+  Grid,
+  Magnet,
   Eraser, 
   ChevronUp, 
   ChevronDown, 
@@ -68,8 +78,14 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
   const [dragOverLayerId, setDragOverLayerId] = useState(null);
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
   const [hexInput, setHexInput] = useState("#1a2540");
+  const [snapping, setSnapping] = useState(true);
+  const snappingRef = useRef(true);
+  const [gridMode, setGridMode] = useState("none"); // "none" | "dots" | "grid"
+  const [alignMenuOpen, setAlignMenuOpen] = useState(false);
+  const [zoomPercent, setZoomPercent] = useState(100);
   const ctxMenuRef = useRef(null);
   const colorPickerRef = useRef(null);
+  const alignMenuRef = useRef(null);
   const layerDragRef = useRef(null);
   const dragJustEndedRef = useRef(false);
   const MIN_H = 260;
@@ -434,8 +450,10 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
 
     const clampZoom = (z) => Math.max(0.2, Math.min(4, z));
     const zoomToPoint = (point, nextZoom) => {
-      canvas.zoomToPoint(point, clampZoom(nextZoom));
+      const z = clampZoom(nextZoom);
+      canvas.zoomToPoint(point, z);
       canvas.requestRenderAll();
+      setZoomPercent(Math.round(z * 100));
     };
 
     const handleWheelZoom = (opt) => {
@@ -694,7 +712,13 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       const currentWidth = typeof canvas.getWidth === "function" ? canvas.getWidth() : BASE_W;
       // Cap the multiplier so narrow/tall canvases don't rasterize huge images on every change.
       const multiplier = Math.min(2.5, Math.max(2, (BASE_W / (currentWidth || BASE_W)) * 2));
-      return canvas.toDataURL({ format: "png", quality: 0.8, multiplier });
+      const prevBg = canvas.backgroundColor;
+      canvas.backgroundColor = "#ffffff";
+      canvas.renderAll();
+      const url = canvas.toDataURL({ format: "png", quality: 0.8, multiplier });
+      canvas.backgroundColor = prevBg;
+      canvas.renderAll();
+      return url;
     };
 
     const handleChange = () => {
@@ -1006,7 +1030,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
         syncLongDivision(obj);
       }
 
-      if (nativeEvent?.altKey || nativeEvent?.ctrlKey || nativeEvent?.metaKey) return;
+      if (!snappingRef.current || nativeEvent?.altKey || nativeEvent?.ctrlKey || nativeEvent?.metaKey) return;
 
       const canvasWidth = canvas.width;
       const canvasHeight = canvas.height;
@@ -1033,6 +1057,22 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       });
 
       let p = edgesFromCenter();
+
+      // Grid snapping when grid is active
+      if (gridMode !== "none") {
+        const gridStep = 20;
+        const gridTol = 5;
+        const nearX = Math.round(center.x / gridStep) * gridStep;
+        const nearY = Math.round(center.y / gridStep) * gridStep;
+        let snapX = center.x;
+        let snapY = center.y;
+        if (Math.abs(center.x - nearX) <= gridTol) snapX = nearX;
+        if (Math.abs(center.y - nearY) <= gridTol) snapY = nearY;
+        if (snapX !== center.x || snapY !== center.y) {
+          setCenter(snapX, snapY);
+          p = edgesFromCenter();
+        }
+      }
       const prevEdges = moveIntent?.prevCenter
         ? {
             centerX: moveIntent.prevCenter.x,
@@ -1371,7 +1411,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       const obj = options.target;
       clearGuides();
 
-      if (options?.e?.altKey) return;
+      if (!snappingRef.current || options?.e?.altKey) return;
 
       const corner = options?.transform?.corner || "";
       const isTextbox = obj?.type === "textbox" && !obj.isGuide;
@@ -2103,6 +2143,217 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       return true;
     };
 
+    const alignSelection = (alignmentType) => {
+      const active = canvas.getActiveObject();
+      const objects = (canvas.getActiveObjects?.() || []).filter(o => o && !o.isGuide);
+      if (!objects.length) return false;
+
+      const syncCompound = (obj) => {
+        if (obj.fractionId) syncFraction(obj);
+        if (obj.longDivisionId) syncLongDivision(obj);
+      };
+
+      // 1. Single object: align relative to canvas bounds
+      if (objects.length === 1) {
+        const obj = objects[0];
+        const cWidth = canvas.getWidth();
+        const cHeight = canvas.getHeight();
+        const b = obj.getBoundingRect(true, true);
+        const offsetX = obj.left - b.left;
+        const offsetY = obj.top - b.top;
+
+        let targetLeft = obj.left;
+        let targetTop = obj.top;
+
+        switch (alignmentType) {
+          case "left":
+            targetLeft = 24 + offsetX;
+            break;
+          case "centerH":
+            targetLeft = Math.round((cWidth - b.width) / 2) + offsetX;
+            break;
+          case "right":
+            targetLeft = Math.round(cWidth - b.width - 24) + offsetX;
+            break;
+          case "top":
+            targetTop = 24 + offsetY;
+            break;
+          case "middleV":
+            targetTop = Math.round((cHeight - b.height) / 2) + offsetY;
+            break;
+          case "bottom":
+            targetTop = Math.round(cHeight - b.height - 24) + offsetY;
+            break;
+          case "centerCanvas":
+            targetLeft = Math.round((cWidth - b.width) / 2) + offsetX;
+            targetTop = Math.round((cHeight - b.height) / 2) + offsetY;
+            break;
+          default:
+            return false;
+        }
+
+        obj.set({ left: targetLeft, top: targetTop });
+        obj.setCoords();
+        syncCompound(obj);
+        canvas.requestRenderAll();
+        handleChange();
+        refreshUI();
+        return true;
+      }
+
+      // 2. Multiple objects (ActiveSelection)
+      const selRect = active.getBoundingRect(true, true);
+      const minLeft = selRect.left;
+      const maxRight = selRect.left + selRect.width;
+      const centerX = selRect.left + selRect.width / 2;
+      const minTop = selRect.top;
+      const maxBottom = selRect.top + selRect.height;
+      const centerY = selRect.top + selRect.height / 2;
+
+      // Discard active selection to revert child coordinates to world canvas space
+      canvas.discardActiveObject();
+
+      if (alignmentType === "distributeH" || alignmentType === "distributeV") {
+        if (objects.length < 3) {
+          const reSel = new fabric.ActiveSelection(objects, { canvas });
+          canvas.setActiveObject(reSel);
+          reSel.setCoords();
+          canvas.requestRenderAll();
+          return false;
+        }
+
+        if (alignmentType === "distributeH") {
+          const sorted = [...objects].sort((a, b) => {
+            const bA = a.getBoundingRect(true, true);
+            const bB = b.getBoundingRect(true, true);
+            return (bA.left + bA.width / 2) - (bB.left + bB.width / 2);
+          });
+
+          const firstBox = sorted[0].getBoundingRect(true, true);
+          const lastBox = sorted[sorted.length - 1].getBoundingRect(true, true);
+          const totalSpan = (lastBox.left + lastBox.width) - firstBox.left;
+          const totalObjWidths = sorted.reduce((sum, o) => sum + o.getBoundingRect(true, true).width, 0);
+          const availableSpace = totalSpan - totalObjWidths;
+
+          if (availableSpace >= 0) {
+            const gap = availableSpace / (sorted.length - 1);
+            let curLeft = firstBox.left + firstBox.width + gap;
+            for (let i = 1; i < sorted.length - 1; i++) {
+              const obj = sorted[i];
+              const b = obj.getBoundingRect(true, true);
+              const offsetX = obj.left - b.left;
+              obj.set({ left: curLeft + offsetX });
+              obj.setCoords();
+              syncCompound(obj);
+              curLeft += b.width + gap;
+            }
+          } else {
+            const firstCenter = firstBox.left + firstBox.width / 2;
+            const lastCenter = lastBox.left + lastBox.width / 2;
+            const centerStep = (lastCenter - firstCenter) / (sorted.length - 1);
+            for (let i = 1; i < sorted.length - 1; i++) {
+              const obj = sorted[i];
+              const b = obj.getBoundingRect(true, true);
+              const targetCenter = firstCenter + i * centerStep;
+              const deltaX = targetCenter - (b.left + b.width / 2);
+              obj.set({ left: obj.left + deltaX });
+              obj.setCoords();
+              syncCompound(obj);
+            }
+          }
+        } else if (alignmentType === "distributeV") {
+          const sorted = [...objects].sort((a, b) => {
+            const bA = a.getBoundingRect(true, true);
+            const bB = b.getBoundingRect(true, true);
+            return (bA.top + bA.height / 2) - (bB.top + bB.height / 2);
+          });
+
+          const firstBox = sorted[0].getBoundingRect(true, true);
+          const lastBox = sorted[sorted.length - 1].getBoundingRect(true, true);
+          const totalSpan = (lastBox.top + lastBox.height) - firstBox.top;
+          const totalObjHeights = sorted.reduce((sum, o) => sum + o.getBoundingRect(true, true).height, 0);
+          const availableSpace = totalSpan - totalObjHeights;
+
+          if (availableSpace >= 0) {
+            const gap = availableSpace / (sorted.length - 1);
+            let curTop = firstBox.top + firstBox.height + gap;
+            for (let i = 1; i < sorted.length - 1; i++) {
+              const obj = sorted[i];
+              const b = obj.getBoundingRect(true, true);
+              const offsetY = obj.top - b.top;
+              obj.set({ top: curTop + offsetY });
+              obj.setCoords();
+              syncCompound(obj);
+              curTop += b.height + gap;
+            }
+          } else {
+            const firstCenter = firstBox.top + firstBox.height / 2;
+            const lastCenter = lastBox.top + lastBox.height / 2;
+            const centerStep = (lastCenter - firstCenter) / (sorted.length - 1);
+            for (let i = 1; i < sorted.length - 1; i++) {
+              const obj = sorted[i];
+              const b = obj.getBoundingRect(true, true);
+              const targetCenter = firstCenter + i * centerStep;
+              const deltaY = targetCenter - (b.top + b.height / 2);
+              obj.set({ top: obj.top + deltaY });
+              obj.setCoords();
+              syncCompound(obj);
+            }
+          }
+        }
+      } else {
+        objects.forEach((obj) => {
+          const b = obj.getBoundingRect(true, true);
+          let deltaX = 0;
+          let deltaY = 0;
+
+          switch (alignmentType) {
+            case "left":
+              deltaX = minLeft - b.left;
+              break;
+            case "centerH":
+              deltaX = centerX - (b.left + b.width / 2);
+              break;
+            case "right":
+              deltaX = maxRight - (b.left + b.width);
+              break;
+            case "top":
+              deltaY = minTop - b.top;
+              break;
+            case "middleV":
+              deltaY = centerY - (b.top + b.height / 2);
+              break;
+            case "bottom":
+              deltaY = maxBottom - (b.top + b.height);
+              break;
+            case "centerCanvas": {
+              const cW = canvas.getWidth();
+              const cH = canvas.getHeight();
+              deltaX = (cW / 2) - centerX;
+              deltaY = (cH / 2) - centerY;
+              break;
+            }
+            default:
+              break;
+          }
+
+          if (deltaX !== 0) obj.set({ left: obj.left + deltaX });
+          if (deltaY !== 0) obj.set({ top: obj.top + deltaY });
+          obj.setCoords();
+          syncCompound(obj);
+        });
+      }
+
+      // Recreate active selection with aligned objects
+      const newSel = new fabric.ActiveSelection(objects, { canvas });
+      canvas.setActiveObject(newSel);
+      newSel.setCoords();
+      canvas.requestRenderAll();
+      handleChange();
+      refreshUI();
+      return true;
+    };
+
     const zoomBy = (factor) => {
       const center = new fabric.Point(canvas.getWidth() / 2, canvas.getHeight() / 2);
       zoomToPoint(center, canvas.getZoom() * factor);
@@ -2110,6 +2361,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
     const resetZoom = () => {
       canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
       canvas.requestRenderAll();
+      setZoomPercent(100);
     };
 
     // Keyboard support
@@ -2136,6 +2388,51 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
         spaceDownRef.current = true;
         e.preventDefault();
         return;
+      }
+
+      if (key === 'm' && !ctrlKey && !isTyping && !isEditingText) {
+        setSnapping(s => !s);
+        e.preventDefault();
+        return;
+      }
+
+      if (key === 'g' && !ctrlKey && !isTyping && !isEditingText) {
+        setGridMode(g => g === "none" ? "dots" : g === "dots" ? "grid" : "none");
+        e.preventDefault();
+        return;
+      }
+
+      if (e.altKey && !ctrlKey && !isTyping && !isEditingText && canvas.getActiveObject()) {
+        if (e.key === "ArrowLeft") {
+          alignSelection("left");
+          e.preventDefault();
+          return;
+        }
+        if (e.key === "ArrowRight") {
+          alignSelection("right");
+          e.preventDefault();
+          return;
+        }
+        if (e.key === "ArrowUp") {
+          alignSelection("top");
+          e.preventDefault();
+          return;
+        }
+        if (e.key === "ArrowDown") {
+          alignSelection("bottom");
+          e.preventDefault();
+          return;
+        }
+        if (key === "h") {
+          alignSelection("centerH");
+          e.preventDefault();
+          return;
+        }
+        if (key === "v") {
+          alignSelection("middleV");
+          e.preventDefault();
+          return;
+        }
       }
 
       if (!ctrlKey && !isTyping && !isEditingText && /^Arrow(Up|Down|Left|Right)$/.test(e.key || "")) {
@@ -2246,6 +2543,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
     fabricRef.current.duplicateSelection = duplicateSelection;
     fabricRef.current.groupSelection = groupSelection;
     fabricRef.current.ungroupSelection = ungroupSelection;
+    fabricRef.current.alignSelection = alignSelection;
     fabricRef.current.zoomBy = zoomBy;
     fabricRef.current.resetZoom = resetZoom;
     fabricRef.current.refreshUI = refreshUI;
@@ -2310,6 +2608,34 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [colorPickerOpen]);
+
+  useEffect(() => {
+    snappingRef.current = snapping;
+  }, [snapping]);
+
+  useEffect(() => {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    canvas.backgroundColor = gridMode === "none" ? "#ffffff" : "transparent";
+    canvas.requestRenderAll();
+  }, [gridMode]);
+
+  useEffect(() => {
+    if (!alignMenuOpen) return;
+    const onMouseDown = (e) => {
+      if (alignMenuRef.current && alignMenuRef.current.contains(e.target)) return;
+      setAlignMenuOpen(false);
+    };
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") setAlignMenuOpen(false);
+    };
+    window.addEventListener("mousedown", onMouseDown);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("mousedown", onMouseDown);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [alignMenuOpen]);
 
   // Update tool settings
   useEffect(() => {
@@ -3060,11 +3386,19 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
   const narrow = useExternalLayers ? false : isNarrow;
   const activeCanvasObj = fabricRef.current?.getActiveObject?.() || null;
   const selectionCount = (fabricRef.current?.getActiveObjects?.() || []).filter(o => o && !o.isGuide).length;
+  const canAlign = selectionCount > 0;
+  const canDistribute = selectionCount >= 3;
   const canCopy = selectionCount > 0;
   const canPaste = !!(clipboardData.current?.objects?.length || clipboardClone.current || clipboard.current);
   const canGroup = activeCanvasObj?.type === "activeSelection";
   const canUngroup = activeCanvasObj?.type === "group";
   const canStraighten = activeCanvasObj?.type === "path" && activeCanvasObj?.shapeKind !== "longDivision";
+
+  const handleAlign = (type) => fabricRef.current?.alignSelection?.(type);
+  const handleResetZoom = () => {
+    fabricRef.current?.resetZoom?.();
+    setZoomPercent(100);
+  };
   const bumpBoardHeight = (delta) => {
     const cur = Math.round(boardRef.current?.getBoundingClientRect?.().height || height);
     const next = Math.max(MIN_H, Math.min(cur + delta, MAX_H));
@@ -3443,11 +3777,88 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
               </button>
             </div>
 
+            <div className="draw-bar-group" ref={alignMenuRef} style={{ position: "relative", display: "flex", gap: 4, background: "var(--surface-h)", padding: "3px", borderRadius: "8px" }}>
+              <button 
+                className={`draw-tb${alignMenuOpen ? " draw-on" : ""}`} 
+                onClick={() => setAlignMenuOpen(o => !o)} 
+                disabled={!canAlign}
+                title="Align Objects"
+                style={{ display: "flex", alignItems: "center", gap: 4, padding: "0 6px" }}
+              >
+                <AlignCenterHorizontal size={15} />
+                <span style={{ fontSize: 11, fontWeight: 500 }}>Align</span>
+              </button>
+              {alignMenuOpen && (
+                <div style={{
+                  position: "absolute",
+                  top: "calc(100% + 6px)",
+                  right: 0,
+                  zIndex: 25,
+                  background: "var(--surface)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 10,
+                  boxShadow: "0 12px 32px rgba(0,0,0,0.28)",
+                  padding: 8,
+                  minWidth: 160
+                }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6, padding: "0 4px" }}>
+                    {selectionCount > 1 ? `Align ${selectionCount} Items` : "Align to Page"}
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4, marginBottom: 6 }}>
+                    <button className="draw-tb" onClick={() => { handleAlign("left"); setAlignMenuOpen(false); }} title="Align Left">
+                      <AlignStartHorizontal size={16} />
+                    </button>
+                    <button className="draw-tb" onClick={() => { handleAlign("centerH"); setAlignMenuOpen(false); }} title="Center Horizontally">
+                      <AlignCenterHorizontal size={16} />
+                    </button>
+                    <button className="draw-tb" onClick={() => { handleAlign("right"); setAlignMenuOpen(false); }} title="Align Right">
+                      <AlignEndHorizontal size={16} />
+                    </button>
+                    <button className="draw-tb" onClick={() => { handleAlign("top"); setAlignMenuOpen(false); }} title="Align Top">
+                      <AlignStartVertical size={16} />
+                    </button>
+                    <button className="draw-tb" onClick={() => { handleAlign("middleV"); setAlignMenuOpen(false); }} title="Center Vertically">
+                      <AlignCenterVertical size={16} />
+                    </button>
+                    <button className="draw-tb" onClick={() => { handleAlign("bottom"); setAlignMenuOpen(false); }} title="Align Bottom">
+                      <AlignEndVertical size={16} />
+                    </button>
+                  </div>
+                  <button
+                    className="draw-tb"
+                    style={{ width: "100%", justifyContent: "center", fontSize: 11, gap: 5, padding: "5px 6px", marginBottom: canDistribute ? 6 : 0 }}
+                    onClick={() => { handleAlign("centerCanvas"); setAlignMenuOpen(false); }}
+                    title="Center on Canvas"
+                  >
+                    <Square size={13} style={{ strokeDasharray: "2 2" }} />
+                    Center on Canvas
+                  </button>
+                  {canDistribute && (
+                    <>
+                      <div style={{ fontSize: 9.5, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.5, margin: "6px 0 4px", padding: "0 4px", borderTop: "1px solid var(--border)", paddingTop: 6 }}>
+                        Distribute
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
+                        <button className="draw-tb" style={{ justifyContent: "center", fontSize: 11, gap: 4, padding: "5px 4px" }} onClick={() => { handleAlign("distributeH"); setAlignMenuOpen(false); }} title="Distribute Horizontally">
+                          <AlignHorizontalDistributeCenter size={14} />
+                          Horiz
+                        </button>
+                        <button className="draw-tb" style={{ justifyContent: "center", fontSize: 11, gap: 4, padding: "5px 4px" }} onClick={() => { handleAlign("distributeV"); setAlignMenuOpen(false); }} title="Distribute Vertically">
+                          <AlignVerticalDistributeCenter size={14} />
+                          Vert
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="draw-bar-group" style={{ display: "flex", gap: 4, background: "var(--surface-h)", padding: "3px", borderRadius: "8px" }}>
-              <button className="draw-tb" onClick={() => fabricRef.current?.groupSelection?.()} disabled={!canGroup} title="Group">
+              <button className="draw-tb" onClick={() => fabricRef.current?.groupSelection?.()} disabled={!canGroup} title="Group (Ctrl+G)">
                 Group
               </button>
-              <button className="draw-tb" onClick={() => fabricRef.current?.ungroupSelection?.()} disabled={!canUngroup} title="Ungroup">
+              <button className="draw-tb" onClick={() => fabricRef.current?.ungroupSelection?.()} disabled={!canUngroup} title="Ungroup (Ctrl+Shift+G)">
                 Ungroup
               </button>
             </div>
@@ -3459,11 +3870,23 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
             </div>
 
             <div className="draw-bar-group" style={{ display: "flex", gap: 4, background: "var(--surface-h)", padding: "3px", borderRadius: "8px" }}>
-              <button className="draw-tb" onClick={() => fabricRef.current?.zoomBy?.(1.2)} title="Zoom In">
-                <ZoomIn size={16} />
+              <button className={`draw-tb${snapping ? " draw-on" : ""}`} onClick={() => setSnapping(s => !s)} title={snapping ? "Smart Snapping Enabled (M)" : "Smart Snapping Disabled (M)"}>
+                <Magnet size={16} />
               </button>
-              <button className="draw-tb" onClick={() => fabricRef.current?.zoomBy?.(1/1.2)} title="Zoom Out">
-                <ZoomOut size={16} />
+              <button className={`draw-tb${gridMode !== "none" ? " draw-on" : ""}`} onClick={() => setGridMode(g => g === "none" ? "dots" : g === "dots" ? "grid" : "none")} title={`Canvas Grid: ${gridMode === "none" ? "Off" : gridMode} (G)`}>
+                <Grid size={16} />
+              </button>
+            </div>
+
+            <div className="draw-bar-group" style={{ display: "flex", alignItems: "center", gap: 2, background: "var(--surface-h)", padding: "3px", borderRadius: "8px" }}>
+              <button className="draw-tb" onClick={() => fabricRef.current?.zoomBy?.(1/1.2)} title="Zoom Out (Ctrl+-)">
+                <ZoomOut size={15} />
+              </button>
+              <button className="draw-tb" onClick={handleResetZoom} style={{ fontSize: 11, fontWeight: 600, minWidth: 42, padding: "0 4px" }} title="Reset Zoom to 100%">
+                {zoomPercent}%
+              </button>
+              <button className="draw-tb" onClick={() => fabricRef.current?.zoomBy?.(1.2)} title="Zoom In (Ctrl++)">
+                <ZoomIn size={15} />
               </button>
             </div>
 
@@ -3473,6 +3896,9 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
               </button>
               <button className="draw-tb" onClick={() => fabricRef.current?.pasteSelection?.()} disabled={!canPaste} title="Paste (Ctrl+V)">
                 <ClipboardPaste size={16} />
+              </button>
+              <button className="draw-tb" onClick={() => fabricRef.current?.duplicateSelection?.()} disabled={!canCopy} title="Duplicate (Ctrl+D)">
+                <CopyPlus size={16} />
               </button>
             </div>
 
@@ -3502,8 +3928,8 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       {useExternalLayers ? createPortal(layersPanel(false), layersHost) : null}
 
       <div style={{ position: "relative" }} ref={menuHostRef}>
-        {(showFontSize || showTextAlign) && (
-          <div style={{ position: "absolute", left: 10, top: 10, zIndex: 4, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+        {(canAlign || showFontSize || showTextAlign) && (
+          <div className="draw-contextual-bar" style={{ position: "absolute", left: 10, top: 10, zIndex: 6, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
             {showFontSize && (
               <div style={{ display: "flex", gap: 4, alignItems: "center", background: "var(--surface-h)", padding: "3px 8px", borderRadius: "8px", border: "1px solid var(--border)" }}>
                 <button className="draw-tb" onClick={() => applyFontSize(fontSize - 1)} title="Font Size -">
@@ -3553,6 +3979,45 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
                 </button>
               </div>
             )}
+
+            {canAlign && (
+              <div style={{ display: "flex", gap: 2, alignItems: "center", background: "var(--surface-h)", padding: "3px", borderRadius: "8px", border: "1px solid var(--border)" }}>
+                <button className="draw-tb" onClick={() => handleAlign("left")} title={selectionCount > 1 ? "Align Left" : "Align to Canvas Left"}>
+                  <AlignStartHorizontal size={15} />
+                </button>
+                <button className="draw-tb" onClick={() => handleAlign("centerH")} title={selectionCount > 1 ? "Center Horizontally" : "Center Horizontally on Canvas"}>
+                  <AlignCenterHorizontal size={15} />
+                </button>
+                <button className="draw-tb" onClick={() => handleAlign("right")} title={selectionCount > 1 ? "Align Right" : "Align to Canvas Right"}>
+                  <AlignEndHorizontal size={15} />
+                </button>
+                <div style={{ width: 1, height: 16, background: "var(--border)", margin: "0 2px" }} />
+                <button className="draw-tb" onClick={() => handleAlign("top")} title={selectionCount > 1 ? "Align Top" : "Align to Canvas Top"}>
+                  <AlignStartVertical size={15} />
+                </button>
+                <button className="draw-tb" onClick={() => handleAlign("middleV")} title={selectionCount > 1 ? "Center Vertically" : "Center Vertically on Canvas"}>
+                  <AlignCenterVertical size={15} />
+                </button>
+                <button className="draw-tb" onClick={() => handleAlign("bottom")} title={selectionCount > 1 ? "Align Bottom" : "Align to Canvas Bottom"}>
+                  <AlignEndVertical size={15} />
+                </button>
+                <div style={{ width: 1, height: 16, background: "var(--border)", margin: "0 2px" }} />
+                <button className="draw-tb" onClick={() => handleAlign("centerCanvas")} title="Center Object(s) on Canvas">
+                  <Square size={13} style={{ strokeDasharray: "2 2" }} />
+                </button>
+                {canDistribute && (
+                  <>
+                    <div style={{ width: 1, height: 16, background: "var(--border)", margin: "0 2px" }} />
+                    <button className="draw-tb" onClick={() => handleAlign("distributeH")} title="Distribute Horizontally">
+                      <AlignHorizontalDistributeCenter size={15} />
+                    </button>
+                    <button className="draw-tb" onClick={() => handleAlign("distributeV")} title="Distribute Vertically">
+                      <AlignVerticalDistributeCenter size={15} />
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         )}
         {ctxMenu && (
@@ -3562,70 +4027,99 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
               position: "absolute",
               left: ctxMenu.x,
               top: ctxMenu.y,
-              zIndex: 12,
+              zIndex: 14,
               background: "var(--surface)",
               border: "1px solid var(--border)",
               borderRadius: 10,
               boxShadow: "0 14px 40px rgba(0,0,0,0.35)",
-              width: 124,
+              width: 140,
               minWidth: 0,
-              padding: 8
+              padding: 6
             }}
           >
             <button
               className="draw-tb"
-              style={{ width: "100%", textAlign: "left", marginBottom: 5, padding: "6px 9px", fontSize: 12.5, display: "flex", alignItems: "center", gap: 8 }}
+              style={{ width: "100%", textAlign: "left", marginBottom: 3, padding: "5px 8px", fontSize: 12, display: "flex", alignItems: "center", gap: 7 }}
               disabled={!canCopy}
               onClick={() => { fabricRef.current?.copySelection?.(); setCtxMenu(null); }}
             >
-              <Copy size={15} />
+              <Copy size={14} />
               Copy
             </button>
             <button
               className="draw-tb"
-              style={{ width: "100%", textAlign: "left", marginBottom: 5, padding: "6px 9px", fontSize: 12.5, display: "flex", alignItems: "center", gap: 8 }}
+              style={{ width: "100%", textAlign: "left", marginBottom: 3, padding: "5px 8px", fontSize: 12, display: "flex", alignItems: "center", gap: 7 }}
               disabled={!canPaste}
               onClick={() => { fabricRef.current?.pasteSelection?.(); setCtxMenu(null); }}
             >
-              <ClipboardPaste size={15} />
+              <ClipboardPaste size={14} />
               Paste
             </button>
             <button
               className="draw-tb"
-              style={{ width: "100%", textAlign: "left", marginBottom: 5, padding: "6px 9px", fontSize: 12.5, display: "flex", alignItems: "center", gap: 8 }}
+              style={{ width: "100%", textAlign: "left", marginBottom: 3, padding: "5px 8px", fontSize: 12, display: "flex", alignItems: "center", gap: 7 }}
               disabled={!canCopy}
               onClick={() => { fabricRef.current?.duplicateSelection?.(); setCtxMenu(null); }}
             >
-              <CopyPlus size={15} />
+              <CopyPlus size={14} />
               Duplicate
             </button>
             <button
               className="draw-tb"
-              style={{ width: "100%", textAlign: "left", marginBottom: 5, padding: "6px 9px", fontSize: 12.5, display: "flex", alignItems: "center", gap: 8 }}
+              style={{ width: "100%", textAlign: "left", marginBottom: 3, padding: "5px 8px", fontSize: 12, display: "flex", alignItems: "center", gap: 7 }}
               disabled={!canCopy}
               onClick={() => { fabricRef.current?.deleteSelection?.(); setCtxMenu(null); }}
             >
-              <Trash2 size={15} />
+              <Trash2 size={14} />
               Delete
             </button>
+            <div style={{ height: 1, background: "var(--border)", margin: "4px 0" }} />
             <button
               className="draw-tb"
-              style={{ width: "100%", textAlign: "left", marginBottom: 5, padding: "6px 9px", fontSize: 12.5, display: "flex", alignItems: "center", gap: 8 }}
+              style={{ width: "100%", textAlign: "left", marginBottom: 3, padding: "5px 8px", fontSize: 12, display: "flex", alignItems: "center", gap: 7 }}
               disabled={!canGroup}
               onClick={() => { fabricRef.current?.groupSelection?.(); setCtxMenu(null); }}
             >
-              <Layers size={15} />
+              <Layers size={14} />
               Group
             </button>
             <button
               className="draw-tb"
-              style={{ width: "100%", textAlign: "left", padding: "6px 9px", fontSize: 12.5, display: "flex", alignItems: "center", gap: 8 }}
+              style={{ width: "100%", textAlign: "left", marginBottom: 3, padding: "5px 8px", fontSize: 12, display: "flex", alignItems: "center", gap: 7 }}
               disabled={!canUngroup}
               onClick={() => { fabricRef.current?.ungroupSelection?.(); setCtxMenu(null); }}
             >
-              <Ungroup size={15} />
+              <Ungroup size={14} />
               Ungroup
             </button>
+            {canAlign && (
+              <>
+                <div style={{ height: 1, background: "var(--border)", margin: "4px 0" }} />
+                <div style={{ fontSize: 9.5, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.5, padding: "2px 6px" }}>
+                  Align
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 2, padding: "2px" }}>
+                  <button className="draw-tb" onClick={() => { handleAlign("left"); setCtxMenu(null); }} title="Align Left">
+                    <AlignStartHorizontal size={13} />
+                  </button>
+                  <button className="draw-tb" onClick={() => { handleAlign("centerH"); setCtxMenu(null); }} title="Center Horizontally">
+                    <AlignCenterHorizontal size={13} />
+                  </button>
+                  <button className="draw-tb" onClick={() => { handleAlign("right"); setCtxMenu(null); }} title="Align Right">
+                    <AlignEndHorizontal size={13} />
+                  </button>
+                  <button className="draw-tb" onClick={() => { handleAlign("top"); setCtxMenu(null); }} title="Align Top">
+                    <AlignStartVertical size={13} />
+                  </button>
+                  <button className="draw-tb" onClick={() => { handleAlign("middleV"); setCtxMenu(null); }} title="Center Vertically">
+                    <AlignCenterVertical size={13} />
+                  </button>
+                  <button className="draw-tb" onClick={() => { handleAlign("bottom"); setCtxMenu(null); }} title="Align Bottom">
+                    <AlignEndVertical size={13} />
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
         <div style={{ 
@@ -3634,9 +4128,9 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
           background: "linear-gradient(180deg, rgba(244,246,250,0.98), rgba(236,239,245,0.92))", padding: "12px", flex: 1, minWidth: 0,
           display: "flex", justifyContent: "center", alignItems: "flex-start",
           touchAction: "none"
-        }} className="draw-board-shell" ref={boardRef}>
+        }} className={`draw-board-shell ${gridMode !== "none" ? `draw-grid-${gridMode}` : ""}`} ref={boardRef}>
           <div style={{ boxShadow: "0 18px 38px rgba(15,23,42,0.12)", width: "fit-content", margin: 0, borderRadius: 16, overflow: "hidden" }}>
-            <div ref={canvasHostRef} />
+            <div className={`draw-canvas-host ${gridMode !== "none" ? `draw-grid-${gridMode}` : ""}`} ref={canvasHostRef} />
           </div>
         </div>
 
@@ -3651,7 +4145,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       </div>
 
       <p style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 8, textAlign: "right", fontStyle: "italic" }}>
-        Canva Mode: [Del] deletes, Arrow keys nudge, [Shift]+Arrow moves 10px, Double-click text to edit, Long-press on touch opens the right-click menu.
+        Canva Mode: [Del] deletes, Arrow keys nudge (Alt+Arrows align), [M] toggles magnet snap, [G] toggles grid, [Ctrl+D] duplicates, Double-click text to edit.
       </p>
     </div>
   );

@@ -24,7 +24,7 @@ import { useThemeController } from "./controllers/useThemeController";
 import { storageModel } from "./models/storageModel";
 import { tipsModel } from "./models/tipsModel";
 import { favoritesModel } from "./models/favoritesModel";
-import { buildMockExamAttempt, buildReviewExamFromAttempt } from "./utils/mockExamAnalytics";
+import { buildMockExamAttempt, buildReviewExamFromAttempt, buildMistakeDrillExam } from "./utils/mockExamAnalytics";
 import { Home, ClipboardList, Lightbulb, PlayCircle, ArrowRight, BookOpen, Plus, ShieldCheck } from "lucide-react";
 import { QUESTION_ADMIN_UIDS, EXAM_PRESETS } from "./constants/appConstants";
 
@@ -629,6 +629,25 @@ export default function App() {
     setView("mockRun");
   };
 
+  const handleStartDrillMistakes = (attempt) => {
+    if (!attempt) return;
+    const drillExam = buildMistakeDrillExam(attempt, qMap);
+    if (!drillExam || drillExam.totalCount === 0) return;
+    setEditId(null);
+    setSelectedId(null);
+    setSelectedMockAttemptId(null);
+    setDeepLinkShowSol(false);
+    setExam(drillExam);
+    setSavedActiveMockExam(drillExam);
+    if (isAuthenticated && user?.id) {
+      storageModel.setActiveMockExam(drillExam, user.id).catch((e) => {
+        console.error("Failed to save active mock exam:", e);
+      });
+    }
+    window.history.pushState({}, "", `?page=mock-run&drill=1`);
+    setView("mockRun");
+  };
+
   const handleBackToAttempt = (attemptId) => {
     const targetId = attemptId || selectedMockAttemptId;
     if (targetId) {
@@ -1046,6 +1065,7 @@ export default function App() {
                   qMap={qMap}
                   onBack={handleGoMockExam}
                   onReviewAttempt={handleReviewAttempt}
+                  onStartDrillMistakes={handleStartDrillMistakes}
                 />
               ) : (
                 <MockExam
@@ -1076,6 +1096,7 @@ export default function App() {
                   onUpdateExam={setExam}
                   onExit={handleGoMockExam}
                   onBackToAttempt={handleBackToAttempt}
+                  onStartDrillMistakes={handleStartDrillMistakes}
                 />
               ) : isActiveMockExamLoading ? (
                 <LoadingSpinner fullScreen text="Restoring active mock exam..." />

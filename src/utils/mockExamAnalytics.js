@@ -213,3 +213,60 @@ export const buildReviewExamFromAttempt = (attempt, qMap, startQuestionId = null
     questionSnapshots,
   };
 };
+
+export const buildMistakeDrillExam = (attempt, qMap) => {
+  const questionLookup = buildQuestionLookup(qMap);
+  const missedQuestions = (attempt?.questions || []).filter((q) => !q.isCorrect);
+  const orderIds = missedQuestions
+    .map((q) => q.id)
+    .filter((id) => questionLookup.has(id));
+
+  const totalItems = orderIds.length;
+  // 60s per question, minimum 3 minutes
+  const durationMs = Math.max(3 * 60 * 1000, totalItems * 60 * 1000);
+
+  return {
+    sessionId: `drill-${Date.now()}`,
+    mode: "drill",
+    drillSourceAttemptId: attempt?.id || null,
+    title: `Mistake Drill • ${totalItems} Items`,
+    startedAt: Date.now(),
+    durationMs,
+    totalCount: totalItems,
+    targetCount: totalItems,
+    orderIds,
+    answers: {},
+    review: {},
+    currentIndex: 0,
+    finished: false,
+    isReviewSession: false,
+    historySaved: false,
+  };
+};
+
+export const calculatePacingStats = (timeSpentMs, totalCount, mode = "professional") => {
+  const safeTotal = Math.max(1, totalCount || 1);
+  const safeTimeMs = Math.max(0, timeSpentMs || 0);
+  const secondsPerItem = Math.round(safeTimeMs / safeTotal / 1000);
+
+  // CSC targets: Pro is 190 min / 170 items ~ 67s/item. Subpro is 160 min / 165 items ~ 58s/item.
+  const targetSeconds = mode === "subprofessional" ? 58 : 67;
+
+  let assessment = "Optimal Pace";
+  let status = "good";
+  if (secondsPerItem < 40) {
+    assessment = "Rapid Pace";
+    status = "fast";
+  } else if (secondsPerItem > targetSeconds + 15) {
+    assessment = "Time-Pressured";
+    status = "slow";
+  }
+
+  return {
+    secondsPerItem,
+    targetSeconds,
+    assessment,
+    status,
+    formattedPace: `${secondsPerItem}s / item`,
+  };
+};

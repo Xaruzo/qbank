@@ -1,32 +1,35 @@
 import React, { useState } from "react";
-import { AlertTriangle, ArrowUpRight, ChevronLeft, Clock3, Search, Trophy, TrendingUp } from "lucide-react";
-import { LETTERS } from "../../constants/appConstants";
-import { buildQuestionLookup, formatAttemptDate, formatExamDuration } from "../../utils/mockExamAnalytics";
+import { AlertTriangle, ArrowUpRight, ChevronLeft, Clock3, Search, Trophy, TrendingUp, Target, CheckCircle2 } from "lucide-react";
+import { LETTERS, TOPICS } from "../../constants/appConstants";
+import { buildQuestionLookup, formatAttemptDate, formatExamDuration, calculatePacingStats } from "../../utils/mockExamAnalytics";
 
-export default function MockAttemptDetail({ attempt, qMap, onBack, onReviewAttempt }) {
+export default function MockAttemptDetail({ attempt, qMap, onBack, onReviewAttempt, onStartDrillMistakes }) {
   const [reviewSearch, setReviewSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   if (!attempt) return null;
 
   const questionLookup = buildQuestionLookup(qMap);
+  const pacing = calculatePacingStats(attempt.timeSpentMs, attempt.totalCount, attempt.mode);
+  const missedCount = (attempt.wrongCount || 0) + (attempt.unansweredCount || 0);
 
-  const answeredQuestions = (attempt.questions || [])
-    .filter((question) => question.wasAnswered)
-    .map((question) => {
-      const liveQuestion = questionLookup.get(question.id);
-      return {
-        ...question,
-        question: liveQuestion?.question || question.question || "",
-        correct: Number.isInteger(liveQuestion?.correct) ? liveQuestion.correct : question.correct,
-      };
-    });
+  const allQuestions = (attempt.questions || []).map((question) => {
+    const liveQuestion = questionLookup.get(question.id);
+    return {
+      ...question,
+      question: liveQuestion?.question || question.question || "",
+      correct: Number.isInteger(liveQuestion?.correct) ? liveQuestion.correct : question.correct,
+      topic: liveQuestion?.topic || question.topic || "other",
+    };
+  });
 
-  const filteredQuestions = !reviewSearch.trim()
-    ? answeredQuestions
-    : answeredQuestions.filter((q) => {
-        const qry = reviewSearch.toLowerCase().trim();
-        return [q.question || "", q.topic || "", q.label || ""].some((s) => s.toLowerCase().includes(qry));
-      });
-
+  const filteredQuestions = allQuestions.filter((q) => {
+    if (statusFilter === "wrong" && (!q.wasAnswered || q.isCorrect)) return false;
+    if (statusFilter === "skipped" && q.wasAnswered) return false;
+    if (statusFilter === "correct" && !q.isCorrect) return false;
+    if (!reviewSearch.trim()) return true;
+    const qry = reviewSearch.toLowerCase().trim();
+    return [q.question || "", q.topic || "", q.label || ""].some((s) => s.toLowerCase().includes(qry));
+  });
 
   return (
     <div className="qb-mock-attempt-detail fu">
@@ -36,9 +39,24 @@ export default function MockAttemptDetail({ attempt, qMap, onBack, onReviewAttem
           Back to Mock Exam
         </button>
         <div className="qb-mock-attempt-toolbar">
-          <span className={`qb-exam-mode-badge qb-mock-attempt-badge${attempt.mode === "subprofessional" ? " subpro" : " pro"}`}>
-            {attempt.mode === "subprofessional" ? "Subprofessional Level (165 Items)" : "Professional Level (170 Items)"}
+          <span className={`qb-exam-mode-badge qb-mock-attempt-badge${attempt.mode === "drill" ? " drill" : attempt.mode === "subprofessional" ? " subpro" : " pro"}`}>
+            {attempt.mode === "drill"
+              ? `Mistake Drill (${attempt.totalCount} Items)`
+              : attempt.mode === "subprofessional"
+                ? "Subprofessional Level (165 Items)"
+                : "Professional Level (170 Items)"}
           </span>
+          {missedCount > 0 && onStartDrillMistakes && (
+            <button
+              type="button"
+              className="qb-mock-secondary-btn qb-mock-attempt-drill-btn"
+              onClick={() => onStartDrillMistakes(attempt)}
+              title={`Start a focused practice test with ${missedCount} missed/skipped items`}
+            >
+              <Target size={15} />
+              <span>Drill Mistakes ({missedCount})</span>
+            </button>
+          )}
           <button type="button" className="qb-mock-secondary-btn qb-mock-attempt-open-btn" onClick={() => onReviewAttempt(attempt)}>
             <ArrowUpRight size={16} />
             Open Full Review
@@ -49,7 +67,9 @@ export default function MockAttemptDetail({ attempt, qMap, onBack, onReviewAttem
 
       <div className="qb-exam-summary" style={{ marginBottom: 18 }}>
         <div className="qb-exam-summary-primary">
-          <div className="qb-exam-summary-kicker">Saved Attempt ({attempt.mode === "subprofessional" ? "Subprofessional Preset" : "Professional Preset"})</div>
+          <div className="qb-exam-summary-kicker">
+            Saved Attempt ({attempt.mode === "drill" ? "Mistake Drill" : attempt.mode === "subprofessional" ? "Subprofessional Preset" : "Professional Preset"})
+          </div>
           <div className="qb-exam-summary-scoreline">
             <div className="qb-exam-summary-n">{attempt.scorePercent}%</div>
             <div className="qb-exam-summary-copy">
@@ -69,7 +89,7 @@ export default function MockAttemptDetail({ attempt, qMap, onBack, onReviewAttem
           </div>
           <div className="qb-exam-summary-stat">
             <Clock3 size={16} />
-            <span>{formatExamDuration(attempt.timeSpentMs)}</span>
+            <span>{pacing.formattedPace} ({pacing.assessment})</span>
           </div>
           <div className="qb-exam-summary-stat">
             <TrendingUp size={16} />
@@ -83,7 +103,7 @@ export default function MockAttemptDetail({ attempt, qMap, onBack, onReviewAttem
           <div className="qb-mock-section-head">
             <div>
               <div className="qb-mock-section-kicker">Attempt Summary</div>
-              <div className="qb-mock-section-title">Performance</div>
+              <div className="qb-mock-section-title">Performance & Pacing</div>
             </div>
           </div>
 
@@ -106,6 +126,13 @@ export default function MockAttemptDetail({ attempt, qMap, onBack, onReviewAttem
               <div className="qb-mock-strength-sub">
                 {attempt.weakestTopic ? `${attempt.weakestTopic.accuracy}% accuracy` : "Finish more attempts to compare topics"}
               </div>
+            </div>
+          </div>
+
+          <div className="qb-mock-pacing-panel">
+            <div className="qb-mock-subtitle">Exam Pacing Benchmark</div>
+            <div className="qb-mock-pacing-desc">
+              Average pace on this exam was <strong>{pacing.secondsPerItem}s</strong> per question. Official Civil Service Commission recommended target is ~<strong>{pacing.targetSeconds}s</strong> per item.
             </div>
           </div>
 
@@ -134,8 +161,39 @@ export default function MockAttemptDetail({ attempt, qMap, onBack, onReviewAttem
           <div className="qb-mock-section-head">
             <div>
               <div className="qb-mock-section-kicker">Question Review</div>
-              <div className="qb-mock-section-title">Reviewed Questions</div>
+              <div className="qb-mock-section-title">All Questions ({allQuestions.length})</div>
             </div>
+          </div>
+
+          <div className="qb-mock-review-filter-tabs">
+            <button
+              type="button"
+              className={`qb-mock-review-tab${statusFilter === "all" ? " active" : ""}`}
+              onClick={() => setStatusFilter("all")}
+            >
+              All ({allQuestions.length})
+            </button>
+            <button
+              type="button"
+              className={`qb-mock-review-tab wrong${statusFilter === "wrong" ? " active" : ""}`}
+              onClick={() => setStatusFilter("wrong")}
+            >
+              Wrong ({attempt.wrongCount})
+            </button>
+            <button
+              type="button"
+              className={`qb-mock-review-tab skipped${statusFilter === "skipped" ? " active" : ""}`}
+              onClick={() => setStatusFilter("skipped")}
+            >
+              Skipped ({attempt.unansweredCount})
+            </button>
+            <button
+              type="button"
+              className={`qb-mock-review-tab correct${statusFilter === "correct" ? " active" : ""}`}
+              onClick={() => setStatusFilter("correct")}
+            >
+              Correct ({attempt.correctCount})
+            </button>
           </div>
 
           <label className="qb-search-box" style={{ margin: "0 0 12px", minHeight: 40, borderRadius: 10 }}>
@@ -153,29 +211,46 @@ export default function MockAttemptDetail({ attempt, qMap, onBack, onReviewAttem
 
           {filteredQuestions.length ? (
             <div className="qb-mock-question-list">
-              {filteredQuestions.map((question) => (
-                <div key={`${attempt.id}-${question.id}-${question.index}`} className="qb-mock-question-card">
-                  <div className="qb-mock-question-top">
-                    <span className={`qb-mock-question-status${question.isCorrect ? " good" : question.wasAnswered ? " bad" : ""}`}>
-                      {!question.wasAnswered ? "Skipped" : question.isCorrect ? "Correct" : "Wrong"}
-                    </span>
-                    <span className="qb-mock-question-index">Q{question.index + 1}</span>
+              {filteredQuestions.map((question) => {
+                const topicObj = TOPICS.find((t) => t.id === question.topic);
+                return (
+                  <div key={`${attempt.id}-${question.id}-${question.index}`} className="qb-mock-question-card">
+                    <div className="qb-mock-question-top">
+                      <div className="qb-mock-question-tags">
+                        <span className={`qb-mock-question-status${question.isCorrect ? " good" : question.wasAnswered ? " bad" : " skipped"}`}>
+                          {!question.wasAnswered ? "Skipped" : question.isCorrect ? "Correct" : "Wrong"}
+                        </span>
+                        {topicObj && (
+                          <span
+                            className="qb-mock-question-topic"
+                            style={{ color: topicObj.color, background: `${topicObj.color}18` }}
+                          >
+                            {topicObj.label}
+                          </span>
+                        )}
+                      </div>
+                      <span className="qb-mock-question-index">Q{question.index + 1}</span>
+                    </div>
+                    <div className="qb-mock-question-text">{question.question || "Question text unavailable"}</div>
+                    <div className="qb-mock-question-meta">
+                      <span>Your answer: <strong>{question.wasAnswered ? LETTERS[question.userAnswer] : "--"}</strong></span>
+                      <span>Correct answer: <strong>{Number.isInteger(question.correct) ? LETTERS[question.correct] : "--"}</strong></span>
+                    </div>
+                    <button type="button" className="qb-mock-inline-btn" onClick={() => onReviewAttempt(attempt, question.id)}>
+                      <span>Open Question Review</span>
+                      <ArrowUpRight size={14} />
+                    </button>
                   </div>
-                  <div className="qb-mock-question-text">{question.question || "Question text unavailable"}</div>
-                  <div className="qb-mock-question-meta">
-                    <span>Your answer: {question.wasAnswered ? LETTERS[question.userAnswer] : "--"}</span>
-                    <span>Correct: {Number.isInteger(question.correct) ? LETTERS[question.correct] : "--"}</span>
-                  </div>
-                  <button type="button" className="qb-mock-inline-btn" onClick={() => onReviewAttempt(attempt, question.id)}>
-                    <span>Open Question Review</span>
-                    <ArrowUpRight size={14} />
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="qb-empty" style={{ padding: "28px 12px" }}>
-              <div className="qb-empty-s">{reviewSearch.trim() ? "No questions match your search." : "No answered questions were saved for this attempt."}</div>
+              <div className="qb-empty-s">
+                {reviewSearch.trim() || statusFilter !== "all"
+                  ? "No questions match your filter."
+                  : "No questions were recorded for this attempt."}
+              </div>
             </div>
           )}
         </div>

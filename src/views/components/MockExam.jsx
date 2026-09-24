@@ -478,6 +478,7 @@ export default function MockExam({
             <div className="qb-mock-attempts">
               {sortedHistory.map((attempt, index) => {
                 const isSubPro = attempt.mode === "subprofessional";
+                const isDrill = attempt.mode === "drill";
                 return (
                   <button
                     key={attempt.id}
@@ -488,8 +489,8 @@ export default function MockExam({
                     <div className="qb-mock-attempt-top">
                       <div className="qb-mock-attempt-top-left">
                         <span className="qb-mock-attempt-rank">Attempt {sortedHistory.length - index}</span>
-                        <span className={`qb-mock-attempt-tier-pill ${isSubPro ? "subpro" : "pro"}`}>
-                          {isSubPro ? "Subprofessional" : "Professional"}
+                        <span className={`qb-mock-attempt-tier-pill ${isDrill ? "drill" : isSubPro ? "subpro" : "pro"}`}>
+                          {isDrill ? "Mistake Drill" : isSubPro ? "Subprofessional" : "Professional"}
                         </span>
                       </div>
                       <span className="qb-mock-attempt-score">{attempt.scorePercent}%</span>
