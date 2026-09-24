@@ -621,9 +621,25 @@ export default function App() {
     setEditId(null);
     setSelectedId(null);
     setDeepLinkShowSol(false);
+    setSelectedMockAttemptId(attempt.id);
     setExam(buildReviewExamFromAttempt(attempt, qMap, questionId));
-    window.history.pushState({}, "", `?page=mock-run`);
+    window.history.pushState({}, "", `?page=mock-run&attempt=${encodeURIComponent(attempt.id)}`);
     setView("mockRun");
+  };
+
+  const handleBackToAttempt = (attemptId) => {
+    const targetId = attemptId || selectedMockAttemptId;
+    if (targetId) {
+      setEditId(null);
+      setSelectedId(null);
+      setDeepLinkShowSol(false);
+      setExam(null);
+      setSelectedMockAttemptId(targetId);
+      window.history.pushState({}, "", `?attempt=${encodeURIComponent(targetId)}`);
+      setView("mockAttempt");
+    } else {
+      handleGoMockExam();
+    }
   };
 
   const goToQuestionDetail = (id) => {
@@ -1057,6 +1073,7 @@ export default function App() {
                   qMap={qMap}
                   onUpdateExam={setExam}
                   onExit={handleGoMockExam}
+                  onBackToAttempt={handleBackToAttempt}
                 />
               ) : isActiveMockExamLoading ? (
                 <LoadingSpinner fullScreen text="Restoring active mock exam..." />

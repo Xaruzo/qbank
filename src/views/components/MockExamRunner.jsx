@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Flag, X, Check, Search, AlertTriangle, CheckCircle2, Clock3, Target } from "lucide-react";
+import { ChevronLeft, ChevronRight, Flag, X, Check, Search, AlertTriangle, CheckCircle2, Clock3, Target, Lightbulb } from "lucide-react";
 import MarkdownText from "./MarkdownText";
 import { LETTERS, TOPICS } from "../../constants/appConstants";
 import { calculateExamMetrics } from "../../utils/mockExamAnalytics";
@@ -13,7 +13,7 @@ const formatClock = (ms) => {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 };
 
-export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit }) {
+export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit, onBackToAttempt }) {
   const [now, setNow] = useState(Date.now());
   const [showSol, setShowSol] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -175,11 +175,34 @@ export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit }) {
     <div className="qb-exam-top">
       <div className="qb-exam-head-card">
         <div className="qb-det-hdr qb-det-hdr-exam">
-          <button className="qb-back" onClick={onExit} style={{ display: "flex", alignItems: "center" }}>
-            <ChevronLeft size={16} style={{ marginRight: 4 }} />
-            Exit
-          </button>
-          <span className="qb-badge qb-exam-mode-badge">
+          {exam.isReviewSession && (exam.archivedAttemptId || onBackToAttempt) ? (
+            <div className="qb-exam-head-nav-actions" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <button
+                type="button"
+                className="qb-back"
+                onClick={() => onBackToAttempt ? onBackToAttempt(exam.archivedAttemptId) : onExit()}
+                style={{ display: "flex", alignItems: "center" }}
+                title="Return to Saved Attempt summary"
+              >
+                <ChevronLeft size={16} style={{ marginRight: 4 }} />
+                Back to Saved Attempt
+              </button>
+              <button
+                type="button"
+                className="qb-exam-hub-link"
+                onClick={onExit}
+                title="Exit directly to Mock Exam Hub"
+              >
+                Exit to Mock Hub
+              </button>
+            </div>
+          ) : (
+            <button className="qb-back" onClick={onExit} style={{ display: "flex", alignItems: "center" }}>
+              <ChevronLeft size={16} style={{ marginRight: 4 }} />
+              Exit
+            </button>
+          )}
+          <span className={`qb-exam-mode-badge${exam.isReviewSession ? " review" : exam.mode === "subprofessional" ? " subpro" : " pro"}`}>
             {examLabel}
           </span>
         </div>
@@ -497,26 +520,65 @@ export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit }) {
               </div>
 
               {showReview && (q.solution || q.solutionDraw || q.solutionUpload) && !showSol && (
-                <button className="qb-reveal" onClick={() => setShowSol(true)} style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%" }}>
-                  Show Solution
-                  <ChevronRight size={16} style={{ marginLeft: 6 }} />
+                <button
+                  type="button"
+                  className="qb-reveal"
+                  onClick={() => setShowSol(true)}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", gap: 8 }}
+                >
+                  <Lightbulb size={16} />
+                  <span>Show Solution & Explanation</span>
+                  <ChevronRight size={16} />
                 </button>
               )}
 
               {showReview && showSol && (q.solution || q.solutionDraw || q.solutionUpload) && (
-                <div className="qb-sol">
-                  <div className="qb-sol-title">Solution</div>
-                  {q.solution && <div className="qb-sol-body"><MarkdownText text={q.solution} /></div>}
+                <div className="qb-sol qb-sol-enhanced">
+                  <div className="qb-sol-header">
+                    <div className="qb-sol-title">
+                      <Lightbulb size={15} className="qb-sol-icon" />
+                      <span>Step-by-Step Solution & Explanation</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="qb-sol-hide-btn"
+                      onClick={() => setShowSol(false)}
+                      title="Hide solution details"
+                    >
+                      Hide Solution
+                    </button>
+                  </div>
+
+                  {Number.isInteger(q.correct) && (
+                    <div className="qb-sol-correct-callout">
+                      <div className="qb-sol-correct-badge">
+                        <Check size={14} />
+                        <span>Correct Answer: Option {LETTERS[q.correct]}</span>
+                      </div>
+                      {Array.isArray(q.choices) && q.choices[q.correct] && (
+                        <div className="qb-sol-correct-text">
+                          <MarkdownText text={q.choices[q.correct]} inline />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {q.solution && (
+                    <div className="qb-sol-body">
+                      <MarkdownText text={q.solution} />
+                    </div>
+                  )}
+
                   {(q.solutionDraw || q.solutionUpload) && (
-                    <div style={{ cursor: "zoom-in" }} onClick={() => setExpanded(true)}>
+                    <div className="qb-sol-media-box" onClick={() => { setExpanded(true); setExpandedZoom(1); }}>
                       <img
                         src={solImg}
-                        alt="solution"
-                        style={{ width: "100%", borderRadius: 6, display: "block", marginTop: q.solution ? 14 : 0, border: "1px solid var(--border)" }}
+                        alt="Solution illustration or diagram"
+                        className="qb-sol-img"
                       />
-                      <p className="qb-expand-hint" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <Search size={12} style={{ marginRight: 4 }} />
-                        Click to expand
+                      <p className="qb-expand-hint">
+                        <Search size={13} />
+                        <span>Click diagram to expand & zoom</span>
                       </p>
                     </div>
                   )}

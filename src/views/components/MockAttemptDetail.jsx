@@ -36,7 +36,7 @@ export default function MockAttemptDetail({ attempt, qMap, onBack, onReviewAttem
           Back to Mock Exam
         </button>
         <div className="qb-mock-attempt-toolbar">
-          <span className={`qb-badge qb-exam-mode-badge qb-mock-attempt-badge${attempt.mode === "subprofessional" ? " subpro" : " pro"}`}>
+          <span className={`qb-exam-mode-badge qb-mock-attempt-badge${attempt.mode === "subprofessional" ? " subpro" : " pro"}`}>
             {attempt.mode === "subprofessional" ? "Subprofessional Level (165 Items)" : "Professional Level (170 Items)"}
           </span>
           <button type="button" className="qb-mock-secondary-btn qb-mock-attempt-open-btn" onClick={() => onReviewAttempt(attempt)}>
@@ -167,7 +167,8 @@ export default function MockAttemptDetail({ attempt, qMap, onBack, onReviewAttem
                     <span>Correct: {Number.isInteger(question.correct) ? LETTERS[question.correct] : "--"}</span>
                   </div>
                   <button type="button" className="qb-mock-inline-btn" onClick={() => onReviewAttempt(attempt, question.id)}>
-                    Open Question Review
+                    <span>Open Question Review</span>
+                    <ArrowUpRight size={14} />
                   </button>
                 </div>
               ))}
