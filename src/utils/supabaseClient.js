@@ -17,3 +17,22 @@ const isValidUrl = (url) => {
 export const supabase = (isValidUrl(supabaseUrl) && supabaseAnonKey) 
   ? createClient(supabaseUrl, supabaseAnonKey) 
   : null
+
+/**
+ * Checks if an error is due to network disconnection, CORS failure,
+ * DNS failure, offline status, or paused Supabase project.
+ */
+export const isNetworkOrFetchError = (err) => {
+  if (!err) return false;
+  const msg = (err.message || err.details || (typeof err === "string" ? err : "") || "").toLowerCase();
+  return (
+    msg.includes("failed to fetch") ||
+    msg.includes("networkerror") ||
+    msg.includes("network request failed") ||
+    msg.includes("load failed") ||
+    msg.includes("aborted") ||
+    msg.includes("timeout") ||
+    err.name === "TypeError" ||
+    (typeof navigator !== "undefined" && navigator.onLine === false)
+  );
+};

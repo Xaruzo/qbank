@@ -10,7 +10,7 @@ export default function Stats({ total, counts, topicFilter = "all", onSelectTopi
       short: "TOTAL",
       value: total,
       color: "var(--text-heading)",
-      note: "Full reviewer bank",
+      note: "Full bank",
       percent: 100,
     },
     ...TOPICS.map((topic) => {
@@ -22,7 +22,7 @@ export default function Stats({ total, counts, topicFilter = "all", onSelectTopi
         short: topic.short,
         value: val,
         color: topic.color,
-        note: `${pct}% of question bank`,
+        note: "Bank share",
         percent: pct,
       };
     }),

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo, useDeferredValue } from "react";
 import { KEY, SAMPLES, TOPICS } from "../constants/appConstants";
 import { storageModel } from "../models/storageModel";
 import { favoritesModel } from "../models/favoritesModel";
-import { supabase } from "../utils/supabaseClient";
+import { supabase, isNetworkOrFetchError } from "../utils/supabaseClient";
 
 const getLabelValue = (q) => typeof q.label === "string" ? q.label.trim() : "";
 
@@ -191,14 +191,22 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
         const freshQuestionsValue = !shouldFetchFreshQuestions
           ? null
           : await storageModel.getFreshQuestions(true).catch((error) => {
-              console.error("Failed to refresh questions:", error);
+              if (isNetworkOrFetchError(error)) {
+                console.warn("Could not refresh questions (offline or network unreachable), keeping local state:", error?.message || error);
+              } else {
+                console.warn("Failed to refresh questions from remote:", error);
+              }
               return null;
             });
 
         if (initRequestRef.current !== requestId) return;
 
         const freshFavoriteIds = await favoritesModel.getAll(userId).catch((error) => {
-          console.error("Failed to refresh favorites:", error);
+          if (isNetworkOrFetchError(error)) {
+            console.warn("Could not refresh favorites (offline or network unreachable), keeping local state:", error?.message || error);
+          } else {
+            console.warn("Failed to refresh favorites from remote:", error);
+          }
           return null;
         });
 
@@ -330,7 +338,11 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
       const favoriteIds = new Set(await favoritesModel.getAll(userId));
       setQs((current) => current.map((q) => normalizeQuestion(q, favoriteIds)));
     } catch (e) {
-      console.error("Failed to refresh favorites:", e);
+      if (isNetworkOrFetchError(e)) {
+        console.warn("Could not refresh favorites (offline or network unreachable):", e?.message || e);
+      } else {
+        console.warn("Failed to refresh favorites:", e?.message || e);
+      }
     } finally {
       setFavoritesLoading(false);
     }

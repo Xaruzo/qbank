@@ -1,5 +1,5 @@
 import { FAVORITES_KEY } from "../constants/appConstants";
-import { supabase } from "../utils/supabaseClient";
+import { supabase, isNetworkOrFetchError } from "../utils/supabaseClient";
 
 const FAVORITES_CACHE_KEY = "cse-qbank-favorites-cache-v1";
 const FAVORITES_PENDING_KEY = "cse-qbank-favorites-pending-v1";
@@ -250,7 +250,11 @@ export const favoritesModel = {
       return mergedIds;
     } catch (error) {
       if (!isMissingFavoritesTableError(error)) {
-        console.error("Failed to load favorites from Supabase:", error);
+        if (isNetworkOrFetchError(error)) {
+          console.warn("Supabase favorites network offline/unreachable:", error.message || error);
+        } else {
+          console.error("Failed to load favorites from Supabase:", error);
+        }
       }
       return applyPendingToFavoriteIds(cachedIds, pendingMap);
     }
@@ -279,7 +283,11 @@ export const favoritesModel = {
       await addRemoteFavorite(questionId, userId);
       await dequeuePendingOperation(questionId, userId);
     } catch (error) {
-      console.error("Failed to add favorite to Supabase:", error);
+      if (isNetworkOrFetchError(error)) {
+        console.warn("Network offline, favorite queued locally:", error.message || error);
+      } else {
+        console.error("Failed to add favorite to Supabase:", error);
+      }
       const pending = await readPendingMap(userId);
       if (!pending[questionId]) {
         await enqueuePendingOperation(questionId, { added: true }, userId);
@@ -310,7 +318,11 @@ export const favoritesModel = {
       await removeRemoteFavorite(questionId, userId);
       await dequeuePendingOperation(questionId, userId);
     } catch (error) {
-      console.error("Failed to remove favorite from Supabase:", error);
+      if (isNetworkOrFetchError(error)) {
+        console.warn("Network offline, favorite removal queued locally:", error.message || error);
+      } else {
+        console.error("Failed to remove favorite from Supabase:", error);
+      }
       const pending = await readPendingMap(userId);
       if (!pending[questionId]) {
         await enqueuePendingOperation(questionId, { added: false }, userId);
@@ -348,7 +360,11 @@ export const favoritesModel = {
         }
         syncedAny = true;
       } catch (error) {
-        console.error("Failed to sync pending favorite:", error);
+        if (isNetworkOrFetchError(error)) {
+          console.warn("Network offline, pending favorite sync deferred:", error.message || error);
+        } else {
+          console.error("Failed to sync pending favorite:", error);
+        }
         failed[operation.questionId] = operation;
       }
     }

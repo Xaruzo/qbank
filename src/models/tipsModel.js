@@ -1,5 +1,5 @@
 import { TIPS_KEY } from "../constants/appConstants";
-import { supabase } from "../utils/supabaseClient";
+import { supabase, isNetworkOrFetchError } from "../utils/supabaseClient";
 
 const TIPS_CACHE_KEY = "cse-qbank-tips-cache-v2";
 const TIPS_PENDING_KEY = "cse-qbank-tips-pending-v2";
@@ -301,6 +301,10 @@ const logRemoteTipError = (context, error) => {
     );
     return;
   }
+  if (isNetworkOrFetchError(error)) {
+    console.warn(`[${context}] Network offline or Supabase unreachable, operation queued:`, error.message || error);
+    return;
+  }
   console.error(`[${context}]`, error);
 };
 
@@ -474,8 +478,10 @@ export const tipsModel = {
     } catch (error) {
       if (isMissingQuestionTipsTableError(error)) {
         markRemoteTipsUnavailable();
+      } else if (isNetworkOrFetchError(error)) {
+        console.warn("Supabase tips network offline/unreachable, using local cache:", error.message || error);
       } else {
-      console.error("Failed to load tips from Supabase:", error);
+        console.error("Failed to load tips from Supabase:", error);
       }
       return applyPendingToTipsMap(cachedMap, pendingMap);
     }

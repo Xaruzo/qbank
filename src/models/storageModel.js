@@ -3,7 +3,7 @@
  * Handles communication with storage.
  * Priority: Supabase (Shared) > window.storage (Environment) > localStorage (Local)
  */
-import { supabase } from '../utils/supabaseClient';
+import { supabase, isNetworkOrFetchError } from '../utils/supabaseClient';
 import { FAVORITES_KEY, MOCK_EXAM_HISTORY_KEY } from '../constants/appConstants';
 
 const PENDING_UPSERTS_KEY = "cse-qbank-pending-upserts-v1";
@@ -223,12 +223,29 @@ const readLocalValue = async (key) => {
 
 const fetchFreshQuestionsValue = async (storageApi) => {
   const questionsKey = "cse-qbank-v1";
-  const { data, error } = await supabase
-    .from('questions')
-    .select('*')
-    .order('created_at', { ascending: true });
+  let data, error;
+  try {
+    const res = await supabase
+      .from('questions')
+      .select('*')
+      .order('created_at', { ascending: true });
+    data = res.data;
+    error = res.error;
+  } catch (err) {
+    if (isNetworkOrFetchError(err)) {
+      console.warn("Supabase questions fetch failed (network offline/unreachable), using local cache:", err?.message || err);
+      return readLocalValue(questionsKey);
+    }
+    throw err;
+  }
 
-  if (error) throw error;
+  if (error) {
+    if (isNetworkOrFetchError(error)) {
+      console.warn("Supabase returned network error for questions, using local cache:", error?.message || error);
+      return readLocalValue(questionsKey);
+    }
+    throw error;
+  }
   if (!data) return null;
 
   const mappedData = data.map(q => ({
@@ -708,7 +725,16 @@ export const storageModel = {
 
   async getFreshQuestions() {
     if (!supabase) return this.getLocal("cse-qbank-v1");
-    return fetchFreshQuestionsValue(this);
+    try {
+      return await fetchFreshQuestionsValue(this);
+    } catch (e) {
+      if (isNetworkOrFetchError(e)) {
+        console.warn("Supabase network offline/unreachable in getFreshQuestions, falling back to local cache:", e?.message || e);
+      } else {
+        console.warn("Could not fetch fresh questions from Supabase, falling back to local cache:", e);
+      }
+      return this.getLocal("cse-qbank-v1");
+    }
   },
 
   async get(key) {
