@@ -3932,10 +3932,10 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
             <button className="draw-tb" onClick={clear} style={{ color: "#e0365a" }} title="Clear Canvas">
               <RotateCcw size={15} />
             </button>
-            {(narrow || (useExternalLayers && isMobile)) && (
+            {(!isMobile && narrow) && (
               <>
-                <div style={{ width: 1, height: 16, background: "var(--border)", margin: "0 2px" }} />
-                <button className="draw-tb" onClick={() => setLayersOpen(o => !o)} title={layersOpen ? "Hide Layers" : "Show Layers"}>
+                <div className="qb-draw-layers-divider" style={{ width: 1, height: 16, background: "var(--border)", margin: "0 2px" }} />
+                <button className="draw-tb qb-draw-layers-btn" onClick={() => setLayersOpen(o => !o)} title={layersOpen ? "Hide Layers" : "Show Layers"}>
                   {layersOpen ? <X size={15} /> : <span style={{ fontSize: 11, padding: "0 4px" }}>Layers</span>}
                 </button>
               </>
@@ -4153,7 +4153,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
           </div>
         </div>
 
-        {layersOpen && !useExternalLayers && narrow && (
+        {layersOpen && !useExternalLayers && narrow && !isMobile && (
           <>
             <div onClick={() => setLayersOpen(false)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)", borderRadius: 20 }} />
             <div style={{ position: "absolute", right: 0, top: 0, width: 280, zIndex: 5, boxShadow: "0 18px 42px rgba(15,23,42,0.22)", maxHeight: isMobile ? "60vh" : "none", overflowY: "auto" }}>
