@@ -85,11 +85,26 @@ const STICKY_PRESETS = [
   { label: "Peach Note", bg: "#fed7aa", text: "#7c2d12" },
 ];
 
-const getObjectAnchors = (b) => {
-  const left = b.left || 0;
-  const top = b.top || 0;
-  const width = b.width || 0;
-  const height = b.height || 0;
+const getShapeAnchors = (target) => {
+  if (!target) return null;
+  if (typeof target.calcTransformMatrix === "function" && typeof fabric !== "undefined" && fabric?.util?.transformPoint) {
+    const w = target.width || 0;
+    const h = target.height || 0;
+    const m = target.calcTransformMatrix();
+    const halfW = w / 2;
+    const halfH = h / 2;
+    return {
+      top: fabric.util.transformPoint(new fabric.Point(0, -halfH), m),
+      right: fabric.util.transformPoint(new fabric.Point(halfW, 0), m),
+      bottom: fabric.util.transformPoint(new fabric.Point(0, halfH), m),
+      left: fabric.util.transformPoint(new fabric.Point(-halfW, 0), m),
+      center: fabric.util.transformPoint(new fabric.Point(0, 0), m)
+    };
+  }
+  const left = target.left || 0;
+  const top = target.top || 0;
+  const width = target.width || 0;
+  const height = target.height || 0;
   return {
     top: { x: left + width / 2, y: top },
     right: { x: left + width, y: top + height / 2 },
@@ -99,9 +114,12 @@ const getObjectAnchors = (b) => {
   };
 };
 
-const findBestConnection = (bA, bB) => {
-  const anchorsA = getObjectAnchors(bA);
-  const anchorsB = getObjectAnchors(bB);
+const getObjectAnchors = getShapeAnchors;
+
+const findBestConnection = (targetA, targetB) => {
+  const anchorsA = getShapeAnchors(targetA);
+  const anchorsB = getShapeAnchors(targetB);
+  if (!anchorsA || !anchorsB) return null;
   let bestDist = Infinity;
   let bestPair = null;
   const ports = ["top", "right", "bottom", "left"];
@@ -1163,9 +1181,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
         const toObj = allObjects.find(o => o.layerId === toId);
         if (!fromObj || !toObj) return;
 
-        const boundA = fromObj.getBoundingRect(true, true);
-        const boundB = toObj.getBoundingRect(true, true);
-        const conn = findBestConnection(boundA, boundB);
+        const conn = findBestConnection(fromObj, toObj);
         if (!conn) return;
 
         const kind = arrow.connectorKind || (arrow.shapeKind === "curvedArrow" ? "curved" : arrow.shapeKind === "elbowArrow" ? "elbow" : "straight");
@@ -2002,6 +2018,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       );
       active.setCoords();
       applyMoveGuides(active, nativeEvent, { dx, dy, prevCenter: center });
+      updateConnectedArrowsForObject(active);
       canvas.requestRenderAll();
       refreshUI();
       scheduleKeyboardMoveCommit();
@@ -2963,6 +2980,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       const newSel = new fabric.ActiveSelection(objects, { canvas });
       canvas.setActiveObject(newSel);
       newSel.setCoords();
+      updateConnectedArrowsForObject(newSel);
       canvas.requestRenderAll();
       handleChange();
       refreshUI();
@@ -3844,9 +3862,91 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
     setStickyNoteMenuOpen(false);
   }, []);
 
+  const connectSelectedShapes = useCallback((connectorType = "straight") => {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    const activeObjects = (canvas.getActiveObjects?.() || []).filter(o => o && !o.isGuide && o.shapeKind !== "arrow" && o.shapeKind !== "curvedArrow" && o.shapeKind !== "elbowArrow");
+    if (activeObjects.length < 2) {
+      showToast("Select 2 or more shapes on canvas to connect!");
+      return;
+    }
+
+    // Sort objects left-to-right (or top-to-bottom) for natural sequential connection
+    const sorted = [...activeObjects].sort((a, b) => {
+      const anchA = getShapeAnchors(a);
+      const anchB = getShapeAnchors(b);
+      const cA = anchA?.center || { x: a.left || 0, y: a.top || 0 };
+      const cB = anchB?.center || { x: b.left || 0, y: b.top || 0 };
+      if (Math.abs(cA.x - cB.x) > 30) {
+        return cA.x - cB.x;
+      }
+      return cA.y - cB.y;
+    });
+
+    const pairsToConnect = [];
+    for (let i = 0; i < sorted.length - 1; i++) {
+      const objA = sorted[i];
+      const objB = sorted[i + 1];
+      const conn = findBestConnection(objA, objB);
+      if (conn) {
+        pairsToConnect.push({ objA, objB, conn });
+      }
+    }
+
+    if (pairsToConnect.length === 0) return;
+
+    // Discard active selection to revert child coordinates to clean world canvas space
+    canvas.discardActiveObject();
+
+    const createdArrows = [];
+    pairsToConnect.forEach(({ objA, objB, conn }) => {
+      let pathData;
+      if (connectorType === "curved") {
+        pathData = buildCurvedArrowPath(conn.from.x, conn.from.y, conn.to.x, conn.to.y, -35, "end").d;
+      } else if (connectorType === "elbow") {
+        pathData = buildElbowConnectorPath(conn.from.x, conn.from.y, conn.to.x, conn.to.y, "end");
+      } else {
+        pathData = buildStraightArrowPath(conn.from.x, conn.from.y, conn.to.x, conn.to.y, "end");
+      }
+
+      const arrow = new fabric.Path(pathData, {
+        stroke: color || "#3b82f6",
+        strokeWidth: 2.5,
+        fill: "transparent",
+        strokeLineCap: "round",
+        strokeLineJoin: "round",
+        objectCaching: false
+      });
+      arrow.shapeKind = connectorType === "curved" ? "curvedArrow" : connectorType === "elbow" ? "elbowArrow" : "arrow";
+      arrow.connectorKind = connectorType;
+      arrow.arrowHead = "end";
+      arrow.bend = -35;
+      arrow.isSmartConnector = true;
+      arrow.connectedFromId = objA.layerId;
+      arrow.connectedToId = objB.layerId;
+      ensureLayerId(arrow);
+
+      canvas.add(arrow);
+      createdArrows.push(arrow);
+    });
+
+    if (createdArrows.length === 1) {
+      canvas.setActiveObject(createdArrows[0]);
+    }
+    canvas.requestRenderAll();
+    showToast(`Linked ${pairsToConnect.length} step${pairsToConnect.length > 1 ? "s" : ""} with smart ${connectorType} connector!`);
+    commitCanvasChange(createdArrows[0] || null);
+    if (typeof canvas.refreshUI === "function") canvas.refreshUI();
+  }, [color, commitCanvasChange, showToast, ensureLayerId]);
+
   const addArrow = useCallback((head = "end") => {
     const canvas = fabricRef.current;
     if (!canvas) return;
+    const activeObjects = (canvas.getActiveObjects?.() || []).filter(o => o && !o.isGuide && o.shapeKind !== "arrow" && o.shapeKind !== "curvedArrow" && o.shapeKind !== "elbowArrow");
+    if (activeObjects.length >= 2) {
+      connectSelectedShapes("straight");
+      return;
+    }
     const pathD = getLocalStraightPath(160, head);
     const arrow = new fabric.Path(pathD, {
       left: 140,
@@ -3867,11 +3967,16 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
     canvas.requestRenderAll();
     setTool("move");
     showToast("Straight arrow added! (→)");
-  }, [color, ensureLayerId, showToast]);
+  }, [color, connectSelectedShapes, ensureLayerId, showToast]);
 
   const addCurvedArrow = useCallback((customBend = -35, head = "end") => {
     const canvas = fabricRef.current;
     if (!canvas) return;
+    const activeObjects = (canvas.getActiveObjects?.() || []).filter(o => o && !o.isGuide && o.shapeKind !== "arrow" && o.shapeKind !== "curvedArrow" && o.shapeKind !== "elbowArrow");
+    if (activeObjects.length >= 2) {
+      connectSelectedShapes("curved");
+      return;
+    }
     const pathD = getLocalCurvedPath(160, customBend, head);
     const arrow = new fabric.Path(pathD, {
       left: 140,
@@ -3893,11 +3998,16 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
     canvas.requestRenderAll();
     setTool("move");
     showToast("Curved process arrow added! (↷)");
-  }, [color, ensureLayerId, showToast]);
+  }, [color, connectSelectedShapes, ensureLayerId, showToast]);
 
   const addElbowConnector = useCallback((head = "end") => {
     const canvas = fabricRef.current;
     if (!canvas) return;
+    const activeObjects = (canvas.getActiveObjects?.() || []).filter(o => o && !o.isGuide && o.shapeKind !== "arrow" && o.shapeKind !== "curvedArrow" && o.shapeKind !== "elbowArrow");
+    if (activeObjects.length >= 2) {
+      connectSelectedShapes("elbow");
+      return;
+    }
     const pathD = getLocalElbowPath(160, 80, head);
     const arrow = new fabric.Path(pathD, {
       left: 140,
@@ -3918,7 +4028,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
     canvas.requestRenderAll();
     setTool("move");
     showToast("Elbow 90° step connector added! (↳)");
-  }, [color, ensureLayerId, showToast]);
+  }, [color, connectSelectedShapes, ensureLayerId, showToast]);
 
   const modifyActiveArrow = useCallback(({ newKind, newBend, newHead, flipDirection, detach, snapToNearest }) => {
     const canvas = fabricRef.current;
@@ -3974,9 +4084,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
         fromId = pA.layerId;
         toId = pB.layerId;
       }
-      const boundA = pA.getBoundingRect(true, true);
-      const boundB = pB.getBoundingRect(true, true);
-      const conn = findBestConnection(boundA, boundB);
+      const conn = findBestConnection(pA, pB);
       if (conn) {
         if (currentKind === "curved") {
           pathD = buildCurvedArrowPath(conn.from.x, conn.from.y, conn.to.x, conn.to.y, currentBend, currentHead).d;
@@ -3991,6 +4099,8 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
     const bound = active.getBoundingRect(true, true);
     const w = Math.max(70, Math.min(600, bound.width || 160));
     const h = Math.max(40, Math.min(400, bound.height || 80));
+
+    const isAnchored = !!(fromObj && toObj && pathD);
 
     if (!pathD) {
       if (flipDirection && currentKind === "curved") {
@@ -4018,9 +4128,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
 
     const idx = canvas._objects.indexOf(active);
     canvas.remove(active);
-    const newArrow = new fabric.Path(pathD, {
-      left: prevLeft,
-      top: prevTop,
+    const pathOptions = {
       stroke: prevStroke,
       strokeWidth: prevStrokeWidth,
       strokeDashArray: prevStrokeDash,
@@ -4029,7 +4137,12 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       strokeLineCap: "round",
       strokeLineJoin: "round",
       objectCaching: false
-    });
+    };
+    if (!isAnchored) {
+      pathOptions.left = prevLeft;
+      pathOptions.top = prevTop;
+    }
+    const newArrow = new fabric.Path(pathD, pathOptions);
     newArrow.layerId = prevLayerId;
     newArrow.shapeKind = currentKind === "curved" ? "curvedArrow" : currentKind === "elbow" ? "elbowArrow" : "arrow";
     newArrow.connectorKind = currentKind;
@@ -4289,8 +4402,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
     ensureLayerId(stepObj);
     canvas.add(stepObj);
 
-    const boundNew = stepObj.getBoundingRect(true, true);
-    const conn = findBestConnection(bound, boundNew);
+    const conn = findBestConnection(active, stepObj);
     if (conn) {
       const pathD = buildStraightArrowPath(conn.from.x, conn.from.y, conn.to.x, conn.to.y, "end");
       const arrow = new fabric.Path(pathD, {
@@ -4317,56 +4429,6 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
     commitCanvasChange(stepObj);
     if (typeof canvas.refreshUI === "function") canvas.refreshUI();
   }, [color, configureTextObj, commitCanvasChange, showToast, ensureLayerId]);
-
-  const connectSelectedShapes = useCallback((connectorType = "straight") => {
-    const canvas = fabricRef.current;
-    if (!canvas) return;
-    const activeObjects = (canvas.getActiveObjects?.() || []).filter(o => o && !o.isGuide);
-    if (activeObjects.length < 2) {
-      showToast("Select 2 shapes on canvas to connect!");
-      return;
-    }
-    const [objA, objB] = activeObjects;
-
-    const boundA = objA.getBoundingRect(true, true);
-    const boundB = objB.getBoundingRect(true, true);
-
-    const conn = findBestConnection(boundA, boundB);
-    if (!conn) return;
-
-    let pathData;
-    if (connectorType === "curved") {
-      pathData = buildCurvedArrowPath(conn.from.x, conn.from.y, conn.to.x, conn.to.y, -35, "end").d;
-    } else if (connectorType === "elbow") {
-      pathData = buildElbowConnectorPath(conn.from.x, conn.from.y, conn.to.x, conn.to.y, "end");
-    } else {
-      pathData = buildStraightArrowPath(conn.from.x, conn.from.y, conn.to.x, conn.to.y, "end");
-    }
-
-    const arrow = new fabric.Path(pathData, {
-      stroke: color || "#3b82f6",
-      strokeWidth: 2.5,
-      fill: "transparent",
-      strokeLineCap: "round",
-      strokeLineJoin: "round",
-      objectCaching: false
-    });
-    arrow.shapeKind = connectorType === "curved" ? "curvedArrow" : connectorType === "elbow" ? "elbowArrow" : "arrow";
-    arrow.connectorKind = connectorType;
-    arrow.arrowHead = "end";
-    arrow.bend = -35;
-    arrow.isSmartConnector = true;
-    arrow.connectedFromId = objA.layerId;
-    arrow.connectedToId = objB.layerId;
-    ensureLayerId(arrow);
-
-    canvas.add(arrow);
-    canvas.setActiveObject(arrow);
-    canvas.requestRenderAll();
-    showToast(`Linked with smart ${connectorType} connector! (Adapts on drag)`);
-    commitCanvasChange(arrow);
-    if (typeof canvas.refreshUI === "function") canvas.refreshUI();
-  }, [color, commitCanvasChange, showToast, ensureLayerId]);
 
   const addProcessTemplate = useCallback((templateType = "linear3") => {
     const canvas = fabricRef.current;
@@ -4409,9 +4471,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       for (let i = 0; i < createdNodes.length - 1; i++) {
         const nA = createdNodes[i];
         const nB = createdNodes[i + 1];
-        const bA = nA.getBoundingRect(true, true);
-        const bB = nB.getBoundingRect(true, true);
-        const conn = findBestConnection(bA, bB);
+        const conn = findBestConnection(nA, nB);
         if (conn) {
           const pathD = buildStraightArrowPath(conn.from.x, conn.from.y, conn.to.x, conn.to.y, "end");
           const arrow = new fabric.Path(pathD, {
@@ -4519,9 +4579,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       canvas.add(startNode, decisionNode, yesNode, noNode);
 
       const connectPair = (nA, nB, kind = "straight") => {
-        const bA = nA.getBoundingRect(true, true);
-        const bB = nB.getBoundingRect(true, true);
-        const conn = findBestConnection(bA, bB);
+        const conn = findBestConnection(nA, nB);
         if (conn) {
           const pathD = kind === "elbow"
             ? buildElbowConnectorPath(conn.from.x, conn.from.y, conn.to.x, conn.to.y, "end")
