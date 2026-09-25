@@ -8340,3 +8340,72 @@ button[data-action="skip"] {
   background-size: 20px 20px !important;
 }
 
+/* ── Canva Floating Selection Bar ── */
+.draw-canva-floating-bar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28), 0 2px 6px rgba(0, 0, 0, 0.12);
+  border-radius: 12px;
+  padding: 3px 6px;
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+  pointer-events: auto;
+  max-width: calc(100% - 24px);
+  animation: drawFadeIn 0.12s ease-out;
+}
+
+.draw-canva-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.draw-canva-pill-btn:hover {
+  background: var(--surface-h);
+  border-color: var(--border);
+}
+
+.draw-floating-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  border-radius: 12px;
+  padding: 10px;
+  z-index: 35;
+  animation: drawFadeIn 0.12s ease-out;
+}
+
+.draw-canva-toast {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+  border-radius: 9999px;
+  padding: 6px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  z-index: 40;
+  pointer-events: none;
+  animation: drawFadeIn 0.15s ease-out;
+}
+
