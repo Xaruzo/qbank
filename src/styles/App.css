@@ -5887,8 +5887,7 @@ body.qb-guide-active .qb {
   .qb-editor-side-actions { grid-template-columns:repeat(2, minmax(0, 1fr)); }
   .qb-layers-host { height:auto; max-height:none; }
   .qb-draw-layers-btn,
-  .qb-draw-layers-divider,
-  .qb-editor-side-card-layers {
+  .qb-draw-layers-divider {
     display: none !important;
   }
   .qb-fsec { padding:16px; }
