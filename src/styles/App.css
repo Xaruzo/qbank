@@ -2949,7 +2949,7 @@ body.qb-guide-active .qb {
 .qb-tip-canvas-wrapper {
   position: relative;
   border-radius: 16px;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid var(--border);
 }
 .qb-tip-canvas-layers-host {
@@ -5172,7 +5172,7 @@ body.qb-guide-active .qb {
 }
 .qb-fsave:disabled { opacity:.3; cursor:not-allowed; }
 
-.sym-tb { display:flex; align-items:center; gap:6px; margin-top:8px; flex-wrap:wrap; }
+.sym-tb { position:relative; display:flex; align-items:center; gap:6px; margin-top:8px; flex-wrap:wrap; }
 .sym-tb-off { opacity:.45; pointer-events:none; }
 .sym-tb-label { font-family:'Fira Mono',monospace; font-size:9px; color:var(--text-faint); letter-spacing:.5px; text-transform:uppercase; flex-shrink:0; }
 .sym-tb-group { display:flex; align-items:center; gap:3px; flex-wrap:wrap; }
@@ -5183,7 +5183,11 @@ body.qb-guide-active .qb {
 }
 .sym-tb-more { position:relative; }
 .sym-tb-more-btn.on { border-color:rgba(245,166,35,.45); color:#e8960e; background:rgba(245,166,35,.08); }
-.sym-tb-menu { position:absolute; left:0; top:calc(100% + 4px); background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:4px; display:grid; grid-template-columns:repeat(5,1fr); gap:2px; box-shadow:0 12px 32px rgba(0,0,0,.3); z-index:40; min-width:160px; }
+.sym-tb-menu { position:absolute; right:0; left:auto; top:calc(100% + 4px); background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:4px; display:grid; grid-template-columns:repeat(5,1fr); gap:2px; box-shadow:0 12px 32px rgba(0,0,0,.3); z-index:40; min-width:160px; max-width:calc(100vw - 24px); }
+@media (max-width: 768px) {
+  .sym-tb-more { position:static; }
+  .sym-tb-menu { left:0; right:0; width:min(240px, 100%); margin:0 auto; }
+}
 .sym-tb-menu-item { background:var(--input-bg); border:1px solid var(--border); color:var(--text); font-family:var(--font-symbols); font-size:18px; font-weight:600; min-width:34px; height:34px; padding:0 4px; border-radius:5px; cursor:pointer; line-height:1; }
 @media (hover: hover) {
   .sym-tb-menu-item:hover { border-color:rgba(245,166,35,.45); color:#fff; background:rgba(245,166,35,.06); }
@@ -5401,9 +5405,10 @@ body.qb-guide-active .qb {
 
 /* ── Drawing canvas ── */
 .draw-bar { 
+  position: relative;
   display: flex; 
   flex-direction: column; 
-  gap: 8px; 
+  gap: 7px; 
   margin-bottom: 12px; 
   padding: 8px 10px; 
   border: 1px solid var(--border); 
@@ -5414,7 +5419,7 @@ body.qb-guide-active .qb {
 
 .draw-bar-row { 
   display: flex; 
-  gap: 6px; 
+  gap: 5px; 
   align-items: center; 
   flex-wrap: wrap; 
   width: 100%;
@@ -5428,14 +5433,67 @@ body.qb-guide-active .qb {
   padding: 3px 5px;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.04);
+  flex-shrink: 0;
 }
 
 .draw-bar-divider {
   width: 1px;
   height: 20px;
   background: var(--border);
+  margin: 0 1px;
+  flex-shrink: 0;
+}
+
+.draw-bar-subdivider {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
   margin: 0 2px;
   flex-shrink: 0;
+}
+
+.draw-popover-anchor,
+.draw-floating-anchor {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.draw-popover-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 45;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.34);
+  padding: 10px;
+  animation: drawFadeIn 0.12s ease-out;
+}
+
+.draw-popover-menu.draw-popover-right {
+  left: auto;
+  right: 0;
+}
+
+.draw-popover-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 5px;
+  padding: 0 2px;
+}
+
+.draw-popover-grid-btn {
+  flex-direction: column !important;
+  height: 44px !important;
+  padding: 4px !important;
+  gap: 3px !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
 }
 
 .draw-tb { 
@@ -5459,10 +5517,105 @@ body.qb-guide-active .qb {
   user-select: none;
 }
 
+.draw-tb-pill {
+  padding: 0 7px;
+  gap: 4px;
+}
+
+.draw-tb-pill-label {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.draw-tb-caret {
+  font-size: 9px;
+  opacity: 0.72;
+}
+
+.draw-step-pill-icon {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: rgba(245, 166, 35, 0.16);
+  border: 1.5px solid currentColor;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9.5px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.draw-mobile-only-swatch {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .qb-draw-layers-btn,
-  .qb-draw-layers-divider {
+  .qb-draw-layers-divider,
+  .draw-desktop-only,
+  .draw-color-swatch-extra,
+  .draw-bar-divider {
     display: none !important;
+  }
+
+  .draw-mobile-only-swatch {
+    display: inline-block !important;
+  }
+
+  .draw-bar {
+    padding: 6px;
+    gap: 5px;
+    border-radius: 12px;
+  }
+
+  .draw-bar-row {
+    gap: 4px;
+    justify-content: flex-start;
+  }
+
+  .draw-bar-group {
+    padding: 2px 4px;
+    gap: 2px;
+    border-radius: 8px;
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .draw-tb {
+    height: 29px;
+    min-width: 28px;
+    padding: 0 5px;
+    font-size: 10.5px;
+  }
+
+  .draw-tb-pill {
+    padding: 0 6px;
+    gap: 3px;
+  }
+
+  .draw-tb-pill-label {
+    font-size: 10px;
+  }
+
+  .draw-stroke-slider {
+    width: 38px !important;
+  }
+
+  .draw-popover-anchor {
+    position: static !important;
+  }
+
+  .draw-popover-menu,
+  .draw-popover-menu.draw-popover-right {
+    position: absolute !important;
+    top: calc(100% + 4px) !important;
+    left: 6px !important;
+    right: 6px !important;
+    width: auto !important;
+    max-width: 320px !important;
+    margin: 0 auto !important;
+    z-index: 60 !important;
   }
 }
 
@@ -8355,6 +8508,29 @@ button[data-action="skip"] {
   pointer-events: auto;
   max-width: calc(100% - 24px);
   animation: drawFadeIn 0.12s ease-out;
+}
+
+@media (max-width: 768px) {
+  .draw-canva-floating-bar {
+    flex-wrap: wrap;
+    justify-content: center;
+    white-space: normal;
+    width: max-content;
+    max-width: calc(100% - 14px);
+    padding: 4px 6px;
+    gap: 3px;
+  }
+
+  .draw-floating-anchor {
+    position: static !important;
+  }
+
+  .draw-floating-popover {
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+    max-width: calc(100vw - 28px) !important;
+  }
 }
 
 .draw-canva-pill-btn {

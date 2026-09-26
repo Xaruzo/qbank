@@ -85,6 +85,51 @@ const STICKY_PRESETS = [
   { label: "Peach Note", bg: "#fed7aa", text: "#7c2d12" },
 ];
 
+const CALLOUT_PRESETS = [
+  { id: "final", label: "✅ Final Answer Box", defaultText: "∴ Final Answer: ", bg: "#dcfce7", border: "#16a34a", text: "#14532d" },
+  { id: "formula", label: "💡 Formula / Shortcut", defaultText: "💡 Shortcut / Formula:\n", bg: "#fef3c7", border: "#d97706", text: "#78350f" },
+  { id: "trap", label: "⚠️ Common Exam Trap", defaultText: "⚠️ Watch Out:\n", bg: "#fee2e2", border: "#dc2626", text: "#7f1d1d" },
+];
+
+const EXTRA_MATH_SYMBOLS = [
+  { sym: "≠", title: "Not Equal" },
+  { sym: "≈", title: "Approximately Equal" },
+  { sym: "≤", title: "Less Than or Equal" },
+  { sym: "≥", title: "Greater Than or Equal" },
+  { sym: "±", title: "Plus or Minus" },
+  { sym: "%", title: "Percent" },
+  { sym: "√", title: "Square Root" },
+  { sym: "π", title: "Pi" },
+  { sym: "∴", title: "Therefore" },
+  { sym: "∵", title: "Because" },
+  { sym: "°", title: "Degree" },
+  { sym: "x²", title: "Squared" },
+  { sym: "x³", title: "Cubed" },
+  { sym: "½", title: "One Half" },
+  { sym: "¼", title: "One Quarter" },
+  { sym: "¾", title: "Three Quarters" },
+  { sym: "₱", title: "Peso" },
+  { sym: ":", title: "Ratio" },
+];
+
+const STEP_CIRCLES = ["①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩", "⑪", "⑫"];
+
+const toHighlighterColor = (hex) => {
+  if (!hex || hex === "#1a2540" || hex === "#000000") {
+    return "rgba(250, 204, 21, 0.44)";
+  }
+  const clean = hex.replace("#", "");
+  if (clean.length === 6) {
+    const r = parseInt(clean.slice(0, 2), 16);
+    const g = parseInt(clean.slice(2, 4), 16);
+    const b = parseInt(clean.slice(4, 6), 16);
+    if (Number.isFinite(r) && Number.isFinite(g) && Number.isFinite(b)) {
+      return `rgba(${r}, ${g}, ${b}, 0.36)`;
+    }
+  }
+  return "rgba(250, 204, 21, 0.44)";
+};
+
 const getShapeAnchors = (target) => {
   if (!target) return null;
   if (typeof target.calcTransformMatrix === "function" && typeof fabric !== "undefined" && fabric?.util?.transformPoint) {
@@ -446,10 +491,33 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
   const [floatingPopover, setFloatingPopover] = useState(null);
   const [stickyNoteMenuOpen, setStickyNoteMenuOpen] = useState(false);
   const [flowchartMenuOpen, setFlowchartMenuOpen] = useState(false);
+  const [shapesMenuOpen, setShapesMenuOpen] = useState(false);
+  const [mathMenuOpen, setMathMenuOpen] = useState(false);
   const flowchartMenuRef = useRef(null);
+  const shapesMenuRef = useRef(null);
+  const mathMenuRef = useRef(null);
   const [toastMsg, setToastMsg] = useState("");
   const toastTimer = useRef(null);
   const stickyNoteMenuRef = useRef(null);
+
+  const closeAllToolbarMenus = useCallback(() => {
+    setStickyNoteMenuOpen(false);
+    setFlowchartMenuOpen(false);
+    setShapesMenuOpen(false);
+    setMathMenuOpen(false);
+    setColorPickerOpen(false);
+    setAlignMenuOpen(false);
+  }, []);
+
+  const toggleToolbarMenu = useCallback((menu) => {
+    setFloatingPopover(null);
+    setStickyNoteMenuOpen(prev => menu === "sticky" ? !prev : false);
+    setFlowchartMenuOpen(prev => menu === "flow" ? !prev : false);
+    setShapesMenuOpen(prev => menu === "shapes" ? !prev : false);
+    setMathMenuOpen(prev => menu === "math" ? !prev : false);
+    setColorPickerOpen(prev => menu === "color" ? !prev : false);
+    setAlignMenuOpen(prev => menu === "align" ? !prev : false);
+  }, []);
 
   const ensureLayerId = useCallback((obj) => {
     if (!obj || obj.isGuide) return null;
@@ -1096,9 +1164,12 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       const bound = active.getBoundingRect(true, true);
       const boardW = boardRef.current ? boardRef.current.clientWidth : 820;
       const centerX = bound.left + bound.width / 2;
-      const clampedX = Math.max(160, Math.min(boardW - 160, centerX));
-      const isNearTop = bound.top < 56;
-      const topPos = isNearTop ? bound.top + bound.height + 10 : Math.max(8, bound.top - 46);
+      const safeEdge = Math.min(210, Math.floor(boardW / 2));
+      const clampedX = boardW <= 560
+        ? Math.round(boardW / 2)
+        : Math.max(safeEdge, Math.min(boardW - safeEdge, centerX));
+      const isNearTop = bound.top < 64;
+      const topPos = isNearTop ? bound.top + bound.height + 10 : Math.max(8, bound.top - 48);
 
       setSelectionBounds({
         left: Math.round(clampedX),
@@ -3249,29 +3320,37 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
   }, [colorPickerOpen]);
 
   useEffect(() => {
-    if (!stickyNoteMenuOpen && !floatingPopover && !flowchartMenuOpen) return;
-    const onMouseDown = (e) => {
+    if (!stickyNoteMenuOpen && !floatingPopover && !flowchartMenuOpen && !shapesMenuOpen && !mathMenuOpen) return;
+    const onPointerDown = (e) => {
       if (stickyNoteMenuRef.current && stickyNoteMenuRef.current.contains(e.target)) return;
       if (flowchartMenuRef.current && flowchartMenuRef.current.contains(e.target)) return;
+      if (shapesMenuRef.current && shapesMenuRef.current.contains(e.target)) return;
+      if (mathMenuRef.current && mathMenuRef.current.contains(e.target)) return;
       if (e.target.closest && e.target.closest(".draw-canva-floating-bar")) return;
       setStickyNoteMenuOpen(false);
       setFlowchartMenuOpen(false);
+      setShapesMenuOpen(false);
+      setMathMenuOpen(false);
       setFloatingPopover(null);
     };
     const onKeyDown = (e) => {
       if (e.key === "Escape") {
         setStickyNoteMenuOpen(false);
         setFlowchartMenuOpen(false);
+        setShapesMenuOpen(false);
+        setMathMenuOpen(false);
         setFloatingPopover(null);
       }
     };
-    window.addEventListener("mousedown", onMouseDown);
+    window.addEventListener("mousedown", onPointerDown);
+    window.addEventListener("touchstart", onPointerDown, { passive: true });
     window.addEventListener("keydown", onKeyDown);
     return () => {
-      window.removeEventListener("mousedown", onMouseDown);
+      window.removeEventListener("mousedown", onPointerDown);
+      window.removeEventListener("touchstart", onPointerDown);
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [stickyNoteMenuOpen, floatingPopover, flowchartMenuOpen]);
+  }, [stickyNoteMenuOpen, floatingPopover, flowchartMenuOpen, shapesMenuOpen, mathMenuOpen]);
 
   useEffect(() => {
     snappingRef.current = snapping;
@@ -3280,7 +3359,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
   useEffect(() => {
     const canvas = fabricRef.current;
     if (!canvas) return;
-    canvas.backgroundColor = gridMode === "none" ? "#ffffff" : "transparent";
+    canvas.backgroundColor = gridMode === "none" ? "#ffffff" : gridMode === "warm" ? "#faf8f5" : "transparent";
     canvas.requestRenderAll();
   }, [gridMode]);
 
@@ -3294,9 +3373,11 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       if (e.key === "Escape") setAlignMenuOpen(false);
     };
     window.addEventListener("mousedown", onMouseDown);
+    window.addEventListener("touchstart", onMouseDown, { passive: true });
     window.addEventListener("keydown", onKeyDown);
     return () => {
       window.removeEventListener("mousedown", onMouseDown);
+      window.removeEventListener("touchstart", onMouseDown);
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [alignMenuOpen]);
@@ -3308,15 +3389,16 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
 
     const isPan = tool === "pan";
     const isEraser = tool === "eraser";
-    canvas.isDrawingMode = (tool === "pen");
+    const isHighlighter = tool === "highlighter";
+    canvas.isDrawingMode = (tool === "pen" || isHighlighter);
     canvas.selection = (!canvas.isDrawingMode && !isEraser && tool === "move");
     canvas.selectionKey = "shiftKey";
     canvas.skipTargetFind = isPan || isEraser;
     
     if (canvas.isDrawingMode || isPan) {
       canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
-      canvas.freeDrawingBrush.color = color;
-      canvas.freeDrawingBrush.width = size;
+      canvas.freeDrawingBrush.color = isHighlighter ? toHighlighterColor(color) : color;
+      canvas.freeDrawingBrush.width = isHighlighter ? Math.max(16, size * 5) : size;
       canvas.freeDrawingBrush.straightLineKey = "shiftKey";
       canvas.forEachObject(obj => { obj.selectable = false; obj.evented = false; });
     } else if (isEraser) {
@@ -3327,7 +3409,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
     }
 
     // Set cursors
-    if (tool === "pen") {
+    if (tool === "pen" || isHighlighter) {
       canvas.defaultCursor = 'crosshair';
       canvas.hoverCursor = 'crosshair';
     } else if (isEraser) {
@@ -4699,7 +4781,293 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       canvas.requestRenderAll();
       setFlowchartMenuOpen(false);
       showToast("Curved 3-Node Cycle flowchart added!");
+    } else if (templateType === "series") {
+      const terms = ["2", "5", "10", "17"];
+      const diffs = ["+3", "+5", "+7"];
+      const termNodes = [];
+      terms.forEach((t, i) => {
+        const node = new fabric.Textbox(t, {
+          left: startX + 30 + i * 110,
+          top: startY + 35,
+          width: 48,
+          backgroundColor: "#eff6ff",
+          fill: "#1e3a8a",
+          fontFamily: "DM Sans, sans-serif",
+          fontSize: 18,
+          fontWeight: "bold",
+          textAlign: "center",
+          padding: 6,
+          stroke: "#3b82f6",
+          strokeWidth: 2,
+          rx: 8,
+          ry: 8
+        });
+        node.shapeKind = "process";
+        configureTextObj(node);
+        ensureLayerId(node);
+        canvas.add(node);
+        termNodes.push(node);
+      });
+
+      for (let i = 0; i < termNodes.length - 1; i++) {
+        const x1 = startX + 54 + i * 110;
+        const x2 = startX + 54 + (i + 1) * 110;
+        const y = startY + 30;
+        const arc = buildCurvedArrowPath(x1, y, x2, y, -34, "end");
+        const arrow = new fabric.Path(arc.d, {
+          stroke: "#dc2626",
+          strokeWidth: 2.2,
+          fill: "transparent",
+          strokeLineCap: "round",
+          strokeLineJoin: "round",
+          objectCaching: false
+        });
+        arrow.shapeKind = "curvedArrow";
+        arrow.connectorKind = "curved";
+        arrow.arrowHead = "end";
+        arrow.bend = -34;
+        ensureLayerId(arrow);
+        canvas.add(arrow);
+
+        const diffLabel = new fabric.Textbox(diffs[i], {
+          left: (x1 + x2) / 2 - 18,
+          top: y - 38,
+          width: 38,
+          fontSize: 13,
+          fontWeight: "bold",
+          fill: "#dc2626",
+          fontFamily: "DM Sans, sans-serif",
+          textAlign: "center"
+        });
+        configureTextObj(diffLabel);
+        ensureLayerId(diffLabel);
+        canvas.add(diffLabel);
+      }
+      canvas.requestRenderAll();
+      setFlowchartMenuOpen(false);
+      showToast("Number Series Jump Arcs template added!");
+    } else if (templateType === "crossMultiply") {
+      const leftA = new fabric.Textbox("a\n—\nb", {
+        left: startX + 50,
+        top: startY,
+        width: 50,
+        fontSize: 18,
+        fontWeight: "bold",
+        fill: "#1e3a8a",
+        fontFamily: "DM Sans, sans-serif",
+        textAlign: "center",
+        lineHeight: 0.95
+      });
+      const eq = new fabric.Textbox("=", {
+        left: startX + 120,
+        top: startY + 22,
+        width: 30,
+        fontSize: 22,
+        fontWeight: "bold",
+        fill: "#1a2540",
+        fontFamily: "DM Sans, sans-serif",
+        textAlign: "center"
+      });
+      const rightC = new fabric.Textbox("c\n—\nd", {
+        left: startX + 170,
+        top: startY,
+        width: 50,
+        fontSize: 18,
+        fontWeight: "bold",
+        fill: "#1e3a8a",
+        fontFamily: "DM Sans, sans-serif",
+        textAlign: "center",
+        lineHeight: 0.95
+      });
+      const diag1 = new fabric.Path(buildStraightArrowPath(startX + 90, startY + 12, startX + 180, startY + 58, "both"), {
+        stroke: "#ef4444",
+        strokeWidth: 2,
+        strokeDashArray: [4, 3],
+        fill: "transparent"
+      });
+      diag1.shapeKind = "arrow";
+      diag1.connectorKind = "straight";
+      diag1.arrowHead = "both";
+      const diag2 = new fabric.Path(buildStraightArrowPath(startX + 90, startY + 58, startX + 180, startY + 12, "both"), {
+        stroke: "#2563eb",
+        strokeWidth: 2,
+        strokeDashArray: [4, 3],
+        fill: "transparent"
+      });
+      diag2.shapeKind = "arrow";
+      diag2.connectorKind = "straight";
+      diag2.arrowHead = "both";
+      const resultBox = new fabric.Textbox("a × d = b × c", {
+        left: startX + 250,
+        top: startY + 18,
+        width: 130,
+        backgroundColor: "#fef3c7",
+        fill: "#92400e",
+        stroke: "#f59e0b",
+        strokeWidth: 2,
+        fontSize: 15,
+        fontWeight: "bold",
+        fontFamily: "DM Sans, sans-serif",
+        textAlign: "center",
+        padding: 8
+      });
+      resultBox.shapeKind = "process";
+      [leftA, eq, rightC, diag1, diag2, resultBox].forEach(o => {
+        configureTextObj(o);
+        ensureLayerId(o);
+        canvas.add(o);
+      });
+      canvas.requestRenderAll();
+      setFlowchartMenuOpen(false);
+      showToast("Cross-Multiplication Ratio template added!");
+    } else if (templateType === "dstTriangle") {
+      const tri = new fabric.Triangle({
+        left: startX + 150,
+        top: startY + 70,
+        width: 160,
+        height: 135,
+        fill: "rgba(59, 130, 246, 0.08)",
+        stroke: "#2563eb",
+        strokeWidth: 2.5,
+        originX: "center",
+        originY: "center"
+      });
+      const hLine = new fabric.Line([startX + 108, startY + 72, startX + 192, startY + 72], {
+        stroke: "#2563eb",
+        strokeWidth: 2.2
+      });
+      const vLine = new fabric.Line([startX + 150, startY + 72, startX + 150, startY + 136], {
+        stroke: "#2563eb",
+        strokeWidth: 2.2
+      });
+      const dTxt = new fabric.Textbox("D", {
+        left: startX + 130,
+        top: startY + 32,
+        width: 40,
+        fontSize: 22,
+        fontWeight: "bold",
+        fill: "#1e3a8a",
+        textAlign: "center"
+      });
+      const sTxt = new fabric.Textbox("S", {
+        left: startX + 96,
+        top: startY + 90,
+        width: 40,
+        fontSize: 20,
+        fontWeight: "bold",
+        fill: "#1e3a8a",
+        textAlign: "center"
+      });
+      const tTxt = new fabric.Textbox("T", {
+        left: startX + 164,
+        top: startY + 90,
+        width: 40,
+        fontSize: 20,
+        fontWeight: "bold",
+        fill: "#1e3a8a",
+        textAlign: "center"
+      });
+      [tri, hLine, vLine, dTxt, sTxt, tTxt].forEach(o => {
+        configureTextObj(o);
+        ensureLayerId(o);
+        canvas.add(o);
+      });
+      canvas.requestRenderAll();
+      setFlowchartMenuOpen(false);
+      showToast("Distance-Speed-Time (D / S×T) Triangle added!");
     }
+  }, [configureTextObj, ensureLayerId, showToast]);
+
+  const addStepBadge = useCallback(() => {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    const existing = (canvas.getObjects?.() || []).filter(o => o && o.isStepBadge);
+    const idx = existing.length;
+    const label = STEP_CIRCLES[idx] || `${idx + 1}.`;
+    const badge = new fabric.Textbox(label, {
+      left: 70,
+      top: 70 + (idx % 6) * 44,
+      width: 36,
+      backgroundColor: "#eff6ff",
+      fill: "#1d4ed8",
+      fontFamily: "DM Sans, sans-serif",
+      fontSize: 20,
+      fontWeight: "bold",
+      textAlign: "center",
+      padding: 4,
+      stroke: "#3b82f6",
+      strokeWidth: 1.5,
+      rx: 18,
+      ry: 18
+    });
+    badge.isStepBadge = true;
+    badge.shapeKind = "terminator";
+    configureTextObj(badge);
+    ensureLayerId(badge);
+    canvas.add(badge);
+    canvas.setActiveObject(badge);
+    canvas.requestRenderAll();
+    setTool("move");
+    showToast(`Added Step Badge ${label}`);
+  }, [configureTextObj, ensureLayerId, showToast]);
+
+  const addCancelSlash = useCallback(() => {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    const slash = new fabric.Line([0, 28, 34, 0], {
+      left: 160,
+      top: 130,
+      stroke: "#ef4444",
+      strokeWidth: 3,
+      strokeUniform: true,
+      strokeLineCap: "round",
+      originX: "center",
+      originY: "center",
+      objectCaching: false
+    });
+    ensureLayerId(slash);
+    canvas.add(slash);
+    canvas.setActiveObject(slash);
+    canvas.requestRenderAll();
+    setTool("move");
+    showToast("Cancellation slash added! Place over terms to cancel.");
+  }, [ensureLayerId, showToast]);
+
+  const addCalloutCard = useCallback((preset) => {
+    const canvas = fabricRef.current;
+    if (!canvas || !preset) return;
+    const card = new fabric.Textbox(preset.defaultText, {
+      left: 110,
+      top: 110,
+      width: 220,
+      backgroundColor: preset.bg,
+      fill: preset.text,
+      stroke: preset.border,
+      strokeWidth: 2,
+      fontFamily: "DM Sans, sans-serif",
+      fontSize: 15,
+      fontWeight: "bold",
+      textAlign: "left",
+      padding: 12,
+      rx: 10,
+      ry: 10,
+      shadow: new fabric.Shadow({
+        color: "rgba(0,0,0,0.08)",
+        blur: 8,
+        offsetX: 0,
+        offsetY: 3
+      })
+    });
+    card.shapeKind = "process";
+    card.isStickyNote = true;
+    configureTextObj(card);
+    ensureLayerId(card);
+    canvas.add(card);
+    canvas.setActiveObject(card);
+    canvas.requestRenderAll();
+    setTool("move");
+    setStickyNoteMenuOpen(false);
+    showToast(`${preset.label} added!`);
   }, [configureTextObj, ensureLayerId, showToast]);
 
   const addVennDiagram = useCallback(() => {
@@ -5379,12 +5747,22 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
   return (
     <div ref={containerRef}>
       <div className="draw-bar">
-        {/* Row 1: Creation & Shapes */}
+        {/* Row 1: Creation, Solution Tools, Shapes & Math */}
         <div className="draw-bar-row">
-          {/* Core Tools */}
+          {/* Core Drawing & Solution Brushes */}
           <div className="draw-bar-group">
             <button className={`draw-tb${tool === "pen" ? " draw-on" : ""}`} onClick={() => setTool("pen")} title="Draw with Pen (P)">
               <Pencil size={15} />
+            </button>
+            <button
+              className={`draw-tb${tool === "highlighter" ? " draw-on" : ""}`}
+              onClick={() => setTool("highlighter")}
+              title="Highlighter Marker for Key Steps & Answers (H)"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m9 11-6 6v3h9l3-3" />
+                <path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4" />
+              </svg>
             </button>
             <button className={`draw-tb${tool === "move" ? " draw-on" : ""}`} onClick={() => setTool("move")} title="Select & Move Objects (V)">
               <MousePointer2 size={15} />
@@ -5405,16 +5783,16 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
 
           <div className="draw-bar-divider" />
 
-          {/* Lines & Connectors */}
+          {/* Lines, Connectors & Quick Solution Stamps */}
           <div className="draw-bar-group">
-            <button className="draw-tb" onClick={addHrLine} title="Add Rotatable Horizontal Line">
+            <button className="draw-tb draw-desktop-only" onClick={addHrLine} title="Add Rotatable Horizontal Line">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <circle cx="5" cy="12" r="2" fill="currentColor" />
                 <path d="M7 12h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                 <circle cx="19" cy="12" r="2" fill="currentColor" />
               </svg>
             </button>
-            <button className="draw-tb" onClick={addVrLine} title="Add Rotatable Vertical Line">
+            <button className="draw-tb draw-desktop-only" onClick={addVrLine} title="Add Rotatable Vertical Line">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <circle cx="12" cy="5" r="2" fill="currentColor" />
                 <path d="M12 7v10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -5424,143 +5802,245 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
             <button className="draw-tb" onClick={addLine} title="Add Line Segment / Fraction Bar">
               <Minus size={15} />
             </button>
-            <button className="draw-tb" onClick={addArrow} title="Add Process / Connector Arrow">
+            <button className="draw-tb" onClick={() => addArrow("end")} title="Add Process / Connector Arrow">
               <ArrowRight size={15} />
+            </button>
+            <button
+              className="draw-tb"
+              onClick={addCancelSlash}
+              title="Add Cancellation Slash (Strike out / Cancel terms)"
+              style={{ color: "#e0365a", fontWeight: 800 }}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+                <line x1="6" y1="19" x2="18" y2="5" />
+              </svg>
+            </button>
+            <button
+              className="draw-tb draw-tb-pill"
+              onClick={() => addStepBadge()}
+              title="Add Numbered Solution Step Badge (1, 2, 3...)"
+            >
+              <span className="draw-step-pill-icon">1</span>
+              <span className="draw-tb-pill-label">Step</span>
             </button>
           </div>
 
           <div className="draw-bar-divider" />
 
-          {/* Shapes & Canva Elements */}
+          {/* Shapes, Callouts & Flowchart Templates */}
           <div className="draw-bar-group">
             <button className="draw-tb" onClick={addSquare} title="Add Square">
               <Square size={15} />
             </button>
-            <button className="draw-tb" onClick={addRectangle} title="Add Rounded Rectangle">
+            <button className="draw-tb draw-desktop-only" onClick={addRectangle} title="Add Rounded Rectangle">
               <span style={{ display: "inline-block", width: 17, height: 11, border: "2px solid currentColor", borderRadius: 3 }} />
             </button>
             <button className="draw-tb" onClick={addCircle} title="Add Circle">
               <span style={{ display: "inline-block", width: 14, height: 14, border: "2px solid currentColor", borderRadius: "50%" }} />
             </button>
-            <button className="draw-tb" onClick={addTriangle} title="Add Triangle">
+            <button className="draw-tb draw-desktop-only" onClick={addTriangle} title="Add Triangle">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                 <path d="M12 4 L21 20 H3 Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
               </svg>
             </button>
-            <button className="draw-tb" onClick={addStar} title="Add Star">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2 L15.1 8.6 L22 9.3 L17 13.9 L18.5 21 L12 17.4 L5.5 21 L7 13.9 L2 9.3 L8.9 8.6 Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-              </svg>
-            </button>
-            <button className="draw-tb" onClick={addOblong} title="Add Oblong (Butterfly Method)">
-              <span style={{ display: "inline-block", width: 17, height: 9, border: "2px solid currentColor", borderRadius: 9999 }} />
-            </button>
-            <button className="draw-tb" onClick={addTrayShape} title="Add Tray Shape (Bracket)">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M5 5 V18 H19 V5" stroke="currentColor" strokeWidth="2" strokeLinecap="butt" strokeLinejoin="miter" />
-              </svg>
-            </button>
-            <button className="draw-tb" onClick={addRoofShape} title="Add Roof / Caret Shape">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M4 17 L12 7 L20 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-            <button className="draw-tb" onClick={addVennDiagram} title="Add 2-Circle Venn Diagram (Sets & Syllogisms)">
-              <CircleDot size={15} />
-            </button>
-            <div style={{ position: "relative" }} ref={stickyNoteMenuRef}>
+
+            {/* All Shapes & Solution Stamps Popover */}
+            <div className="draw-popover-anchor" ref={shapesMenuRef}>
               <button
-                className={`draw-tb${stickyNoteMenuOpen ? " draw-on" : ""}`}
-                onClick={() => setStickyNoteMenuOpen(o => !o)}
-                title="Add Canva Sticky Note"
+                type="button"
+                className={`draw-tb draw-tb-pill${shapesMenuOpen ? " draw-on" : ""}`}
+                onClick={() => toggleToolbarMenu("shapes")}
+                title="More Shapes, Brackets, Venn & Step Badges"
               >
-                <StickyNote size={15} />
+                <CircleDot size={14} />
+                <span className="draw-tb-pill-label">Shapes</span>
+                <span className="draw-tb-caret">▾</span>
               </button>
-              {stickyNoteMenuOpen && (
-                <div style={{
-                  position: "absolute",
-                  top: "calc(100% + 6px)",
-                  left: 0,
-                  zIndex: 35,
-                  background: "var(--surface)",
-                  border: "1px solid var(--border)",
-                  borderRadius: 12,
-                  boxShadow: "0 14px 34px rgba(0,0,0,0.32)",
-                  padding: 8,
-                  width: 155,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 4
-                }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--text-muted)", padding: "2px 4px" }}>
-                    Sticky Note
-                  </div>
-                  {STICKY_PRESETS.map((p) => (
-                    <button
-                      key={p.label}
-                      type="button"
-                      onClick={() => addStickyNote(p.bg, p.text)}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        padding: "6px 8px",
-                        borderRadius: 8,
-                        border: "1px solid rgba(0,0,0,0.06)",
-                        background: p.bg,
-                        color: p.text,
-                        fontWeight: 600,
-                        fontSize: 12,
-                        cursor: "pointer",
-                        textAlign: "left"
-                      }}
-                    >
-                      <span style={{ width: 12, height: 12, borderRadius: 3, background: p.bg, border: "1px solid rgba(0,0,0,0.15)" }} />
-                      {p.label}
+              {shapesMenuOpen && (
+                <div className="draw-popover-menu" style={{ width: 248 }}>
+                  <div className="draw-popover-section-title">Shapes & Diagrams</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4, marginBottom: 8 }}>
+                    <button className="draw-tb draw-popover-grid-btn" onClick={() => { addSquare(); setShapesMenuOpen(false); }} title="Add Square">
+                      <Square size={14} />
+                      <span>Square</span>
                     </button>
-                  ))}
+                    <button className="draw-tb draw-popover-grid-btn" onClick={() => { addRectangle(); setShapesMenuOpen(false); }} title="Add Rounded Rectangle">
+                      <span style={{ display: "inline-block", width: 15, height: 10, border: "2px solid currentColor", borderRadius: 2 }} />
+                      <span>Rect</span>
+                    </button>
+                    <button className="draw-tb draw-popover-grid-btn" onClick={() => { addCircle(); setShapesMenuOpen(false); }} title="Add Circle">
+                      <span style={{ display: "inline-block", width: 13, height: 13, border: "2px solid currentColor", borderRadius: "50%" }} />
+                      <span>Circle</span>
+                    </button>
+                    <button className="draw-tb draw-popover-grid-btn" onClick={() => { addTriangle(); setShapesMenuOpen(false); }} title="Add Triangle">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 4 L21 20 H3 Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+                      </svg>
+                      <span>Triangle</span>
+                    </button>
+                    <button className="draw-tb draw-popover-grid-btn" onClick={() => { addStar(); setShapesMenuOpen(false); }} title="Add Star">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 2 L15.1 8.6 L22 9.3 L17 13.9 L18.5 21 L12 17.4 L5.5 21 L7 13.9 L2 9.3 L8.9 8.6 Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+                      </svg>
+                      <span>Star</span>
+                    </button>
+                    <button className="draw-tb draw-popover-grid-btn" onClick={() => { addOblong(); setShapesMenuOpen(false); }} title="Add Oblong (Butterfly Method)">
+                      <span style={{ display: "inline-block", width: 15, height: 8, border: "2px solid currentColor", borderRadius: 9999 }} />
+                      <span>Oblong</span>
+                    </button>
+                    <button className="draw-tb draw-popover-grid-btn" onClick={() => { addTrayShape(); setShapesMenuOpen(false); }} title="Add Tray Shape (Bracket)">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                        <path d="M5 5 V18 H19 V5" stroke="currentColor" strokeWidth="2" strokeLinecap="butt" strokeLinejoin="miter" />
+                      </svg>
+                      <span>Bracket</span>
+                    </button>
+                    <button className="draw-tb draw-popover-grid-btn" onClick={() => { addRoofShape(); setShapesMenuOpen(false); }} title="Add Roof / Caret Shape">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                        <path d="M4 17 L12 7 L20 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      <span>Caret</span>
+                    </button>
+                    <button className="draw-tb draw-popover-grid-btn" onClick={() => { addVennDiagram(); setShapesMenuOpen(false); }} title="Add 2-Circle Venn Diagram">
+                      <CircleDot size={14} />
+                      <span>Venn</span>
+                    </button>
+                  </div>
+
+                  <div className="draw-popover-section-title" style={{ borderTop: "1px solid var(--border)", paddingTop: 6 }}>
+                    Rotatable Lines & Slash
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4, marginBottom: 8 }}>
+                    <button className="draw-tb draw-popover-grid-btn" onClick={() => { addHrLine(); setShapesMenuOpen(false); }} title="Rotatable Horizontal Line">
+                      <span>⊶⊷</span>
+                      <span>H-Line</span>
+                    </button>
+                    <button className="draw-tb draw-popover-grid-btn" onClick={() => { addVrLine(); setShapesMenuOpen(false); }} title="Rotatable Vertical Line">
+                      <span>⫯</span>
+                      <span>V-Line</span>
+                    </button>
+                    <button className="draw-tb draw-popover-grid-btn" onClick={() => { addCancelSlash(); setShapesMenuOpen(false); }} style={{ color: "#e0365a" }} title="Cancellation Slash">
+                      <span style={{ fontWeight: 800 }}>/</span>
+                      <span>Cancel</span>
+                    </button>
+                  </div>
+
+                  <div className="draw-popover-section-title" style={{ borderTop: "1px solid var(--border)", paddingTop: 6 }}>
+                    Step Number Badges
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 4 }}>
+                    {STEP_CIRCLES.map((sc, idx) => (
+                      <button
+                        key={sc}
+                        type="button"
+                        className="draw-tb"
+                        onClick={() => addStepBadge(idx + 1)}
+                        title={`Insert Step ${idx + 1} Badge`}
+                        style={{ fontWeight: 700, fontSize: 13 }}
+                      >
+                        {idx + 1}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Flowchart & Smart Connectors */}
-            <div style={{ position: "relative" }} ref={flowchartMenuRef}>
+            {/* Sticky Notes & Solution Callout Cards */}
+            <div className="draw-popover-anchor" ref={stickyNoteMenuRef}>
               <button
-                className={`draw-tb${flowchartMenuOpen ? " draw-on" : ""}`}
-                onClick={() => setFlowchartMenuOpen(o => !o)}
-                title="Flowchart & Smart Connectors (Process & Flowcharting)"
-                style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "0 6px" }}
+                type="button"
+                className={`draw-tb draw-tb-pill${stickyNoteMenuOpen ? " draw-on" : ""}`}
+                onClick={() => toggleToolbarMenu("sticky")}
+                title="Add Sticky Note or Solution Callout Card"
               >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <StickyNote size={14} />
+                <span className="draw-tb-pill-label">Note</span>
+                <span className="draw-tb-caret">▾</span>
+              </button>
+              {stickyNoteMenuOpen && (
+                <div className="draw-popover-menu" style={{ width: 210 }}>
+                  <div className="draw-popover-section-title">Solution Callout Banners</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 8 }}>
+                    {CALLOUT_PRESETS.map((cp) => (
+                      <button
+                        key={cp.label}
+                        type="button"
+                        onClick={() => addCalloutCard(cp)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          padding: "6px 8px",
+                          borderRadius: 8,
+                          border: `1.5px solid ${cp.border}`,
+                          background: cp.bg,
+                          color: cp.text,
+                          fontWeight: 700,
+                          fontSize: 11.5,
+                          cursor: "pointer",
+                          textAlign: "left"
+                        }}
+                      >
+                        {cp.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="draw-popover-section-title" style={{ borderTop: "1px solid var(--border)", paddingTop: 6 }}>
+                    Sticky Notes
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
+                    {STICKY_PRESETS.map((p) => (
+                      <button
+                        key={p.label}
+                        type="button"
+                        onClick={() => addStickyNote(p.bg, p.text)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          padding: "6px 7px",
+                          borderRadius: 7,
+                          border: "1px solid rgba(0,0,0,0.08)",
+                          background: p.bg,
+                          color: p.text,
+                          fontWeight: 600,
+                          fontSize: 11,
+                          cursor: "pointer",
+                          textAlign: "left"
+                        }}
+                      >
+                        <span style={{ width: 10, height: 10, borderRadius: 2, background: p.bg, border: "1px solid rgba(0,0,0,0.2)", flexShrink: 0 }} />
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.label.replace(" Note", "")}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Flowchart, Smart Connectors & Solution Templates */}
+            <div className="draw-popover-anchor" ref={flowchartMenuRef}>
+              <button
+                type="button"
+                className={`draw-tb draw-tb-pill${flowchartMenuOpen ? " draw-on" : ""}`}
+                onClick={() => toggleToolbarMenu("flow")}
+                title="Flowchart, Smart Connectors & Solution Templates"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="3" width="6" height="6" rx="1.5" />
                   <rect x="15" y="15" width="6" height="6" rx="1.5" />
                   <path d="M9 6h4a3 3 0 0 1 3 3v6" />
                   <polyline points="13 13 16 16 19 13" />
                 </svg>
-                <span style={{ fontSize: 10, fontWeight: 700 }}>Flow</span>
-                <span style={{ fontSize: 9 }}>▾</span>
+                <span className="draw-tb-pill-label">Flow</span>
+                <span className="draw-tb-caret">▾</span>
               </button>
               {flowchartMenuOpen && (
-                <div style={{
-                  position: "absolute",
-                  top: "calc(100% + 6px)",
-                  left: 0,
-                  zIndex: 35,
-                  background: "var(--surface)",
-                  border: "1px solid var(--border)",
-                  borderRadius: 12,
-                  boxShadow: "0 16px 36px rgba(0,0,0,0.32)",
-                  padding: 10,
-                  width: 250,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 8
-                }}>
+                <div className="draw-popover-menu draw-popover-right" style={{ width: 256 }}>
                   {/* Connectors & Arrows */}
                   <div>
-                    <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--text-muted)", marginBottom: 4 }}>
-                      Connectors & Arrows
-                    </div>
+                    <div className="draw-popover-section-title">Connectors & Arrows</div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
                       <button className="draw-tb" onClick={() => { addArrow("end"); setFlowchartMenuOpen(false); }} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 7px" }}>
                         <span>→</span> Straight
@@ -5584,10 +6064,8 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
                   </div>
 
                   {/* Flowchart Nodes */}
-                  <div style={{ borderTop: "1px solid var(--border)", paddingTop: 6 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--text-muted)", marginBottom: 4 }}>
-                      Flowchart Nodes
-                    </div>
+                  <div style={{ borderTop: "1px solid var(--border)", paddingTop: 6, marginTop: 6 }}>
+                    <div className="draw-popover-section-title">Flowchart Nodes</div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
                       <button className="draw-tb" onClick={addProcessStep} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 7px" }}>
                         <span style={{ display: "inline-block", width: 14, height: 10, border: "1.5px solid currentColor", borderRadius: 2 }} />
@@ -5608,12 +6086,19 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
                     </div>
                   </div>
 
-                  {/* Quick Flowchart Templates */}
-                  <div style={{ borderTop: "1px solid var(--border)", paddingTop: 6 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--text-muted)", marginBottom: 4 }}>
-                      Diagram Templates
-                    </div>
+                  {/* Quick Solution & Flowchart Templates */}
+                  <div style={{ borderTop: "1px solid var(--border)", paddingTop: 6, marginTop: 6 }}>
+                    <div className="draw-popover-section-title">Solution & Diagram Templates</div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                      <button className="draw-tb" onClick={() => addProcessTemplate("series")} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 8px" }}>
+                        <span>🔢</span> Number Series Pattern (+d Jumps)
+                      </button>
+                      <button className="draw-tb" onClick={() => addProcessTemplate("crossMultiply")} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 8px" }}>
+                        <span>✖️</span> Cross-Multiply Ratio Grid
+                      </button>
+                      <button className="draw-tb" onClick={() => addProcessTemplate("dstTriangle")} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 8px" }}>
+                        <span>📐</span> Distance-Speed-Time Triangle
+                      </button>
                       <button className="draw-tb" onClick={() => addProcessTemplate("linear3")} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 8px" }}>
                         <span>▶</span> 3-Step Process (1 ➔ 2 ➔ 3)
                       </button>
@@ -5644,44 +6129,105 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
                 <path d="M9 6H21M9 6C11.8 8.4 11.8 14.8 9 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
-            <button className="draw-tb" onClick={addLongDivision} title="Add Long Division Bracket">
+            <button className="draw-tb draw-desktop-only" onClick={addLongDivision} title="Add Long Division Bracket">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M5 5H20M5 5C9.4 8 9.4 16 5 20" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
-            <div style={{ width: 1, height: 16, background: "var(--border)", margin: "0 2px" }} />
-            <button className="draw-tb draw-tb-symbol" onClick={() => addSymbol("+")} title="Plus">+</button>
-            <button className="draw-tb draw-tb-symbol" onClick={() => addSymbol("-")} title="Minus">-</button>
-            <button className="draw-tb draw-tb-symbol" onClick={() => addSymbol("×")} title="Multiply">×</button>
-            <button className="draw-tb draw-tb-symbol" onClick={() => addSymbol("÷")} title="Divide">÷</button>
-            <button className="draw-tb draw-tb-symbol" onClick={() => addSymbol("=")} title="Equal">=</button>
+            <div className="draw-bar-subdivider draw-desktop-only" />
+            <button className="draw-tb draw-tb-symbol draw-desktop-only" onClick={() => addSymbol("+")} title="Plus">+</button>
+            <button className="draw-tb draw-tb-symbol draw-desktop-only" onClick={() => addSymbol("-")} title="Minus">-</button>
+            <button className="draw-tb draw-tb-symbol draw-desktop-only" onClick={() => addSymbol("×")} title="Multiply">×</button>
+            <button className="draw-tb draw-tb-symbol draw-desktop-only" onClick={() => addSymbol("÷")} title="Divide">÷</button>
+            <button className="draw-tb draw-tb-symbol draw-desktop-only" onClick={() => addSymbol("=")} title="Equal">=</button>
+
+            {/* Math & Logic Symbols Popover */}
+            <div className="draw-popover-anchor" ref={mathMenuRef}>
+              <button
+                type="button"
+                className={`draw-tb draw-tb-pill${mathMenuOpen ? " draw-on" : ""}`}
+                onClick={() => toggleToolbarMenu("math")}
+                title="Math & Logic Operators, Roots, Pi, Therefore"
+              >
+                <span style={{ fontWeight: 700, fontSize: 12 }}>±=</span>
+                <span className="draw-tb-pill-label">Math</span>
+                <span className="draw-tb-caret">▾</span>
+              </button>
+              {mathMenuOpen && (
+                <div className="draw-popover-menu draw-popover-right" style={{ width: 224 }}>
+                  <div className="draw-popover-section-title">Math & Logic Symbols</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 4, marginBottom: 8 }}>
+                    {["+", "-", "×", "÷", "=", ...EXTRA_MATH_SYMBOLS.filter(s => s !== "÷" && s !== "=")].map((sym) => (
+                      <button
+                        key={sym}
+                        type="button"
+                        className="draw-tb draw-tb-symbol"
+                        onClick={() => { addSymbol(sym); setMathMenuOpen(false); }}
+                        title={`Insert ${sym}`}
+                        style={{ height: 30, fontSize: 14, fontWeight: 700 }}
+                      >
+                        {sym}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="draw-popover-section-title" style={{ borderTop: "1px solid var(--border)", paddingTop: 6 }}>
+                    Math Layouts
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                    <button className="draw-tb" onClick={() => { addFraction(); setMathMenuOpen(false); }} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 8px" }}>
+                      <Divide size={13} /> Editable Fraction (a / b)
+                    </button>
+                    <button className="draw-tb" onClick={() => { addLongDivisionPreset(); setMathMenuOpen(false); }} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 8px" }}>
+                      <span>⟌</span> Long Division (Auto-layout)
+                    </button>
+                    <button className="draw-tb" onClick={() => { addLongDivision(); setMathMenuOpen(false); }} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 8px" }}>
+                      <span>⌈</span> Long Division Bracket Only
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Row 2: Styling, Alignment, View & History */}
         <div className="draw-bar-row">
           {/* Color & Stroke */}
-          <div className="draw-bar-group" style={{ position: "relative" }} ref={colorPickerRef}>
-            {COLORS.map(c => (
-              <div key={c} onClick={() => applyColor(c)}
+          <div className="draw-bar-group draw-popover-anchor" ref={colorPickerRef}>
+            {COLORS.map((c, idx) => (
+              <div
+                key={c}
+                onClick={() => applyColor(c)}
+                className={`draw-color-swatch${idx >= 4 ? " draw-color-swatch-extra" : ""}`}
                 style={{
                   width: 17, height: 17, borderRadius: "50%", background: c, cursor: "pointer", flexShrink: 0,
-                  border: color === c ? "2px solid #fff" : "1px solid rgba(0,0,0,0.1)",
+                  border: color === c ? "2px solid #fff" : "1px solid rgba(0,0,0,0.15)",
                   boxShadow: color === c ? "0 0 0 2px #f5a623" : "none"
                 }}
+                title={`Color ${c}`}
               />
             ))}
             <button
               type="button"
               className={`draw-tb${colorPickerOpen ? " draw-on" : ""}`}
-              onClick={() => setColorPickerOpen(o => !o)}
-              title="Open Color Palette"
-              style={{ padding: "0 5px", minWidth: 26, height: 26 }}
+              onClick={() => toggleToolbarMenu("color")}
+              title="Open Full Color Palette"
+              style={{ padding: "0 5px", minWidth: 26, height: 26, gap: 3 }}
             >
               <Palette size={13} />
+              <span
+                className="draw-mobile-only-swatch"
+                style={{
+                  width: 9,
+                  height: 9,
+                  borderRadius: "50%",
+                  background: color,
+                  border: "1px solid rgba(0,0,0,0.25)"
+                }}
+              />
             </button>
             {colorPickerOpen && (
-              <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, zIndex: 30, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: 12, boxShadow: "0 16px 44px rgba(0,0,0,0.4)", width: 240 }}>
+              <div className="draw-popover-menu" style={{ width: 240, padding: 12 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, opacity: 0.75, marginBottom: 10 }}>Color Palette</div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: 6, marginBottom: 12 }}>
                   {PICKER_COLORS.map(c => (
@@ -5728,10 +6274,11 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
                 </div>
               </div>
             )}
-            <div style={{ width: 1, height: 16, background: "var(--border)", margin: "0 2px" }} />
-            <span style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 600, minWidth: 16, textAlign: "right" }}>{size}</span>
+            <div className="draw-bar-subdivider" />
+            <span style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 600, minWidth: 14, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{size}</span>
             <input type="range" min={1} max={20} value={size} onChange={e => setSize(+e.target.value)}
-              title={tool === "eraser" ? `Eraser Size: ${size}px` : `Stroke Size: ${size}px`}
+              className="draw-stroke-slider"
+              title={tool === "eraser" ? `Eraser Size: ${size}px` : tool === "highlighter" ? `Highlighter Width: ${Math.max(14, size * 4)}px` : `Stroke Size: ${size}px`}
               style={{ width: 44, accentColor: "#f5a623", cursor: "pointer" }} />
           </div>
 
@@ -5745,32 +6292,21 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
             <button className="draw-tb" onClick={moveBackward} title="Send Backward">
               <ChevronDown size={15} />
             </button>
-            <div style={{ width: 1, height: 16, background: "var(--border)", margin: "0 2px" }} />
-            <div ref={alignMenuRef} style={{ position: "relative" }}>
+            <div className="draw-bar-subdivider" />
+            <div ref={alignMenuRef} className="draw-popover-anchor">
               <button 
-                className={`draw-tb${alignMenuOpen ? " draw-on" : ""}`} 
-                onClick={() => setAlignMenuOpen(o => !o)} 
+                type="button"
+                className={`draw-tb draw-tb-pill${alignMenuOpen ? " draw-on" : ""}`} 
+                onClick={() => toggleToolbarMenu("align")} 
                 disabled={!canAlign}
                 title="Align Objects"
-                style={{ gap: 4, padding: "0 7px" }}
               >
                 <AlignCenterHorizontal size={14} />
-                <span style={{ fontSize: 11, fontWeight: 500 }}>Align</span>
+                <span className="draw-tb-pill-label">Align</span>
               </button>
               {alignMenuOpen && (
-                <div style={{
-                  position: "absolute",
-                  top: "calc(100% + 6px)",
-                  left: 0,
-                  zIndex: 30,
-                  background: "var(--surface)",
-                  border: "1px solid var(--border)",
-                  borderRadius: 10,
-                  boxShadow: "0 12px 32px rgba(0,0,0,0.28)",
-                  padding: 8,
-                  minWidth: 164
-                }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6, padding: "0 4px" }}>
+                <div className="draw-popover-menu" style={{ minWidth: 168 }}>
+                  <div className="draw-popover-section-title">
                     {selectionCount > 1 ? `Align ${selectionCount} Items` : "Align to Page"}
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4, marginBottom: 6 }}>
@@ -5804,7 +6340,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
                   </button>
                   {canDistribute && (
                     <>
-                      <div style={{ fontSize: 9.5, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.5, margin: "6px 0 4px", padding: "0 4px", borderTop: "1px solid var(--border)", paddingTop: 6 }}>
+                      <div className="draw-popover-section-title" style={{ marginTop: 6, borderTop: "1px solid var(--border)", paddingTop: 6 }}>
                         Distribute
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
@@ -5822,11 +6358,11 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
                 </div>
               )}
             </div>
-            <div style={{ width: 1, height: 16, background: "var(--border)", margin: "0 2px" }} />
-            <button className="draw-tb" onClick={() => fabricRef.current?.groupSelection?.()} disabled={!canGroup} title="Group (Ctrl+G)" style={{ padding: "0 6px" }}>
+            <div className="draw-bar-subdivider draw-desktop-only" />
+            <button className="draw-tb draw-desktop-only" onClick={() => fabricRef.current?.groupSelection?.()} disabled={!canGroup} title="Group (Ctrl+G)" style={{ padding: "0 6px" }}>
               Group
             </button>
-            <button className="draw-tb" onClick={() => fabricRef.current?.ungroupSelection?.()} disabled={!canUngroup} title="Ungroup (Ctrl+Shift+G)" style={{ padding: "0 6px" }}>
+            <button className="draw-tb draw-desktop-only" onClick={() => fabricRef.current?.ungroupSelection?.()} disabled={!canUngroup} title="Ungroup (Ctrl+Shift+G)" style={{ padding: "0 6px" }}>
               Ungroup
             </button>
             <button className="draw-tb" onClick={straightenSelection} disabled={!canStraighten} title="Straighten Line (S)">
@@ -5844,11 +6380,11 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
             <button className={`draw-tb${gridMode !== "none" ? " draw-on" : ""}`} onClick={() => setGridMode(g => g === "none" ? "dots" : g === "dots" ? "grid" : "none")} title={`Canvas Grid: ${gridMode === "none" ? "Off" : gridMode} (G)`}>
               <Grid size={15} />
             </button>
-            <div style={{ width: 1, height: 16, background: "var(--border)", margin: "0 2px" }} />
+            <div className="draw-bar-subdivider" />
             <button className="draw-tb" onClick={() => fabricRef.current?.zoomBy?.(1/1.2)} title="Zoom Out (Ctrl+-)">
               <ZoomOut size={14} />
             </button>
-            <button className="draw-tb" onClick={handleResetZoom} style={{ fontSize: 11, fontWeight: 600, minWidth: 38, padding: "0 4px" }} title="Reset Zoom to 100%">
+            <button className="draw-tb" onClick={handleResetZoom} style={{ fontSize: 11, fontWeight: 600, minWidth: 36, padding: "0 3px", fontVariantNumeric: "tabular-nums" }} title="Reset Zoom to 100%">
               {zoomPercent}%
             </button>
             <button className="draw-tb" onClick={() => fabricRef.current?.zoomBy?.(1.2)} title="Zoom In (Ctrl++)">
@@ -5860,30 +6396,30 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
 
           {/* Clipboard, History & Destructive Actions */}
           <div className="draw-bar-group">
-            <button className="draw-tb" onClick={() => fabricRef.current?.copySelection?.()} disabled={!canCopy} title="Copy (Ctrl+C)">
+            <button className="draw-tb draw-desktop-only" onClick={() => fabricRef.current?.copySelection?.()} disabled={!canCopy} title="Copy (Ctrl+C)">
               <Copy size={15} />
             </button>
-            <button className="draw-tb" onClick={() => fabricRef.current?.pasteSelection?.()} disabled={!canPaste} title="Paste (Ctrl+V)">
+            <button className="draw-tb draw-desktop-only" onClick={() => fabricRef.current?.pasteSelection?.()} disabled={!canPaste} title="Paste (Ctrl+V)">
               <ClipboardPaste size={15} />
             </button>
-            <button className="draw-tb" onClick={() => fabricRef.current?.duplicateSelection?.()} disabled={!canCopy} title="Duplicate (Ctrl+D)">
+            <button className="draw-tb draw-desktop-only" onClick={() => fabricRef.current?.duplicateSelection?.()} disabled={!canCopy} title="Duplicate (Ctrl+D)">
               <CopyPlus size={15} />
             </button>
-            <div style={{ width: 1, height: 16, background: "var(--border)", margin: "0 2px" }} />
+            <div className="draw-bar-subdivider draw-desktop-only" />
             <button className="draw-tb" onClick={undo} title="Undo (Ctrl+Z)">
               <Undo2 size={15} />
             </button>
             <button className="draw-tb" onClick={redo} title="Redo (Ctrl+Y)">
               <Redo2 size={15} />
             </button>
-            <div style={{ width: 1, height: 16, background: "var(--border)", margin: "0 2px" }} />
+            <div className="draw-bar-subdivider" />
             <button className="draw-tb" onClick={deleteSelected} style={{ color: "#e0365a" }} title="Delete Selected (Del)">
               <Trash2 size={15} />
             </button>
             <button className="draw-tb" onClick={clear} style={{ color: "#e0365a" }} title="Clear Canvas">
               <RotateCcw size={15} />
             </button>
-            <div style={{ width: 1, height: 16, background: "var(--border)", margin: "0 2px" }} />
+            <div className="draw-bar-subdivider" />
             <button className="draw-tb" onClick={copyImageToClipboard} title="Copy Diagram to System Clipboard">
               <Copy size={14} />
             </button>
@@ -5892,7 +6428,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
             </button>
             {(!isMobile && narrow) && (
               <>
-                <div className="qb-draw-layers-divider" style={{ width: 1, height: 16, background: "var(--border)", margin: "0 2px" }} />
+                <div className="qb-draw-layers-divider draw-bar-subdivider" />
                 <button className="draw-tb qb-draw-layers-btn" onClick={() => setLayersOpen(o => !o)} title={layersOpen ? "Hide Layers" : "Show Layers"}>
                   {layersOpen ? <X size={15} /> : <span style={{ fontSize: 11, padding: "0 4px" }}>Layers</span>}
                 </button>
@@ -5918,7 +6454,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
             className="draw-canva-floating-bar"
             style={{
               position: "absolute",
-              left: `${selectionBounds.left}px`,
+              left: isMobile ? "50%" : `${selectionBounds.left}px`,
               top: `${selectionBounds.top}px`,
               transform: "translateX(-50%)",
               zIndex: 25,
@@ -5927,7 +6463,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
           >
             {/* Color Swatch (Fill) for Shapes & Text */}
             {(activeObjProps.isShape || activeObjProps.isText) && (
-              <div style={{ position: "relative" }}>
+              <div className="draw-floating-anchor">
                 <button
                   type="button"
                   className="draw-canva-pill-btn"
@@ -5983,7 +6519,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
 
             {/* Border / Stroke for Shapes & Lines */}
             {(activeObjProps.isShape || activeObjProps.isLine) && (
-              <div style={{ position: "relative" }}>
+              <div className="draw-floating-anchor">
                 <button
                   type="button"
                   className="draw-canva-pill-btn"
@@ -6077,7 +6613,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
             {/* Text Formatting: Font, Size, Bold, Italic, Underline, Align */}
             {activeObjProps.isText && (
               <>
-                <div style={{ position: "relative" }}>
+                <div className="draw-floating-anchor">
                   <button
                     type="button"
                     className="draw-canva-pill-btn"
@@ -6218,7 +6754,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
                 </div>
 
                 {/* Arrowhead Style Selector */}
-                <div style={{ position: "relative" }}>
+                <div className="draw-floating-anchor">
                   <button
                     type="button"
                     className="draw-canva-pill-btn"
@@ -6256,7 +6792,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
 
                 {/* Curvature / Bend Slider & Presets (if curved) */}
                 {activeObjProps.connectorKind === "curved" && (
-                  <div style={{ position: "relative" }}>
+                  <div className="draw-floating-anchor">
                     <button
                       type="button"
                       className="draw-canva-pill-btn"
@@ -6336,7 +6872,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
 
             {/* Multi-Selection Connect Shapes Tool */}
             {activeObjProps.multiSelectCount >= 2 && (
-              <div style={{ position: "relative" }}>
+              <div className="draw-floating-anchor">
                 <button
                   type="button"
                   className="draw-canva-pill-btn"
@@ -6404,10 +6940,10 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
               </div>
             )}
 
-            <div style={{ width: 1, height: 16, background: "var(--border)", margin: "0 2px" }} />
+            <div className="draw-bar-subdivider" />
 
             {/* Opacity Slider Popover */}
-            <div style={{ position: "relative" }}>
+            <div className="draw-floating-anchor">
               <button
                 type="button"
                 className="draw-canva-pill-btn"
@@ -6438,7 +6974,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
             </div>
 
             {/* Layer Arrange Popover */}
-            <div style={{ position: "relative" }}>
+            <div className="draw-floating-anchor">
               <button
                 type="button"
                 className="draw-canva-pill-btn"
@@ -6469,7 +7005,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
               )}
             </div>
 
-            <div style={{ width: 1, height: 16, background: "var(--border)", margin: "0 2px" }} />
+            <div className="draw-bar-subdivider" />
 
             {/* Quick Actions: Duplicate, Lock, Delete */}
             <button className="draw-tb" onClick={() => fabricRef.current?.duplicateSelection?.()} title="Duplicate (Ctrl+D)">
