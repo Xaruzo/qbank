@@ -1100,6 +1100,12 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       configureTextObj(obj);
       configureHrLine(obj);
       configureLongDivisionBracket(obj);
+      if (obj.shapeKind === "roof" && obj.strokeWidth === 5) {
+        obj.set({ strokeWidth: HR_LINE_THICKNESS, strokeUniform: true });
+      }
+      if (["rect", "circle", "triangle", "polygon", "polyline"].includes(obj.type)) {
+        obj.set({ strokeUniform: true });
+      }
       if (obj.type === "i-text") {
         const sx = Math.abs(obj.scaleX || 1);
         const sy = Math.abs(obj.scaleY || 1);
@@ -1188,7 +1194,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       const multiSelectCount = activeObjects.filter(o => o && !o.isGuide).length;
 
       const isText = isTextObj(active);
-      const isShape = ["rect", "circle", "triangle", "polygon"].includes(active.type);
+      const isShape = ["rect", "circle", "triangle", "polygon", "polyline"].includes(active.type);
       const isArrow = active.shapeKind === "arrow" ||
         active.shapeKind === "curvedArrow" ||
         active.shapeKind === "elbowArrow";
@@ -3599,7 +3605,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       if (active.shapeKind === "hrLine" || active.height <= 5) active.set("fill", c);
       else active.set("stroke", c);
     }
-    else if (active.type === "circle" || active.type === "triangle" || active.type === "polygon") {
+    else if (active.type === "circle" || active.type === "triangle" || active.type === "polygon" || active.type === "polyline") {
       active.set("stroke", c);
     }
     canvas.requestRenderAll();
@@ -3765,7 +3771,8 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       height: 60,
       fill: 'transparent',
       stroke: color,
-      strokeWidth: 2,
+      strokeWidth: HR_LINE_THICKNESS,
+      strokeUniform: true,
     });
     fabricRef.current.add(rect);
     fabricRef.current.setActiveObject(rect);
@@ -3781,7 +3788,8 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       height: 80,
       fill: 'transparent',
       stroke: color,
-      strokeWidth: 2,
+      strokeWidth: HR_LINE_THICKNESS,
+      strokeUniform: true,
     });
     fabricRef.current.add(rect);
     fabricRef.current.setActiveObject(rect);
@@ -3796,7 +3804,8 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       radius: 42,
       fill: 'transparent',
       stroke: color,
-      strokeWidth: 2,
+      strokeWidth: HR_LINE_THICKNESS,
+      strokeUniform: true,
       originX: 'center',
       originY: 'center'
     });
@@ -3814,7 +3823,8 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       height: 95,
       fill: 'transparent',
       stroke: color,
-      strokeWidth: 2,
+      strokeWidth: HR_LINE_THICKNESS,
+      strokeUniform: true,
       originX: 'center',
       originY: 'center'
     });
@@ -3841,7 +3851,8 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       originY: 'center',
       fill: 'transparent',
       stroke: color,
-      strokeWidth: 2,
+      strokeWidth: HR_LINE_THICKNESS,
+      strokeUniform: true,
       objectCaching: false
     });
     fabricRef.current.add(star);
@@ -3858,7 +3869,8 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       height: 56,
       fill: 'transparent',
       stroke: color,
-      strokeWidth: 2,
+      strokeWidth: HR_LINE_THICKNESS,
+      strokeUniform: true,
       rx: 28,
       ry: 28,
     });
@@ -3906,7 +3918,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       originY: "center",
       fill: "transparent",
       stroke: color,
-      strokeWidth: 5,
+      strokeWidth: HR_LINE_THICKNESS,
       strokeUniform: true,
       strokeLineCap: "butt",
       strokeLineJoin: "miter",
@@ -5022,7 +5034,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       left: 160,
       top: 130,
       stroke: "#ef4444",
-      strokeWidth: 3,
+      strokeWidth: HR_LINE_THICKNESS,
       strokeUniform: true,
       strokeLineCap: "round",
       originX: "center",
@@ -5083,7 +5095,8 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       radius: 65,
       fill: "rgba(59, 130, 246, 0.28)",
       stroke: "#2563eb",
-      strokeWidth: 2,
+      strokeWidth: HR_LINE_THICKNESS,
+      strokeUniform: true,
     });
     const c2 = new fabric.Circle({
       left: 165,
@@ -5091,7 +5104,8 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       radius: 65,
       fill: "rgba(236, 72, 153, 0.28)",
       stroke: "#db2777",
-      strokeWidth: 2,
+      strokeWidth: HR_LINE_THICKNESS,
+      strokeUniform: true,
     });
     const textA = new fabric.Textbox("Set A", {
       left: 95,
