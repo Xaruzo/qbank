@@ -1163,13 +1163,18 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       }
       const bound = active.getBoundingRect(true, true);
       const boardW = boardRef.current ? boardRef.current.clientWidth : 820;
+      const boardH = boardRef.current ? boardRef.current.clientHeight : 460;
       const centerX = bound.left + bound.width / 2;
       const safeEdge = Math.min(210, Math.floor(boardW / 2));
       const clampedX = boardW <= 560
         ? Math.round(boardW / 2)
         : Math.max(safeEdge, Math.min(boardW - safeEdge, centerX));
-      const isNearTop = bound.top < 64;
-      const topPos = isNearTop ? bound.top + bound.height + 10 : Math.max(8, bound.top - 48);
+      const barEstH = boardW < 640 ? 74 : 44;
+      const isNearTop = bound.top < barEstH + 14;
+      const rawTop = isNearTop
+        ? bound.top + bound.height + 10
+        : Math.max(8, bound.top - barEstH - 6);
+      const topPos = Math.max(8, Math.min(boardH - barEstH - 6, rawTop));
 
       setSelectionBounds({
         left: Math.round(clampedX),
@@ -1183,11 +1188,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       const multiSelectCount = activeObjects.filter(o => o && !o.isGuide).length;
 
       const isText = isTextObj(active);
-      const isShape = ["rect", "circle", "triangle", "polygon"].includes(active.type) ||
-        active.shapeKind === "process" ||
-        active.shapeKind === "decision" ||
-        active.shapeKind === "terminator" ||
-        active.shapeKind === "dataNode";
+      const isShape = ["rect", "circle", "triangle", "polygon"].includes(active.type);
       const isArrow = active.shapeKind === "arrow" ||
         active.shapeKind === "curvedArrow" ||
         active.shapeKind === "elbowArrow";
@@ -1195,12 +1196,13 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
         active.shapeKind === "hrLine" ||
         active.shapeKind === "vrLine" ||
         isArrow;
-      const isFlowchartShape = ["process", "decision", "terminator", "dataNode"].includes(active.shapeKind) ||
-        !!active.isStickyNote ||
-        isShape;
+      const isFlowchartNode = ["process", "decision", "terminator", "dataNode"].includes(active.shapeKind) ||
+        !!active.isStickyNote;
+      const isFlowchartShape = isFlowchartNode || isShape;
 
       setActiveObjProps({
         fill: active.fill || "transparent",
+        bgColor: active.backgroundColor || "transparent",
         stroke: active.stroke || "transparent",
         strokeWidth: active.strokeWidth || 0,
         strokeDashArray: active.strokeDashArray || null,
@@ -1216,6 +1218,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
         isShape,
         isLine,
         isArrow,
+        isFlowchartNode,
         isFlowchartShape,
         multiSelectCount,
         connectorKind: active.connectorKind || (active.shapeKind === "curvedArrow" ? "curved" : active.shapeKind === "elbowArrow" ? "elbow" : active.shapeKind === "arrow" ? "straight" : null),
@@ -4978,11 +4981,11 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
     }
   }, [configureTextObj, ensureLayerId, showToast]);
 
-  const addStepBadge = useCallback(() => {
+  const addStepBadge = useCallback((customStepNum) => {
     const canvas = fabricRef.current;
     if (!canvas) return;
     const existing = (canvas.getObjects?.() || []).filter(o => o && o.isStepBadge);
-    const idx = existing.length;
+    const idx = typeof customStepNum === "number" && customStepNum >= 1 ? customStepNum - 1 : existing.length;
     const label = STEP_CIRCLES[idx] || `${idx + 1}.`;
     const badge = new fabric.Textbox(label, {
       left: 70,
@@ -5008,6 +5011,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
     canvas.setActiveObject(badge);
     canvas.requestRenderAll();
     setTool("move");
+    setShapesMenuOpen(false);
     showToast(`Added Step Badge ${label}`);
   }, [configureTextObj, ensureLayerId, showToast]);
 
@@ -5121,6 +5125,17 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
     const active = canvas?.getActiveObject();
     if (!canvas || !active) return;
     active.set("fill", c);
+    active.dirty = true;
+    canvas.requestRenderAll();
+    commitCanvasChange(active);
+    if (typeof canvas.refreshUI === "function") canvas.refreshUI();
+  }, [commitCanvasChange]);
+
+  const applyActiveBgColor = useCallback((c) => {
+    const canvas = fabricRef.current;
+    const active = canvas?.getActiveObject();
+    if (!canvas || !active) return;
+    active.set("backgroundColor", c === "transparent" ? "" : c);
     active.dirty = true;
     canvas.requestRenderAll();
     commitCanvasChange(active);
@@ -5781,24 +5796,8 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
             </button>
           </div>
 
-          <div className="draw-bar-divider" />
-
           {/* Lines, Connectors & Quick Solution Stamps */}
           <div className="draw-bar-group">
-            <button className="draw-tb draw-desktop-only" onClick={addHrLine} title="Add Rotatable Horizontal Line">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <circle cx="5" cy="12" r="2" fill="currentColor" />
-                <path d="M7 12h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                <circle cx="19" cy="12" r="2" fill="currentColor" />
-              </svg>
-            </button>
-            <button className="draw-tb draw-desktop-only" onClick={addVrLine} title="Add Rotatable Vertical Line">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <circle cx="12" cy="5" r="2" fill="currentColor" />
-                <path d="M12 7v10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                <circle cx="12" cy="19" r="2" fill="currentColor" />
-              </svg>
-            </button>
             <button className="draw-tb" onClick={addLine} title="Add Line Segment / Fraction Bar">
               <Minus size={15} />
             </button>
@@ -5825,23 +5824,13 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
             </button>
           </div>
 
-          <div className="draw-bar-divider" />
-
           {/* Shapes, Callouts & Flowchart Templates */}
           <div className="draw-bar-group">
             <button className="draw-tb" onClick={addSquare} title="Add Square">
               <Square size={15} />
             </button>
-            <button className="draw-tb draw-desktop-only" onClick={addRectangle} title="Add Rounded Rectangle">
-              <span style={{ display: "inline-block", width: 17, height: 11, border: "2px solid currentColor", borderRadius: 3 }} />
-            </button>
             <button className="draw-tb" onClick={addCircle} title="Add Circle">
               <span style={{ display: "inline-block", width: 14, height: 14, border: "2px solid currentColor", borderRadius: "50%" }} />
-            </button>
-            <button className="draw-tb draw-desktop-only" onClick={addTriangle} title="Add Triangle">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M12 4 L21 20 H3 Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-              </svg>
             </button>
 
             {/* All Shapes & Solution Stamps Popover */}
@@ -6115,8 +6104,6 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
             </div>
           </div>
 
-          <div className="draw-bar-divider" />
-
           {/* Math Presets & Operators */}
           <div className="draw-bar-group">
             <button className="draw-tb" onClick={addFraction} title="Add Fraction (Auto-layout)">
@@ -6129,17 +6116,6 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
                 <path d="M9 6H21M9 6C11.8 8.4 11.8 14.8 9 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
-            <button className="draw-tb draw-desktop-only" onClick={addLongDivision} title="Add Long Division Bracket">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M5 5H20M5 5C9.4 8 9.4 16 5 20" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-            <div className="draw-bar-subdivider draw-desktop-only" />
-            <button className="draw-tb draw-tb-symbol draw-desktop-only" onClick={() => addSymbol("+")} title="Plus">+</button>
-            <button className="draw-tb draw-tb-symbol draw-desktop-only" onClick={() => addSymbol("-")} title="Minus">-</button>
-            <button className="draw-tb draw-tb-symbol draw-desktop-only" onClick={() => addSymbol("×")} title="Multiply">×</button>
-            <button className="draw-tb draw-tb-symbol draw-desktop-only" onClick={() => addSymbol("÷")} title="Divide">÷</button>
-            <button className="draw-tb draw-tb-symbol draw-desktop-only" onClick={() => addSymbol("=")} title="Equal">=</button>
 
             {/* Math & Logic Symbols Popover */}
             <div className="draw-popover-anchor" ref={mathMenuRef}>
@@ -6157,16 +6133,25 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
                 <div className="draw-popover-menu draw-popover-right" style={{ width: 224 }}>
                   <div className="draw-popover-section-title">Math & Logic Symbols</div>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 4, marginBottom: 8 }}>
-                    {["+", "-", "×", "÷", "=", ...EXTRA_MATH_SYMBOLS.filter(s => s !== "÷" && s !== "=")].map((sym) => (
+                    {[
+                      { sym: "+", title: "Plus" },
+                      { sym: "-", title: "Minus" },
+                      { sym: "×", title: "Multiply" },
+                      { sym: "÷", title: "Divide" },
+                      { sym: "=", title: "Equal" },
+                      ...EXTRA_MATH_SYMBOLS.map(item =>
+                        typeof item === "string" ? { sym: item, title: `Insert ${item}` } : item
+                      ).filter(item => item?.sym && item.sym !== "÷" && item.sym !== "=")
+                    ].map((item) => (
                       <button
-                        key={sym}
+                        key={item.sym}
                         type="button"
                         className="draw-tb draw-tb-symbol"
-                        onClick={() => { addSymbol(sym); setMathMenuOpen(false); }}
-                        title={`Insert ${sym}`}
-                        style={{ height: 30, fontSize: 14, fontWeight: 700 }}
+                        onClick={() => { addSymbol(item.sym); setMathMenuOpen(false); }}
+                        title={item.title || `Insert ${item.sym}`}
+                        style={{ height: 30, fontSize: 13, fontWeight: 700 }}
                       >
-                        {sym}
+                        {item.sym}
                       </button>
                     ))}
                   </div>
@@ -6282,8 +6267,6 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
               style={{ width: 44, accentColor: "#f5a623", cursor: "pointer" }} />
           </div>
 
-          <div className="draw-bar-divider" />
-
           {/* Arrange & Align */}
           <div className="draw-bar-group">
             <button className="draw-tb" onClick={moveForward} title="Bring Forward">
@@ -6299,7 +6282,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
                 className={`draw-tb draw-tb-pill${alignMenuOpen ? " draw-on" : ""}`} 
                 onClick={() => toggleToolbarMenu("align")} 
                 disabled={!canAlign}
-                title="Align Objects"
+                title="Align & Group Objects"
               >
                 <AlignCenterHorizontal size={14} />
                 <span className="draw-tb-pill-label">Align</span>
@@ -6331,13 +6314,23 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
                   </div>
                   <button
                     className="draw-tb"
-                    style={{ width: "100%", justifyContent: "center", fontSize: 11, gap: 5, padding: "5px 6px", marginBottom: canDistribute ? 6 : 0 }}
+                    style={{ width: "100%", justifyContent: "center", fontSize: 11, gap: 5, padding: "5px 6px", marginBottom: 6 }}
                     onClick={() => { handleAlign("centerCanvas"); setAlignMenuOpen(false); }}
                     title="Center on Canvas"
                   >
                     <Square size={13} style={{ strokeDasharray: "2 2" }} />
                     Center on Canvas
                   </button>
+                  {(canGroup || canUngroup) && (
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, borderTop: "1px solid var(--border)", paddingTop: 6, marginBottom: canDistribute ? 6 : 0 }}>
+                      <button className="draw-tb" disabled={!canGroup} onClick={() => { fabricRef.current?.groupSelection?.(); setAlignMenuOpen(false); }} style={{ justifyContent: "center", fontSize: 11 }}>
+                        Group
+                      </button>
+                      <button className="draw-tb" disabled={!canUngroup} onClick={() => { fabricRef.current?.ungroupSelection?.(); setAlignMenuOpen(false); }} style={{ justifyContent: "center", fontSize: 11 }}>
+                        Ungroup
+                      </button>
+                    </div>
+                  )}
                   {canDistribute && (
                     <>
                       <div className="draw-popover-section-title" style={{ marginTop: 6, borderTop: "1px solid var(--border)", paddingTop: 6 }}>
@@ -6358,19 +6351,10 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
                 </div>
               )}
             </div>
-            <div className="draw-bar-subdivider draw-desktop-only" />
-            <button className="draw-tb draw-desktop-only" onClick={() => fabricRef.current?.groupSelection?.()} disabled={!canGroup} title="Group (Ctrl+G)" style={{ padding: "0 6px" }}>
-              Group
-            </button>
-            <button className="draw-tb draw-desktop-only" onClick={() => fabricRef.current?.ungroupSelection?.()} disabled={!canUngroup} title="Ungroup (Ctrl+Shift+G)" style={{ padding: "0 6px" }}>
-              Ungroup
-            </button>
             <button className="draw-tb" onClick={straightenSelection} disabled={!canStraighten} title="Straighten Line (S)">
               <Ruler size={15} />
             </button>
           </div>
-
-          <div className="draw-bar-divider" />
 
           {/* Canvas Aids & Zoom View */}
           <div className="draw-bar-group">
@@ -6392,20 +6376,8 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
             </button>
           </div>
 
-          <div className="draw-bar-divider" />
-
           {/* Clipboard, History & Destructive Actions */}
           <div className="draw-bar-group">
-            <button className="draw-tb draw-desktop-only" onClick={() => fabricRef.current?.copySelection?.()} disabled={!canCopy} title="Copy (Ctrl+C)">
-              <Copy size={15} />
-            </button>
-            <button className="draw-tb draw-desktop-only" onClick={() => fabricRef.current?.pasteSelection?.()} disabled={!canPaste} title="Paste (Ctrl+V)">
-              <ClipboardPaste size={15} />
-            </button>
-            <button className="draw-tb draw-desktop-only" onClick={() => fabricRef.current?.duplicateSelection?.()} disabled={!canCopy} title="Duplicate (Ctrl+D)">
-              <CopyPlus size={15} />
-            </button>
-            <div className="draw-bar-subdivider draw-desktop-only" />
             <button className="draw-tb" onClick={undo} title="Undo (Ctrl+Z)">
               <Undo2 size={15} />
             </button>
@@ -6449,627 +6421,632 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
         )}
 
         {/* ── Canva Floating Selection Bar ── */}
-        {selectionBounds && activeObjProps ? (
+        {selectionBounds && activeObjProps && (
           <div
-            className="draw-canva-floating-bar"
+            className="draw-canva-floating-bar-wrap"
             style={{
               position: "absolute",
-              left: isMobile ? "50%" : `${selectionBounds.left}px`,
+              left: 8,
+              right: 8,
               top: `${selectionBounds.top}px`,
-              transform: "translateX(-50%)",
               zIndex: 25,
+              pointerEvents: "none",
+              display: "flex",
+              justifyContent: "center",
             }}
-            onMouseDown={(e) => e.stopPropagation()}
           >
-            {/* Color Swatch (Fill) for Shapes & Text */}
-            {(activeObjProps.isShape || activeObjProps.isText) && (
-              <div className="draw-floating-anchor">
-                <button
-                  type="button"
-                  className="draw-canva-pill-btn"
-                  onClick={() => setFloatingPopover(p => p === "fill" ? null : "fill")}
-                  title="Fill Color"
-                >
-                  <span
-                    style={{
-                      width: 15,
-                      height: 15,
-                      borderRadius: "50%",
-                      background: activeObjProps.fill === "transparent" ? "none" : activeObjProps.fill,
-                      border: "1.5px solid rgba(0,0,0,0.18)",
-                      backgroundImage: activeObjProps.fill === "transparent"
-                        ? "repeating-linear-gradient(45deg, #ccc 0, #ccc 2px, #fff 2px, #fff 4px)"
-                        : "none",
-                      display: "inline-block"
-                    }}
-                  />
-                  <span style={{ fontSize: 11, fontWeight: 600 }}>Fill</span>
-                </button>
-                {floatingPopover === "fill" && (
-                  <div className="draw-floating-popover" style={{ left: 0 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8, color: "var(--text-muted)" }}>
-                      Fill Color
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 6 }}>
-                      {FILL_PALETTE.map((item) => (
-                        <button
-                          key={item.value}
-                          type="button"
-                          onClick={() => { applyActiveFill(item.value); setFloatingPopover(null); }}
-                          title={item.name}
-                          style={{
-                            width: 22,
-                            height: 22,
-                            borderRadius: "50%",
-                            background: item.value === "transparent" ? "none" : item.value,
-                            backgroundImage: item.value === "transparent"
-                              ? "repeating-linear-gradient(45deg, #ccc 0, #ccc 2px, #fff 2px, #fff 4px)"
-                              : "none",
-                            border: activeObjProps.fill === item.value ? "2px solid #a855f7" : "1px solid rgba(0,0,0,0.15)",
-                            boxShadow: activeObjProps.fill === item.value ? "0 0 0 2px #a855f7" : "none",
-                            cursor: "pointer"
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Border / Stroke for Shapes & Lines */}
-            {(activeObjProps.isShape || activeObjProps.isLine) && (
-              <div className="draw-floating-anchor">
-                <button
-                  type="button"
-                  className="draw-canva-pill-btn"
-                  onClick={() => setFloatingPopover(p => p === "stroke" ? null : "stroke")}
-                  title="Border & Stroke"
-                >
-                  <span
-                    style={{
-                      width: 13,
-                      height: 13,
-                      borderRadius: 3,
-                      border: `2px solid ${activeObjProps.stroke === "transparent" ? "#94a3b8" : activeObjProps.stroke}`,
-                      display: "inline-block"
-                    }}
-                  />
-                  <span style={{ fontSize: 11, fontWeight: 600 }}>Border</span>
-                </button>
-                {floatingPopover === "stroke" && (
-                  <div className="draw-floating-popover" style={{ left: 0, width: 215 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8, color: "var(--text-muted)" }}>
-                      Border Color
-                    </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 6, marginBottom: 10 }}>
-                      {COLORS.concat(["#ef4444", "#3b82f6", "#10b981"]).map((c) => (
-                        <button
-                          key={c}
-                          type="button"
-                          onClick={() => applyActiveStroke(c)}
-                          style={{
-                            width: 20,
-                            height: 20,
-                            borderRadius: "50%",
-                            background: c,
-                            border: activeObjProps.stroke === c ? "2px solid #a855f7" : "1px solid rgba(0,0,0,0.15)",
-                            boxShadow: activeObjProps.stroke === c ? "0 0 0 2px #a855f7" : "none",
-                            cursor: "pointer"
-                          }}
-                        />
-                      ))}
-                    </div>
-                    <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6, color: "var(--text-muted)" }}>
-                      Border Thickness
-                    </div>
-                    <div style={{ display: "flex", gap: 3, marginBottom: 10 }}>
-                      {[0, 1, 2, 4, 8].map((w) => (
-                        <button
-                          key={w}
-                          type="button"
-                          className={`draw-tb${activeObjProps.strokeWidth === w ? " draw-on" : ""}`}
-                          onClick={() => applyActiveStrokeWidth(w)}
-                          style={{ flex: 1, fontSize: 11, fontWeight: 600 }}
-                        >
-                          {w === 0 ? "0" : `${w}px`}
-                        </button>
-                      ))}
-                    </div>
-                    <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6, color: "var(--text-muted)" }}>
-                      Border Style
-                    </div>
-                    <div style={{ display: "flex", gap: 3 }}>
-                      <button
-                        type="button"
-                        className={`draw-tb${!activeObjProps.strokeDashArray ? " draw-on" : ""}`}
-                        onClick={() => applyActiveStrokeStyle("solid")}
-                        style={{ flex: 1, fontSize: 11 }}
-                      >
-                        Solid
-                      </button>
-                      <button
-                        type="button"
-                        className={`draw-tb${activeObjProps.strokeDashArray?.length === 2 && activeObjProps.strokeDashArray[0] === 8 ? " draw-on" : ""}`}
-                        onClick={() => applyActiveStrokeStyle("dashed")}
-                        style={{ flex: 1, fontSize: 11 }}
-                      >
-                        Dashed
-                      </button>
-                      <button
-                        type="button"
-                        className={`draw-tb${activeObjProps.strokeDashArray?.length === 2 && activeObjProps.strokeDashArray[0] === 3 ? " draw-on" : ""}`}
-                        onClick={() => applyActiveStrokeStyle("dotted")}
-                        style={{ flex: 1, fontSize: 11 }}
-                      >
-                        Dotted
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Text Formatting: Font, Size, Bold, Italic, Underline, Align */}
-            {activeObjProps.isText && (
-              <>
+            <div
+              className="draw-canva-floating-bar"
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              {/* Color Swatch (Fill) for Shapes & Text */}
+              {(activeObjProps.isShape || activeObjProps.isText) && (
                 <div className="draw-floating-anchor">
                   <button
                     type="button"
                     className="draw-canva-pill-btn"
-                    onClick={() => setFloatingPopover(p => p === "font" ? null : "font")}
-                    title="Font Family"
+                    onClick={() => setFloatingPopover(p => p === "fill" ? null : "fill")}
+                    title={activeObjProps.isText ? "Text & Card Color" : "Fill Color"}
                   >
-                    <span style={{ fontSize: 11, fontWeight: 600, maxWidth: 60, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {CANVA_FONTS.find(f => activeObjProps.fontFamily?.includes(f.name))?.name || "Font"}
-                    </span>
-                  </button>
-                  {floatingPopover === "font" && (
-                    <div className="draw-floating-popover" style={{ left: 0, width: 145 }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6, color: "var(--text-muted)" }}>
-                        Font Family
-                      </div>
-                      {CANVA_FONTS.map((f) => (
-                        <button
-                          key={f.name}
-                          type="button"
-                          className="draw-tb"
-                          onClick={() => { applyActiveFontFamily(f.value); setFloatingPopover(null); }}
-                          style={{
-                            width: "100%",
-                            justifyContent: "flex-start",
-                            fontFamily: f.value,
-                            fontSize: 12,
-                            padding: "5px 7px",
-                            marginBottom: 2
-                          }}
-                        >
-                          {f.name}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
-                  <button className="draw-tb" onClick={() => applyFontSize(fontSize - 1)} title="Font Size -">
-                    <Minus size={12} />
-                  </button>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    ref={fontSizeInputRef}
-                    value={fontSizeInput}
-                    onChange={(e) => {
-                      const val = sanitizeIntegerInput(e.target.value);
-                      setFontSizeInput(val);
-                      if (val !== "") applyFontSize(Number(val), false);
-                    }}
-                    onBlur={(e) => commitFontSizeInput(e.target.value)}
-                    style={{ width: 32, padding: "2px 2px", fontSize: 11, fontWeight: 600, textAlign: "center", borderRadius: 4, border: "1px solid var(--border)", background: "transparent", color: "inherit" }}
-                  />
-                  <button className="draw-tb" onClick={() => applyFontSize(fontSize + 1)} title="Font Size +">
-                    <Plus size={12} />
-                  </button>
-                </div>
-
-                <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
-                  <button
-                    className={`draw-tb${activeObjProps.fontWeight === "bold" ? " draw-on" : ""}`}
-                    onClick={toggleActiveBold}
-                    title="Bold"
-                    style={{ fontWeight: 700, minWidth: 24, fontSize: 12 }}
-                  >
-                    B
-                  </button>
-                  <button
-                    className={`draw-tb${activeObjProps.fontStyle === "italic" ? " draw-on" : ""}`}
-                    onClick={toggleActiveItalic}
-                    title="Italic"
-                    style={{ fontStyle: "italic", minWidth: 24, fontSize: 12, fontFamily: "serif" }}
-                  >
-                    I
-                  </button>
-                  <button
-                    className={`draw-tb${activeObjProps.underline ? " draw-on" : ""}`}
-                    onClick={toggleActiveUnderline}
-                    title="Underline"
-                    style={{ textDecoration: "underline", minWidth: 24, fontSize: 12 }}
-                  >
-                    U
-                  </button>
-                </div>
-
-                <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
-                  <button className={`draw-tb${activeTextAlign === "left" ? " draw-on" : ""}`} onClick={() => applyTextAlign("left")} title="Align Left">
-                    <AlignLeft size={13} />
-                  </button>
-                  <button className={`draw-tb${activeTextAlign === "center" ? " draw-on" : ""}`} onClick={() => applyTextAlign("center")} title="Align Center">
-                    <AlignCenter size={13} />
-                  </button>
-                  <button className={`draw-tb${activeTextAlign === "right" ? " draw-on" : ""}`} onClick={() => applyTextAlign("right")} title="Align Right">
-                    <AlignRight size={13} />
-                  </button>
-                </div>
-              </>
-            )}
-
-            {/* Smart Connectors & Curved Arrows Controls */}
-            {activeObjProps.isArrow && (
-              <>
-                <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
-                  <button
-                    type="button"
-                    className={`draw-tb${activeObjProps.connectorKind === "straight" ? " draw-on" : ""}`}
-                    onClick={() => modifyActiveArrow({ newKind: "straight" })}
-                    title="Straight Arrow (→)"
-                    style={{ minWidth: 26, fontSize: 13, fontWeight: 700 }}
-                  >
-                    →
-                  </button>
-                  <button
-                    type="button"
-                    className={`draw-tb${activeObjProps.connectorKind === "curved" ? " draw-on" : ""}`}
-                    onClick={() => modifyActiveArrow({ newKind: "curved" })}
-                    title="Curved Process Arrow (↷)"
-                    style={{ minWidth: 26 }}
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M4 18 C 4 9, 14 6, 20 8" />
-                      <path d="M15 4 L20 8 L16 13" />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    className={`draw-tb${activeObjProps.connectorKind === "elbow" ? " draw-on" : ""}`}
-                    onClick={() => modifyActiveArrow({ newKind: "elbow" })}
-                    title="Elbow 90° Connector (↳)"
-                    style={{ minWidth: 26 }}
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M5 6 H14 V18" />
-                      <path d="M10 14 L14 18 L18 14" />
-                    </svg>
-                  </button>
-                </div>
-
-                {/* Arrowhead Style Selector */}
-                <div className="draw-floating-anchor">
-                  <button
-                    type="button"
-                    className="draw-canva-pill-btn"
-                    onClick={() => setFloatingPopover(p => p === "arrowHead" ? null : "arrowHead")}
-                    title="Arrowhead Style"
-                  >
+                    <span
+                      style={{
+                        width: 15,
+                        height: 15,
+                        borderRadius: "50%",
+                        background: activeObjProps.fill === "transparent" ? "none" : activeObjProps.fill,
+                        border: "1.5px solid rgba(0,0,0,0.18)",
+                        backgroundImage: activeObjProps.fill === "transparent"
+                          ? "repeating-linear-gradient(45deg, #ccc 0, #ccc 2px, #fff 2px, #fff 4px)"
+                          : "none",
+                        display: "inline-block",
+                        flexShrink: 0,
+                      }}
+                    />
                     <span style={{ fontSize: 11, fontWeight: 600 }}>
-                      {activeObjProps.arrowHead === "both" ? "↔ Both" : activeObjProps.arrowHead === "circle-arrow" ? "•→ Dot" : activeObjProps.arrowHead === "none" ? "— Line" : "→ End"}
+                      {activeObjProps.isText ? "Color" : "Fill"}
                     </span>
                   </button>
-                  {floatingPopover === "arrowHead" && (
-                    <div className="draw-floating-popover" style={{ left: 0, width: 145 }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6, color: "var(--text-muted)" }}>
-                        Arrowhead
+                  {floatingPopover === "fill" && (
+                    <div className="draw-floating-popover" style={{ width: 196 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8, color: "var(--text-muted)" }}>
+                        {activeObjProps.isText ? "Text Color" : "Fill Color"}
                       </div>
-                      {[
-                        { id: "end", label: "→ End Arrow" },
-                        { id: "both", label: "↔ Both Ends" },
-                        { id: "circle-arrow", label: "•→ Dot & Arrow" },
-                        { id: "none", label: "— Plain Line" }
-                      ].map(h => (
-                        <button
-                          key={h.id}
-                          type="button"
-                          className={`draw-tb${activeObjProps.arrowHead === h.id ? " draw-on" : ""}`}
-                          onClick={() => { modifyActiveArrow({ newHead: h.id }); setFloatingPopover(null); }}
-                          style={{ width: "100%", justifyContent: "flex-start", fontSize: 11, padding: "5px 7px", marginBottom: 2 }}
-                        >
-                          {h.label}
-                        </button>
-                      ))}
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 6, marginBottom: activeObjProps.isText ? 10 : 0 }}>
+                        {FILL_PALETTE.map((item) => (
+                          <button
+                            key={item.value}
+                            type="button"
+                            onClick={() => { applyActiveFill(item.value); if (!activeObjProps.isText) setFloatingPopover(null); }}
+                            title={item.name}
+                            style={{
+                              width: 22,
+                              height: 22,
+                              borderRadius: "50%",
+                              background: item.value === "transparent" ? "none" : item.value,
+                              backgroundImage: item.value === "transparent"
+                                ? "repeating-linear-gradient(45deg, #ccc 0, #ccc 2px, #fff 2px, #fff 4px)"
+                                : "none",
+                              border: activeObjProps.fill === item.value ? "2px solid #a855f7" : "1px solid rgba(0,0,0,0.15)",
+                              boxShadow: activeObjProps.fill === item.value ? "0 0 0 2px #a855f7" : "none",
+                              cursor: "pointer"
+                            }}
+                          />
+                        ))}
+                      </div>
+                      {activeObjProps.isText && (
+                        <>
+                          <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6, paddingTop: 8, borderTop: "1px solid var(--border)", color: "var(--text-muted)" }}>
+                            Card / Note Background
+                          </div>
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 6 }}>
+                            {[
+                              { name: "None", value: "transparent" },
+                              { name: "Yellow Note", value: "#fef08a" },
+                              { name: "Blue Card", value: "#eff6ff" },
+                              { name: "Green Card", value: "#f0fdf4" },
+                              { name: "Amber Card", value: "#fef3c7" },
+                              { name: "Rose Card", value: "#fce7f3" },
+                              { name: "Purple Card", value: "#f3e8ff" },
+                              { name: "Red Alert", value: "#fef2f2" },
+                              { name: "White", value: "#ffffff" },
+                              { name: "Dark", value: "#1e293b" },
+                            ].map((item) => (
+                              <button
+                                key={item.value}
+                                type="button"
+                                onClick={() => { applyActiveBgColor(item.value); setFloatingPopover(null); }}
+                                title={item.name}
+                                style={{
+                                  width: 22,
+                                  height: 22,
+                                  borderRadius: 6,
+                                  background: item.value === "transparent" ? "none" : item.value,
+                                  backgroundImage: item.value === "transparent"
+                                    ? "repeating-linear-gradient(45deg, #ccc 0, #ccc 2px, #fff 2px, #fff 4px)"
+                                    : "none",
+                                  border: activeObjProps.bgColor === item.value ? "2px solid #a855f7" : "1px solid rgba(0,0,0,0.15)",
+                                  boxShadow: activeObjProps.bgColor === item.value ? "0 0 0 2px #a855f7" : "none",
+                                  cursor: "pointer"
+                                }}
+                              />
+                            ))}
+                          </div>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
+              )}
 
-                {/* Curvature / Bend Slider & Presets (if curved) */}
-                {activeObjProps.connectorKind === "curved" && (
+              {/* Border / Stroke for Shapes & Lines */}
+              {(activeObjProps.isShape || activeObjProps.isLine) && (
+                <div className="draw-floating-anchor">
+                  <button
+                    type="button"
+                    className="draw-canva-pill-btn"
+                    onClick={() => setFloatingPopover(p => p === "stroke" ? null : "stroke")}
+                    title="Border & Stroke"
+                  >
+                    <span
+                      style={{
+                        width: 13,
+                        height: 13,
+                        borderRadius: 3,
+                        border: `2px solid ${activeObjProps.stroke === "transparent" ? "#94a3b8" : activeObjProps.stroke}`,
+                        display: "inline-block"
+                      }}
+                    />
+                    <span style={{ fontSize: 11, fontWeight: 600 }}>Border</span>
+                  </button>
+                  {floatingPopover === "stroke" && (
+                    <div className="draw-floating-popover" style={{ width: 215 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8, color: "var(--text-muted)" }}>
+                        Border Color
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 6, marginBottom: 10 }}>
+                        {COLORS.concat(["#ef4444", "#3b82f6", "#10b981"]).map((c) => (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => applyActiveStroke(c)}
+                            style={{
+                              width: 20,
+                              height: 20,
+                              borderRadius: "50%",
+                              background: c,
+                              border: activeObjProps.stroke === c ? "2px solid #a855f7" : "1px solid rgba(0,0,0,0.15)",
+                              boxShadow: activeObjProps.stroke === c ? "0 0 0 2px #a855f7" : "none",
+                              cursor: "pointer"
+                            }}
+                          />
+                        ))}
+                      </div>
+                      <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6, color: "var(--text-muted)" }}>
+                        Border Thickness
+                      </div>
+                      <div style={{ display: "flex", gap: 3, marginBottom: 10 }}>
+                        {[0, 1, 2, 4, 8].map((w) => (
+                          <button
+                            key={w}
+                            type="button"
+                            className={`draw-tb${activeObjProps.strokeWidth === w ? " draw-on" : ""}`}
+                            onClick={() => applyActiveStrokeWidth(w)}
+                            style={{ flex: 1, fontSize: 11, fontWeight: 600 }}
+                          >
+                            {w === 0 ? "0" : `${w}px`}
+                          </button>
+                        ))}
+                      </div>
+                      <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6, color: "var(--text-muted)" }}>
+                        Border Style
+                      </div>
+                      <div style={{ display: "flex", gap: 3 }}>
+                        <button
+                          type="button"
+                          className={`draw-tb${!activeObjProps.strokeDashArray ? " draw-on" : ""}`}
+                          onClick={() => applyActiveStrokeStyle("solid")}
+                          style={{ flex: 1, fontSize: 11 }}
+                        >
+                          Solid
+                        </button>
+                        <button
+                          type="button"
+                          className={`draw-tb${activeObjProps.strokeDashArray?.length === 2 && activeObjProps.strokeDashArray[0] === 8 ? " draw-on" : ""}`}
+                          onClick={() => applyActiveStrokeStyle("dashed")}
+                          style={{ flex: 1, fontSize: 11 }}
+                        >
+                          Dashed
+                        </button>
+                        <button
+                          type="button"
+                          className={`draw-tb${activeObjProps.strokeDashArray?.length === 2 && activeObjProps.strokeDashArray[0] === 3 ? " draw-on" : ""}`}
+                          onClick={() => applyActiveStrokeStyle("dotted")}
+                          style={{ flex: 1, fontSize: 11 }}
+                        >
+                          Dotted
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Text Formatting: Font, Size, Bold, Italic, Underline, Align */}
+              {activeObjProps.isText && (
+                <>
                   <div className="draw-floating-anchor">
                     <button
                       type="button"
                       className="draw-canva-pill-btn"
-                      onClick={() => setFloatingPopover(p => p === "curvature" ? null : "curvature")}
-                      title="Curve Bend & Arc Angle"
+                      onClick={() => setFloatingPopover(p => p === "font" ? null : "font")}
+                      title="Font Family"
                     >
-                      <Sliders size={12} />
-                      <span style={{ fontSize: 11, fontWeight: 600 }}>Arc: {activeObjProps.bend || -35}</span>
+                      <span style={{ fontSize: 11, fontWeight: 600, maxWidth: 56, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {CANVA_FONTS.find(f => activeObjProps.fontFamily?.includes(f.name))?.name || "Font"}
+                      </span>
                     </button>
-                    {floatingPopover === "curvature" && (
-                      <div className="draw-floating-popover" style={{ left: 0, width: 200 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                          <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--text-muted)" }}>
-                            Curvature Bend
-                          </span>
-                          <span style={{ fontSize: 11, fontWeight: 600 }}>{activeObjProps.bend || -35}px</span>
+                    {floatingPopover === "font" && (
+                      <div className="draw-floating-popover" style={{ width: 145 }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6, color: "var(--text-muted)" }}>
+                          Font Family
                         </div>
-                        <input
-                          type="range"
-                          min={-90}
-                          max={90}
-                          step={5}
-                          value={activeObjProps.bend != null ? activeObjProps.bend : -35}
-                          onChange={(e) => modifyActiveArrow({ newBend: Number(e.target.value) })}
-                          style={{ width: "100%", accentColor: "#3b82f6", cursor: "pointer", marginBottom: 8 }}
-                        />
-                        <div style={{ fontSize: 9.5, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", marginBottom: 4 }}>
-                          Arc Presets
-                        </div>
-                        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 3 }}>
-                          <button className="draw-tb" onClick={() => modifyActiveArrow({ newBend: -60 })} style={{ fontSize: 10 }}>Deep Up</button>
-                          <button className="draw-tb" onClick={() => modifyActiveArrow({ newBend: -30 })} style={{ fontSize: 10 }}>Arc Up</button>
-                          <button className="draw-tb" onClick={() => modifyActiveArrow({ newBend: 0 })} style={{ fontSize: 10 }}>Flat</button>
-                          <button className="draw-tb" onClick={() => modifyActiveArrow({ newBend: 30 })} style={{ fontSize: 10 }}>Arc Down</button>
-                          <button className="draw-tb" onClick={() => modifyActiveArrow({ newBend: 60 })} style={{ fontSize: 10 }}>Deep Down</button>
-                          <button className="draw-tb" onClick={() => modifyActiveArrow({ newBend: (activeObjProps.bend || -35) * -1 })} style={{ fontSize: 10 }}>Flip ⇄</button>
-                        </div>
+                        {CANVA_FONTS.map((f) => (
+                          <button
+                            key={f.name}
+                            type="button"
+                            className="draw-tb"
+                            onClick={() => { applyActiveFontFamily(f.value); setFloatingPopover(null); }}
+                            style={{
+                              width: "100%",
+                              justifyContent: "flex-start",
+                              fontFamily: f.value,
+                              fontSize: 12,
+                              padding: "5px 7px",
+                              marginBottom: 2
+                            }}
+                          >
+                            {f.name}
+                          </button>
+                        ))}
                       </div>
                     )}
                   </div>
-                )}
 
-                {/* Reverse / Flip Direction */}
-                <button
-                  type="button"
-                  className="draw-tb"
-                  onClick={() => modifyActiveArrow({ flipDirection: true })}
-                  title="Reverse Arrow Direction (⇄)"
-                  style={{ minWidth: 26 }}
-                >
-                  <span style={{ fontSize: 12, fontWeight: 700 }}>⇄</span>
-                </button>
+                  <div style={{ display: "inline-flex", gap: 2, alignItems: "center" }}>
+                    <button className="draw-tb" onClick={() => applyFontSize(fontSize - 1)} title="Font Size -">
+                      <Minus size={12} />
+                    </button>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      ref={fontSizeInputRef}
+                      value={fontSizeInput}
+                      onChange={(e) => {
+                        const val = sanitizeIntegerInput(e.target.value);
+                        setFontSizeInput(val);
+                        if (val !== "") applyFontSize(Number(val), false);
+                      }}
+                      onBlur={(e) => commitFontSizeInput(e.target.value)}
+                      style={{ width: 30, height: 26, padding: "0 2px", fontSize: 11, fontWeight: 600, textAlign: "center", borderRadius: 5, border: "1px solid var(--border)", background: "transparent", color: "inherit" }}
+                    />
+                    <button className="draw-tb" onClick={() => applyFontSize(fontSize + 1)} title="Font Size +">
+                      <Plus size={12} />
+                    </button>
+                  </div>
 
-                {/* Connection status badge */}
-                {activeObjProps.isSmartConnector ? (
+                  <div style={{ display: "inline-flex", gap: 2, alignItems: "center" }}>
+                    <button
+                      className={`draw-tb${activeObjProps.fontWeight === "bold" ? " draw-on" : ""}`}
+                      onClick={toggleActiveBold}
+                      title="Bold"
+                      style={{ fontWeight: 700, minWidth: 25, fontSize: 12 }}
+                    >
+                      B
+                    </button>
+                    <button
+                      className={`draw-tb${activeObjProps.fontStyle === "italic" ? " draw-on" : ""}`}
+                      onClick={toggleActiveItalic}
+                      title="Italic"
+                      style={{ fontStyle: "italic", minWidth: 25, fontSize: 12, fontFamily: "serif" }}
+                    >
+                      I
+                    </button>
+                    <button
+                      className={`draw-tb${activeObjProps.underline ? " draw-on" : ""}`}
+                      onClick={toggleActiveUnderline}
+                      title="Underline"
+                      style={{ textDecoration: "underline", minWidth: 25, fontSize: 12 }}
+                    >
+                      U
+                    </button>
+                    <button
+                      className="draw-tb"
+                      onClick={() => {
+                        const next = activeTextAlign === "left" ? "center" : activeTextAlign === "center" ? "right" : "left";
+                        applyTextAlign(next);
+                      }}
+                      title={`Text Align: ${activeTextAlign} (Click to cycle)`}
+                      style={{ minWidth: 26 }}
+                    >
+                      {activeTextAlign === "center" ? (
+                        <AlignCenter size={13} />
+                      ) : activeTextAlign === "right" ? (
+                        <AlignRight size={13} />
+                      ) : (
+                        <AlignLeft size={13} />
+                      )}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* Smart Connectors & Curved Arrows Controls */}
+              {activeObjProps.isArrow && (
+                <>
+                  <div style={{ display: "inline-flex", gap: 2, alignItems: "center" }}>
+                    <button
+                      type="button"
+                      className={`draw-tb${activeObjProps.connectorKind === "straight" ? " draw-on" : ""}`}
+                      onClick={() => modifyActiveArrow({ newKind: "straight" })}
+                      title="Straight Arrow (→)"
+                      style={{ minWidth: 26, fontSize: 13, fontWeight: 700 }}
+                    >
+                      →
+                    </button>
+                    <button
+                      type="button"
+                      className={`draw-tb${activeObjProps.connectorKind === "curved" ? " draw-on" : ""}`}
+                      onClick={() => modifyActiveArrow({ newKind: "curved" })}
+                      title="Curved Process Arrow (↷)"
+                      style={{ minWidth: 26 }}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M4 18 C 4 9, 14 6, 20 8" />
+                        <path d="M15 4 L20 8 L16 13" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      className={`draw-tb${activeObjProps.connectorKind === "elbow" ? " draw-on" : ""}`}
+                      onClick={() => modifyActiveArrow({ newKind: "elbow" })}
+                      title="Elbow 90° Connector (↳)"
+                      style={{ minWidth: 26 }}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M5 6 H14 V18" />
+                        <path d="M10 14 L14 18 L18 14" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  {/* Arrowhead Style Selector */}
+                  <div className="draw-floating-anchor">
+                    <button
+                      type="button"
+                      className="draw-canva-pill-btn"
+                      onClick={() => setFloatingPopover(p => p === "arrowHead" ? null : "arrowHead")}
+                      title="Arrowhead Style"
+                    >
+                      <span style={{ fontSize: 11, fontWeight: 600 }}>
+                        {activeObjProps.arrowHead === "both" ? "↔ Both" : activeObjProps.arrowHead === "circle-arrow" ? "•→ Dot" : activeObjProps.arrowHead === "none" ? "— Line" : "→ End"}
+                      </span>
+                    </button>
+                    {floatingPopover === "arrowHead" && (
+                      <div className="draw-floating-popover" style={{ width: 145 }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6, color: "var(--text-muted)" }}>
+                          Arrowhead
+                        </div>
+                        {[
+                          { id: "end", label: "→ End Arrow" },
+                          { id: "both", label: "↔ Both Ends" },
+                          { id: "circle-arrow", label: "•→ Dot & Arrow" },
+                          { id: "none", label: "— Plain Line" }
+                        ].map(h => (
+                          <button
+                            key={h.id}
+                            type="button"
+                            className={`draw-tb${activeObjProps.arrowHead === h.id ? " draw-on" : ""}`}
+                            onClick={() => { modifyActiveArrow({ newHead: h.id }); setFloatingPopover(null); }}
+                            style={{ width: "100%", justifyContent: "flex-start", fontSize: 11, padding: "5px 7px", marginBottom: 2 }}
+                          >
+                            {h.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Curvature / Bend Slider & Presets (if curved) */}
+                  {activeObjProps.connectorKind === "curved" && (
+                    <div className="draw-floating-anchor">
+                      <button
+                        type="button"
+                        className="draw-canva-pill-btn"
+                        onClick={() => setFloatingPopover(p => p === "curvature" ? null : "curvature")}
+                        title="Curve Bend & Arc Angle"
+                      >
+                        <Sliders size={12} />
+                        <span style={{ fontSize: 11, fontWeight: 600 }}>Arc: {activeObjProps.bend || -35}</span>
+                      </button>
+                      {floatingPopover === "curvature" && (
+                        <div className="draw-floating-popover" style={{ width: 200 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                            <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--text-muted)" }}>
+                              Curvature Bend
+                            </span>
+                            <span style={{ fontSize: 11, fontWeight: 600 }}>{activeObjProps.bend || -35}px</span>
+                          </div>
+                          <input
+                            type="range"
+                            min={-90}
+                            max={90}
+                            step={5}
+                            value={activeObjProps.bend != null ? activeObjProps.bend : -35}
+                            onChange={(e) => modifyActiveArrow({ newBend: Number(e.target.value) })}
+                            style={{ width: "100%", accentColor: "#3b82f6", cursor: "pointer", marginBottom: 8 }}
+                          />
+                          <div style={{ fontSize: 9.5, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", marginBottom: 4 }}>
+                            Arc Presets
+                          </div>
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 3 }}>
+                            <button className="draw-tb" onClick={() => modifyActiveArrow({ newBend: -60 })} style={{ fontSize: 10 }}>Deep Up</button>
+                            <button className="draw-tb" onClick={() => modifyActiveArrow({ newBend: -30 })} style={{ fontSize: 10 }}>Arc Up</button>
+                            <button className="draw-tb" onClick={() => modifyActiveArrow({ newBend: 0 })} style={{ fontSize: 10 }}>Flat</button>
+                            <button className="draw-tb" onClick={() => modifyActiveArrow({ newBend: 30 })} style={{ fontSize: 10 }}>Arc Down</button>
+                            <button className="draw-tb" onClick={() => modifyActiveArrow({ newBend: 60 })} style={{ fontSize: 10 }}>Deep Down</button>
+                            <button className="draw-tb" onClick={() => modifyActiveArrow({ newBend: (activeObjProps.bend || -35) * -1 })} style={{ fontSize: 10 }}>Flip ⇄</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Reverse / Flip Direction */}
+                  <button
+                    type="button"
+                    className="draw-tb"
+                    onClick={() => modifyActiveArrow({ flipDirection: true })}
+                    title="Reverse Arrow Direction (⇄)"
+                    style={{ minWidth: 26 }}
+                  >
+                    <span style={{ fontSize: 12, fontWeight: 700 }}>⇄</span>
+                  </button>
+
+                  {/* Connection status badge */}
+                  {activeObjProps.isSmartConnector ? (
+                    <button
+                      type="button"
+                      className="draw-canva-pill-btn"
+                      onClick={() => modifyActiveArrow({ detach: true })}
+                      title="Connected to Shapes. Click to Detach."
+                      style={{ color: "#2563eb", background: "rgba(59, 130, 246, 0.12)", border: "1px solid rgba(59, 130, 246, 0.28)" }}
+                    >
+                      <span style={{ fontSize: 11, fontWeight: 700 }}>🔗 Linked</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="draw-canva-pill-btn"
+                      onClick={() => modifyActiveArrow({ snapToNearest: true })}
+                      title="Snap endpoints to nearest shapes"
+                    >
+                      <span style={{ fontSize: 11, fontWeight: 600 }}>Snap</span>
+                    </button>
+                  )}
+                </>
+              )}
+
+              {/* Multi-Selection Connect Shapes Tool */}
+              {activeObjProps.multiSelectCount >= 2 && (
+                <div className="draw-floating-anchor">
                   <button
                     type="button"
                     className="draw-canva-pill-btn"
-                    onClick={() => modifyActiveArrow({ detach: true })}
-                    title="Connected to Shapes. Click to Detach."
-                    style={{ color: "#2563eb", background: "rgba(59, 130, 246, 0.12)", border: "1px solid rgba(59, 130, 246, 0.28)" }}
+                    onClick={() => setFloatingPopover(p => p === "multiConnect" ? null : "multiConnect")}
+                    title="Connect selected shapes with smart arrow"
+                    style={{ background: "#3b82f6", color: "#fff", border: "none", fontWeight: 700, padding: "4px 8px" }}
                   >
-                    <span style={{ fontSize: 11, fontWeight: 700 }}>🔗 Linked (Detach)</span>
+                    <span style={{ fontSize: 11 }}>Connect ▾</span>
                   </button>
-                ) : (
+                  {floatingPopover === "multiConnect" && (
+                    <div className="draw-floating-popover" style={{ width: 175 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6, color: "var(--text-muted)" }}>
+                        Smart Connector
+                      </div>
+                      <button
+                        type="button"
+                        className="draw-tb"
+                        onClick={() => { connectSelectedShapes("straight"); setFloatingPopover(null); }}
+                        style={{ width: "100%", justifyContent: "flex-start", fontSize: 11, padding: "5px 7px", marginBottom: 2 }}
+                      >
+                        → Straight Arrow
+                      </button>
+                      <button
+                        type="button"
+                        className="draw-tb"
+                        onClick={() => { connectSelectedShapes("curved"); setFloatingPopover(null); }}
+                        style={{ width: "100%", justifyContent: "flex-start", fontSize: 11, padding: "5px 7px", marginBottom: 2 }}
+                      >
+                        ↷ Curved Process Arrow
+                      </button>
+                      <button
+                        type="button"
+                        className="draw-tb"
+                        onClick={() => { connectSelectedShapes("elbow"); setFloatingPopover(null); }}
+                        style={{ width: "100%", justifyContent: "flex-start", fontSize: 11, padding: "5px 7px" }}
+                      >
+                        ↳ 90° Step Connector
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Quick Flowchart Step Spawner */}
+              {activeObjProps.isFlowchartShape && activeObjProps.multiSelectCount === 1 && (
+                <div style={{ display: "inline-flex", gap: 3, alignItems: "center" }}>
                   <button
                     type="button"
                     className="draw-canva-pill-btn"
-                    onClick={() => modifyActiveArrow({ snapToNearest: true })}
-                    title="Snap endpoints to nearest shapes"
+                    onClick={() => addNextConnectedStep("process")}
+                    title="Add connected next step card"
+                    style={{ background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe", fontWeight: 700, padding: "3px 7px" }}
                   >
-                    <span style={{ fontSize: 11, fontWeight: 600 }}>Snap to Shapes</span>
+                    <span style={{ fontSize: 11 }}>+ Step</span>
                   </button>
-                )}
-              </>
-            )}
+                  {activeObjProps.isFlowchartNode && (
+                    <button
+                      type="button"
+                      className="draw-canva-pill-btn"
+                      onClick={() => addNextConnectedStep("decision")}
+                      title="Add connected decision branch"
+                      style={{ background: "#fef3c7", color: "#92400e", border: "1px solid #fde68a", fontWeight: 700, padding: "3px 7px" }}
+                    >
+                      <span style={{ fontSize: 11 }}>+ Branch</span>
+                    </button>
+                  )}
+                </div>
+              )}
 
-            {/* Multi-Selection Connect Shapes Tool */}
-            {activeObjProps.multiSelectCount >= 2 && (
+              <div className="draw-bar-subdivider" />
+
+              {/* Opacity Slider Popover */}
               <div className="draw-floating-anchor">
                 <button
                   type="button"
                   className="draw-canva-pill-btn"
-                  onClick={() => setFloatingPopover(p => p === "multiConnect" ? null : "multiConnect")}
-                  title="Connect selected shapes with smart arrow"
-                  style={{ background: "#3b82f6", color: "#fff", border: "none", fontWeight: 700, padding: "4px 10px" }}
+                  onClick={() => setFloatingPopover(p => p === "opacity" ? null : "opacity")}
+                  title="Transparency / Opacity"
                 >
-                  <span>Connect Shapes ▾</span>
+                  <Sliders size={12} />
+                  <span style={{ fontSize: 11, fontWeight: 600 }}>{activeObjProps.opacity}%</span>
                 </button>
-                {floatingPopover === "multiConnect" && (
-                  <div className="draw-floating-popover" style={{ left: 0, width: 175 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6, color: "var(--text-muted)" }}>
-                      Smart Connector
+                {floatingPopover === "opacity" && (
+                  <div className="draw-floating-popover" style={{ width: 170 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--text-muted)" }}>
+                        Opacity
+                      </span>
+                      <span style={{ fontSize: 11, fontWeight: 600 }}>{activeObjProps.opacity}%</span>
                     </div>
-                    <button
-                      type="button"
-                      className="draw-tb"
-                      onClick={() => { connectSelectedShapes("straight"); setFloatingPopover(null); }}
-                      style={{ width: "100%", justifyContent: "flex-start", fontSize: 11, padding: "5px 7px", marginBottom: 2 }}
-                    >
-                      → Straight Arrow
+                    <input
+                      type="range"
+                      min={10}
+                      max={100}
+                      value={activeObjProps.opacity}
+                      onChange={(e) => applyActiveOpacity(+e.target.value)}
+                      style={{ width: "100%", accentColor: "#a855f7", cursor: "pointer" }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Layer Arrange Popover */}
+              <div className="draw-floating-anchor">
+                <button
+                  type="button"
+                  className="draw-canva-pill-btn"
+                  onClick={() => setFloatingPopover(p => p === "arrange" ? null : "arrange")}
+                  title="Position / Arrange Layer"
+                >
+                  <Layers2 size={12} />
+                  <span style={{ fontSize: 11, fontWeight: 600 }}>Position</span>
+                </button>
+                {floatingPopover === "arrange" && (
+                  <div className="draw-floating-popover" style={{ width: 145 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6, color: "var(--text-muted)" }}>
+                      Layer Order
+                    </div>
+                    <button className="draw-tb" onClick={() => { arrangeActive("forward"); setFloatingPopover(null); }} style={{ width: "100%", justifyContent: "flex-start", fontSize: 11, padding: "5px 7px", marginBottom: 2 }}>
+                      Forward
                     </button>
-                    <button
-                      type="button"
-                      className="draw-tb"
-                      onClick={() => { connectSelectedShapes("curved"); setFloatingPopover(null); }}
-                      style={{ width: "100%", justifyContent: "flex-start", fontSize: 11, padding: "5px 7px", marginBottom: 2 }}
-                    >
-                      ↷ Curved Process Arrow
+                    <button className="draw-tb" onClick={() => { arrangeActive("backward"); setFloatingPopover(null); }} style={{ width: "100%", justifyContent: "flex-start", fontSize: 11, padding: "5px 7px", marginBottom: 2 }}>
+                      Backward
                     </button>
-                    <button
-                      type="button"
-                      className="draw-tb"
-                      onClick={() => { connectSelectedShapes("elbow"); setFloatingPopover(null); }}
-                      style={{ width: "100%", justifyContent: "flex-start", fontSize: 11, padding: "5px 7px" }}
-                    >
-                      ↳ 90° Step Connector
+                    <button className="draw-tb" onClick={() => { arrangeActive("front"); setFloatingPopover(null); }} style={{ width: "100%", justifyContent: "flex-start", fontSize: 11, padding: "5px 7px", marginBottom: 2 }}>
+                      To Front
+                    </button>
+                    <button className="draw-tb" onClick={() => { arrangeActive("back"); setFloatingPopover(null); }} style={{ width: "100%", justifyContent: "flex-start", fontSize: 11, padding: "5px 7px" }}>
+                      To Back
                     </button>
                   </div>
                 )}
               </div>
-            )}
 
-            {/* Quick Flowchart Step Spawner */}
-            {activeObjProps.isFlowchartShape && activeObjProps.multiSelectCount === 1 && (
-              <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
-                <button
-                  type="button"
-                  className="draw-canva-pill-btn"
-                  onClick={() => addNextConnectedStep("process")}
-                  title="Add connected next step card"
-                  style={{ background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe", fontWeight: 700 }}
-                >
-                  + Next Step
-                </button>
-                <button
-                  type="button"
-                  className="draw-canva-pill-btn"
-                  onClick={() => addNextConnectedStep("decision")}
-                  title="Add connected decision branch"
-                  style={{ background: "#fef3c7", color: "#92400e", border: "1px solid #fde68a", fontWeight: 700 }}
-                >
-                  + Decision
-                </button>
-              </div>
-            )}
+              <div className="draw-bar-subdivider" />
 
-            <div className="draw-bar-subdivider" />
-
-            {/* Opacity Slider Popover */}
-            <div className="draw-floating-anchor">
-              <button
-                type="button"
-                className="draw-canva-pill-btn"
-                onClick={() => setFloatingPopover(p => p === "opacity" ? null : "opacity")}
-                title="Transparency / Opacity"
-              >
-                <Sliders size={13} />
-                <span style={{ fontSize: 11, fontWeight: 600 }}>{activeObjProps.opacity}%</span>
+              {/* Quick Actions: Duplicate, Lock, Delete */}
+              <button className="draw-tb" onClick={() => fabricRef.current?.duplicateSelection?.()} title="Duplicate (Ctrl+D)">
+                <CopyPlus size={14} />
               </button>
-              {floatingPopover === "opacity" && (
-                <div className="draw-floating-popover" style={{ left: "50%", transform: "translateX(-50%)", width: 170 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--text-muted)" }}>
-                      Opacity
-                    </span>
-                    <span style={{ fontSize: 11, fontWeight: 600 }}>{activeObjProps.opacity}%</span>
-                  </div>
-                  <input
-                    type="range"
-                    min={10}
-                    max={100}
-                    value={activeObjProps.opacity}
-                    onChange={(e) => applyActiveOpacity(+e.target.value)}
-                    style={{ width: "100%", accentColor: "#a855f7", cursor: "pointer" }}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Layer Arrange Popover */}
-            <div className="draw-floating-anchor">
-              <button
-                type="button"
-                className="draw-canva-pill-btn"
-                onClick={() => setFloatingPopover(p => p === "arrange" ? null : "arrange")}
-                title="Position / Arrange Layer"
-              >
-                <Layers2 size={13} />
-                <span style={{ fontSize: 11, fontWeight: 600 }}>Position</span>
+              <button className="draw-tb" onClick={toggleActiveLock} title={activeObjProps.isLocked ? "Unlock Object" : "Lock Object"}>
+                {activeObjProps.isLocked ? <Lock size={14} style={{ color: "#f5a623" }} /> : <Unlock size={14} />}
               </button>
-              {floatingPopover === "arrange" && (
-                <div className="draw-floating-popover" style={{ right: 0, width: 145 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6, color: "var(--text-muted)" }}>
-                    Layer Order
-                  </div>
-                  <button className="draw-tb" onClick={() => { arrangeActive("forward"); setFloatingPopover(null); }} style={{ width: "100%", justifyContent: "flex-start", fontSize: 11, padding: "5px 7px", marginBottom: 2 }}>
-                    Forward
-                  </button>
-                  <button className="draw-tb" onClick={() => { arrangeActive("backward"); setFloatingPopover(null); }} style={{ width: "100%", justifyContent: "flex-start", fontSize: 11, padding: "5px 7px", marginBottom: 2 }}>
-                    Backward
-                  </button>
-                  <button className="draw-tb" onClick={() => { arrangeActive("front"); setFloatingPopover(null); }} style={{ width: "100%", justifyContent: "flex-start", fontSize: 11, padding: "5px 7px", marginBottom: 2 }}>
-                    To Front
-                  </button>
-                  <button className="draw-tb" onClick={() => { arrangeActive("back"); setFloatingPopover(null); }} style={{ width: "100%", justifyContent: "flex-start", fontSize: 11, padding: "5px 7px" }}>
-                    To Back
-                  </button>
-                </div>
-              )}
+              <button className="draw-tb" onClick={deleteSelected} style={{ color: "#e0365a" }} title="Delete (Del)">
+                <Trash2 size={14} />
+              </button>
             </div>
-
-            <div className="draw-bar-subdivider" />
-
-            {/* Quick Actions: Duplicate, Lock, Delete */}
-            <button className="draw-tb" onClick={() => fabricRef.current?.duplicateSelection?.()} title="Duplicate (Ctrl+D)">
-              <CopyPlus size={14} />
-            </button>
-            <button className="draw-tb" onClick={toggleActiveLock} title={activeObjProps.isLocked ? "Unlock Object" : "Lock Object"}>
-              {activeObjProps.isLocked ? <Lock size={14} style={{ color: "#f5a623" }} /> : <Unlock size={14} />}
-            </button>
-            <button className="draw-tb" onClick={deleteSelected} style={{ color: "#e0365a" }} title="Delete (Del)">
-              <Trash2 size={14} />
-            </button>
           </div>
-        ) : (
-          (canAlign || showFontSize || showTextAlign) && (
-            <div className="draw-contextual-bar" style={{ position: "absolute", left: 10, top: 10, zIndex: 6, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-              {showFontSize && (
-                <div style={{ display: "flex", gap: 4, alignItems: "center", background: "var(--surface-h)", padding: "3px 8px", borderRadius: "8px", border: "1px solid var(--border)" }}>
-                  <button className="draw-tb" onClick={() => applyFontSize(fontSize - 1)} title="Font Size -">
-                    <Minus size={16} />
-                  </button>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    ref={fontSizeInputRef}
-                    value={fontSizeInput}
-                    onChange={(e) => {
-                      const val = sanitizeIntegerInput(e.target.value);
-                      setFontSizeInput(val);
-                      if (val !== "") applyFontSize(Number(val), false);
-                    }}
-                    onBlur={(e) => commitFontSizeInput(e.target.value)}
-                    style={{ width: 58, padding: "4px 6px", borderRadius: 6, border: "1px solid var(--border)", background: "transparent", color: "inherit" }}
-                  />
-                  <button className="draw-tb" onClick={() => applyFontSize(fontSize + 1)} title="Font Size +">
-                    <Plus size={16} />
-                  </button>
-                </div>
-              )}
-
-              {canAlign && (
-                <div style={{ display: "flex", gap: 2, alignItems: "center", background: "var(--surface-h)", padding: "3px", borderRadius: "8px", border: "1px solid var(--border)" }}>
-                  <button className="draw-tb" onClick={() => handleAlign("left")} title="Align Left">
-                    <AlignStartHorizontal size={15} />
-                  </button>
-                  <button className="draw-tb" onClick={() => handleAlign("centerH")} title="Center Horizontally">
-                    <AlignCenterHorizontal size={15} />
-                  </button>
-                  <button className="draw-tb" onClick={() => handleAlign("right")} title="Align Right">
-                    <AlignEndHorizontal size={15} />
-                  </button>
-                  <div style={{ width: 1, height: 16, background: "var(--border)", margin: "0 2px" }} />
-                  <button className="draw-tb" onClick={() => handleAlign("top")} title="Align Top">
-                    <AlignStartVertical size={15} />
-                  </button>
-                  <button className="draw-tb" onClick={() => handleAlign("middleV")} title="Center Vertically">
-                    <AlignCenterVertical size={15} />
-                  </button>
-                  <button className="draw-tb" onClick={() => handleAlign("bottom")} title="Align Bottom">
-                    <AlignEndVertical size={15} />
-                  </button>
-                </div>
-              )}
-            </div>
-          )
         )}
         {ctxMenu && (
           <div

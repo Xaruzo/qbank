@@ -8495,56 +8495,52 @@ button[data-action="skip"] {
 
 /* ── Canva Floating Selection Bar ── */
 .draw-canva-floating-bar {
+  position: relative;
   background: var(--surface);
   border: 1px solid var(--border);
   box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28), 0 2px 6px rgba(0, 0, 0, 0.12);
   border-radius: 12px;
-  padding: 3px 6px;
+  padding: 4px 8px;
   backdrop-filter: blur(12px);
-  display: flex;
+  display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
   gap: 3px;
-  white-space: nowrap;
   pointer-events: auto;
-  max-width: calc(100% - 24px);
+  width: fit-content;
+  max-width: 100%;
+  box-sizing: border-box;
   animation: drawFadeIn 0.12s ease-out;
+}
+
+.draw-floating-anchor {
+  position: static;
+  display: inline-flex;
+  align-items: center;
 }
 
 @media (max-width: 768px) {
   .draw-canva-floating-bar {
-    flex-wrap: wrap;
-    justify-content: center;
-    white-space: normal;
-    width: max-content;
-    max-width: calc(100% - 14px);
     padding: 4px 6px;
     gap: 3px;
-  }
-
-  .draw-floating-anchor {
-    position: static !important;
-  }
-
-  .draw-floating-popover {
-    left: 50% !important;
-    right: auto !important;
-    transform: translateX(-50%) !important;
-    max-width: calc(100vw - 28px) !important;
   }
 }
 
 .draw-canva-pill-btn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 8px;
-  border-radius: 8px;
+  gap: 4px;
+  height: 28px;
+  padding: 0 7px;
+  border-radius: 7px;
   border: 1px solid transparent;
   background: transparent;
   color: var(--text);
   cursor: pointer;
   transition: all 0.15s ease;
   user-select: none;
+  white-space: nowrap;
 }
 
 .draw-canva-pill-btn:hover {
@@ -8555,6 +8551,9 @@ button[data-action="skip"] {
 .draw-floating-popover {
   position: absolute;
   top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100vw - 28px);
   background: var(--surface);
   border: 1px solid var(--border);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
