@@ -347,93 +347,194 @@ const distToSegment = (px, py, x1, y1, x2, y2) => {
 };
 
 const isObjectHitByEraser = (obj, px, py, r) => {
-  if (!obj || obj.isGuide || obj.locked || (obj.lockMovementX && obj.lockMovementY)) {
+  if (!obj || obj.isGuide || obj.locked || (obj.lockMovementX && obj.lockMovementY) || obj.visible === false) {
     return false;
   }
 
-  // 1. Quick AABB bounding box check with radius margin
-  const b = obj.getBoundingRect ? obj.getBoundingRect(true, true) : null;
+  // Ensure object coordinates are calculated before hit-testing
+  try {
+    if (typeof obj.setCoords === "function") {
+      obj.setCoords();
+    }
+  } catch {}
+
+  // 1. Quick AABB bounding box check with radius margin in scene coordinates
+  let b = null;
+  try {
+    b = obj.getBoundingRect ? obj.getBoundingRect(true, true) : null;
+  } catch {}
   if (b) {
+    const pad = r + Math.max(4, (obj.strokeWidth || 2) * Math.max(obj.scaleX || 1, obj.scaleY || 1));
     if (
-      px < b.left - r ||
-      px > b.left + b.width + r ||
-      py < b.top - r ||
-      py > b.top + b.height + r
+      px < b.left - pad ||
+      px > b.left + b.width + pad ||
+      py < b.top - pad ||
+      py > b.top + b.height + pad
     ) {
       return false;
     }
   }
 
-  const p = new fabric.Point(px, py);
-
-  // 2. Direct point-in-polygon containment
-  if (typeof obj.containsPoint === "function" && obj.containsPoint(p)) {
-    return true;
+  // 2. For fabric.Line (H-Line, V-Line, Cancel Slash, Fraction Line, etc.)
+  if (obj.type === "line") {
+    try {
+      const m = obj.calcTransformMatrix ? obj.calcTransformMatrix() : [1, 0, 0, 1, 0, 0];
+      const pts = typeof obj.calcLinePoints === "function"
+        ? obj.calcLinePoints()
+        : {
+            x1: -(obj.width || 0) / 2,
+            y1: -(obj.height || 0) / 2,
+            x2: (obj.width || 0) / 2,
+            y2: (obj.height || 0) / 2,
+          };
+      const p1 = fabric.util.transformPoint(new fabric.Point(pts.x1, pts.y1), m);
+      const p2 = fabric.util.transformPoint(new fabric.Point(pts.x2, pts.y2), m);
+      const dist = distToSegment(px, py, p1.x, p1.y, p2.x, p2.y);
+      const strokeW = (obj.strokeWidth || 2) * (obj.strokeUniform ? 1 : Math.max(obj.scaleX || 1, obj.scaleY || 1));
+      if (dist <= r + strokeW / 2 + 2) return true;
+    } catch {}
   }
 
-  // 3. Test circle perimeter points
-  const testAngles = [0, Math.PI / 4, Math.PI / 2, (3 * Math.PI) / 4, Math.PI, (5 * Math.PI) / 4, (3 * Math.PI) / 2, (7 * Math.PI) / 4];
-  for (let i = 0; i < testAngles.length; i++) {
-    const angle = testAngles[i];
-    const testP = new fabric.Point(px + Math.cos(angle) * r, py + Math.sin(angle) * r);
-    if (typeof obj.containsPoint === "function" && obj.containsPoint(testP)) {
-      return true;
-    }
-  }
-
-  // 4. For fabric.Line
-  if (obj.type === "line" || (obj.x1 != null && obj.y1 != null)) {
-    const m = obj.calcTransformMatrix ? obj.calcTransformMatrix() : [1, 0, 0, 1, 0, 0];
-    const p1 = fabric.util.transformPoint(new fabric.Point(obj.x1, obj.y1), m);
-    const p2 = fabric.util.transformPoint(new fabric.Point(obj.x2, obj.y2), m);
-    const dist = distToSegment(px, py, p1.x, p1.y, p2.x, p2.y);
-    const strokeW = (obj.strokeWidth || 2) * (obj.scaleX || 1);
-    if (dist <= r + strokeW / 2) return true;
-  }
-
-  // 5. For fabric.Path
+  // 3. For fabric.Path (Pen strokes, Highlighter strokes, Arrows, Long Division bracket)
   if (obj.type === "path" && Array.isArray(obj.path)) {
-    const m = obj.calcTransformMatrix ? obj.calcTransformMatrix() : [1, 0, 0, 1, 0, 0];
-    const strokeW = ((obj.strokeWidth || 2) / 2) * Math.max(obj.scaleX || 1, obj.scaleY || 1);
-    const threshold = r + strokeW;
-    const thresholdSq = threshold * threshold;
-    const offX = obj.pathOffset?.x || 0;
-    const offY = obj.pathOffset?.y || 0;
+    try {
+      const m = obj.calcTransformMatrix ? obj.calcTransformMatrix() : [1, 0, 0, 1, 0, 0];
+      const strokeW = ((obj.strokeWidth || 2) / 2) * (obj.strokeUniform ? 1 : Math.max(obj.scaleX || 1, obj.scaleY || 1));
+      const threshold = r + strokeW + 2;
+      const offX = obj.pathOffset?.x || 0;
+      const offY = obj.pathOffset?.y || 0;
+      const toWorld = (lx, ly) => fabric.util.transformPoint(new fabric.Point(lx - offX, ly - offY), m);
 
-    const path = obj.path;
-    let prevPt = null;
-    const step = path.length > 250 ? 2 : 1;
+      const path = obj.path;
+      let curX = 0;
+      let curY = 0;
+      let startX = 0;
+      let startY = 0;
+      let hasCur = false;
 
-    for (let i = 0; i < path.length; i += step) {
-      const cmd = path[i];
-      if (!cmd) continue;
-      const rawX = cmd[cmd.length - 2];
-      const rawY = cmd[cmd.length - 1];
-      if (typeof rawX === "number" && typeof rawY === "number") {
-        const pt = fabric.util.transformPoint(new fabric.Point(rawX - offX, rawY - offY), m);
-        const dx = px - pt.x;
-        const dy = py - pt.y;
-        if (dx * dx + dy * dy <= thresholdSq) {
-          return true;
-        }
-        if (prevPt) {
-          const segDist = distToSegment(px, py, prevPt.x, prevPt.y, pt.x, pt.y);
-          if (segDist <= threshold) {
-            return true;
+      const checkSeg = (x1, y1, x2, y2) => {
+        const w1 = toWorld(x1, y1);
+        const w2 = toWorld(x2, y2);
+        return distToSegment(px, py, w1.x, w1.y, w2.x, w2.y) <= threshold;
+      };
+
+      for (let i = 0; i < path.length; i++) {
+        const cmd = path[i];
+        if (!cmd || !cmd.length) continue;
+        const op = cmd[0];
+        if (op === "M") {
+          curX = cmd[1];
+          curY = cmd[2];
+          startX = curX;
+          startY = curY;
+          hasCur = true;
+          const wPt = toWorld(curX, curY);
+          if (Math.hypot(px - wPt.x, py - wPt.y) <= threshold) return true;
+        } else if (op === "L" && hasCur) {
+          const nx = cmd[1];
+          const ny = cmd[2];
+          if (checkSeg(curX, curY, nx, ny)) return true;
+          curX = nx;
+          curY = ny;
+        } else if (op === "H" && hasCur) {
+          const nx = cmd[1];
+          if (checkSeg(curX, curY, nx, curY)) return true;
+          curX = nx;
+        } else if (op === "V" && hasCur) {
+          const ny = cmd[1];
+          if (checkSeg(curX, curY, curX, ny)) return true;
+          curY = ny;
+        } else if (op === "Q" && hasCur) {
+          const cx = cmd[1], cy = cmd[2], nx = cmd[3], ny = cmd[4];
+          let px0 = curX, py0 = curY;
+          const steps = 6;
+          for (let s = 1; s <= steps; s++) {
+            const t = s / steps;
+            const mt = 1 - t;
+            const qx = mt * mt * curX + 2 * mt * t * cx + t * t * nx;
+            const qy = mt * mt * curY + 2 * mt * t * cy + t * t * ny;
+            if (checkSeg(px0, py0, qx, qy)) return true;
+            px0 = qx;
+            py0 = qy;
+          }
+          curX = nx;
+          curY = ny;
+        } else if (op === "C" && hasCur) {
+          const cx1 = cmd[1], cy1 = cmd[2], cx2 = cmd[3], cy2 = cmd[4], nx = cmd[5], ny = cmd[6];
+          let px0 = curX, py0 = curY;
+          const steps = 6;
+          for (let s = 1; s <= steps; s++) {
+            const t = s / steps;
+            const mt = 1 - t;
+            const bx = mt * mt * mt * curX + 3 * mt * mt * t * cx1 + 3 * mt * t * t * cx2 + t * t * t * nx;
+            const by = mt * mt * mt * curY + 3 * mt * mt * t * cy1 + 3 * mt * t * t * cy2 + t * t * t * ny;
+            if (checkSeg(px0, py0, bx, by)) return true;
+            px0 = bx;
+            py0 = by;
+          }
+          curX = nx;
+          curY = ny;
+        } else if ((op === "Z" || op === "z") && hasCur) {
+          if (checkSeg(curX, curY, startX, startY)) return true;
+          curX = startX;
+          curY = startY;
+        } else {
+          const rawX = cmd[cmd.length - 2];
+          const rawY = cmd[cmd.length - 1];
+          if (typeof rawX === "number" && typeof rawY === "number") {
+            if (hasCur && checkSeg(curX, curY, rawX, rawY)) return true;
+            curX = rawX;
+            curY = rawY;
+            hasCur = true;
           }
         }
-        prevPt = pt;
       }
-    }
+      return false;
+    } catch {}
   }
 
-  // 6. For Groups
-  if (obj.type === "group" && typeof obj.getObjects === "function") {
-    const subObjects = obj.getObjects();
-    for (let i = 0; i < subObjects.length; i++) {
-      if (isObjectHitByEraser(subObjects[i], px, py, r)) {
-        return true;
+  // 4. For all Shapes, Texts, Polylines, Groups, Images, etc.:
+  // Use scene-space (absolute=true, calculate=true) containment & oriented edge distance
+  const p = new fabric.Point(px, py);
+  try {
+    if (typeof obj.containsPoint === "function" && obj.containsPoint(p, null, true, true)) {
+      return true;
+    }
+  } catch {}
+
+  try {
+    const coords = typeof obj.calcCoords === "function" ? obj.calcCoords(true) : obj.aCoords;
+    if (coords && coords.tl && coords.tr && coords.br && coords.bl) {
+      const strokePad = ((obj.strokeWidth || 2) / 2) * (obj.strokeUniform ? 1 : Math.max(obj.scaleX || 1, obj.scaleY || 1));
+      const edgeThreshold = r + strokePad;
+      const corners = [coords.tl, coords.tr, coords.br, coords.bl];
+      for (let i = 0; i < 4; i++) {
+        const c1 = corners[i];
+        const c2 = corners[(i + 1) % 4];
+        if (distToSegment(px, py, c1.x, c1.y, c2.x, c2.y) <= edgeThreshold) {
+          return true;
+        }
       }
+      const testAngles = [0, Math.PI / 4, Math.PI / 2, (3 * Math.PI) / 4, Math.PI, (5 * Math.PI) / 4, (3 * Math.PI) / 2, (7 * Math.PI) / 4];
+      for (let i = 0; i < testAngles.length; i++) {
+        const angle = testAngles[i];
+        const testP = new fabric.Point(px + Math.cos(angle) * r, py + Math.sin(angle) * r);
+        if (typeof obj.containsPoint === "function" && obj.containsPoint(testP, null, true, true)) {
+          return true;
+        }
+      }
+    }
+  } catch {}
+
+  // 5. Fallback for non-path/non-line objects (Shapes, Texts, Polylines, Groups) within AABB + r
+  if (b && obj.type !== "path" && obj.type !== "line") {
+    if (
+      px >= b.left - r &&
+      px <= b.left + b.width + r &&
+      py >= b.top - r &&
+      py <= b.top + b.height + r
+    ) {
+      return true;
     }
   }
 
@@ -897,9 +998,48 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       }
     };
 
+    const stopStuckInteractions = (ev) => {
+      if (canvas._isCurrentlyDrawing) {
+        try {
+          canvas._onMouseUpInDrawingMode(ev || {});
+        } catch {
+          canvas._isCurrentlyDrawing = false;
+        }
+      }
+      if (isErasingRef.current) {
+        isErasingRef.current = false;
+        lastErasePointerRef.current = null;
+        if (erasedInCurrentDragRef.current) {
+          erasedInCurrentDragRef.current = false;
+          scheduleCommitChange();
+        }
+      }
+      if (isPanningRef.current) {
+        isPanningRef.current = false;
+        const isPan = toolRef.current === "pan";
+        canvas.skipTargetFind = isPan ? true : false;
+        canvas.selection = (!canvas.isDrawingMode && toolRef.current === "move");
+        if (canvas.isDrawingMode) canvas.defaultCursor = "crosshair";
+        else if (isPan) canvas.defaultCursor = "grab";
+        else canvas.defaultCursor = "default";
+        canvas.requestRenderAll();
+      }
+    };
+
     canvas.on("mouse:down", (opt) => {
       const ev = opt?.e;
       if (!ev) return;
+      // Clear any stray browser text selection (such as "100%") so dragging on canvas never triggers native drag
+      try {
+        const activeEl = document.activeElement;
+        const isEditingNow = !!canvas.getActiveObject()?.isEditing || (activeEl && /INPUT|TEXTAREA/.test(activeEl.tagName || ""));
+        if (!isEditingNow && window.getSelection) {
+          const sel = window.getSelection();
+          if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+            sel.removeAllRanges();
+          }
+        }
+      } catch {}
       if ((toolRef.current === "pan" || spaceDownRef.current) && (ev.button === 0 || ev.button == null)) {
         isPanningRef.current = true;
         panLastRef.current = getClientPoint(ev);
@@ -930,6 +1070,11 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
     canvas.on("mouse:move", (opt) => {
       const ev = opt?.e;
       if (!ev) return;
+      if (typeof ev.buttons === "number" && ev.buttons === 0 && !ev.touches) {
+        stopStuckInteractions(ev);
+        lastPointer.current = canvas.getPointer(ev);
+        return;
+      }
       if (isPanningRef.current) {
         const p = getClientPoint(ev);
         const dx = p.x - panLastRef.current.x;
@@ -1043,6 +1188,26 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
     const ctxEl = canvas.upperCanvasEl || canvasEl;
     ctxEl?.addEventListener?.("contextmenu", handleContextMenu);
 
+    // Prevent ghost drawing when mouse moves over canvas without buttons pressed
+    const handleMouseMoveCapture = (ev) => {
+      if (typeof ev.buttons === "number" && ev.buttons === 0 && !ev.touches) {
+        stopStuckInteractions(ev);
+      }
+    };
+    const handleNativeDragStart = (ev) => {
+      try {
+        ev.preventDefault();
+      } catch {}
+      stopStuckInteractions(ev);
+    };
+    const handleGlobalMouseUp = (ev) => {
+      stopStuckInteractions(ev);
+    };
+    ctxEl?.addEventListener?.("mousemove", handleMouseMoveCapture, { capture: true });
+    ctxEl?.addEventListener?.("dragstart", handleNativeDragStart);
+    window.addEventListener("mouseup", handleGlobalMouseUp);
+    window.addEventListener("dragend", handleGlobalMouseUp);
+
     // Long-press opens the context menu on touch devices (mobile "right-click")
     let longPressTimer = null;
     let longPressStartPoint = null;
@@ -1120,6 +1285,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
         }
       }
       if (!obj.layerId) obj.layerId = `layer-${layerIdSeq.current++}`;
+      obj.setCoords?.();
     };
 
     const convertLegacyITextToTextbox = (obj) => {
@@ -3271,6 +3437,10 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
       window.removeEventListener("blur", handleWindowBlur);
+      window.removeEventListener("mouseup", handleGlobalMouseUp);
+      window.removeEventListener("dragend", handleGlobalMouseUp);
+      ctxEl?.removeEventListener?.("mousemove", handleMouseMoveCapture, { capture: true });
+      ctxEl?.removeEventListener?.("dragstart", handleNativeDragStart);
       ctxEl?.removeEventListener?.("contextmenu", handleContextMenu);
       ctxEl?.removeEventListener?.("touchstart", onCanvasTouchStart);
       ctxEl?.removeEventListener?.("touchmove", onCanvasTouchMove);
@@ -5774,7 +5944,11 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
   );
 
   return (
-    <div ref={containerRef}>
+    <div
+      ref={containerRef}
+      style={{ userSelect: "none", WebkitUserSelect: "none" }}
+      onDragStart={(e) => e.preventDefault()}
+    >
       <div className="draw-bar">
         {/* Row 1: Creation, Solution Tools, Shapes & Math */}
         <div className="draw-bar-row">

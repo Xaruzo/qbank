@@ -5415,6 +5415,14 @@ body.qb-guide-active .qb {
   border-radius: 12px; 
   background: var(--surface); 
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+}
+
+.draw-bar input {
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .draw-bar-row { 
