@@ -744,11 +744,51 @@ export default function App() {
     : view === "tips" || view === "tipDetail"
       ? "tips"
       : "home";
+  const hasResumableMock = isResumableMockExam(savedActiveMockExam);
+  const scrollMainToTop = () => {
+    window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    if (mainRef.current) {
+      mainRef.current.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    }
+  };
   const mobileNavItems = [
-    { id: "home", label: "Home", icon: Home, onClick: handleGoHome },
-    { id: "mock", label: "Mock", icon: ClipboardList, onClick: handleGoMockExam },
-    { id: "tips", label: "Tips", icon: Lightbulb, onClick: () => handleGoTips() },
+    {
+      id: "home",
+      label: "Question Bank",
+      shortLabel: "Bank",
+      icon: Home,
+      badge: qs.length > 0 ? qs.length : null,
+      onClick: () => {
+        if (view === "list") scrollMainToTop();
+        else handleGoHome();
+      },
+    },
+    {
+      id: "mock",
+      label: "Mock Exam",
+      shortLabel: "Mock Exam",
+      icon: ClipboardList,
+      isLive: hasResumableMock,
+      onClick: () => {
+        if (view === "mock") scrollMainToTop();
+        else handleGoMockExam();
+      },
+    },
+    {
+      id: "tips",
+      label: "Study Tips",
+      shortLabel: "Study Tips",
+      icon: Lightbulb,
+      onClick: () => {
+        if (view === "tips") scrollMainToTop();
+        else handleGoTips();
+      },
+    },
   ];
+  const activeMobileTabIndex = Math.max(
+    0,
+    mobileNavItems.findIndex((item) => item.id === primaryView)
+  );
 
   useEffect(() => {
     const el = mainRef.current;
@@ -1150,23 +1190,44 @@ export default function App() {
           </main>
         </div>
         {isMobile && view !== "mockRun" && view !== "detail" && view !== "add" && (
-          <nav className="qb-mobile-tabbar" aria-label="Primary">
-            {mobileNavItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = primaryView === item.id;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={`qb-mobile-tab${isActive ? " on" : ""}`}
-                  onClick={item.onClick}
-                  aria-current={isActive ? "page" : undefined}
-                >
-                  <Icon size={18} />
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
+          <nav
+            className="qb-mobile-tabbar"
+            aria-label="Primary Bottom Navigation"
+            style={{ "--active-tab-index": activeMobileTabIndex }}
+          >
+            <div className="qb-mobile-tabbar-track">
+              <div className="qb-mobile-tab-glider" aria-hidden="true" />
+              {mobileNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = primaryView === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`qb-mobile-tab${isActive ? " on" : ""}`}
+                    onClick={item.onClick}
+                    aria-current={isActive ? "page" : undefined}
+                    aria-label={item.label}
+                  >
+                    <span className="qb-mobile-tab-icon-box" aria-hidden="true">
+                      <Icon size={19} strokeWidth={isActive ? 2.35 : 1.9} />
+                      {item.isLive && (
+                        <span
+                          className="qb-mobile-tab-live-dot"
+                          title="Mock exam in progress"
+                        />
+                      )}
+                    </span>
+                    <span className="qb-mobile-tab-label-row">
+                      <span className="qb-mobile-tab-label">{item.shortLabel || item.label}</span>
+                      {item.badge && (
+                        <span className="qb-mobile-tab-count">{item.badge}</span>
+                      )}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </nav>
         )}
       </div>
