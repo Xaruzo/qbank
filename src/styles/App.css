@@ -2,6 +2,14 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
+html.qb-theme-switching,
+html.qb-theme-switching *,
+html.qb-theme-switching *::before,
+html.qb-theme-switching *::after {
+  transition: none !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+}
 button, a, [role="button"], input, select, textarea {
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
@@ -421,7 +429,7 @@ body {
   justify-content: center;
   color: var(--text-muted);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: none;
   box-shadow: var(--shadow-card);
 }
 
@@ -444,7 +452,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  transition: all 0.2s ease;
+  transition: none;
 }
 
 .qb-auth-signin-btn {
@@ -497,7 +505,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: none;
   box-shadow: var(--shadow-card);
 }
 
@@ -1012,7 +1020,7 @@ body {
   justify-content: center;
   flex-shrink: 0;
   color: var(--text-muted);
-  transition: all 0.2s ease;
+  transition: none;
 }
 
 .qb-drawer-nav-item.is-active .qb-drawer-nav-icon-wrap {
@@ -1779,7 +1787,7 @@ body.qb-guide-active .qb {
   border: none;
   cursor: pointer;
   box-shadow: 0 4px 16px rgba(245, 166, 35, 0.35);
-  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+  transition: transform 0.15s ease;
 }
 .qb-hero-cta:hover {
   background: #e89816;
@@ -1799,7 +1807,7 @@ body.qb-guide-active .qb {
   font-size: 13px;
   cursor: pointer;
   backdrop-filter: blur(8px);
-  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  transition: transform 0.15s ease;
 }
 .light .qb-hero-secondary {
   background: rgba(255, 255, 255, 0.85);
@@ -1826,7 +1834,7 @@ body.qb-guide-active .qb {
   font-weight: 600;
   font-size: 13px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: none;
 }
 .light .qb-hero-ghost {
   border-color: rgba(26, 37, 64, 0.2);
@@ -1910,7 +1918,7 @@ body.qb-guide-active .qb {
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition: none;
 }
 .light .qb-hero-preset-item {
   background: rgba(0, 0, 0, 0.02);
@@ -1952,7 +1960,7 @@ body.qb-guide-active .qb {
   color: #f5a623;
   border: 1px solid rgba(245, 166, 35, 0.32);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: none;
   flex-shrink: 0;
 }
 .qb-hero-preset-btn:hover {
@@ -1977,7 +1985,7 @@ body.qb-guide-active .qb {
   text-align: left;
   cursor: pointer;
   outline: none;
-  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  transition: transform 0.18s ease;
 }
 .qb-stat:hover {
   transform: translateY(-2px);
@@ -2088,7 +2096,7 @@ body.qb-guide-active .qb {
   font-weight: 600;
   cursor: pointer;
   outline: none;
-  transition: all 0.15s ease;
+  transition: none;
 }
 .qb-filter-fav-btn span,
 .qb-filter-reset-btn span {
@@ -2126,7 +2134,7 @@ body.qb-guide-active .qb {
   font-weight: 600;
   cursor: pointer;
   outline: none;
-  transition: all 0.15s ease;
+  transition: none;
 }
 .qb-filter-reset-btn:hover {
   border-color: var(--border-h);
@@ -2434,7 +2442,7 @@ body.qb-guide-active .qb {
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: transform 0.15s ease;
   white-space: nowrap;
 }
 .qb-tips-hero-btn.primary {
@@ -2486,7 +2494,7 @@ body.qb-guide-active .qb {
   appearance: none;
   color: inherit;
   font-family: inherit;
-  transition: all 0.18s ease;
+  transition: transform 0.18s ease;
 }
 @media (hover: hover) {
   .qb-tips-overview-card:hover {
@@ -2564,7 +2572,7 @@ body.qb-guide-active .qb {
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: none;
   position: relative;
 }
 .qb-filter-toggle-btn:hover {
@@ -2649,7 +2657,7 @@ body.qb-guide-active .qb {
   cursor: pointer;
   box-shadow: var(--shadow-card);
   min-width: 0;
-  transition: all 0.18s ease;
+  transition: transform 0.18s ease;
   position: relative;
 }
 .qb-tip-card.qb-tip-card-has-content {
@@ -3925,7 +3933,7 @@ body.qb-guide-active .qb {
   gap: 8px;
   box-shadow: var(--shadow-card);
   min-height: 0;
-  transition: transform .2s ease, border-color .2s ease;
+  transition: transform .2s ease;
   position: relative;
   overflow: hidden;
 }
@@ -4149,7 +4157,7 @@ body.qb-guide-active .qb {
   flex-direction: column;
   height: 100%;
   min-width: 0;
-  transition: border-color 0.15s ease, transform 0.15s ease;
+  transition: transform 0.15s ease;
 }
 .qb-mock-question-card:hover {
   border-color: var(--border-h);
@@ -4765,7 +4773,7 @@ body.qb-guide-active .qb {
   cursor: pointer;
   text-align: left;
   overflow: hidden;
-  transition: all 0.15s ease;
+  transition: transform 0.15s ease;
   position: relative;
 }
 
