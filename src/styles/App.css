@@ -217,7 +217,9 @@ body {
   display: flex;
   align-items: center;
   gap: 0;
+  flex: 1 1 auto;
   min-width: 0;
+  overflow: hidden;
   padding-left: 0;
 }
 
@@ -300,13 +302,17 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex: 1 1 auto;
   min-width: 0;
+  overflow: hidden;
 }
 
 .qb-logo {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
+  max-width: 100%;
   background: none;
   border: none;
   padding: 0;
@@ -341,6 +347,8 @@ body {
   display: flex;
   flex-direction: column;
   line-height: 1.1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .qb-logo-title {
@@ -349,6 +357,9 @@ body {
   font-size: 19px;
   color: #f5a623;
   letter-spacing: -0.4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .qb-logo-sub {
@@ -357,6 +368,9 @@ body {
   font-weight: 600;
   color: var(--text-faint);
   letter-spacing: 0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Center Desktop Navigation Links */
@@ -427,6 +441,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   color: var(--text-muted);
   cursor: pointer;
   transition: none;
@@ -452,6 +467,8 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: none;
 }
 
@@ -1244,12 +1261,12 @@ body {
 }
 
 .light .qb-mobile-tabbar-track {
-  background: rgba(24, 26, 30, 0.92);
-  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.94);
+  border-color: var(--border, #e6ddd0);
   box-shadow:
-    0 14px 34px -8px rgba(15, 23, 42, 0.28),
-    0 4px 12px rgba(15, 23, 42, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    0 14px 34px -8px rgba(15, 23, 42, 0.14),
+    0 4px 12px rgba(15, 23, 42, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.98);
 }
 
 .qb-mobile-tab-glider {
@@ -1278,13 +1295,13 @@ body {
 .light .qb-mobile-tab-glider {
   background: linear-gradient(
     180deg,
-    rgba(245, 158, 11, 0.24) 0%,
-    rgba(245, 158, 11, 0.09) 100%
+    rgba(234, 88, 12, 0.14) 0%,
+    rgba(234, 88, 12, 0.05) 100%
   );
-  border-color: rgba(245, 158, 11, 0.38);
+  border-color: rgba(234, 88, 12, 0.28);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.18),
-    0 4px 12px rgba(245, 158, 11, 0.16);
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 4px 12px rgba(234, 88, 12, 0.10);
 }
 
 .qb-mobile-tab-glider::before {
@@ -1319,11 +1336,11 @@ body {
   font-weight: 600;
   letter-spacing: -0.01em;
   cursor: pointer;
-  transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.16s ease;
+  transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .light .qb-mobile-tab {
-  color: #ffffff;
+  color: var(--text-heading, #0f1b2d);
 }
 
 .qb-mobile-tab:active {
@@ -1341,7 +1358,7 @@ body {
 }
 
 .light .qb-mobile-tab.on {
-  color: #ffffff;
+  color: var(--text-heading, #0f1b2d);
 }
 
 .qb-mobile-tab-icon-box {
@@ -1351,19 +1368,19 @@ body {
   justify-content: center;
   width: 26px;
   height: 22px;
-  color: #ffffff;
+  color: inherit;
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .qb-mobile-tab.on .qb-mobile-tab-icon-box {
-  color: #ffffff;
+  color: inherit;
   transform: translateY(-1px) scale(1.06);
   filter: drop-shadow(0 2px 8px rgba(255, 255, 255, 0.28));
 }
 
 .light .qb-mobile-tab.on .qb-mobile-tab-icon-box {
-  color: #ffffff;
-  filter: drop-shadow(0 2px 8px rgba(255, 255, 255, 0.28));
+  color: inherit;
+  filter: drop-shadow(0 2px 6px rgba(15, 23, 42, 0.12));
 }
 
 .qb-mobile-tab-live-dot {
@@ -1379,7 +1396,7 @@ body {
 }
 
 .light .qb-mobile-tab-live-dot {
-  box-shadow: 0 0 0 2px #181a1e, 0 0 8px rgba(16, 185, 129, 0.65);
+  box-shadow: 0 0 0 2px #ffffff, 0 0 8px rgba(16, 185, 129, 0.55);
 }
 
 .qb-mobile-tab-label-row {
@@ -1389,11 +1406,11 @@ body {
   gap: 4px;
   max-width: 100%;
   line-height: 1.1;
-  color: #ffffff;
+  color: inherit;
 }
 
 .qb-mobile-tab-label {
-  color: #ffffff;
+  color: inherit;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1404,13 +1421,13 @@ body {
   font-variant-numeric: tabular-nums;
   font-size: 9.5px;
   font-weight: 600;
-  color: #ffffff;
+  color: inherit;
   opacity: 0.85;
   letter-spacing: -0.02em;
 }
 
 .qb-mobile-tab.on .qb-mobile-tab-count {
-  color: #ffffff;
+  color: inherit;
   opacity: 1;
 }
 
@@ -5978,19 +5995,23 @@ body.qb-guide-active .qb {
   .draw-bar-group { flex:1 1 auto; min-width:0; }
   .draw-tool-palette-row { flex-wrap:wrap; }
   .draw-bar-secondary-tools { grid-template-columns:1fr; width:100%; }
-  .qb-hdr { padding: 0 16px; flex-wrap: nowrap; gap: 12px; }
-  .qb-logo-block { gap:10px; }
-  .qb-logo { font-size:16px; }
-  .qb-logo-img { width:28px; height:28px; }
+  .qb-hdr { padding: 0 12px; flex-wrap: nowrap; gap: 8px; }
+  .qb-logo-block { gap: 8px; min-width: 0; }
+  .qb-logo { font-size: 16px; gap: 8px; min-width: 0; }
+  .qb-logo-img { width: 26px; height: 26px; }
+  .qb-logo-title { font-size: 16px; line-height: 1.05; }
+  .qb-logo-sub { font-size: 10px; line-height: 1.15; letter-spacing: 0.1px; }
   .qb-logo-tag { display:none; }
   .qb-spacer { display:none; }
   .qb-hdr-meta, .qb-hdr-meta-stack { display:none; }
-  .qb-hdr-left { gap: 10px; padding-left: 2px; }
-  .qb-hdr-right { gap:10px; }
-  .qb-auth-btn,.qb-account-btn { height:34px; padding:0 10px; font-size:12px; }
+  .qb-hdr-left { gap: 8px; padding-left: 0; min-width: 0; flex: 1 1 auto; }
+  .qb-hdr-right { gap: 6px; flex-shrink: 0; }
+  .qb-hdr-action-btn { width: 34px; height: 34px; border-radius: 10px; }
+  .qb-auth-btn,.qb-account-btn { height:34px; padding:0 10px; font-size:12px; gap:5px; border-radius:10px; }
   .qb-theme-btn { height:34px; padding:0 10px; }
   .qb-theme-btn-text { display:none; }
-  .qb-account-btn-avatar { width:40px; min-width:40px; height:40px; padding:0; }
+  .qb-account-btn-avatar { width:34px; min-width:34px; height:34px; padding:0; border-radius:10px; }
+  .qb-account-avatar { width:26px; height:26px; border-radius:7px; }
   .qb-account-name { display:none; }
   .qb-add-btn { height: 36px; padding: 0 14px; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
   .qb-dashboard { gap:18px; }
@@ -6027,7 +6048,7 @@ body.qb-guide-active .qb {
   .qb-toolbar-row { align-items:stretch; }
   .qb-toolbar-actions { width:100%; }
   .qb-toolbar-add-btn { width:100%; justify-content:center; }
-  .qb-hdr-menu-btn { width:36px; height:36px; margin: 0; }
+  .qb-hdr-menu-btn { width:34px; height:34px; margin: 0; border-radius: 10px; }
   .qb-det-card { padding:18px; border-radius:18px; }
   .qb-det-page {
     gap: 8px;
@@ -6992,7 +7013,13 @@ body.qb-guide-active .qb {
 @media (max-width:600px) {
   .qb-hdr {
     height:56px;
-    padding:0 14px;
+    padding:0 12px;
+    gap:8px;
+  }
+
+  .qb-logo {
+    gap:8px;
+    font-size:16px;
   }
 
   .qb-list-hero-side {
@@ -7419,21 +7446,47 @@ button[data-action="skip"] {
 
   /* Header */
   .qb-logo {
-    font-size: 15px !important;
+    font-size: 14px !important;
+    gap: 6px !important;
   }
 
   .qb-logo-img {
-    width: 26px !important;
-    height: 26px !important;
+    width: 24px !important;
+    height: 24px !important;
+  }
+
+  .qb-logo-title {
+    font-size: 14.5px !important;
+  }
+
+  .qb-logo-sub {
+    font-size: 9px !important;
   }
 
   .qb-hdr {
     padding: 0 10px !important;
-    gap: 8px !important;
+    gap: 6px !important;
+  }
+
+  .qb-hdr-left {
+    gap: 6px !important;
+  }
+
+  .qb-hdr-menu-btn,
+  .qb-hdr-action-btn {
+    width: 32px !important;
+    height: 32px !important;
   }
 
   .qb-hdr-right {
-    gap: 8px !important;
+    gap: 5px !important;
+  }
+
+  .qb-auth-btn {
+    height: 32px !important;
+    padding: 0 8px !important;
+    font-size: 11.5px !important;
+    gap: 4px !important;
   }
 
   .qb-theme-btn {
