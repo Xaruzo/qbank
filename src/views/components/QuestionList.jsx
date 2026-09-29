@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { TOPICS, SORT_OPTIONS } from "../../constants/appConstants";
-import { ClipboardList, ChevronRight, Plus, Star, ChevronDown, Lightbulb, Palette, BookOpen } from "lucide-react";
+import { ClipboardList, ChevronRight, Plus, Star, ChevronDown, Lightbulb, BookOpen } from "lucide-react";
 import MarkdownText from "./MarkdownText";
 import usePlainTextCopy from "../../utils/usePlainTextCopy";
 

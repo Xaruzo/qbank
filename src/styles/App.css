@@ -1959,7 +1959,7 @@ body.qb-guide-active .qb {
 .qb-hero-preset-specs {
   font-family: 'Fira Mono', monospace;
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.65);
+  color: #ffffff;
   margin-top: 2px;
 }
 .light .qb-hero-preset-specs {

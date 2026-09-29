@@ -1,5 +1,3 @@
-import React from "react";
-
 const Bar = ({ w, h, extra }) => (
   <div className="qb-skel-bar" style={{ width: w, height: h, ...extra }} />
 );

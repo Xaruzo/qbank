@@ -1,4 +1,3 @@
-import React from "react";
 import { TOPICS } from "../../constants/appConstants";
 import { Check } from "lucide-react";
 

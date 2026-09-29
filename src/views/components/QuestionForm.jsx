@@ -1,11 +1,11 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { TOPICS, LETTERS, PROBLEM_LABELS } from "../../constants/appConstants";
 import DrawCanvas from "./DrawCanvas";
 import SymbolToolbar from "./SymbolToolbar";
 import { handleSymbolShortcuts } from "../../utils/symbolShortcuts";
 import { uploadImageToSupabase, validateImageFile } from "../../utils/imageUpload";
-import { ChevronLeft, ChevronDown, Pencil, Image, Upload, Loader } from "lucide-react";
+import { ChevronLeft, ChevronDown, Pencil, Image, Loader } from "lucide-react";
 
 export default function QuestionForm({ initialData, onSave, onCancel, layersHost, sideRailHost }) {
   const [form, setForm] = useState(initialData ? {
