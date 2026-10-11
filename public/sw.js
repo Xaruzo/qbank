@@ -45,8 +45,12 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          const copy = res.clone();
-          caches.open(APP_SHELL_CACHE).then((c) => c.put("/index.html", copy));
+          // Only refresh the cached shell from a good response, so a 404/500
+          // page can't replace the working offline copy.
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open(APP_SHELL_CACHE).then((c) => c.put("/index.html", copy));
+          }
           return res;
         })
         .catch(() => caches.match("/index.html"))
@@ -58,10 +62,13 @@ self.addEventListener("fetch", (event) => {
     caches.match(req).then((cached) => {
       if (cached) return cached;
       return fetch(req).then((res) => {
-        const copy = res.clone();
-        caches.open(RUNTIME_CACHE).then((cache) => {
-          cache.put(req, copy).then(() => trimRuntimeCache(cache));
-        });
+        // Don't cache error responses (they would be served cache-first forever).
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(RUNTIME_CACHE).then((cache) => {
+            cache.put(req, copy).then(() => trimRuntimeCache(cache));
+          });
+        }
         return res;
       });
     })
