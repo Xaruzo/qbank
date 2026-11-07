@@ -786,7 +786,7 @@ export default function App() {
     {
       id: "home",
       label: "Question Bank",
-      shortLabel: "Bank",
+      shortLabel: "Questions",
       icon: Home,
       badge: qs.length > 0 ? qs.length : null,
       onClick: () => {
@@ -796,7 +796,7 @@ export default function App() {
     },
     {
       id: "mock",
-      label: "Mock Exam",
+      label: "Timed Mock Exam",
       shortLabel: "Mock Exam",
       icon: ClipboardList,
       isLive: hasResumableMock,
@@ -1243,7 +1243,7 @@ export default function App() {
           <nav
             className="qb-mobile-tabbar"
             aria-label="Primary Bottom Navigation"
-            style={{ "--active-tab-index": activeMobileTabIndex }}
+            style={{ "--active-tab-index": activeMobileTabIndex, "--total-tabs": mobileNavItems.length }}
           >
             <div className="qb-mobile-tabbar-track">
               <div className="qb-mobile-tab-glider" aria-hidden="true" />
@@ -1257,22 +1257,24 @@ export default function App() {
                     className={`qb-mobile-tab${isActive ? " on" : ""}`}
                     onClick={item.onClick}
                     aria-current={isActive ? "page" : undefined}
-                    aria-label={item.label}
+                    aria-label={item.badge ? `${item.label} (${item.badge} items)` : item.label}
                   >
                     <span className="qb-mobile-tab-icon-box" aria-hidden="true">
-                      <Icon size={19} strokeWidth={isActive ? 2.35 : 1.9} />
+                      <Icon size={20} strokeWidth={isActive ? 2.4 : 1.85} />
                       {item.isLive && (
                         <span
                           className="qb-mobile-tab-live-dot"
                           title="Mock exam in progress"
                         />
                       )}
-                    </span>
-                    <span className="qb-mobile-tab-label-row">
-                      <span className="qb-mobile-tab-label">{item.shortLabel || item.label}</span>
-                      {item.badge && (
-                        <span className="qb-mobile-tab-count">{item.badge}</span>
+                      {item.badge != null && (
+                        <span className="qb-mobile-tab-badge" title={`${item.badge} questions`}>
+                          {item.badge}
+                        </span>
                       )}
+                    </span>
+                    <span className="qb-mobile-tab-label">
+                      {item.shortLabel || item.label}
                     </span>
                   </button>
                 );

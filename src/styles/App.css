@@ -1242,51 +1242,51 @@ body {
 .qb-mobile-tabbar-track {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--total-tabs, 4), minmax(0, 1fr));
   align-items: center;
   width: 100%;
-  max-width: 460px;
+  max-width: 440px;
   margin: 0 auto;
-  padding: 5px;
-  border-radius: 22px;
+  padding: 4px;
+  border-radius: 24px;
   pointer-events: auto;
-  background: rgba(24, 26, 30, 0.92);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(18, 20, 24, 0.88);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow:
-    0 16px 36px -6px rgba(0, 0, 0, 0.55),
-    0 4px 12px rgba(0, 0, 0, 0.32),
-    inset 0 1px 0 rgba(255, 255, 255, 0.10);
+    0 18px 40px -10px rgba(0, 0, 0, 0.65),
+    0 4px 16px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .light .qb-mobile-tabbar-track {
-  background: rgba(255, 255, 255, 0.94);
-  border-color: var(--border, #e6ddd0);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(15, 23, 42, 0.08);
   box-shadow:
-    0 14px 34px -8px rgba(15, 23, 42, 0.14),
-    0 4px 12px rgba(15, 23, 42, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.98);
+    0 16px 36px -10px rgba(15, 23, 42, 0.16),
+    0 4px 14px rgba(15, 23, 42, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 .qb-mobile-tab-glider {
   position: absolute;
-  top: 5px;
-  bottom: 5px;
-  left: 5px;
-  width: calc((100% - 10px) / 3);
-  border-radius: 17px;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc((100% - 8px) / var(--total-tabs, 4));
+  border-radius: 19px;
   background: linear-gradient(
     180deg,
-    rgba(245, 158, 11, 0.22) 0%,
-    rgba(245, 158, 11, 0.08) 100%
+    rgba(245, 158, 11, 0.16) 0%,
+    rgba(245, 158, 11, 0.05) 100%
   );
-  border: 1px solid rgba(245, 158, 11, 0.34);
+  border: 1px solid rgba(245, 158, 11, 0.28);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.16),
-    0 4px 14px rgba(245, 158, 11, 0.14);
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 4px 16px rgba(245, 158, 11, 0.12);
   transform: translate3d(calc(var(--active-tab-index, 0) * 100%), 0, 0);
-  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.26s cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: none;
   z-index: 0;
   overflow: hidden;
@@ -1295,13 +1295,13 @@ body {
 .light .qb-mobile-tab-glider {
   background: linear-gradient(
     180deg,
-    rgba(234, 88, 12, 0.14) 0%,
-    rgba(234, 88, 12, 0.05) 100%
+    rgba(234, 88, 12, 0.12) 0%,
+    rgba(234, 88, 12, 0.04) 100%
   );
-  border-color: rgba(234, 88, 12, 0.28);
+  border-color: rgba(234, 88, 12, 0.22);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.85),
-    0 4px 12px rgba(234, 88, 12, 0.10);
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 4px 12px rgba(234, 88, 12, 0.08);
 }
 
 .qb-mobile-tab-glider::before {
@@ -1310,11 +1310,11 @@ body {
   top: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 26px;
+  width: 22px;
   height: 2.5px;
   border-radius: 0 0 999px 999px;
   background: var(--accent, #f59e0b);
-  box-shadow: 0 2px 10px var(--accent, #f59e0b);
+  box-shadow: 0 2px 8px var(--accent, #f59e0b);
 }
 
 .qb-mobile-tab {
@@ -1322,29 +1322,38 @@ body {
   z-index: 1;
   border: none;
   background: transparent;
-  color: #ffffff;
+  color: var(--text-muted, #94a3b8);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  min-height: 50px;
-  padding: 6px 8px;
-  border-radius: 17px;
+  gap: 3px;
+  min-height: 52px;
+  padding: 6px 4px 5px;
+  border-radius: 19px;
   font-family: 'DM Sans', sans-serif;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 10.5px;
+  font-weight: 500;
   letter-spacing: -0.01em;
   cursor: pointer;
-  transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: color 0.18s ease, transform 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  -webkit-tap-highlight-color: transparent;
 }
 
 .light .qb-mobile-tab {
-  color: var(--text-heading, #0f1b2d);
+  color: #64748b;
+}
+
+.qb-mobile-tab:hover {
+  color: #ffffff;
+}
+
+.light .qb-mobile-tab:hover {
+  color: #0f172a;
 }
 
 .qb-mobile-tab:active {
-  transform: scale(0.95);
+  transform: scale(0.94);
 }
 
 .qb-mobile-tab:focus-visible {
@@ -1354,11 +1363,12 @@ body {
 
 .qb-mobile-tab.on {
   color: #ffffff;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .light .qb-mobile-tab.on {
-  color: var(--text-heading, #0f1b2d);
+  color: var(--accent-hover, #c2410c);
+  font-weight: 600;
 }
 
 .qb-mobile-tab-icon-box {
@@ -1366,69 +1376,77 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 22px;
+  width: 28px;
+  height: 24px;
   color: inherit;
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), color 0.18s ease;
 }
 
 .qb-mobile-tab.on .qb-mobile-tab-icon-box {
-  color: inherit;
-  transform: translateY(-1px) scale(1.06);
-  filter: drop-shadow(0 2px 8px rgba(255, 255, 255, 0.28));
+  color: var(--accent, #f59e0b);
+  transform: translateY(-1px) scale(1.08);
+  filter: drop-shadow(0 2px 8px rgba(245, 158, 11, 0.35));
 }
 
 .light .qb-mobile-tab.on .qb-mobile-tab-icon-box {
-  color: inherit;
-  filter: drop-shadow(0 2px 6px rgba(15, 23, 42, 0.12));
+  color: var(--accent, #ea580c);
+  filter: drop-shadow(0 2px 6px rgba(234, 88, 12, 0.2));
 }
 
 .qb-mobile-tab-live-dot {
   position: absolute;
   top: -1px;
-  right: -2px;
+  right: -3px;
   width: 7px;
   height: 7px;
   border-radius: 999px;
   background: #10b981;
-  box-shadow: 0 0 0 2px #181a1e, 0 0 8px rgba(16, 185, 129, 0.75);
+  box-shadow: 0 0 0 2px rgba(18, 20, 24, 0.95), 0 0 8px rgba(16, 185, 129, 0.85);
   animation: qb-sync-pulse 1.6s ease-in-out infinite;
 }
 
 .light .qb-mobile-tab-live-dot {
-  box-shadow: 0 0 0 2px #ffffff, 0 0 8px rgba(16, 185, 129, 0.55);
+  box-shadow: 0 0 0 2px #ffffff, 0 0 8px rgba(16, 185, 129, 0.6);
 }
 
-.qb-mobile-tab-label-row {
+.qb-mobile-tab-badge {
+  position: absolute;
+  top: -4px;
+  right: -8px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3.5px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  max-width: 100%;
-  line-height: 1.1;
-  color: inherit;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+  color: #ffffff;
+  font-family: 'Fira Mono', monospace;
+  font-size: 8.5px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  box-shadow:
+    0 2px 6px rgba(234, 88, 12, 0.35),
+    0 0 0 1.5px rgba(18, 20, 24, 0.9);
+}
+
+.light .qb-mobile-tab-badge {
+  box-shadow:
+    0 2px 5px rgba(234, 88, 12, 0.25),
+    0 0 0 1.5px #ffffff;
 }
 
 .qb-mobile-tab-label {
   color: inherit;
+  font-size: 10px;
+  line-height: 1.1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.qb-mobile-tab-count {
-  font-family: 'Fira Mono', monospace;
-  font-variant-numeric: tabular-nums;
-  font-size: 9.5px;
-  font-weight: 600;
-  color: inherit;
-  opacity: 0.85;
-  letter-spacing: -0.02em;
-}
-
-.qb-mobile-tab.on .qb-mobile-tab-count {
-  color: inherit;
-  opacity: 1;
+  max-width: 100%;
+  text-align: center;
 }
 
 .qb-main { flex:1; overflow-y:auto; overflow-x:hidden; scrollbar-gutter:stable; padding:0; min-height:0; }
@@ -6435,10 +6453,10 @@ body.qb-guide-active .qb {
     gap:4px;
   }
   .qb-list-add-btn { width:100%; }
-  .qb-mobile-tabbar { padding: 0 8px calc(8px + env(safe-area-inset-bottom, 0px)); }
-  .qb-mobile-tabbar-track { padding: 4px; border-radius: 20px; }
-  .qb-mobile-tab-glider { top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 3); border-radius: 15px; }
-  .qb-mobile-tab { min-height: 48px; font-size: 10.5px; border-radius: 15px; }
+  .qb-mobile-tabbar { padding: 0 10px calc(8px + env(safe-area-inset-bottom, 0px)); }
+  .qb-mobile-tabbar-track { padding: 3px; border-radius: 22px; }
+  .qb-mobile-tab-glider { top: 3px; bottom: 3px; left: 3px; width: calc((100% - 6px) / var(--total-tabs, 4)); border-radius: 18px; }
+  .qb-mobile-tab { min-height: 48px; font-size: 10px; padding: 5px 2px 4px; border-radius: 18px; }
 }
 
 
