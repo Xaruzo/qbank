@@ -4,6 +4,7 @@ import {
   Home,
   ClipboardList,
   Lightbulb,
+  BookOpen,
   X,
   LogIn,
   LogOut,
@@ -12,8 +13,18 @@ import {
   ChevronRight,
 } from "lucide-react";
 import brandLogo from "../../models/Image/logo.png";
+import type { SideNavProps } from "../../types";
 
-const NAV_ITEMS = [
+interface NavItemDef {
+  id: "home" | "mock" | "tips" | "notes";
+  label: string;
+  shortLabel: string;
+  subtitle: string;
+  title: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+}
+
+const NAV_ITEMS: NavItemDef[] = [
   {
     id: "home",
     label: "Question Bank",
@@ -38,32 +49,43 @@ const NAV_ITEMS = [
     title: "Tips & Tricks",
     icon: Lightbulb,
   },
+  {
+    id: "notes",
+    label: "Study Notes",
+    shortLabel: "Notes",
+    subtitle: "Jot formulas, acronyms & checklists",
+    title: "Study Notes",
+    icon: BookOpen,
+  },
 ];
 
 export default function SideNav({
   variant = "rail",
-  open,
-  active,
+  open = false,
+  active = "home",
   onHome,
   onMockExam,
   onTips,
+  onNotes,
   onClose,
   totalQuestions = 0,
   starredCount = 0,
-  _isDark,
-  _onToggleTheme,
-  _onOpenHelp,
-  isAuthenticated,
-  profile,
+  isAuthenticated = false,
+  profile = null,
   onSignIn,
   onSignOut,
-}) {
-  const cardRef = useRef(null);
+}: SideNavProps) {
+  const cardRef = useRef<HTMLDivElement>(null);
   useOverlayDialogA11y(variant === "overlay" && open, onClose, cardRef);
 
-  const handlers = { home: onHome, mock: onMockExam, tips: onTips };
+  const handlers: Record<string, (() => void) | undefined> = {
+    home: onHome,
+    mock: onMockExam,
+    tips: onTips,
+    notes: onNotes,
+  };
 
-  const handleNavigate = (action) => () => {
+  const handleNavigate = (action?: () => void) => () => {
     if (action) action();
     if (onClose) onClose();
   };
@@ -208,7 +230,7 @@ export default function SideNav({
           {/* Drawer Top Header */}
           <div className="qb-drawer-head">
             <div className="qb-drawer-brand">
-              <img src={brandLogo} alt="QBank logo" className="qb-drawer-logo" />
+              <img src={brandLogo} alt="QBANK logo" className="qb-drawer-logo" />
               <div className="qb-drawer-brand-text">
                 <span className="qb-drawer-title">QBANK</span>
                 <span className="qb-drawer-sub">Civil Service Reviewer</span>
@@ -245,30 +267,28 @@ export default function SideNav({
             {renderStatsWidget()}
           </>
         ) : (
-          <>
-            <nav className="qb-side-nav qb-side-nav-collapsed" aria-label="Desktop Sidebar">
-              {NAV_ITEMS.map(({ id, label, shortLabel, title, icon: Icon }) => {
-                const isSelected = active === id;
+          <nav className="qb-side-nav qb-side-nav-collapsed" aria-label="Desktop Sidebar">
+            {NAV_ITEMS.map(({ id, label, shortLabel, title, icon: Icon }) => {
+              const isSelected = active === id;
 
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    className={`qb-nav-item-collapsed${isSelected ? " on" : ""}`}
-                    onClick={handlers[id]}
-                    title={`${label} - ${title}`}
-                    aria-label={label}
-                  >
-                    <div className="qb-drawer-nav-icon-wrap">
-                      <Icon size={20} />
-                      {id === "mock" && <span className="qb-nav-dot-accent" title="Timed Mock Exam" />}
-                    </div>
-                    <span className="qb-nav-text-collapsed">{shortLabel || label}</span>
-                  </button>
-                );
-              })}
-            </nav>
-          </>
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  className={`qb-nav-item-collapsed${isSelected ? " on" : ""}`}
+                  onClick={handlers[id]}
+                  title={`${label} - ${title}`}
+                  aria-label={label}
+                >
+                  <div className="qb-drawer-nav-icon-wrap">
+                    <Icon size={20} />
+                    {id === "mock" && <span className="qb-nav-dot-accent" title="Timed Mock Exam" />}
+                  </div>
+                  <span className="qb-nav-text-collapsed">{shortLabel || label}</span>
+                </button>
+              );
+            })}
+          </nav>
         )}
       </div>
     </aside>

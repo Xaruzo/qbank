@@ -1,8 +1,24 @@
 import { TOPICS } from "../../constants/appConstants";
 import { Check } from "lucide-react";
+import type { StatsProps, TopicDef, TopicId } from "../../types";
 
-export default function Stats({ total, counts, topicFilter = "all", onSelectTopic }) {
-  const statItems = [
+interface StatItem {
+  id: TopicId | "all";
+  label: string;
+  short: string;
+  value: number;
+  color: string;
+  note: string;
+  percent: number;
+}
+
+export default function Stats({
+  total,
+  counts,
+  topicFilter = "all",
+  onSelectTopic,
+}: StatsProps) {
+  const statItems: StatItem[] = [
     {
       id: "all",
       label: "All Questions",
@@ -12,13 +28,13 @@ export default function Stats({ total, counts, topicFilter = "all", onSelectTopi
       note: "Full bank",
       percent: 100,
     },
-    ...TOPICS.map((topic) => {
+    ...TOPICS.map((topic: TopicDef): StatItem => {
       const val = counts[topic.id] || 0;
       const pct = total > 0 ? Math.round((val / total) * 100) : 0;
       return {
         id: topic.id,
         label: topic.label,
-        short: topic.short,
+        short: topic.short || topic.label.slice(0, 4).toUpperCase(),
         value: val,
         color: topic.color,
         note: "Bank share",
@@ -45,7 +61,7 @@ export default function Stats({ total, counts, topicFilter = "all", onSelectTopi
               role="listitem"
               key={item.id}
               className={`qb-stat${isActive ? " is-active" : ""}`}
-              style={{ "--stat-accent": item.color }}
+              style={{ "--stat-accent": item.color } as React.CSSProperties}
               onClick={() => onSelectTopic && onSelectTopic(item.id)}
               aria-pressed={isActive}
               title={`Filter by ${item.label}`}
@@ -58,11 +74,11 @@ export default function Stats({ total, counts, topicFilter = "all", onSelectTopi
                   </span>
                 )}
               </div>
-              <span className="qb-stat-n">{item.value}</span>
+              <span className="qb-stat-n tabular-nums">{item.value}</span>
               <span className="qb-stat-name">{item.label}</span>
               <div className="qb-stat-meta-row">
                 <span className="qb-stat-note">{item.note}</span>
-                <span className="qb-stat-pct">{item.percent}%</span>
+                <span className="qb-stat-pct tabular-nums">{item.percent}%</span>
               </div>
             </button>
           );

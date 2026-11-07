@@ -14,6 +14,7 @@ const MockAttemptDetail = lazy(() => import("./views/components/MockAttemptDetai
 const MockExamRunner = lazy(() => import("./views/components/MockExamRunner"));
 const TipsPage = lazy(() => import("./views/components/TipsPage"));
 const TipDetailPage = lazy(() => import("./views/components/TipDetailPage"));
+const NotesPage = lazy(() => import("./views/components/NotesPage"));
 import LoadingSpinner from "./views/components/LoadingSpinner";
 import SkeletonLoader, { MockSkeletonLoader, TipsSkeletonLoader } from "./views/components/SkeletonLoader";
 import HelpModal from "./views/components/HelpModal";
@@ -29,7 +30,7 @@ import { Home, ClipboardList, Lightbulb, PlayCircle, ArrowRight, BookOpen, Plus,
 import { QUESTION_ADMIN_UIDS, EXAM_PRESETS } from "./constants/appConstants";
 
 const PageLoader = ({ view }) => {
-  if (view === "tips" || view === "tipDetail") return <TipsSkeletonLoader />;
+  if (view === "tips" || view === "tipDetail" || view === "notes") return <TipsSkeletonLoader />;
   if (view === "mock" || view === "mockAttempt" || view === "mockRun") return <MockSkeletonLoader />;
   return <SkeletonLoader />;
 };
@@ -98,6 +99,7 @@ export default function App() {
   const [isActiveMockExamLoading, setIsActiveMockExamLoading] = useState(false);
   const [hasLoadedActiveMockExam, setHasLoadedActiveMockExam] = useState(false);
   const [selectedMockAttemptId, setSelectedMockAttemptId] = useState(null);
+  const [selectedNoteId, setSelectedNoteId] = useState(null);
   const [isMobile, setIsMobile] = useState(() => window.matchMedia ? window.matchMedia("(max-width: 600px)").matches : false);
   const [isCompact, setIsCompact] = useState(() => window.matchMedia ? window.matchMedia("(min-width: 601px) and (max-width: 1099px)").matches : false);
   const [showHelpModal, setShowHelpModal] = useState(false);
@@ -389,7 +391,20 @@ export default function App() {
         setEditId(null);
         setExam(null);
         setSelectedId(null);
+        setSelectedNoteId(null);
         setView("tips");
+        return;
+      }
+
+      if (page === "notes") {
+        const noteId = params.get("note");
+        setSelectedMockAttemptId(null);
+        setDeepLinkShowSol(false);
+        setEditId(null);
+        setExam(null);
+        setSelectedId(null);
+        setSelectedNoteId(noteId || null);
+        setView("notes");
         return;
       }
 
@@ -398,6 +413,7 @@ export default function App() {
         setDeepLinkShowSol(false);
         setEditId(null);
         setExam(null);
+        setSelectedNoteId(null);
         if (id && qsRef.current.some(q => q.id === id)) {
           setSelectedId(id);
           setView("tipDetail");
@@ -527,8 +543,21 @@ export default function App() {
     setDeepLinkShowSol(false);
     setExam(null);
     setSelectedId(null);
+    setSelectedNoteId(null);
     window.history.pushState({}, "", `?page=tips`);
     setView("tips");
+  };
+
+  const handleGoNotes = (noteId = null) => {
+    setEditId(null);
+    setSelectedId(null);
+    setSelectedMockAttemptId(null);
+    setDeepLinkShowSol(false);
+    setExam(null);
+    setSelectedNoteId(noteId);
+    const query = noteId ? `?page=notes&note=${encodeURIComponent(noteId)}` : `?page=notes`;
+    window.history.pushState({}, "", query);
+    setView("notes");
   };
 
   const handleOpenTipDetail = (questionId) => {
@@ -743,7 +772,9 @@ export default function App() {
     ? "mock"
     : view === "tips" || view === "tipDetail"
       ? "tips"
-      : "home";
+      : view === "notes"
+        ? "notes"
+        : "home";
   const hasResumableMock = isResumableMockExam(savedActiveMockExam);
   const scrollMainToTop = () => {
     window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
@@ -784,6 +815,16 @@ export default function App() {
         else handleGoTips();
       },
     },
+    {
+      id: "notes",
+      label: "Study Notes",
+      shortLabel: "Notes",
+      icon: BookOpen,
+      onClick: () => {
+        if (view === "notes") scrollMainToTop();
+        else handleGoNotes();
+      },
+    },
   ];
   const activeMobileTabIndex = Math.max(
     0,
@@ -822,6 +863,7 @@ export default function App() {
           currentView={primaryView}
           onMockExam={handleGoMockExam}
           onTips={handleGoTips}
+          onNotes={handleGoNotes}
         />
 
         {/* Unified Overlay Navigation Drawer for Mobile & Tablet/Compact */}
@@ -833,6 +875,7 @@ export default function App() {
             onHome={handleGoHome}
             onMockExam={handleGoMockExam}
             onTips={handleGoTips}
+            onNotes={handleGoNotes}
             onClose={() => setNavOpen(false)}
             totalQuestions={qs.length}
             starredCount={favoriteCount}
@@ -855,6 +898,7 @@ export default function App() {
               onHome={handleGoHome}
               onMockExam={handleGoMockExam}
               onTips={handleGoTips}
+              onNotes={handleGoNotes}
               totalQuestions={qs.length}
               starredCount={favoriteCount}
               isDark={isDark}
@@ -1073,6 +1117,12 @@ export default function App() {
                 userId={user?.id || null}
                 onBack={handleGoTips}
                 onOpenQuestion={handleSelectQuestion}
+              />
+            ) : view === "notes" ? (
+              <NotesPage
+                userId={user?.id || null}
+                onBack={handleGoHome}
+                initialNoteId={selectedNoteId}
               />
             ) : view === "mock" ? (
               isMockHistoryLoading || isActiveMockExamLoading ? (

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Search, SlidersHorizontal, ChevronDown, X, Star, RotateCcw } from "lucide-react";
 import { TOPICS } from "../../constants/appConstants";
+import type { SearchAndFilterProps, TopicDef, TopicId } from "../../types";
 
 export default function SearchAndFilter({
   search,
@@ -17,20 +18,26 @@ export default function SearchAndFilter({
   favoriteOnly = false,
   onFavoriteOnlyChange,
   onResetFilters,
-}) {
-  const getTopicColor = id => TOPICS.find(t => t.id===id)?.color || "inherit";
+}: SearchAndFilterProps) {
+  const getTopicColor = (id: string) => TOPICS.find((t: TopicDef) => t.id === id)?.color || "inherit";
   const hasActiveFilters = Boolean(search.trim() || topicFilter !== "all" || labelFilter !== "all" || favoriteOnly);
-  const activeFiltersCount = [search.trim(), topicFilter !== "all" ? topicFilter : "", labelFilter !== "all" ? labelFilter : "", favoriteOnly ? "fav" : ""].filter(Boolean).length;
+  const activeFiltersCount = [
+    search.trim(),
+    topicFilter !== "all" ? topicFilter : "",
+    labelFilter !== "all" ? labelFilter : "",
+    favoriteOnly ? "fav" : "",
+  ].filter(Boolean).length;
+
   const [labelFilterOpen, setLabelFilterOpen] = useState(false);
-  const [labelFilterDir, setLabelFilterDir] = useState("down");
-  const labelFilterRef = useRef(null);
+  const [labelFilterDir, setLabelFilterDir] = useState<"down" | "up">("down");
+  const labelFilterRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!labelFilterOpen) return;
-    const handle = (e) => {
+    const handle = (e: PointerEvent) => {
       const root = labelFilterRef.current;
       if (!root) return;
-      if (root.contains(e.target)) return;
+      if (root.contains(e.target as Node)) return;
       setLabelFilterOpen(false);
     };
     window.addEventListener("pointerdown", handle);
@@ -39,7 +46,7 @@ export default function SearchAndFilter({
 
   useEffect(() => {
     if (!labelFilterOpen) return;
-    const handle = (e) => {
+    const handle = (e: KeyboardEvent) => {
       if (e.key === "Escape") setLabelFilterOpen(false);
     };
     window.addEventListener("keydown", handle);
@@ -55,7 +62,7 @@ export default function SearchAndFilter({
         </div>
         <div className="qb-control-summary">
           <span className="qb-control-stat">
-            <strong>{filteredCount}</strong> of {total} items
+            <strong className="tabular-nums">{filteredCount}</strong> of <span className="tabular-nums">{total}</span> items
           </span>
           {favoriteCount > 0 && onFavoriteOnlyChange && (
             <button
@@ -66,7 +73,7 @@ export default function SearchAndFilter({
               title={favoriteOnly ? "Show all questions" : "Show starred questions only"}
             >
               <Star size={13} fill={favoriteOnly ? "currentColor" : "none"} />
-              <span>Starred ({favoriteCount})</span>
+              <span>Starred (<span className="tabular-nums">{favoriteCount}</span>)</span>
             </button>
           )}
           {hasActiveFilters && onResetFilters && (
@@ -88,11 +95,11 @@ export default function SearchAndFilter({
           <span className="qb-search-icon" aria-hidden="true">
             <Search size={18} />
           </span>
-          <input 
-            className="qb-search" 
-            placeholder="Search keywords, formulas, concepts, or problem text..." 
-            value={search} 
-            onChange={e => onSearchChange(e.target.value)} 
+          <input
+            className="qb-search"
+            placeholder="Search keywords, formulas, concepts, or problem text..."
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
           />
           {search && (
             <button
@@ -108,17 +115,26 @@ export default function SearchAndFilter({
         </label>
 
         {labelOptions.length > 0 && (
-          <div className="qb-label-filter-col" style={{ display:"flex", flexDirection:"column", gap:6 }}>
+          <div className="qb-label-filter-col" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span className="qb-filter-label">Problem Label</span>
             <div className="qb-select" ref={labelFilterRef} data-dir={labelFilterDir} data-open={labelFilterOpen}>
-              <button className="qb-select-btn" type="button" onClick={() => {
-                if (!labelFilterOpen && labelFilterRef.current) {
-                  const rect = labelFilterRef.current.getBoundingClientRect();
-                  setLabelFilterDir(window.innerHeight - rect.bottom < 220 ? "up" : "down");
-                }
-                setLabelFilterOpen(o => !o);
-              }} aria-expanded={labelFilterOpen}>
-                <span>{labelFilter === "all" ? "All Labels" : (labelOptions.find(o => o.value === labelFilter)?.label || "All Labels")}</span>
+              <button
+                className="qb-select-btn"
+                type="button"
+                onClick={() => {
+                  if (!labelFilterOpen && labelFilterRef.current) {
+                    const rect = labelFilterRef.current.getBoundingClientRect();
+                    setLabelFilterDir(window.innerHeight - rect.bottom < 220 ? "up" : "down");
+                  }
+                  setLabelFilterOpen((o) => !o);
+                }}
+                aria-expanded={labelFilterOpen}
+              >
+                <span>
+                  {labelFilter === "all"
+                    ? "All Labels"
+                    : labelOptions.find((o) => o.value === labelFilter)?.label || "All Labels"}
+                </span>
                 <ChevronDown size={16} />
               </button>
               <div className={`qb-select-menu${labelFilterOpen ? " open" : ""}`}>
@@ -132,7 +148,7 @@ export default function SearchAndFilter({
                 >
                   All Labels
                 </button>
-                {labelOptions.map(option => (
+                {labelOptions.map((option) => (
                   <button
                     key={option.value}
                     type="button"
@@ -157,17 +173,20 @@ export default function SearchAndFilter({
           <span>Subject Focus</span>
         </div>
         <div className="qb-pills" role="tablist" aria-label="Subject filter tabs">
-          {[{ id:"all", label:"All Subjects", count: total }, ...TOPICS.map(t => ({ id:t.id, label:t.label, count: counts[t.id]||0 }))].map(p => {
+          {[
+            { id: "all" as const, label: "All Subjects", count: total },
+            ...TOPICS.map((t: TopicDef) => ({ id: t.id, label: t.label, count: counts[t.id] || 0 })),
+          ].map((p) => {
             const isSelected = topicFilter === p.id;
             const topicCol = getTopicColor(p.id);
             return (
-              <button 
-                key={p.id} 
+              <button
+                key={p.id}
                 role="tab"
                 aria-selected={isSelected}
                 className={`qb-pill${isSelected ? " on" : ""}`}
                 style={isSelected && p.id !== "all" ? { borderColor: `${topicCol}66`, color: topicCol } : {}}
-                onClick={() => onTopicChange(p.id)}
+                onClick={() => onTopicChange(p.id as TopicId | "all")}
               >
                 {p.id !== "all" && (
                   <span
@@ -177,7 +196,7 @@ export default function SearchAndFilter({
                   />
                 )}
                 <span>{p.label}</span>
-                <span className="qb-pill-count">{p.count}</span>
+                <span className="qb-pill-count tabular-nums">{p.count}</span>
               </button>
             );
           })}

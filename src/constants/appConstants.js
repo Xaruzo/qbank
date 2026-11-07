@@ -40,6 +40,17 @@ export const FAVORITES_KEY = "cse-qbank-favorites-v1";
 export const TIPS_KEY = "cse-qbank-tips-v1";
 export const THEME_KEY = "cse-theme";
 export const MOCK_EXAM_HISTORY_KEY = "cse-mock-exam-history-v1";
+export const NOTES_KEY = "cse-qbank-notes-v1";
+
+export const NOTE_TOPICS = [
+  { id: "all", label: "All Topics" },
+  { id: "general", label: "General & Phil. Constitution", short: "GEN", color: "#a78bfa" },
+  { id: "numerical", label: "Numerical Ability", short: "NUM", color: "#f5a623" },
+  { id: "verbal", label: "Verbal Ability", short: "VRB", color: "#22d3ee" },
+  { id: "analytical", label: "Analytical Ability", short: "ANA", color: "#34d399" },
+  { id: "clerical", label: "Clerical Operations", short: "CLE", color: "#f43f5e" },
+  { id: "strategy", label: "Exam Strategy & Checklist", short: "STR", color: "#ec4899" },
+];
 
 // Official Civil Service Commission (CSC) Examination Presets
 export const EXAM_PRESETS = {

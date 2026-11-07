@@ -13,40 +13,43 @@ import {
   ClipboardList,
   Lightbulb,
   CheckCircle2,
+  BookOpen,
 } from "lucide-react";
 import brandLogo from "../../models/Image/logo.png";
+import type { HeaderProps } from "../../types";
 
 export default function Header({
   isDark,
   onToggleTheme,
   onHome,
   showNavToggle = true,
-  navOpen,
+  navOpen = false,
   onToggleNav,
-  authAvailable,
-  isAuthLoading,
-  isAuthenticated,
-  profile,
+  authAvailable = true,
+  isAuthLoading = false,
+  isAuthenticated = false,
+  profile = null,
   onSignIn,
   onSignOut,
   onOpenHelp,
   currentView = "home",
   onMockExam,
   onTips,
-}) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const menuRef = useRef(null);
+  onNotes,
+}: HeaderProps) {
+  const [menuOpen, setMenuOpen] = useState<boolean>(false);
+  const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!menuOpen) return undefined;
 
-    const handlePointerDown = (event) => {
-      if (menuRef.current?.contains(event.target)) return;
+    const handlePointerDown = (event: MouseEvent) => {
+      if (menuRef.current?.contains(event.target as Node)) return;
       setMenuOpen(false);
     };
 
-    const handleEscape = (event) => {
+    const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") setMenuOpen(false);
     };
 
@@ -65,7 +68,9 @@ export default function Header({
 
   const handleSignOut = async () => {
     setMenuOpen(false);
-    await onSignOut();
+    if (onSignOut) {
+      await onSignOut();
+    }
   };
 
   const handleOpenHelp = () => {
@@ -80,7 +85,7 @@ export default function Header({
       {profile?.fullName ? (
         profile.fullName.slice(0, 2).toUpperCase()
       ) : (
-        <UserCircle2 size={22} strokeWidth={1.9} />
+        <UserCircle2 size={20} strokeWidth={1.8} />
       )}
     </span>
   );
@@ -90,7 +95,7 @@ export default function Header({
       <header className="qb-hdr">
         {/* Left: Hamburger & Brand */}
         <div className="qb-hdr-left">
-          {showNavToggle && (
+          {showNavToggle && onToggleNav && (
             <button
               type="button"
               className={`qb-hdr-menu-btn${navOpen ? " is-active" : ""}`}
@@ -109,7 +114,7 @@ export default function Header({
               onClick={onHome}
               title="Return to Question Bank"
             >
-              <img className="qb-logo-img" src={brandLogo} alt="QBank logo" />
+              <img className="qb-logo-img" src={brandLogo} alt="QBANK logo" />
               <div className="qb-logo-text-group">
                 <span className="qb-logo-title">QBANK</span>
                 <span className="qb-logo-sub">Civil Service Reviewer</span>
@@ -161,6 +166,18 @@ export default function Header({
             >
               <Lightbulb size={15} />
               <span>Tips & Tricks</span>
+            </button>
+          )}
+
+          {onNotes && (
+            <button
+              type="button"
+              className={`qb-hdr-nav-item${currentView === "notes" ? " is-active" : ""}`}
+              onClick={onNotes}
+              title="Study Notes & Reviewer Scratchpad"
+            >
+              <BookOpen size={15} />
+              <span>Notes</span>
             </button>
           )}
         </nav>
