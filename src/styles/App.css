@@ -12800,6 +12800,44 @@ body:has(.qb-landing-root) {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  position: relative;
+}
+
+/* Up-and-Down Gliding Focus Indicator */
+.qb-nav-glider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  z-index: 1;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), height 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+  will-change: transform, height;
+}
+
+.qb-nav-glider-bar {
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3.5px;
+  border-radius: 0 4px 4px 0;
+  background: #f5a623;
+  box-shadow: 0 0 10px rgba(245, 166, 35, 0.8), 0 0 3px #f5a623;
+}
+
+.qb-nav-glider-pill {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  background: rgba(245, 166, 35, 0.12);
+  border: 1px solid rgba(245, 166, 35, 0.28);
+  box-shadow: 0 2px 10px rgba(245, 166, 35, 0.1);
+}
+
+.light .qb-nav-glider-pill {
+  background: rgba(245, 166, 35, 0.14);
+  border-color: rgba(245, 166, 35, 0.35);
 }
 
 .qb-nav-item {
@@ -12815,34 +12853,22 @@ body:has(.qb-landing-root) {
   color: var(--text-muted);
   cursor: pointer;
   text-align: left;
-  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), color 0.15s ease;
   font-size: 13px;
   font-weight: 500;
   position: relative;
+  z-index: 2;
 }
 .qb-nav-item:hover {
-  background: var(--surface-h);
   color: var(--text-heading);
-  border-color: var(--border);
   transform: translateX(4px);
 }
 .qb-nav-item.is-active {
-  background: rgba(245, 166, 35, 0.12);
+  background: transparent;
   color: #f5a623;
   font-weight: 600;
-  border-color: rgba(245, 166, 35, 0.28);
-  box-shadow: 0 2px 10px rgba(245, 166, 35, 0.1);
-}
-
-.qb-nav-item.is-active .qb-nav-indicator {
-  position: absolute;
-  left: 0;
-  top: 6px;
-  bottom: 6px;
-  width: 3px;
-  border-radius: 0 3px 3px 0;
-  background: #f5a623;
-  box-shadow: 0 0 8px rgba(245, 166, 35, 0.6);
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .qb-nav-item-lead {
@@ -12883,11 +12909,42 @@ body:has(.qb-landing-root) {
   color: #f5a623;
 }
 
-/* Exam Subjects List in Sidebar */
+/* Exam Subjects List in Sidebar with Focus Glider */
 .qb-nav-subjects-list {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  position: relative;
+}
+
+.qb-nav-subject-glider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  z-index: 1;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), height 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+  will-change: transform, height;
+}
+
+.qb-nav-subject-glider-bar {
+  position: absolute;
+  left: 0;
+  top: 5px;
+  bottom: 5px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: #f5a623;
+  box-shadow: 0 0 8px rgba(245, 166, 35, 0.7);
+}
+
+.qb-nav-subject-glider-pill {
+  position: absolute;
+  inset: 0;
+  border-radius: 7px;
+  background: var(--surface-h);
+  border: 1px solid var(--border);
 }
 
 .qb-nav-subject-btn {
@@ -12904,18 +12961,19 @@ body:has(.qb-landing-root) {
   cursor: pointer;
   text-align: left;
   font-size: 12.5px;
-  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), color 0.15s ease;
+  position: relative;
+  z-index: 2;
 }
 .qb-nav-subject-btn:hover {
-  background: var(--surface-h);
   color: var(--text-heading);
   transform: translateX(4px);
 }
 .qb-nav-subject-btn.is-active {
-  background: var(--surface-h);
+  background: transparent;
   color: var(--text-heading);
   font-weight: 600;
-  border-color: var(--border);
+  border-color: transparent;
   transform: translateX(2px);
 }
 
@@ -13176,6 +13234,38 @@ body:has(.qb-landing-root) {
   align-items: center;
   gap: 4px;
   width: 100%;
+  position: relative;
+}
+
+.qb-rail-glider {
+  position: absolute;
+  top: 0;
+  left: 3px;
+  right: 3px;
+  pointer-events: none;
+  z-index: 1;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), height 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+  will-change: transform, height;
+}
+
+.qb-rail-glider-bar {
+  position: absolute;
+  left: -3px;
+  top: 8px;
+  bottom: 8px;
+  width: 3.5px;
+  border-radius: 0 4px 4px 0;
+  background: #f5a623;
+  box-shadow: 0 0 10px rgba(245, 166, 35, 0.8), 0 0 3px #f5a623;
+}
+
+.qb-rail-glider-pill {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  background: rgba(245, 166, 35, 0.14);
+  border: 1px solid rgba(245, 166, 35, 0.3);
+  box-shadow: 0 2px 10px rgba(245, 166, 35, 0.12);
 }
 
 .qb-rail-btn {
@@ -13190,27 +13280,16 @@ body:has(.qb-landing-root) {
   align-items: center;
   justify-content: center;
   position: relative;
-  transition: all 0.15s ease;
+  z-index: 2;
+  transition: color 0.15s ease, transform 0.15s ease;
 }
 .qb-rail-btn:hover {
-  background: var(--surface-h);
   color: var(--text-heading);
-  border-color: var(--border);
 }
 .qb-rail-btn.is-active {
-  background: rgba(245, 166, 35, 0.12);
+  background: transparent;
   color: #f5a623;
-  border-color: rgba(245, 166, 35, 0.25);
-}
-
-.qb-rail-active-bar {
-  position: absolute;
-  left: 0;
-  top: 9px;
-  bottom: 9px;
-  width: 3px;
-  border-radius: 0 2px 2px 0;
-  background: #f5a623;
+  border-color: transparent;
 }
 
 .qb-rail-topics {

@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState, useLayoutEffect, useEffect } from "react";
 import { useOverlayDialogA11y } from "../../controllers/useOverlayDialogA11y";
 import {
   Layers,
@@ -42,6 +42,282 @@ const EXAM_SUBJECTS = [
   { id: "analytical" as TopicId, label: "Analytical Ability", short: "ANA", icon: BrainCircuit, color: "#34d399" },
   { id: "clerical" as TopicId, label: "Clerical Operations", short: "CLE", icon: FileSpreadsheet, color: "#f43f5e" },
 ];
+
+interface WorkspaceNavListProps {
+  navItems: NavItemDef[];
+  active: string;
+  handlers: Record<string, (() => void) | undefined>;
+  isOverlay?: boolean;
+  onNavigate?: (action?: () => void) => () => void;
+}
+
+function WorkspaceNavList({
+  navItems,
+  active,
+  handlers,
+  isOverlay = false,
+  onNavigate,
+}: WorkspaceNavListProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [glider, setGlider] = useState<{ top: number; height: number; ready: boolean }>({
+    top: 0,
+    height: 0,
+    ready: false,
+  });
+
+  const updateGlider = () => {
+    const activeEl = itemRefs.current[active];
+    const container = containerRef.current;
+    if (activeEl && container) {
+      const cRect = container.getBoundingClientRect();
+      const elRect = activeEl.getBoundingClientRect();
+      setGlider({
+        top: elRect.top - cRect.top,
+        height: elRect.height,
+        ready: true,
+      });
+    } else {
+      setGlider((prev) => ({ ...prev, ready: false }));
+    }
+  };
+
+  useLayoutEffect(() => {
+    updateGlider();
+  }, [active, navItems]);
+
+  useEffect(() => {
+    window.addEventListener("resize", updateGlider);
+    return () => window.removeEventListener("resize", updateGlider);
+  }, [active]);
+
+  return (
+    <nav ref={containerRef} className="qb-nav-list" aria-label="Study Workspace">
+      {glider.ready && (
+        <div
+          className="qb-nav-glider"
+          style={{
+            transform: `translateY(${glider.top}px)`,
+            height: `${glider.height}px`,
+          }}
+          aria-hidden="true"
+        >
+          <span className="qb-nav-glider-bar" />
+          <span className="qb-nav-glider-pill" />
+        </div>
+      )}
+      {navItems.map(({ id, label, badgeText, badgeType, icon: Icon, title }, idx) => {
+        const isSelected = active === id;
+        const clickHandler = handlers[id];
+
+        return (
+          <button
+            key={id}
+            ref={(el) => {
+              itemRefs.current[id] = el;
+            }}
+            type="button"
+            style={{ "--nav-idx": idx } as React.CSSProperties}
+            className={`qb-nav-item${isSelected ? " is-active" : ""}`}
+            onClick={isOverlay && onNavigate ? onNavigate(clickHandler) : clickHandler}
+            title={title}
+          >
+            <div className="qb-nav-item-lead">
+              <Icon size={17} className="qb-nav-item-icon" />
+              <span className="qb-nav-item-label">{label}</span>
+            </div>
+            {badgeText && (
+              <span className={`qb-nav-badge${badgeType === "accent" ? " is-accent" : ""}`}>
+                {badgeText}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
+interface SubjectsNavListProps {
+  subjects: typeof EXAM_SUBJECTS;
+  active: string;
+  activeTopic: TopicId | "all";
+  topicCounts: Record<string, number>;
+  onTopicClick: (topicId: TopicId) => void;
+}
+
+function SubjectsNavList({
+  subjects,
+  active,
+  activeTopic,
+  topicCounts,
+  onTopicClick,
+}: SubjectsNavListProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [glider, setGlider] = useState<{ top: number; height: number; ready: boolean }>({
+    top: 0,
+    height: 0,
+    ready: false,
+  });
+
+  const isCurrentSection = active === "home" && activeTopic !== "all";
+
+  const updateGlider = () => {
+    if (!isCurrentSection) {
+      setGlider((prev) => ({ ...prev, ready: false }));
+      return;
+    }
+    const activeEl = itemRefs.current[activeTopic];
+    const container = containerRef.current;
+    if (activeEl && container) {
+      const cRect = container.getBoundingClientRect();
+      const elRect = activeEl.getBoundingClientRect();
+      setGlider({
+        top: elRect.top - cRect.top,
+        height: elRect.height,
+        ready: true,
+      });
+    } else {
+      setGlider((prev) => ({ ...prev, ready: false }));
+    }
+  };
+
+  useLayoutEffect(() => {
+    updateGlider();
+  }, [active, activeTopic, isCurrentSection]);
+
+  useEffect(() => {
+    window.addEventListener("resize", updateGlider);
+    return () => window.removeEventListener("resize", updateGlider);
+  }, [active, activeTopic, isCurrentSection]);
+
+  return (
+    <div ref={containerRef} className="qb-nav-subjects-list" role="list">
+      {glider.ready && (
+        <div
+          className="qb-nav-subject-glider"
+          style={{
+            transform: `translateY(${glider.top}px)`,
+            height: `${glider.height}px`,
+          }}
+          aria-hidden="true"
+        >
+          <span className="qb-nav-subject-glider-bar" />
+          <span className="qb-nav-subject-glider-pill" />
+        </div>
+      )}
+      {subjects.map((sub, idx) => {
+        const isCurrentTopic = active === "home" && activeTopic === sub.id;
+        const count = topicCounts[sub.id] ?? 0;
+        const SubIcon = sub.icon;
+
+        return (
+          <button
+            key={sub.id}
+            ref={(el) => {
+              itemRefs.current[sub.id] = el;
+            }}
+            type="button"
+            style={{ "--nav-idx": idx + 4 } as React.CSSProperties}
+            className={`qb-nav-subject-btn${isCurrentTopic ? " is-active" : ""}`}
+            onClick={() => onTopicClick(sub.id)}
+            title={`Filter by ${sub.label} (${count} questions)`}
+          >
+            <div className="qb-nav-subject-left">
+              <SubIcon size={15} style={{ color: sub.color }} className="qb-nav-subject-icon" />
+              <span className="qb-nav-subject-name">{sub.label}</span>
+            </div>
+            <span className="qb-nav-subject-count tabular-nums">{count}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+interface RailNavListProps {
+  navItems: NavItemDef[];
+  active: string;
+  handlers: Record<string, (() => void) | undefined>;
+}
+
+function RailNavList({
+  navItems,
+  active,
+  handlers,
+}: RailNavListProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [glider, setGlider] = useState<{ top: number; height: number; ready: boolean }>({
+    top: 0,
+    height: 0,
+    ready: false,
+  });
+
+  const updateGlider = () => {
+    const activeEl = itemRefs.current[active];
+    const container = containerRef.current;
+    if (activeEl && container) {
+      const cRect = container.getBoundingClientRect();
+      const elRect = activeEl.getBoundingClientRect();
+      setGlider({
+        top: elRect.top - cRect.top,
+        height: elRect.height,
+        ready: true,
+      });
+    } else {
+      setGlider((prev) => ({ ...prev, ready: false }));
+    }
+  };
+
+  useLayoutEffect(() => {
+    updateGlider();
+  }, [active, navItems]);
+
+  useEffect(() => {
+    window.addEventListener("resize", updateGlider);
+    return () => window.removeEventListener("resize", updateGlider);
+  }, [active]);
+
+  return (
+    <div ref={containerRef} className="qb-rail-nav">
+      {glider.ready && (
+        <div
+          className="qb-rail-glider"
+          style={{
+            transform: `translateY(${glider.top}px)`,
+            height: `${glider.height}px`,
+          }}
+          aria-hidden="true"
+        >
+          <span className="qb-rail-glider-bar" />
+          <span className="qb-rail-glider-pill" />
+        </div>
+      )}
+      {navItems.map(({ id, shortLabel, icon: Icon, title }) => {
+        const isSelected = active === id;
+        const clickHandler = handlers[id];
+
+        return (
+          <button
+            key={id}
+            ref={(el) => {
+              itemRefs.current[id] = el;
+            }}
+            type="button"
+            className={`qb-rail-btn${isSelected ? " is-active" : ""}`}
+            onClick={clickHandler}
+            title={title || shortLabel}
+            aria-label={shortLabel}
+          >
+            <Icon size={17} />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function SideNav({
   variant = "rail",
@@ -172,74 +448,35 @@ export default function SideNav({
     </div>
   );
 
-  // Reusable Workspace Navigation
+  // Reusable Workspace Navigation with up-and-down gliding focus indicator
   const renderWorkspaceNav = (isOverlay = false) => (
     <div className="qb-nav-group">
       <div className="qb-nav-group-header">
         <span className="qb-nav-group-title">STUDY WORKSPACE</span>
       </div>
-      <nav className="qb-nav-list" aria-label="Study Workspace">
-        {navItems.map(({ id, label, badgeText, badgeType, icon: Icon, title }, idx) => {
-          const isSelected = active === id;
-          const clickHandler = handlers[id];
-
-          return (
-            <button
-              key={id}
-              type="button"
-              style={{ "--nav-idx": idx } as React.CSSProperties}
-              className={`qb-nav-item${isSelected ? " is-active" : ""}`}
-              onClick={isOverlay ? handleNavigate(clickHandler) : clickHandler}
-              title={title}
-            >
-              <span className="qb-nav-indicator" aria-hidden="true" />
-              <div className="qb-nav-item-lead">
-                <Icon size={17} className="qb-nav-item-icon" />
-                <span className="qb-nav-item-label">{label}</span>
-              </div>
-              {badgeText && (
-                <span className={`qb-nav-badge${badgeType === "accent" ? " is-accent" : ""}`}>
-                  {badgeText}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </nav>
+      <WorkspaceNavList
+        navItems={navItems}
+        active={active}
+        handlers={handlers}
+        isOverlay={isOverlay}
+        onNavigate={handleNavigate}
+      />
     </div>
   );
 
-  // Reusable Exam Subjects Quick Jump
+  // Reusable Exam Subjects Quick Jump with animated focus glider
   const renderSubjectsNav = () => (
     <div className="qb-nav-group qb-nav-subjects-group">
       <div className="qb-nav-group-header">
         <span className="qb-nav-group-title">EXAM SUBJECTS</span>
       </div>
-      <div className="qb-nav-subjects-list" role="list">
-        {EXAM_SUBJECTS.map((sub, idx) => {
-          const isCurrentTopic = active === "home" && activeTopic === sub.id;
-          const count = topicCounts[sub.id] ?? 0;
-          const SubIcon = sub.icon;
-
-          return (
-            <button
-              key={sub.id}
-              type="button"
-              style={{ "--nav-idx": idx + 4 } as React.CSSProperties}
-              className={`qb-nav-subject-btn${isCurrentTopic ? " is-active" : ""}`}
-              onClick={() => handleTopicClick(sub.id)}
-              title={`Filter by ${sub.label} (${count} questions)`}
-            >
-              <span className="qb-nav-subject-indicator" aria-hidden="true" />
-              <div className="qb-nav-subject-left">
-                <SubIcon size={15} style={{ color: sub.color }} className="qb-nav-subject-icon" />
-                <span className="qb-nav-subject-name">{sub.label}</span>
-              </div>
-              <span className="qb-nav-subject-count tabular-nums">{count}</span>
-            </button>
-          );
-        })}
-      </div>
+      <SubjectsNavList
+        subjects={EXAM_SUBJECTS}
+        active={active}
+        activeTopic={activeTopic}
+        topicCounts={topicCounts}
+        onTopicClick={handleTopicClick}
+      />
     </div>
   );
 
@@ -422,26 +659,11 @@ export default function SideNav({
 
               <div className="qb-rail-divider" />
 
-              <div className="qb-rail-nav">
-                {navItems.map(({ id, shortLabel, icon: Icon, title }) => {
-                  const isSelected = active === id;
-                  const clickHandler = handlers[id];
-
-                  return (
-                    <button
-                      key={id}
-                      type="button"
-                      className={`qb-rail-btn${isSelected ? " is-active" : ""}`}
-                      onClick={clickHandler}
-                      title={title || shortLabel}
-                      aria-label={shortLabel}
-                    >
-                      {isSelected && <span className="qb-rail-active-bar" />}
-                      <Icon size={17} />
-                    </button>
-                  );
-                })}
-              </div>
+              <RailNavList
+                navItems={navItems}
+                active={active}
+                handlers={handlers}
+              />
 
               <div className="qb-rail-divider" />
 

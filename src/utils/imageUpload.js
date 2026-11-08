@@ -163,3 +163,39 @@ export function validateImageFile(file) {
 
   return { valid: true, error: null };
 }
+
+/**
+ * Upload profile avatar image to Supabase Storage in the 'avatars' bucket
+ * @param {Blob|File} file - Image file or blob to upload
+ * @param {string} userId - Current authenticated user ID
+ * @returns {Promise<string>} Public URL of the uploaded avatar
+ */
+export async function uploadAvatarToSupabase(file, userId = "user") {
+  if (!supabase) {
+    throw new Error("Supabase is not configured.");
+  }
+
+  const timestamp = Date.now();
+  const fileExt = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+  const filePath = `${userId}/avatar-${timestamp}.${fileExt}`;
+
+  const { data, error } = await supabase.storage
+    .from("avatars")
+    .upload(filePath, file, {
+      cacheControl: "3600",
+      upsert: true,
+      contentType: file.type || "image/jpeg",
+    });
+
+  if (error) {
+    console.error("Supabase avatar upload error:", error);
+    throw new Error(`Avatar upload failed: ${error.message}`);
+  }
+
+  const { data: urlData } = supabase.storage
+    .from("avatars")
+    .getPublicUrl(data.path);
+
+  return urlData.publicUrl;
+}
+

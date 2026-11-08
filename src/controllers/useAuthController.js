@@ -215,16 +215,50 @@ export function useAuthController() {
       } catch {}
     }
 
+    let remoteAvatarUrl = nextCustom.avatarUrl;
+    if (supabase && session?.user && nextCustom.avatarUrl?.startsWith("data:image/")) {
+      try {
+        const res = await fetch(nextCustom.avatarUrl);
+        const blob = await res.blob();
+        const { uploadAvatarToSupabase } = await import("../utils/imageUpload");
+        const publicUrl = await uploadAvatarToSupabase(blob, session.user.id);
+        if (publicUrl) {
+          remoteAvatarUrl = publicUrl;
+          nextCustom.avatarUrl = publicUrl;
+          setCustomProfile({ ...nextCustom });
+          try {
+            localStorage.setItem(GUEST_PROFILE_STORAGE_KEY, JSON.stringify(nextCustom));
+          } catch {}
+        }
+      } catch (uploadErr) {
+        console.warn("Direct avatar storage upload failed (falling back to inline storage):", uploadErr);
+      }
+    }
+
     if (supabase && session?.user) {
       try {
         await supabase.auth.updateUser({
           data: {
             full_name: nextCustom.fullName,
-            avatar_url: nextCustom.avatarUrl,
+            avatar_url: remoteAvatarUrl,
             avatar_color: nextCustom.avatarColor,
             exam_target: nextCustom.examTarget,
           },
         });
+
+        // Sync to public.profiles if the table is created
+        await supabase
+          .from("profiles")
+          .upsert({
+            id: session.user.id,
+            email: session.user.email,
+            full_name: nextCustom.fullName,
+            avatar_url: remoteAvatarUrl,
+            avatar_color: nextCustom.avatarColor,
+            exam_target: nextCustom.examTarget,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: "id" })
+          .catch(() => {});
       } catch (err) {
         console.warn("Could not sync profile to remote auth:", err);
       }
