@@ -97,6 +97,7 @@ export interface HeaderProps {
   isDark: boolean;
   onToggleTheme: () => void;
   onHome: () => void;
+  onLanding?: () => void;
   showNavToggle?: boolean;
   navOpen?: boolean;
   onToggleNav?: () => void;
@@ -116,6 +117,7 @@ export interface SideNavProps {
   open?: boolean;
   active?: string;
   onHome?: () => void;
+  onLanding?: () => void;
   onMockExam?: () => void;
   onTips?: () => void;
   onNotes?: () => void;
@@ -189,4 +191,27 @@ export interface CustomSelectProps {
   placeholder?: string;
   className?: string;
   style?: React.CSSProperties;
+}
+
+export interface LandingPageProps {
+  isDark: boolean;
+  onToggleTheme: () => void;
+  onStartReview: () => void;
+  onSignIn: () => void;
+  onExploreGuest: () => void;
+  onStartMock?: (presetId?: "professional" | "subprofessional") => void;
+  onNavigateToTips?: () => void;
+  totalQuestions?: number;
+  isAuthenticated?: boolean;
+  profile?: UserProfile | null;
+}
+
+export interface SignInPageProps {
+  isDark: boolean;
+  onToggleTheme: () => void;
+  onBackToLanding: () => void;
+  onSuccessLogin: () => void;
+  onContinueAsGuest: () => void;
+  onSignInWithEmail: (email: string, password?: string) => Promise<{ error: any; mode?: string; message?: string }>;
+  onSignInWithGoogle?: () => Promise<{ error: any }>;
 }

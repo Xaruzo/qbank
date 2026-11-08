@@ -20,6 +20,9 @@ import SkeletonLoader, { MockSkeletonLoader, TipsSkeletonLoader } from "./views/
 import HelpModal from "./views/components/HelpModal";
 import AuthModal from "./views/components/AuthModal";
 import TutorialGuide from "./views/components/TutorialGuide";
+import LandingPage from "./views/components/LandingPage";
+import SignInPage from "./views/components/SignInPage";
+import CountUp from "./views/components/CountUp";
 import { useAuthController } from "./controllers/useAuthController";
 import { useQuestionsController } from "./controllers/useQuestionsController";
 import { useThemeController } from "./controllers/useThemeController";
@@ -86,7 +89,19 @@ export default function App() {
     sortBy, setSortBy, saveQuestion, deleteQuestion, toggleFavorite, counts, labelOptions, filteredQuestions 
   } = useQuestionsController(user?.id, isAuthLoading);
 
-  const [view, setView] = useState("list");
+  const [view, setView] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const page = params.get("page");
+      if (page === "landing") return "landing";
+      if (page === "signin" || page === "login") return "signIn";
+      if (page) return "list";
+      const hasEntered = sessionStorage.getItem("qbank-session-active") === "true";
+      return hasEntered ? "list" : "landing";
+    } catch {
+      return "landing";
+    }
+  });
   const [selectedId, setSelectedId] = useState(null);
   const [editId, setEditId] = useState(null);
   const [deepLinkShowSol, setDeepLinkShowSol] = useState(false);
@@ -131,6 +146,20 @@ export default function App() {
   useEffect(() => {
     if (window.matchMedia && window.matchMedia("(max-width: 600px)").matches) setNavOpen(false);
   }, []);
+
+  useEffect(() => {
+    if (view === "signIn" || view === "landing") {
+      document.body.classList.add("qb-page-scrollable");
+      document.documentElement.classList.add("qb-page-scrollable");
+    } else {
+      document.body.classList.remove("qb-page-scrollable");
+      document.documentElement.classList.remove("qb-page-scrollable");
+    }
+    return () => {
+      document.body.classList.remove("qb-page-scrollable");
+      document.documentElement.classList.remove("qb-page-scrollable");
+    };
+  }, [view]);
 
   // Check if this is the user's first visit and show guide
   useEffect(() => {
@@ -346,6 +375,26 @@ export default function App() {
       const attemptId = params.get("attempt");
       const sol = params.get("sol") === "1";
 
+      if (page === "landing") {
+        setSelectedMockAttemptId(null);
+        setSelectedId(null);
+        setDeepLinkShowSol(false);
+        setEditId(null);
+        setExam(null);
+        setView("landing");
+        return;
+      }
+
+      if (page === "signin" || page === "login") {
+        setSelectedMockAttemptId(null);
+        setSelectedId(null);
+        setDeepLinkShowSol(false);
+        setEditId(null);
+        setExam(null);
+        setView("signIn");
+        return;
+      }
+
       if (page === "mock") {
         setSelectedId(null);
         setDeepLinkShowSol(false);
@@ -455,7 +504,12 @@ export default function App() {
       setSelectedMockAttemptId(null);
       setSelectedId(null);
       setDeepLinkShowSol(false);
-      setView("list");
+      const hasActiveSession = typeof sessionStorage !== "undefined" && sessionStorage.getItem("qbank-session-active") === "true";
+      if (!isAuthenticated && !hasActiveSession) {
+        setView("landing");
+      } else {
+        setView("list");
+      }
     };
 
     syncFromUrl();
@@ -528,10 +582,24 @@ export default function App() {
     setEditId(null);
     setSelectedId(null);
     setSelectedMockAttemptId(null);
+    setSelectedNoteId(null);
     setDeepLinkShowSol(false);
     setExam(null);
+    try { sessionStorage.setItem("qbank-session-active", "true"); } catch (_) {}
     window.history.pushState({}, "", window.location.pathname);
     setView("list");
+  };
+
+  const handleGoLanding = () => {
+    setEditId(null);
+    setSelectedId(null);
+    setSelectedMockAttemptId(null);
+    setSelectedNoteId(null);
+    setDeepLinkShowSol(false);
+    setExam(null);
+    window.history.pushState({}, "", `?page=landing`);
+    setView("landing");
+    setNavOpen(false);
   };
 
   const handleGoMockExam = () => {
@@ -722,7 +790,8 @@ export default function App() {
   };
 
   const handleSignIn = () => {
-    setShowAuthModal(true);
+    window.history.pushState({}, "", `?page=signin`);
+    setView("signIn");
   };
 
   const handleAddQuestionAction = async () => {
@@ -744,7 +813,9 @@ export default function App() {
   const handleSignOut = async () => {
     const { error } = await signOut();
     if (error) console.error("Sign out failed:", error);
-    if (view === "mockRun") handleGoMockExam();
+    try { sessionStorage.removeItem("qbank-session-active"); } catch (_) {}
+    window.history.pushState({}, "", `?page=landing`);
+    setView("landing");
   };
 
   const handleOpenHelp = () => {
@@ -849,6 +920,61 @@ export default function App() {
     }
   }, [view, selectedId, selectedMockAttemptId, editId]);
 
+  if (view === "landing") {
+    return (
+      <LandingPage
+        isDark={isDark}
+        onToggleTheme={toggleTheme}
+        onStartReview={() => {
+          try { sessionStorage.setItem("qbank-session-active", "true"); } catch (_) {}
+          handleGoHome();
+        }}
+        onSignIn={() => {
+          window.history.pushState({}, "", `?page=signin`);
+          setView("signIn");
+        }}
+        onExploreGuest={() => {
+          try { sessionStorage.setItem("qbank-session-active", "true"); } catch (_) {}
+          handleGoHome();
+        }}
+        onStartMock={(presetId) => {
+          try { sessionStorage.setItem("qbank-session-active", "true"); } catch (_) {}
+          handleStartExam(presetId || "professional");
+        }}
+        onNavigateToTips={() => {
+          try { sessionStorage.setItem("qbank-session-active", "true"); } catch (_) {}
+          handleGoTips();
+        }}
+        totalQuestions={qs.length}
+        isAuthenticated={isAuthenticated}
+        profile={profile}
+      />
+    );
+  }
+
+  if (view === "signIn") {
+    return (
+      <SignInPage
+        isDark={isDark}
+        onToggleTheme={toggleTheme}
+        onBackToLanding={() => {
+          window.history.pushState({}, "", `?page=landing`);
+          setView("landing");
+        }}
+        onSuccessLogin={() => {
+          try { sessionStorage.setItem("qbank-session-active", "true"); } catch (_) {}
+          handleGoHome();
+        }}
+        onContinueAsGuest={() => {
+          try { sessionStorage.setItem("qbank-session-active", "true"); } catch (_) {}
+          handleGoHome();
+        }}
+        onSignInWithEmail={signInWithEmail}
+        onSignInWithGoogle={signInWithGoogle}
+      />
+    );
+  }
+
   return (
     <div className={`qb${isDark ? "" : " light"}`}>
       <div className="qb-wrap">
@@ -856,6 +982,7 @@ export default function App() {
           isDark={isDark} 
           onToggleTheme={toggleTheme} 
           onHome={handleGoHome}
+          onLanding={handleGoLanding}
           showNavToggle={true}
           navOpen={navOpen}
           onToggleNav={() => setNavOpen(v => !v)}
@@ -875,6 +1002,7 @@ export default function App() {
             open={navOpen}
             active={primaryView}
             onHome={handleGoHome}
+            onLanding={handleGoLanding}
             onMockExam={handleGoMockExam}
             onTips={handleGoTips}
             onNotes={handleGoNotes}
@@ -898,6 +1026,7 @@ export default function App() {
               open={navOpen}
               active={primaryView}
               onHome={handleGoHome}
+              onLanding={handleGoLanding}
               onMockExam={handleGoMockExam}
               onTips={handleGoTips}
               onNotes={handleGoNotes}
@@ -938,11 +1067,11 @@ export default function App() {
                     </p>
 
                     <div className="qb-hero-stats-meta" aria-label="Question Bank Summary">
-                      <span><strong>{qs.length}</strong> Total Questions</span>
+                      <span><strong><CountUp end={qs.length} duration={1200} /></strong> Total Questions</span>
                       <span className="qb-hero-stats-sep" aria-hidden="true">·</span>
-                      <span><strong>{activeTopicCount}</strong> Subjects Active</span>
+                      <span><strong><CountUp end={activeTopicCount} duration={1000} /></strong> Subjects Active</span>
                       <span className="qb-hero-stats-sep" aria-hidden="true">·</span>
-                      <span><strong>{favoriteCount}</strong> Starred Items</span>
+                      <span><strong><CountUp end={favoriteCount} duration={1000} /></strong> Starred Items</span>
                       {refreshing && (
                         <>
                           <span className="qb-hero-stats-sep" aria-hidden="true">·</span>

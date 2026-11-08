@@ -1,6 +1,7 @@
 import { TOPICS } from "../../constants/appConstants";
 import { Check } from "lucide-react";
 import type { StatsProps, TopicDef, TopicId } from "../../types";
+import CountUp from "./CountUp";
 
 interface StatItem {
   id: TopicId | "all";
@@ -74,11 +75,15 @@ export default function Stats({
                   </span>
                 )}
               </div>
-              <span className="qb-stat-n tabular-nums">{item.value}</span>
+              <span className="qb-stat-n tabular-nums">
+                <CountUp end={item.value} duration={1100} />
+              </span>
               <span className="qb-stat-name">{item.label}</span>
               <div className="qb-stat-meta-row">
                 <span className="qb-stat-note">{item.note}</span>
-                <span className="qb-stat-pct tabular-nums">{item.percent}%</span>
+                <span className="qb-stat-pct tabular-nums">
+                  <CountUp end={item.percent} suffix="%" duration={1100} />
+                </span>
               </div>
             </button>
           );

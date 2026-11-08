@@ -10,6 +10,7 @@ import {
   X,
   HelpCircle,
   CheckCircle2,
+  Sparkles,
 } from "lucide-react";
 import brandLogo from "../../models/Image/logo.png";
 import type { HeaderProps } from "../../types";
@@ -18,6 +19,7 @@ export default function Header({
   isDark,
   onToggleTheme,
   onHome,
+  onLanding,
   showNavToggle = true,
   navOpen = false,
   onToggleNav,
@@ -117,6 +119,20 @@ export default function Header({
 
         {/* Right: Actions, Theme, Help & User Profile */}
         <div className="qb-hdr-right">
+          {/* Quick Landing Overview Link */}
+          {onLanding && (
+            <button
+              type="button"
+              className="qb-hdr-landing-link"
+              onClick={onLanding}
+              title="View Landing Page & Exam Overview"
+              aria-label="View Landing Page & Exam Overview"
+            >
+              <Sparkles size={14} />
+              <span>Overview</span>
+            </button>
+          )}
+
           {/* Quick Theme Switcher */}
           <button
             type="button"
@@ -195,6 +211,20 @@ export default function Header({
                     {isDark ? <Sun size={16} /> : <Moon size={16} />}
                     <span>{isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}</span>
                   </button>
+
+                  {onLanding && (
+                    <button
+                      type="button"
+                      className="qb-profile-menu-item"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onLanding();
+                      }}
+                    >
+                      <Sparkles size={16} />
+                      <span>About & Landing Page</span>
+                    </button>
+                  )}
 
                   <button
                     type="button"

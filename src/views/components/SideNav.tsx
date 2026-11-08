@@ -64,6 +64,7 @@ export default function SideNav({
   open = false,
   active = "home",
   onHome,
+  onLanding,
   onMockExam,
   onTips,
   onNotes,
@@ -229,7 +230,12 @@ export default function SideNav({
         >
           {/* Drawer Top Header */}
           <div className="qb-drawer-head">
-            <div className="qb-drawer-brand">
+            <div
+              className="qb-drawer-brand"
+              onClick={handleNavigate(onLanding || onHome)}
+              style={{ cursor: "pointer" }}
+              title="Return to Overview"
+            >
               <img src={brandLogo} alt="QBANK logo" className="qb-drawer-logo" />
               <div className="qb-drawer-brand-text">
                 <span className="qb-drawer-title">QBANK</span>
