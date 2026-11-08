@@ -24,13 +24,46 @@ export default function CountUp({
   threshold = 0.15,
 }: CountUpProps) {
   const [displayValue, setDisplayValue] = useState<number>(start);
-  const [hasAnimated, setHasAnimated] = useState<boolean>(false);
   const elementRef = useRef<HTMLSpanElement>(null);
   const animFrameRef = useRef<number | null>(null);
+  const displayValueRef = useRef<number>(start);
+  const hasAnimatedRef = useRef<boolean>(false);
 
   useEffect(() => {
     const el = elementRef.current;
     if (!el) return undefined;
+
+    const animateTo = (from: number, to: number) => {
+      if (animFrameRef.current !== null) {
+        cancelAnimationFrame(animFrameRef.current);
+      }
+
+      let startTime: number | null = null;
+      const diff = to - from;
+
+      const animate = (currentTime: number) => {
+        if (startTime === null) startTime = currentTime;
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        // Standard ease-out cubic curve: fast start, soft organic deceleration
+        const easeOut = 1 - Math.pow(1 - progress, 3);
+        const currentVal = from + diff * easeOut;
+
+        displayValueRef.current = currentVal;
+        setDisplayValue(currentVal);
+
+        if (progress < 1) {
+          animFrameRef.current = requestAnimationFrame(animate);
+        } else {
+          displayValueRef.current = to;
+          setDisplayValue(to);
+          animFrameRef.current = null;
+        }
+      };
+
+      animFrameRef.current = requestAnimationFrame(animate);
+    };
 
     // Check for reduced motion preference
     const prefersReducedMotion =
@@ -38,47 +71,31 @@ export default function CountUp({
       window.matchMedia &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    if (prefersReducedMotion) {
+    if (prefersReducedMotion || !("IntersectionObserver" in window)) {
+      // Fallback for reduced motion / older environments without IntersectionObserver
+      displayValueRef.current = end;
       setDisplayValue(end);
-      setHasAnimated(true);
+      hasAnimatedRef.current = true;
       return undefined;
     }
 
-    if (!("IntersectionObserver" in window)) {
-      // Fallback for older environments without IntersectionObserver
-      setDisplayValue(end);
-      setHasAnimated(true);
-      return undefined;
+    // Once revealed, subsequent value changes animate from the currently
+    // displayed number instead of waiting for another intersection.
+    if (hasAnimatedRef.current) {
+      animateTo(displayValueRef.current, end);
+      return () => {
+        if (animFrameRef.current !== null) {
+          cancelAnimationFrame(animFrameRef.current);
+        }
+      };
     }
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting && (!hasAnimated || !triggerOnce)) {
-            // Start the count-up animation
-            let startTime: number | null = null;
-            const diff = end - start;
-
-            const animate = (currentTime: number) => {
-              if (startTime === null) startTime = currentTime;
-              const elapsed = currentTime - startTime;
-              const progress = Math.min(elapsed / duration, 1);
-
-              // Standard ease-out cubic curve: fast start, soft organic deceleration
-              const easeOut = 1 - Math.pow(1 - progress, 3);
-              const currentVal = start + diff * easeOut;
-
-              setDisplayValue(currentVal);
-
-              if (progress < 1) {
-                animFrameRef.current = requestAnimationFrame(animate);
-              } else {
-                setDisplayValue(end);
-                setHasAnimated(true);
-              }
-            };
-
-            animFrameRef.current = requestAnimationFrame(animate);
+          if (entry.isIntersecting) {
+            animateTo(start, end);
+            hasAnimatedRef.current = true;
 
             if (triggerOnce) {
               observer.unobserve(el);
@@ -100,7 +117,7 @@ export default function CountUp({
         cancelAnimationFrame(animFrameRef.current);
       }
     };
-  }, [end, start, duration, triggerOnce, threshold, hasAnimated]);
+  }, [end, start, duration, triggerOnce, threshold]);
 
   const formattedNumber =
     decimals > 0
