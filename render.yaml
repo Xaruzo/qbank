@@ -2,7 +2,7 @@ services:
   - type: web
     name: qbank
     env: static
-    buildCommand: NODE_OPTIONS="--max-old-space-size=1536" npm install --include=dev && NODE_OPTIONS="--max-old-space-size=1536" npm run build
+    buildCommand: NODE_OPTIONS="--max-old-space-size=420" npm install --include=dev && NODE_OPTIONS="--max-old-space-size=420" npm run build
     staticPublishPath: ./dist
     headers:
       - path: /*

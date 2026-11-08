@@ -9,12 +9,25 @@ export default defineConfig({
     include: ['tests/**/*.test.js'],
   },
   build: {
+    target: 'es2020',
+    sourcemap: false,
+    reportCompressedSize: false,
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom'],
-          'vendor-fabric': ['fabric'],
-          'vendor-markdown-math': ['react-markdown', 'remark-math', 'rehype-katex', 'remark-gfm'],
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('fabric')) return 'vendor-fabric';
+            if (id.includes('katex')) return 'vendor-katex';
+            if (id.includes('react-markdown') || id.includes('remark') || id.includes('rehype') || id.includes('micromark') || id.includes('unist') || id.includes('mdast')) {
+              return 'vendor-markdown';
+            }
+            if (id.includes('lucide-react')) return 'vendor-icons';
+            if (id.includes('@supabase')) return 'vendor-supabase';
+            if (id.includes('react') || id.includes('react-dom') || id.includes('scheduler')) {
+              return 'vendor-react';
+            }
+          }
         },
       },
     },
