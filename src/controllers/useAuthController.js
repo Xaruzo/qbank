@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { supabase, isValidUuid } from "../utils/supabaseClient";
+import { supabase, isValidUuid, isNetworkOrFetchError } from "../utils/supabaseClient";
 import { SYSTEM_AUTH_STORAGE_KEY } from "../constants/appConstants";
 
 export const emailToDeterministicUuid = (email) => {
@@ -19,6 +19,83 @@ export const emailToDeterministicUuid = (email) => {
 };
 
 const GUEST_PROFILE_STORAGE_KEY = "cse-qbank-profile-custom-v1";
+const LOCAL_CREDENTIALS_STORAGE_KEY = "cse-qbank-local-credentials-v1";
+
+const readLocalCredentials = () => {
+  try {
+    const raw = localStorage.getItem(LOCAL_CREDENTIALS_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (parsed && typeof parsed === "object") return parsed;
+  } catch {}
+  return {};
+};
+
+const writeLocalCredentials = (credentials) => {
+  try {
+    localStorage.setItem(LOCAL_CREDENTIALS_STORAGE_KEY, JSON.stringify(credentials));
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const bytesToHex = (bytes) =>
+  Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+
+const createSalt = () => {
+  if (globalThis.crypto?.getRandomValues) {
+    const bytes = new Uint8Array(16);
+    globalThis.crypto.getRandomValues(bytes);
+    return bytesToHex(bytes);
+  }
+  return `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
+};
+
+const hashLocalPassword = async (password, salt) => {
+  const payload = `${salt}:${password}`;
+  if (globalThis.crypto?.subtle) {
+    const digest = await globalThis.crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(payload)
+    );
+    return bytesToHex(new Uint8Array(digest));
+  }
+  let hash = 5381;
+  for (let i = 0; i < payload.length; i += 1) {
+    hash = Math.imul(hash, 33) ^ payload.charCodeAt(i);
+  }
+  return (hash >>> 0).toString(16);
+};
+
+const toAuthError = (error, fallback) => {
+  const raw = error?.message || (typeof error === "string" ? error : "") || fallback;
+  const lower = raw.toLowerCase();
+  let message = raw;
+  if (lower.includes("invalid login credentials") || lower.includes("invalid credentials")) {
+    message = "Incorrect email or password. Please double-check and try again.";
+  } else if (lower.includes("email not confirmed")) {
+    message = "Your email has not been confirmed yet. Check your inbox, confirm your account, then sign in.";
+  } else if (lower.includes("user already registered") || lower.includes("already registered")) {
+    message = "An account with this email already exists. Please sign in instead.";
+  } else if (
+    lower.includes("password should be at least") ||
+    lower.includes("weak password") ||
+    lower.includes("password is too short")
+  ) {
+    message = "Please choose a stronger password with at least 6 characters.";
+  } else if (
+    lower.includes("rate limit") ||
+    lower.includes("too many requests") ||
+    lower.includes("security purposes")
+  ) {
+    message = "Too many attempts. Please wait a moment before trying again.";
+  } else if (isNetworkOrFetchError(error)) {
+    message = "Could not reach the authentication service. Check your internet connection and try again.";
+  }
+  return new Error(message);
+};
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const getStoredCustomProfile = () => {
   try {
@@ -126,54 +203,118 @@ export function useAuthController() {
   };
 
   /**
-   * System Direct Email Login:
-   * 1. Attempts Supabase OTP / Magic link if supabase is connected.
-   * 2. Always provisions/activates system user session with full account capabilities.
+   * Email authentication.
+   * - With Supabase configured, credentials are always validated remotely.
+   *   Failed sign-ins return an error instead of creating a local session.
+   * - Without Supabase, accounts are stored locally with salted password
+   *   hashes so passwords are still verified.
    */
-  const signInWithEmail = async (email, password = "") => {
+  const signInWithEmail = async (email, password = "", options = {}) => {
     const cleanEmail = (email || "").trim().toLowerCase();
-    if (!cleanEmail || !cleanEmail.includes("@")) {
+    if (!cleanEmail || !EMAIL_PATTERN.test(cleanEmail)) {
       return { error: new Error("Please enter a valid email address.") };
     }
 
-    // Try Supabase auth if connected
+    const isSignUp = options.mode === "signup";
+
     if (supabase) {
       try {
+        if (isSignUp) {
+          if (!password) {
+            return { error: new Error("Please enter a password to create your account.") };
+          }
+          const redirectTo = `${window.location.origin}${window.location.pathname}${window.location.search}`;
+          const { data, error } = await supabase.auth.signUp({
+            email: cleanEmail,
+            password,
+            options: {
+              emailRedirectTo: redirectTo,
+              data: { full_name: cleanEmail.split("@")[0] },
+            },
+          });
+          if (error) {
+            return { error: toAuthError(error, "Failed to create your account.") };
+          }
+          if (Array.isArray(data?.user?.identities) && data.user.identities.length === 0) {
+            return { error: new Error("An account with this email already exists. Please sign in instead.") };
+          }
+          if (data?.session) {
+            setSession(data.session);
+            return { error: null, mode: "remote" };
+          }
+          return {
+            error: null,
+            mode: "confirm_email",
+            message: "Account created. Check your email to confirm your account, then sign in.",
+          };
+        }
+
         if (password) {
           const { data, error } = await supabase.auth.signInWithPassword({
             email: cleanEmail,
             password,
           });
-          if (!error && data?.session) {
-            setSession(data.session);
-            return { error: null, mode: "remote" };
+          if (error) {
+            return { error: toAuthError(error, "Failed to sign in. Please check your credentials.") };
           }
-        } else {
-          // Send magic link
-          const redirectTo = `${window.location.origin}${window.location.pathname}${window.location.search}`;
-          const { error } = await supabase.auth.signInWithOtp({
-            email: cleanEmail,
-            options: { emailRedirectTo: redirectTo },
-          });
-          if (!error) {
-            // Also store system session for seamless immediate local session
-            const sysUser = {
-              id: emailToDeterministicUuid(cleanEmail),
-              email: cleanEmail,
-              user_metadata: { full_name: cleanEmail.split("@")[0] },
-              auth_type: "system_email",
-            };
-            localStorage.setItem(SYSTEM_AUTH_STORAGE_KEY, JSON.stringify(sysUser));
-            setSystemUser(sysUser);
-            return { error: null, mode: "otp_sent", message: "Magic link sent to your email, and local session activated!" };
+          if (!data?.session) {
+            return { error: new Error("Unable to start a session. Please try again.") };
           }
+          setSession(data.session);
+          return { error: null, mode: "remote" };
         }
+
+        const redirectTo = `${window.location.origin}${window.location.pathname}${window.location.search}`;
+        const { error } = await supabase.auth.signInWithOtp({
+          email: cleanEmail,
+          options: { emailRedirectTo: redirectTo },
+        });
+        if (error) {
+          return { error: toAuthError(error, "Failed to send the sign-in link.") };
+        }
+        const sysUser = {
+          id: emailToDeterministicUuid(cleanEmail),
+          email: cleanEmail,
+          user_metadata: { full_name: cleanEmail.split("@")[0] },
+          auth_type: "system_email",
+        };
+        localStorage.setItem(SYSTEM_AUTH_STORAGE_KEY, JSON.stringify(sysUser));
+        setSystemUser(sysUser);
+        return { error: null, mode: "otp_sent", message: "Magic link sent to your email, and local session activated!" };
       } catch (err) {
-        console.warn("Remote Supabase email auth failed, falling back to system direct login:", err);
+        return { error: toAuthError(err, "Authentication failed. Please try again.") };
       }
     }
 
-    // Direct system login with email:
+    const credentials = readLocalCredentials();
+
+    if (isSignUp) {
+      if (!password) {
+        return { error: new Error("Please enter a password to create your account.") };
+      }
+      if (password.length < 6) {
+        return { error: new Error("Password must be at least 6 characters.") };
+      }
+      if (credentials[cleanEmail]) {
+        return { error: new Error("An account with this email already exists. Please sign in instead.") };
+      }
+      const salt = createSalt();
+      const hash = await hashLocalPassword(password, salt);
+      credentials[cleanEmail] = { salt, hash, createdAt: new Date().toISOString() };
+      if (!writeLocalCredentials(credentials)) {
+        return { error: new Error("Could not create the account in this browser. Storage may be unavailable.") };
+      }
+    } else if (password) {
+      const saved = credentials[cleanEmail];
+      if (!saved) {
+        return { error: new Error("No account found for this email. Create an account first.") };
+      }
+      const hash = await hashLocalPassword(password, saved.salt);
+      if (hash !== saved.hash) {
+        return { error: new Error("Incorrect password. Please try again.") };
+      }
+    }
+
     const sysUser = {
       id: emailToDeterministicUuid(cleanEmail),
       email: cleanEmail,
@@ -186,7 +327,11 @@ export function useAuthController() {
       console.warn("Failed saving system user to localStorage:", e);
     }
     setSystemUser(sysUser);
-    return { error: null, mode: "system_direct", user: sysUser };
+    return {
+      error: null,
+      mode: isSignUp ? "local_signup" : "system_direct",
+      user: sysUser,
+    };
   };
 
   const updateProfile = async (partial) => {

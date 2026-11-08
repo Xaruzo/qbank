@@ -38,7 +38,7 @@ export default function LandingPage({
   isAuthenticated = false,
   profile = null,
 }: LandingPageProps) {
-  const rootRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const [selectedTopicPreview, setSelectedTopicPreview] = useState<TopicId>("numerical");
   const [shadedChoice, setShadedChoice] = useState<number | null>(null);
@@ -197,7 +197,7 @@ export default function LandingPage({
   ];
 
   return (
-    <div ref={rootRef} className={`qb-landing-root${isDark ? "" : " light"}`}>
+    <div className={`qb-landing-root${isDark ? "" : " light"}`}>
       {/* ── Top Bar Contract (1 Wordmark — 4 Nav Links — 1 Primary Action) ── */}
       <header className="qb-landing-nav">
         <div className="qb-landing-nav-inner">
@@ -255,10 +255,11 @@ export default function LandingPage({
         </div>
       </header>
 
+      <div ref={scrollRef} className="qb-landing-scroll">
       {/* ── Hero Section with Atmospheric Background Animation & Human Craftsmanship ── */}
       <section className="qb-landing-hero">
         {/* Apple-style Frame-by-Frame WebP Canvas Scrubbing & Animation */}
-        <AppleHeroCanvas scrollTargetRef={rootRef} isDark={isDark} />
+        <AppleHeroCanvas scrollTargetRef={scrollRef} isDark={isDark} />
 
         {/* Ambient Subtle Study Dust / Particle Layer */}
         <div className="qb-landing-particles" aria-hidden="true">
@@ -947,6 +948,7 @@ export default function LandingPage({
           </p>
         </div>
       </footer>
+      </div>
     </div>
   );
 }

@@ -10475,9 +10475,7 @@ button[data-action="skip"] {
 html.qb-page-scrollable,
 body.qb-page-scrollable,
 html:has(.qb-signin-root),
-body:has(.qb-signin-root),
-html:has(.qb-landing-root),
-body:has(.qb-landing-root) {
+body:has(.qb-signin-root) {
   overflow-y: auto !important;
   overflow-x: hidden !important;
   height: auto !important;
@@ -10485,31 +10483,105 @@ body:has(.qb-landing-root) {
   min-height: 100dvh !important;
 }
 
+html:has(.qb-landing-root),
+body:has(.qb-landing-root) {
+  overflow: hidden !important;
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
 /* ══════════════════════════════════════════════════════════════════════════
    LANDING PAGE STYLES (HUMAN-CRAFTED EXAMINEE ARCHITECTURE)
    ══════════════════════════════════════════════════════════════════════════ */
 .qb-landing-root {
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
   padding-top: 64px;
   background: var(--bg, #050914);
   color: var(--text, #ffffff);
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
+  overflow: hidden;
   font-family: 'DM Sans', sans-serif;
   position: relative;
 }
 
-.qb-landing-root::-webkit-scrollbar {
-  width: 8px;
+/* Dedicated scroll region below the fixed header so the scrollbar never
+   travels over the header */
+.qb-landing-scroll {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
 }
-.qb-landing-root::-webkit-scrollbar-track {
-  background: transparent;
+
+/* Standard scrollbar with arrow buttons pinned top and bottom */
+.qb-landing-scroll::-webkit-scrollbar {
+  width: 14px;
 }
-.qb-landing-root::-webkit-scrollbar-thumb {
+.qb-landing-scroll::-webkit-scrollbar-track {
+  background: var(--scroll-track, rgba(255, 255, 255, 0.05));
+}
+.qb-landing-scroll::-webkit-scrollbar-thumb {
   background: var(--scroll-thumb, rgba(196, 212, 236, 0.22));
-  border-radius: 4px;
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+.qb-landing-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--scroll-thumb-h, rgba(234, 88, 12, 0.45));
+  background-clip: padding-box;
+}
+
+.qb-landing-scroll::-webkit-scrollbar-button,
+.qb-landing-scroll::-webkit-scrollbar-button:single-button,
+.qb-landing-scroll::-webkit-scrollbar-button:double-button,
+.qb-landing-scroll::-webkit-scrollbar-button:vertical:decrement,
+.qb-landing-scroll::-webkit-scrollbar-button:vertical:increment,
+.qb-landing-scroll::-webkit-scrollbar-button:start:decrement,
+.qb-landing-scroll::-webkit-scrollbar-button:end:increment {
+  display: block !important;
+  width: 14px !important;
+  height: 16px !important;
+  background-color: transparent !important;
+  border: none !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+}
+
+.qb-landing-scroll::-webkit-scrollbar-button:vertical:decrement,
+.qb-landing-scroll::-webkit-scrollbar-button:vertical:decrement:single-button {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 7.5 6 4l3.5 3.5' fill='none' stroke='%2394a3b8' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+}
+.qb-landing-scroll::-webkit-scrollbar-button:vertical:increment,
+.qb-landing-scroll::-webkit-scrollbar-button:vertical:increment:single-button {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%2394a3b8' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+}
+.qb-landing-scroll::-webkit-scrollbar-button:vertical:decrement:hover,
+.qb-landing-scroll::-webkit-scrollbar-button:vertical:decrement:single-button:hover {
+  background-color: rgba(245, 166, 35, 0.14) !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 7.5 6 4l3.5 3.5' fill='none' stroke='%23f5a623' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+}
+.qb-landing-scroll::-webkit-scrollbar-button:vertical:increment:hover,
+.qb-landing-scroll::-webkit-scrollbar-button:vertical:increment:single-button:hover {
+  background-color: rgba(245, 166, 35, 0.14) !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%23f5a623' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+}
+
+.qb-landing-root.light .qb-landing-scroll::-webkit-scrollbar-button:vertical:decrement,
+.qb-landing-root.light .qb-landing-scroll::-webkit-scrollbar-button:vertical:decrement:single-button {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 7.5 6 4l3.5 3.5' fill='none' stroke='%233a5272' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+}
+.qb-landing-root.light .qb-landing-scroll::-webkit-scrollbar-button:vertical:increment,
+.qb-landing-root.light .qb-landing-scroll::-webkit-scrollbar-button:vertical:increment:single-button {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%233a5272' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+}
+
+@supports (-moz-appearance: none) {
+  .qb-landing-scroll {
+    scrollbar-width: auto;
+    scrollbar-color: var(--scroll-thumb) var(--scroll-track);
+  }
 }
 
 /* ── Top Bar Contract (1 Wordmark — 4 Links — 1 Primary Action — Permanently Docked) ── */
@@ -14043,7 +14115,7 @@ body:has(.qb-landing-root) {
   width: min(680px, 100%);
   height: 640px;
   max-height: min(88vh, 720px);
-  min-height: 520px;
+  min-height: min(520px, 88vh);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 20px;
@@ -14170,7 +14242,7 @@ body:has(.qb-landing-root) {
 .qb-settings-modal-body {
   flex: 1 1 auto;
   min-height: 0;
-  padding: 22px 24px;
+  padding: 22px 24px 30px;
   overflow-y: auto;
   overscroll-behavior: contain;
   display: flex;
@@ -14182,7 +14254,7 @@ body:has(.qb-landing-root) {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  min-height: 100%;
+  min-height: auto;
 }
 
 /* Card Block */
@@ -14813,13 +14885,14 @@ body:has(.qb-landing-root) {
   .qb-settings-modal-dialog {
     height: min(92vh, 620px);
     max-height: 94vh;
+    min-height: 0;
     border-radius: 16px;
   }
   .qb-settings-modal-header {
     padding: 16px;
   }
   .qb-settings-modal-body {
-    padding: 14px;
+    padding: 14px 14px 22px;
     gap: 12px;
   }
   .qb-settings-two-col-grid,

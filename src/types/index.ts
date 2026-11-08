@@ -237,7 +237,11 @@ export interface SignInPageProps {
   onBackToLanding: () => void;
   onSuccessLogin: () => void;
   onContinueAsGuest: () => void;
-  onSignInWithEmail: (email: string, password?: string) => Promise<{ error: any; mode?: string; message?: string }>;
+  onSignInWithEmail: (
+    email: string,
+    password?: string,
+    options?: { mode?: "signin" | "signup" }
+  ) => Promise<{ error: any; mode?: string; message?: string }>;
   onSignInWithGoogle?: () => Promise<{ error: any }>;
   onGoHome?: () => void;
   onGoMockExam?: () => void;

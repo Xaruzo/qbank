@@ -77,9 +77,18 @@ export default function SignInPage({
 
     setLoading(true);
     try {
-      const res = await onSignInWithEmail(cleanEmail, usePassword ? password : "");
+      const res = await onSignInWithEmail(cleanEmail, usePassword ? password : "", {
+        mode: isRegisterMode ? "signup" : "signin",
+      });
       if (res?.error) {
         setErrorMsg(res.error.message || "Failed to authenticate. Please check your credentials.");
+      } else if (res?.mode === "confirm_email") {
+        setSuccessMsg(
+          res.message || "Account created. Check your email to confirm it, then sign in."
+        );
+        setIsRegisterMode(false);
+        setPassword("");
+        setConfirmPassword("");
       } else {
         const message = res?.message || (isRegisterMode ? "Account created and logged in!" : "Welcome back! Redirecting to reviewer...");
         setSuccessMsg(message);
@@ -220,6 +229,7 @@ export default function SignInPage({
                     onClick={() => {
                       setIsRegisterMode(false);
                       setErrorMsg("");
+                      setSuccessMsg("");
                     }}
                   >
                     <span>Sign In</span>
@@ -230,6 +240,7 @@ export default function SignInPage({
                     onClick={() => {
                       setIsRegisterMode(true);
                       setErrorMsg("");
+                      setSuccessMsg("");
                     }}
                   >
                     <span>Create Account</span>
