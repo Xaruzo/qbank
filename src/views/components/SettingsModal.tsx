@@ -16,6 +16,10 @@ import {
   Layers,
   Activity,
   Trash2,
+  Camera,
+  Upload,
+  Image as ImageIcon,
+  RotateCcw,
 } from "lucide-react";
 import { useOverlayDialogA11y } from "../../controllers/useOverlayDialogA11y";
 import type { AppSettings, UserProfile } from "../../types";
@@ -63,10 +67,13 @@ export default function SettingsModal({
 }: SettingsModalProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>("optimizer");
   const modalRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const titleId = useId();
 
   // Profile Form Local State
   const [fullName, setFullName] = useState(profile?.fullName || "");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(profile?.avatarUrl || null);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState(profile?.avatarColor || "amber");
   const [examTarget, setExamTarget] = useState<"professional" | "subprofessional">(
     profile?.examTarget || settings.examTarget || "professional"
@@ -82,6 +89,7 @@ export default function SettingsModal({
     if (profile) {
       setFullName(profile.fullName || "");
       setSelectedColor(profile.avatarColor || "amber");
+      if (profile.avatarUrl !== undefined) setAvatarUrl(profile.avatarUrl);
       if (profile.examTarget) setExamTarget(profile.examTarget);
       if (profile.targetExamDate) setExamDate(profile.targetExamDate);
       if (profile.dailyStudyGoal) setDailyGoal(profile.dailyStudyGoal);
@@ -104,6 +112,52 @@ export default function SettingsModal({
 
   const daysRemaining = calculateDaysRemaining(examDate);
 
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setAvatarError("Please select a valid image file (PNG, JPG, or WebP).");
+      return;
+    }
+
+    if (file.size > 8 * 1024 * 1024) {
+      setAvatarError("File size is too large (maximum 8MB).");
+      return;
+    }
+
+    setAvatarError(null);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const maxDim = 256;
+        canvas.width = maxDim;
+        canvas.height = maxDim;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        // Center cover crop into square avatar
+        const minSide = Math.min(img.width, img.height);
+        const sx = (img.width - minSide) / 2;
+        const sy = (img.height - minSide) / 2;
+
+        ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, maxDim, maxDim);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.88);
+        setAvatarUrl(dataUrl);
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleRemovePhoto = () => {
+    setAvatarUrl(null);
+    setAvatarError(null);
+  };
+
   const handleProfileSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -114,6 +168,7 @@ export default function SettingsModal({
       if (onUpdateProfile) {
         await onUpdateProfile({
           fullName: trimmedName,
+          avatarUrl,
           avatarColor: selectedColor,
           examTarget,
           targetExamDate: examDate,
@@ -352,26 +407,70 @@ export default function SettingsModal({
           {/* TAB 2: EDIT PROFILE & GOALS */}
           {activeTab === "profile" && (
             <form onSubmit={handleProfileSave} className="qb-settings-tab-pane">
-              {/* Profile Card Header with Live Avatar Preview */}
+              {/* Profile Card Header with Live Avatar Preview & Image Controls */}
               <div className="qb-settings-profile-preview-card">
                 <div
                   className="qb-settings-preview-avatar"
-                  style={{
-                    backgroundColor: currentColorConfig.bg,
-                    borderColor: currentColorConfig.border,
-                    color: currentColorConfig.text,
-                  }}
+                  style={
+                    avatarUrl
+                      ? undefined
+                      : {
+                          backgroundColor: currentColorConfig.bg,
+                          borderColor: currentColorConfig.border,
+                          color: currentColorConfig.text,
+                        }
+                  }
                 >
-                  {initials}
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="Avatar Preview" className="qb-avatar-img" />
+                  ) : (
+                    initials
+                  )}
                 </div>
+
                 <div className="qb-settings-preview-meta">
-                  <span className="qb-settings-preview-name">{fullName.trim() || "Reviewer"}</span>
+                  <div className="qb-settings-preview-header-line">
+                    <span className="qb-settings-preview-name">{fullName.trim() || "Reviewer"}</span>
+                    <span className="qb-settings-preview-target-badge">
+                      {examTarget === "professional" ? "Professional (170 Qs)" : "Subprofessional (165 Qs)"}
+                    </span>
+                  </div>
                   <span className="qb-settings-preview-sub">
                     {isAuthenticated ? profile?.email || "Signed In" : "Local Reviewer Profile (Guest)"}
                   </span>
-                  <div className="qb-settings-preview-target-badge">
-                    {examTarget === "professional" ? "Professional Level (170 Qs)" : "Subprofessional Level (165 Qs)"}
+
+                  {/* Photo Actions Row */}
+                  <div className="qb-settings-photo-actions-row">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/gif"
+                      onChange={handlePhotoSelect}
+                      style={{ display: "none" }}
+                    />
+                    <button
+                      type="button"
+                      className="qb-settings-photo-btn"
+                      onClick={() => fileInputRef.current?.click()}
+                      title="Upload custom profile picture"
+                    >
+                      <Camera size={13} />
+                      <span>{avatarUrl ? "Change Photo" : "Upload Photo"}</span>
+                    </button>
+
+                    {avatarUrl && (
+                      <button
+                        type="button"
+                        className="qb-settings-photo-btn danger"
+                        onClick={handleRemovePhoto}
+                        title="Remove custom picture and use initials"
+                      >
+                        <RotateCcw size={13} />
+                        <span>Remove Photo</span>
+                      </button>
+                    )}
                   </div>
+                  {avatarError && <span className="qb-settings-field-error">{avatarError}</span>}
                 </div>
               </div>
 

@@ -35,7 +35,7 @@ const getProfileDetails = (user, customProfile) => {
     user?.user_metadata?.full_name ||
     user?.user_metadata?.name ||
     fallbackName;
-  const avatarUrl = user?.user_metadata?.avatar_url || null;
+  const avatarUrl = customProfile?.avatarUrl ?? user?.user_metadata?.avatar_url ?? null;
   const initials = fullName
     .split(" ")
     .filter(Boolean)
@@ -204,6 +204,7 @@ export function useAuthController() {
         user_metadata: {
           ...(systemUser.user_metadata || {}),
           full_name: nextCustom.fullName,
+          avatar_url: nextCustom.avatarUrl,
           avatar_color: nextCustom.avatarColor,
           exam_target: nextCustom.examTarget,
         },
@@ -219,6 +220,7 @@ export function useAuthController() {
         await supabase.auth.updateUser({
           data: {
             full_name: nextCustom.fullName,
+            avatar_url: nextCustom.avatarUrl,
             avatar_color: nextCustom.avatarColor,
             exam_target: nextCustom.examTarget,
           },

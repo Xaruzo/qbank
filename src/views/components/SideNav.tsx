@@ -261,7 +261,13 @@ export default function SideNav({
         {isAuthenticated ? (
           <div className="qb-nav-user-info">
             <div className="qb-nav-user-avatar">
-              {profile?.fullName ? (
+              {profile?.avatarUrl ? (
+                <img
+                  src={profile.avatarUrl}
+                  alt={profile.fullName || "User profile"}
+                  className="qb-avatar-img"
+                />
+              ) : profile?.fullName ? (
                 profile.fullName.slice(0, 2).toUpperCase()
               ) : (
                 <UserCircle2 size={20} />
@@ -318,10 +324,10 @@ export default function SideNav({
             className="qb-nav-utility-btn"
             onClick={onToggleTheme}
             title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-            aria-label="Toggle theme"
+            aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
           >
-            {isDark ? <Sun size={15} /> : <Moon size={15} />}
-            <span>{isDark ? "Light Mode" : "Dark Mode"}</span>
+            {isDark ? <Sun size={14} /> : <Moon size={14} />}
+            <span>{isDark ? "Light" : "Dark"}</span>
           </button>
         )}
         {onOpenHelp && (
@@ -335,7 +341,7 @@ export default function SideNav({
             title="Reviewer shortcuts & CSC exam guide"
             aria-label="Help and shortcuts"
           >
-            <HelpCircle size={15} />
+            <HelpCircle size={14} />
             <span>Help</span>
           </button>
         )}
@@ -350,7 +356,7 @@ export default function SideNav({
             title="App Settings, Optimizer & Preferences"
             aria-label="Settings and Preferences"
           >
-            <Settings size={15} />
+            <Settings size={14} />
             <span>Settings</span>
           </button>
         )}
@@ -383,120 +389,121 @@ export default function SideNav({
     );
   }
 
-  // Desktop Sidebar (Clean Fixed Navigation with Collapsed Rail Support)
-  if (!open) {
-    return (
-      <aside className="qb-side qb-side-collapsed" aria-label="Sidebar collapsed">
-        <div className="qb-side-inner qb-modern-sidebar-inner">
-          <div className="qb-rail-wrap">
-            {onToggleNav && (
-              <button
-                type="button"
-                className="qb-rail-toggle-btn"
-                onClick={onToggleNav}
-                title="Expand sidebar"
-                aria-label="Expand sidebar"
-              >
-                <PanelLeftOpen size={18} />
-              </button>
-            )}
-
-            <div className="qb-rail-divider" />
-
-            <div className="qb-rail-nav">
-              {navItems.map(({ id, shortLabel, icon: Icon, title }) => {
-                const isSelected = active === id;
-                const clickHandler = handlers[id];
-
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    className={`qb-rail-btn${isSelected ? " is-active" : ""}`}
-                    onClick={clickHandler}
-                    title={title || shortLabel}
-                    aria-label={shortLabel}
-                  >
-                    {isSelected && <span className="qb-rail-active-bar" />}
-                    <Icon size={17} />
-                  </button>
-                );
-              })}
+  // Desktop Sidebar (Smooth animated transition between collapsed rail and expanded panel)
+  return (
+    <aside
+      className={`qb-side ${open ? "qb-side-expanded" : "qb-side-collapsed"}`}
+      aria-label={open ? "Sidebar navigation expanded" : "Sidebar navigation collapsed"}
+    >
+      <div className="qb-side-inner qb-modern-sidebar-inner">
+        {open ? (
+          <div className="qb-side-expanded-content">
+            {renderBrandHeader(false)}
+            <div className="qb-modern-sidebar-scroll">
+              {renderWorkspaceNav(false)}
+              {renderSubjectsNav()}
             </div>
+            {renderFooterSection(false)}
+          </div>
+        ) : (
+          <div className="qb-side-collapsed-content">
+            <div className="qb-rail-wrap">
+              {onToggleNav && (
+                <button
+                  type="button"
+                  className="qb-rail-toggle-btn"
+                  onClick={onToggleNav}
+                  title="Expand sidebar"
+                  aria-label="Expand sidebar"
+                >
+                  <PanelLeftOpen size={18} />
+                </button>
+              )}
 
-            <div className="qb-rail-divider" />
+              <div className="qb-rail-divider" />
 
-            <div className="qb-rail-topics">
-              {EXAM_SUBJECTS.map((sub) => {
-                const isCurrentTopic = active === "home" && activeTopic === sub.id;
-                const count = topicCounts[sub.id] ?? 0;
-                const SubIcon = sub.icon;
+              <div className="qb-rail-nav">
+                {navItems.map(({ id, shortLabel, icon: Icon, title }) => {
+                  const isSelected = active === id;
+                  const clickHandler = handlers[id];
 
-                return (
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      className={`qb-rail-btn${isSelected ? " is-active" : ""}`}
+                      onClick={clickHandler}
+                      title={title || shortLabel}
+                      aria-label={shortLabel}
+                    >
+                      {isSelected && <span className="qb-rail-active-bar" />}
+                      <Icon size={17} />
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="qb-rail-divider" />
+
+              <div className="qb-rail-topics">
+                {EXAM_SUBJECTS.map((sub) => {
+                  const isCurrentTopic = active === "home" && activeTopic === sub.id;
+                  const count = topicCounts[sub.id] ?? 0;
+                  const SubIcon = sub.icon;
+
+                  return (
+                    <button
+                      key={sub.id}
+                      type="button"
+                      className={`qb-rail-topic-btn${isCurrentTopic ? " is-active" : ""}`}
+                      onClick={() => handleTopicClick(sub.id)}
+                      title={`${sub.label} (${count} Qs)`}
+                      aria-label={sub.label}
+                    >
+                      <SubIcon size={15} style={{ color: sub.color }} />
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="qb-rail-bottom">
+                {onToggleTheme && (
                   <button
-                    key={sub.id}
                     type="button"
-                    className={`qb-rail-topic-btn${isCurrentTopic ? " is-active" : ""}`}
-                    onClick={() => handleTopicClick(sub.id)}
-                    title={`${sub.label} (${count} Qs)`}
-                    aria-label={sub.label}
+                    className="qb-rail-tool-btn"
+                    onClick={onToggleTheme}
+                    title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                    aria-label="Toggle Theme"
                   >
-                    <SubIcon size={15} style={{ color: sub.color }} />
+                    {isDark ? <Sun size={15} /> : <Moon size={15} />}
                   </button>
-                );
-              })}
-            </div>
-
-            <div className="qb-rail-bottom">
-              {onToggleTheme && (
-                <button
-                  type="button"
-                  className="qb-rail-tool-btn"
-                  onClick={onToggleTheme}
-                  title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-                  aria-label="Toggle Theme"
-                >
-                  {isDark ? <Sun size={15} /> : <Moon size={15} />}
-                </button>
-              )}
-              {onOpenHelp && (
-                <button
-                  type="button"
-                  className="qb-rail-tool-btn"
-                  onClick={onOpenHelp}
-                  title="Help & Shortcuts"
-                  aria-label="Help"
-                >
-                  <HelpCircle size={15} />
-                </button>
-              )}
-              {onOpenSettings && (
-                <button
-                  type="button"
-                  className="qb-rail-tool-btn"
-                  onClick={onOpenSettings}
-                  title="Settings & Preferences"
-                  aria-label="Settings"
-                >
-                  <Settings size={15} />
-                </button>
-              )}
+                )}
+                {onOpenHelp && (
+                  <button
+                    type="button"
+                    className="qb-rail-tool-btn"
+                    onClick={onOpenHelp}
+                    title="Help & Shortcuts"
+                    aria-label="Help"
+                  >
+                    <HelpCircle size={15} />
+                  </button>
+                )}
+                {onOpenSettings && (
+                  <button
+                    type="button"
+                    className="qb-rail-tool-btn"
+                    onClick={onOpenSettings}
+                    title="Settings & Preferences"
+                    aria-label="Settings"
+                  >
+                    <Settings size={15} />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      </aside>
-    );
-  }
-
-  return (
-    <aside className="qb-side qb-side-expanded">
-      <div className="qb-side-inner qb-modern-sidebar-inner">
-        {renderBrandHeader(false)}
-        <div className="qb-modern-sidebar-scroll">
-          {renderWorkspaceNav(false)}
-          {renderSubjectsNav()}
-        </div>
-        {renderFooterSection(false)}
+        )}
       </div>
     </aside>
   );

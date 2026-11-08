@@ -99,7 +99,13 @@ export default function Header({
 
   const accountIcon = (
     <span className="qb-account-avatar" aria-hidden="true">
-      {profile?.fullName ? (
+      {profile?.avatarUrl ? (
+        <img
+          src={profile.avatarUrl}
+          alt={profile.fullName || "User profile"}
+          className="qb-avatar-img"
+        />
+      ) : profile?.fullName ? (
         profile.fullName.slice(0, 2).toUpperCase()
       ) : (
         <UserCircle2 size={20} strokeWidth={1.8} />

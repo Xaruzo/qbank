@@ -128,8 +128,11 @@ export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit, onBac
 
   const goPrevRef = useRef(goPrev);
   const goNextRef = useRef(goNext);
-  goPrevRef.current = goPrev;
-  goNextRef.current = goNext;
+
+  useEffect(() => {
+    goPrevRef.current = goPrev;
+    goNextRef.current = goNext;
+  }, [goPrev, goNext]);
 
   useEffect(() => {
     const onKeyDown = (e) => {

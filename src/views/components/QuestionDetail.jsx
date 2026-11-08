@@ -49,8 +49,11 @@ export default function QuestionDetail({
 
   const prevRef = useRef(onPrev);
   const nextRef = useRef(onNext);
-  prevRef.current = onPrev;
-  nextRef.current = onNext;
+
+  useEffect(() => {
+    prevRef.current = onPrev;
+    nextRef.current = onNext;
+  }, [onPrev, onNext]);
 
   useEffect(() => {
     const onKeyDown = (e) => {
