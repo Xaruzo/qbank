@@ -12,14 +12,26 @@ export default defineConfig({
     target: 'es2020',
     sourcemap: false,
     reportCompressedSize: false,
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 1200,
+    minify: 'esbuild',
     rollupOptions: {
+      maxParallelFileOps: 2,
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
             if (id.includes('fabric')) return 'vendor-fabric';
             if (id.includes('katex')) return 'vendor-katex';
-            if (id.includes('react-markdown') || id.includes('remark') || id.includes('rehype') || id.includes('micromark') || id.includes('unist') || id.includes('mdast')) {
+            if (
+              id.includes('react-markdown') ||
+              id.includes('remark') ||
+              id.includes('rehype') ||
+              id.includes('micromark') ||
+              id.includes('unist') ||
+              id.includes('mdast') ||
+              id.includes('vfile') ||
+              id.includes('property-information') ||
+              id.includes('hast')
+            ) {
               return 'vendor-markdown';
             }
             if (id.includes('lucide-react')) return 'vendor-icons';
