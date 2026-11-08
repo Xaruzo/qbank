@@ -35,6 +35,12 @@ export const QUESTION_ADMIN_UIDS = [
   "5bd1e1a1-4d54-409f-aa7b-a171133ccf8c",
 ];
 
+export const QUESTION_ADMIN_EMAILS = [
+  "xaruzowarlord@gmail.com",
+];
+
+export const SYSTEM_AUTH_STORAGE_KEY = "cse-system-auth-v1";
+
 export const KEY = "cse-qbank-v1";
 export const FAVORITES_KEY = "cse-qbank-favorites-v1";
 export const TIPS_KEY = "cse-qbank-tips-v1";

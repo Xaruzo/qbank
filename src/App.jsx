@@ -18,6 +18,7 @@ const NotesPage = lazy(() => import("./views/components/NotesPage"));
 import LoadingSpinner from "./views/components/LoadingSpinner";
 import SkeletonLoader, { MockSkeletonLoader, TipsSkeletonLoader } from "./views/components/SkeletonLoader";
 import HelpModal from "./views/components/HelpModal";
+import AuthModal from "./views/components/AuthModal";
 import TutorialGuide from "./views/components/TutorialGuide";
 import { useAuthController } from "./controllers/useAuthController";
 import { useQuestionsController } from "./controllers/useQuestionsController";
@@ -27,7 +28,7 @@ import { tipsModel } from "./models/tipsModel";
 import { favoritesModel } from "./models/favoritesModel";
 import { buildMockExamAttempt, buildReviewExamFromAttempt, buildMistakeDrillExam } from "./utils/mockExamAnalytics";
 import { Home, ClipboardList, Lightbulb, PlayCircle, ArrowRight, BookOpen, Plus, ShieldCheck } from "lucide-react";
-import { QUESTION_ADMIN_UIDS, EXAM_PRESETS } from "./constants/appConstants";
+import { QUESTION_ADMIN_UIDS, QUESTION_ADMIN_EMAILS, EXAM_PRESETS } from "./constants/appConstants";
 
 const PageLoader = ({ view }) => {
   if (view === "tips" || view === "tipDetail" || view === "notes") return <TipsSkeletonLoader />;
@@ -73,6 +74,7 @@ export default function App() {
     user,
     profile,
     signInWithGoogle,
+    signInWithEmail,
     signOut,
   } = useAuthController();
   
@@ -103,6 +105,7 @@ export default function App() {
   const [isMobile, setIsMobile] = useState(() => window.matchMedia ? window.matchMedia("(max-width: 600px)").matches : false);
   const [isCompact, setIsCompact] = useState(() => window.matchMedia ? window.matchMedia("(min-width: 601px) and (max-width: 1099px)").matches : false);
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [runGuide, setRunGuide] = useState(false);
   const mainRef = useRef(null);
   const qsRef = useRef(qs);
@@ -110,7 +113,11 @@ export default function App() {
   const mockHistoryRef = useRef([]);
   const savedExamSessionsRef = useRef(new Set());
   const qMap = useMemo(() => new Map(qs.map(q => [q.id, q])), [qs]);
-  const isQuestionAdmin = !authAvailable || (isAuthenticated && !!user?.id && QUESTION_ADMIN_UIDS.includes(user.id));
+  const isQuestionAdmin =
+    !authAvailable ||
+    (isAuthenticated &&
+      ((user?.id && QUESTION_ADMIN_UIDS.includes(user.id)) ||
+        (user?.email && QUESTION_ADMIN_EMAILS.includes(user.email.toLowerCase()))));
   const canManageQuestions = isQuestionAdmin;
   const favoriteCount = useMemo(() => qs.filter((q) => q.favorite).length, [qs]);
   const labeledCount = useMemo(() => qs.filter((q) => `${q.label || ""}`.trim().length > 0).length, [qs]);
@@ -714,9 +721,8 @@ export default function App() {
     handleGoHome();
   };
 
-  const handleSignIn = async () => {
-    const { error } = await signInWithGoogle();
-    if (error) console.error("Google sign-in failed:", error);
+  const handleSignIn = () => {
+    setShowAuthModal(true);
   };
 
   const handleAddQuestionAction = async () => {
@@ -860,10 +866,6 @@ export default function App() {
           onSignIn={handleSignIn}
           onSignOut={handleSignOut}
           onOpenHelp={handleOpenHelp}
-          currentView={primaryView}
-          onMockExam={handleGoMockExam}
-          onTips={handleGoTips}
-          onNotes={handleGoNotes}
         />
 
         {/* Unified Overlay Navigation Drawer for Mobile & Tablet/Compact */}
@@ -1294,6 +1296,14 @@ export default function App() {
           onRestartTour={handleRestartGuide}
         />
       )}
+
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onSignInWithEmail={signInWithEmail}
+        onSignInWithGoogle={signInWithGoogle}
+        isDark={isDark}
+      />
     </div>
   );
 }

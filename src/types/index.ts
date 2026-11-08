@@ -105,12 +105,10 @@ export interface HeaderProps {
   isAuthenticated?: boolean;
   profile?: UserProfile | null;
   onSignIn?: () => void;
+  onSignInWithEmail?: (email: string, password?: string) => Promise<{ error: any; mode?: string; message?: string }>;
+  onSignInWithGoogle?: () => Promise<{ error: any }>;
   onSignOut?: () => Promise<void> | void;
   onOpenHelp?: () => void;
-  currentView?: string;
-  onMockExam?: () => void;
-  onTips?: () => void;
-  onNotes?: () => void;
 }
 
 export interface SideNavProps {
@@ -130,6 +128,8 @@ export interface SideNavProps {
   isAuthenticated?: boolean;
   profile?: UserProfile | null;
   onSignIn?: () => void;
+  onSignInWithEmail?: (email: string, password?: string) => Promise<{ error: any; mode?: string; message?: string }>;
+  onSignInWithGoogle?: () => Promise<{ error: any }>;
   onSignOut?: () => Promise<void> | void;
 }
 

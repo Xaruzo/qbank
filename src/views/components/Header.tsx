@@ -9,11 +9,7 @@ import {
   UserCircle2,
   X,
   HelpCircle,
-  Home,
-  ClipboardList,
-  Lightbulb,
   CheckCircle2,
-  BookOpen,
 } from "lucide-react";
 import brandLogo from "../../models/Image/logo.png";
 import type { HeaderProps } from "../../types";
@@ -32,10 +28,6 @@ export default function Header({
   onSignIn,
   onSignOut,
   onOpenHelp,
-  currentView = "home",
-  onMockExam,
-  onTips,
-  onNotes,
 }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
   const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
@@ -122,65 +114,6 @@ export default function Header({
             </button>
           </div>
         </div>
-
-        {/* Center: Desktop Quick Nav Links */}
-        <nav className="qb-hdr-nav" aria-label="Quick Navigation">
-          <button
-            type="button"
-            className={`qb-hdr-nav-item${
-              currentView === "home" || currentView === "list" ? " is-active" : ""
-            }`}
-            onClick={onHome}
-            title="Question Bank"
-          >
-            <Home size={15} />
-            <span>Question Bank</span>
-          </button>
-
-          {onMockExam && (
-            <button
-              type="button"
-              className={`qb-hdr-nav-item${
-                currentView === "mock" ||
-                currentView === "mockRun" ||
-                currentView === "mockAttempt"
-                  ? " is-active"
-                  : ""
-              }`}
-              onClick={onMockExam}
-              title="Timed Mock Exam"
-            >
-              <ClipboardList size={15} />
-              <span>Timed Mock Exam</span>
-            </button>
-          )}
-
-          {onTips && (
-            <button
-              type="button"
-              className={`qb-hdr-nav-item${
-                currentView === "tips" || currentView === "tipDetail" ? " is-active" : ""
-              }`}
-              onClick={onTips}
-              title="Tips & Methods"
-            >
-              <Lightbulb size={15} />
-              <span>Tips & Tricks</span>
-            </button>
-          )}
-
-          {onNotes && (
-            <button
-              type="button"
-              className={`qb-hdr-nav-item${currentView === "notes" ? " is-active" : ""}`}
-              onClick={onNotes}
-              title="Study Notes & Reviewer Scratchpad"
-            >
-              <BookOpen size={15} />
-              <span>Notes</span>
-            </button>
-          )}
-        </nav>
 
         {/* Right: Actions, Theme, Help & User Profile */}
         <div className="qb-hdr-right">
