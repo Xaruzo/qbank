@@ -1,9 +1,45 @@
 import { useState, useRef, useEffect } from "react";
 import { TOPICS, SORT_OPTIONS } from "../../constants/appConstants";
-import { ClipboardList, ChevronRight, Plus, Star, ChevronDown, Lightbulb, BookOpen } from "lucide-react";
+import {
+  ClipboardList,
+  ChevronRight,
+  Plus,
+  Star,
+  ChevronDown,
+  Lightbulb,
+  BookOpen,
+  ArrowUpDown,
+  Clock,
+  History,
+  ArrowDownAZ,
+  ArrowUpZA,
+  SortAsc,
+  SortDesc,
+} from "lucide-react";
 import MarkdownText from "./MarkdownText";
 import usePlainTextCopy from "../../utils/usePlainTextCopy";
 import type { QuestionListProps, TopicDef } from "../../types";
+
+const renderSortIcon = (val: string, size = 13) => {
+  switch (val) {
+    case "favorites":
+      return <Star size={size} className="qb-sort-star-icon" fill="currentColor" />;
+    case "newest":
+      return <Clock size={size} />;
+    case "oldest":
+      return <History size={size} />;
+    case "label-a-z":
+      return <ArrowDownAZ size={size} />;
+    case "label-z-a":
+      return <ArrowUpZA size={size} />;
+    case "a-z":
+      return <SortAsc size={size} />;
+    case "z-a":
+      return <SortDesc size={size} />;
+    default:
+      return <ArrowUpDown size={size} />;
+  }
+};
 
 // Cards rendered initially / per "Show more" step.
 const PAGE_SIZE = 30;
@@ -79,7 +115,10 @@ export default function QuestionList({
         )}
         <div className="qb-list-meta-right">
           <div className="qb-sort-wrap">
-            <span className="qb-sort-label">Sort</span>
+            <span className="qb-sort-label">
+              <ArrowUpDown size={12} className="qb-sort-label-icon" aria-hidden="true" />
+              <span>Sort</span>
+            </span>
             <div className="qb-select" ref={sortRef} data-dir={sortDir} data-open={sortOpen}>
               <button
                 className="qb-select-btn"
@@ -93,8 +132,13 @@ export default function QuestionList({
                 }}
                 aria-expanded={sortOpen}
               >
-                <span>{SORT_OPTIONS.find((o: { value: string; label: string }) => o.value === sortBy)?.label}</span>
-                <ChevronDown size={16} />
+                <span className="qb-select-btn-lead">
+                  {renderSortIcon(sortBy, 14)}
+                  <span className="qb-select-btn-text">
+                    {SORT_OPTIONS.find((o: { value: string; label: string }) => o.value === sortBy)?.label || "Sort"}
+                  </span>
+                </span>
+                <ChevronDown size={15} className="qb-select-chevron" />
               </button>
               <div className={`qb-select-menu${sortOpen ? " open" : ""}`}>
                 {SORT_OPTIONS.map((option: { value: string; label: string }) => (
@@ -107,7 +151,10 @@ export default function QuestionList({
                       setSortOpen(false);
                     }}
                   >
-                    {option.label}
+                    <span className="qb-select-item-icon-wrap" aria-hidden="true">
+                      {renderSortIcon(option.value, 13)}
+                    </span>
+                    <span className="qb-select-item-label">{option.label}</span>
                   </button>
                 ))}
               </div>

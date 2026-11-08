@@ -15,6 +15,11 @@ import {
   Award,
   Zap,
   UserCheck,
+  Home,
+  ClipboardList,
+  BookOpen,
+  Lightbulb,
+  Compass,
 } from "lucide-react";
 import brandLogo from "../../models/Image/logo.png";
 import examHallImg from "../../assets/images/exam_hall_atmosphere_1794130533049.jpg";
@@ -28,6 +33,10 @@ export default function SignInPage({
   onContinueAsGuest,
   onSignInWithEmail,
   onSignInWithGoogle,
+  onGoHome,
+  onGoMockExam,
+  onGoTips,
+  onGoNotes,
 }: SignInPageProps) {
   const [isRegisterMode, setIsRegisterMode] = useState<boolean>(false);
   const [email, setEmail] = useState<string>("");
@@ -125,15 +134,6 @@ export default function SignInPage({
         </button>
 
         <div className="qb-signin-nav-right">
-          <button
-            type="button"
-            className="qb-signin-guest-link"
-            onClick={onContinueAsGuest}
-          >
-            <span>Skip & Continue as Guest</span>
-            <ArrowRight size={14} />
-          </button>
-
           <button
             type="button"
             className="qb-signin-theme-btn"
@@ -436,6 +436,85 @@ export default function SignInPage({
           </div>
         </div>
       </main>
+
+      {/* ── Page-Level Footer (Eliminates empty void & anchors the viewport) ── */}
+      <footer className="qb-signin-page-footer">
+        <div className="qb-signin-page-footer-inner">
+          {/* Brand Column */}
+          <div className="qb-signin-pfooter-col qb-signin-pfooter-brand">
+            <div
+              className="qb-signin-pfooter-logo-row"
+              onClick={onBackToLanding}
+              role="button"
+              tabIndex={0}
+              title="Return to Landing Page"
+            >
+              <img src={brandLogo} alt="QBANK logo" className="qb-signin-pfooter-logo" />
+              <div>
+                <span className="qb-signin-pfooter-title">CSE QBANK</span>
+                <span className="qb-signin-pfooter-sub">Civil Service Exam Reviewer</span>
+              </div>
+            </div>
+            <p className="qb-signin-pfooter-desc">
+              Dedicated, offline-ready review platform built around the authentic 80.00% benchmark and 67-second per item pacing target.
+            </p>
+          </div>
+
+          {/* Review Modules Links */}
+          <div className="qb-signin-pfooter-col">
+            <h4 className="qb-signin-pfooter-head">Review Modules</h4>
+            <div className="qb-signin-pfooter-links">
+              <button type="button" className="qb-signin-pfooter-link" onClick={onBackToLanding}>
+                <Compass size={14} />
+                <span>Exam Overview</span>
+              </button>
+              <button type="button" className="qb-signin-pfooter-link" onClick={onGoHome || onContinueAsGuest}>
+                <Home size={14} />
+                <span>Question Bank</span>
+              </button>
+              <button type="button" className="qb-signin-pfooter-link" onClick={onGoMockExam || onContinueAsGuest}>
+                <ClipboardList size={14} />
+                <span>Timed Mock Exam (170/165 Items)</span>
+              </button>
+              <button type="button" className="qb-signin-pfooter-link" onClick={onGoNotes || onContinueAsGuest}>
+                <BookOpen size={14} />
+                <span>Study Notes & Scratchpad</span>
+              </button>
+              <button type="button" className="qb-signin-pfooter-link" onClick={onGoTips || onContinueAsGuest}>
+                <Lightbulb size={14} />
+                <span>Tips & Tricks</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Standards & Trust Highlights */}
+          <div className="qb-signin-pfooter-col">
+            <h4 className="qb-signin-pfooter-head">Review Standards</h4>
+            <div className="qb-signin-pfooter-highlights">
+              <div className="qb-signin-pfooter-badge">
+                <Award size={15} className="qb-badge-icon amber" />
+                <span>Official 80.00% General Rating Benchmark</span>
+              </div>
+              <div className="qb-signin-pfooter-badge">
+                <Zap size={15} className="qb-badge-icon cyan" />
+                <span>100% Free · Zero Calculator Scratchpads</span>
+              </div>
+              <div className="qb-signin-pfooter-badge">
+                <ShieldCheck size={15} className="qb-badge-icon emerald" />
+                <span>Works Offline via PWA Local Cache</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Legal Disclaimer & Copyright */}
+        <div className="qb-signin-pfooter-legal">
+          <p>
+            © {new Date().getFullYear()} CSE QBANK. Independent study reviewer for Philippine Civil Service examinees.
+            Not affiliated with or endorsed by the Civil Service Commission (CSC) of the Philippines.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }

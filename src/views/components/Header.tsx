@@ -119,8 +119,8 @@ export default function Header({
 
         {/* Right: Actions, Theme, Help & User Profile */}
         <div className="qb-hdr-right">
-          {/* Quick Landing Overview Link */}
-          {onLanding && (
+          {/* Quick Landing Overview Link (Hidden when logged in) */}
+          {onLanding && !isAuthenticated && (
             <button
               type="button"
               className="qb-hdr-landing-link"

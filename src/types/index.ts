@@ -131,8 +131,11 @@ export interface SideNavProps {
   profile?: UserProfile | null;
   onSignIn?: () => void;
   onSignInWithEmail?: (email: string, password?: string) => Promise<{ error: any; mode?: string; message?: string }>;
-  onSignInWithGoogle?: () => Promise<{ error: any }>;
   onSignOut?: () => Promise<void> | void;
+  onToggleNav?: () => void;
+  activeTopic?: string;
+  onSelectTopic?: (topicId: TopicId | "all") => void;
+  topicCounts?: Record<string, number>;
 }
 
 export interface StatsProps {
@@ -214,4 +217,9 @@ export interface SignInPageProps {
   onContinueAsGuest: () => void;
   onSignInWithEmail: (email: string, password?: string) => Promise<{ error: any; mode?: string; message?: string }>;
   onSignInWithGoogle?: () => Promise<{ error: any }>;
+  onGoHome?: () => void;
+  onGoMockExam?: () => void;
+  onGoTips?: () => void;
+  onGoNotes?: () => void;
 }
+

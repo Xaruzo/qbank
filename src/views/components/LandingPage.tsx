@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   ShieldCheck,
   ArrowRight,
@@ -21,6 +21,7 @@ import {
 import brandLogo from "../../models/Image/logo.png";
 import heroDeskImg from "../../assets/images/hero_desk_reviewer_1794130533596.jpg";
 import examHallImg from "../../assets/images/exam_hall_atmosphere_1794130533049.jpg";
+import AppleHeroCanvas from "./AppleHeroCanvas";
 import type { LandingPageProps, TopicId } from "../../types";
 import { TOPICS } from "../../constants/appConstants";
 import CountUp from "./CountUp";
@@ -37,6 +38,7 @@ export default function LandingPage({
   isAuthenticated = false,
   profile = null,
 }: LandingPageProps) {
+  const rootRef = useRef<HTMLDivElement>(null);
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const [selectedTopicPreview, setSelectedTopicPreview] = useState<TopicId>("numerical");
   const [shadedChoice, setShadedChoice] = useState<number | null>(null);
@@ -195,7 +197,7 @@ export default function LandingPage({
   ];
 
   return (
-    <div className={`qb-landing-root${isDark ? "" : " light"}`}>
+    <div ref={rootRef} className={`qb-landing-root${isDark ? "" : " light"}`}>
       {/* ── Top Bar Contract (1 Wordmark — 4 Nav Links — 1 Primary Action) ── */}
       <header className="qb-landing-nav">
         <div className="qb-landing-nav-inner">
@@ -255,12 +257,8 @@ export default function LandingPage({
 
       {/* ── Hero Section with Atmospheric Background Animation & Human Craftsmanship ── */}
       <section className="qb-landing-hero">
-        {/* Animated Background Image Layer (Ken Burns slow drift) */}
-        <div
-          className="qb-landing-hero-bg"
-          style={{ backgroundImage: `url(${heroDeskImg})` }}
-          aria-hidden="true"
-        />
+        {/* Apple-style Frame-by-Frame WebP Canvas Scrubbing & Animation */}
+        <AppleHeroCanvas scrollTargetRef={rootRef} isDark={isDark} />
 
         {/* Ambient Subtle Study Dust / Particle Layer */}
         <div className="qb-landing-particles" aria-hidden="true">
@@ -926,14 +924,9 @@ export default function LandingPage({
           <div className="qb-landing-footer-col">
             <h5 className="qb-landing-footer-heading">Access & Account</h5>
             {!isAuthenticated ? (
-              <>
-                <button type="button" className="qb-landing-footer-link" onClick={onSignIn}>
-                  Sign In / Register
-                </button>
-                <button type="button" className="qb-landing-footer-link" onClick={onExploreGuest}>
-                  Continue as Guest
-                </button>
-              </>
+              <button type="button" className="qb-landing-footer-link" onClick={onSignIn}>
+                Sign In / Register
+              </button>
             ) : (
               <button type="button" className="qb-landing-footer-link" onClick={onStartReview}>
                 Logged in as {profile?.fullName || "Reviewer"}

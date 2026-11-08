@@ -1,62 +1,44 @@
 import { useRef } from "react";
 import { useOverlayDialogA11y } from "../../controllers/useOverlayDialogA11y";
 import {
-  Home,
-  ClipboardList,
+  Layers,
+  Timer,
+  NotebookPen,
   Lightbulb,
+  Calculator,
   BookOpen,
+  Landmark,
+  BrainCircuit,
+  FileSpreadsheet,
+  PanelLeftClose,
+  PanelLeftOpen,
   X,
   LogIn,
   LogOut,
   UserCircle2,
-  Sparkles,
-  ChevronRight,
+  Sun,
+  Moon,
+  HelpCircle,
 } from "lucide-react";
 import brandLogo from "../../models/Image/logo.png";
-import type { SideNavProps } from "../../types";
+import type { SideNavProps, TopicId } from "../../types";
 
 interface NavItemDef {
   id: "home" | "mock" | "tips" | "notes";
   label: string;
   shortLabel: string;
-  subtitle: string;
+  badgeText?: string | null;
+  badgeType?: "accent" | "neutral";
   title: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
+  icon: React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>;
 }
 
-const NAV_ITEMS: NavItemDef[] = [
-  {
-    id: "home",
-    label: "Question Bank",
-    shortLabel: "Bank",
-    subtitle: "Practice authentic CSC questions",
-    title: "Question Bank",
-    icon: Home,
-  },
-  {
-    id: "mock",
-    label: "Timed Mock Exam",
-    shortLabel: "Mock Exam",
-    subtitle: "Full-length CSC simulations & stats",
-    title: "Timed Mock Exam",
-    icon: ClipboardList,
-  },
-  {
-    id: "tips",
-    label: "Tips & Methods",
-    shortLabel: "Tips",
-    subtitle: "Whiteboard diagrams, formulas & cues",
-    title: "Tips & Tricks",
-    icon: Lightbulb,
-  },
-  {
-    id: "notes",
-    label: "Study Notes",
-    shortLabel: "Notes",
-    subtitle: "Jot formulas, acronyms & checklists",
-    title: "Study Notes",
-    icon: BookOpen,
-  },
+const EXAM_SUBJECTS = [
+  { id: "numerical" as TopicId, label: "Numerical Ability", short: "NUM", icon: Calculator, color: "#f5a623" },
+  { id: "verbal" as TopicId, label: "Verbal Ability", short: "VRB", icon: BookOpen, color: "#22d3ee" },
+  { id: "general" as TopicId, label: "General Information", short: "GEN", icon: Landmark, color: "#a78bfa" },
+  { id: "analytical" as TopicId, label: "Analytical Ability", short: "ANA", icon: BrainCircuit, color: "#34d399" },
+  { id: "clerical" as TopicId, label: "Clerical Operations", short: "CLE", icon: FileSpreadsheet, color: "#f43f5e" },
 ];
 
 export default function SideNav({
@@ -69,12 +51,19 @@ export default function SideNav({
   onTips,
   onNotes,
   onClose,
+  onToggleNav,
   totalQuestions = 0,
   starredCount = 0,
+  isDark = false,
+  onToggleTheme,
+  onOpenHelp,
   isAuthenticated = false,
   profile = null,
   onSignIn,
   onSignOut,
+  activeTopic = "all",
+  onSelectTopic,
+  topicCounts = {},
 }: SideNavProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   useOverlayDialogA11y(variant === "overlay" && open, onClose, cardRef);
@@ -86,76 +75,107 @@ export default function SideNav({
     notes: onNotes,
   };
 
+  const navItems: NavItemDef[] = [
+    {
+      id: "home",
+      label: "Question Bank",
+      shortLabel: "Bank",
+      badgeText: totalQuestions > 0 ? `${totalQuestions}` : null,
+      badgeType: "neutral",
+      title: "Question Bank (All practice questions)",
+      icon: Layers,
+    },
+    {
+      id: "mock",
+      label: "Timed Mock Exam",
+      shortLabel: "Mock Exam",
+      badgeText: "170 Qs",
+      badgeType: "accent",
+      title: "Timed Mock Exam (Full CSC Simulation)",
+      icon: Timer,
+    },
+    {
+      id: "notes",
+      label: "Study Notes",
+      shortLabel: "Notes",
+      badgeText: "Scratchpad",
+      badgeType: "neutral",
+      title: "Study Notes & Reviewer Scratchpad",
+      icon: NotebookPen,
+    },
+    {
+      id: "tips",
+      label: "Tips & Methods",
+      shortLabel: "Tips",
+      badgeText: "Visual Cues",
+      badgeType: "neutral",
+      title: "Tips, Whiteboards & Problem Methods",
+      icon: Lightbulb,
+    },
+  ];
+
   const handleNavigate = (action?: () => void) => () => {
     if (action) action();
     if (onClose) onClose();
   };
 
-  // Reusable User Section (Profile or Guest Sign In)
-  const renderUserSection = (isOverlay = false) => (
-    <div className="qb-drawer-user-section">
-      {isAuthenticated ? (
-        <div className="qb-drawer-user-card">
-          <div className="qb-drawer-avatar">
-            {profile?.fullName ? (
-              profile.fullName.slice(0, 2).toUpperCase()
-            ) : (
-              <UserCircle2 size={24} />
-            )}
-          </div>
-          <div className="qb-drawer-user-meta">
-            <div className="qb-drawer-user-name">
-              {profile?.fullName || "Reviewer"}
-            </div>
-            <div className="qb-drawer-user-email">
-              {profile?.email || "Signed in"}
-            </div>
-          </div>
-          {onSignOut && (
-            <button
-              type="button"
-              className="qb-drawer-signout-btn"
-              onClick={() => {
-                if (isOverlay && onClose) onClose();
-                onSignOut();
-              }}
-              title="Sign Out"
-              aria-label="Sign Out"
-            >
-              <LogOut size={15} />
-            </button>
-          )}
+  const handleTopicClick = (topicId: TopicId | "all") => {
+    if (onSelectTopic) onSelectTopic(topicId);
+    if (handlers.home) handlers.home();
+    if (onClose) onClose();
+  };
+
+  // Reusable Top Brand Row
+  const renderBrandHeader = (isOverlay = false) => (
+    <div className="qb-nav-brand-header">
+      <div
+        className="qb-nav-brand-lockup"
+        onClick={handleNavigate(onLanding || onHome)}
+        role="button"
+        tabIndex={0}
+        title="CSE QBANK Reviewer"
+      >
+        <img src={brandLogo} alt="QBANK logo" className="qb-nav-brand-logo" />
+        <div className="qb-nav-brand-titles">
+          <span className="qb-nav-brand-title">CSE QBANK</span>
+          <span className="qb-nav-brand-sub">Civil Service Reviewer</span>
         </div>
+      </div>
+
+      {isOverlay ? (
+        <button
+          type="button"
+          className="qb-nav-close-btn"
+          onClick={onClose}
+          aria-label="Close menu"
+          title="Close navigation"
+        >
+          <X size={18} />
+        </button>
       ) : (
-        <div className="qb-drawer-guest-card">
-          <div className="qb-drawer-guest-info">
-            <span className="qb-drawer-guest-label">Guest Reviewer</span>
-            <span className="qb-drawer-guest-sub">Sign in to sync your mock exams</span>
-          </div>
-          {onSignIn && (
-            <button
-              type="button"
-              className="qb-drawer-signin-btn"
-              onClick={() => {
-                if (isOverlay && onClose) onClose();
-                onSignIn();
-              }}
-            >
-              <LogIn size={14} />
-              <span>Sign In</span>
-            </button>
-          )}
-        </div>
+        onToggleNav && (
+          <button
+            type="button"
+            className="qb-nav-collapse-btn"
+            onClick={onToggleNav}
+            title={open ? "Collapse sidebar" : "Expand sidebar"}
+            aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
+          >
+            <PanelLeftClose size={16} />
+          </button>
+        )
       )}
     </div>
   );
 
-  // Reusable Nav List with Badges and Descriptions
-  const renderNavList = (isOverlay = false) => (
-    <div className="qb-drawer-nav-section">
-      <span className="qb-drawer-section-label">STUDY AREAS</span>
-      <nav className="qb-drawer-nav" aria-label="Study Areas">
-        {NAV_ITEMS.map(({ id, label, subtitle, icon: Icon }) => {
+  // Reusable Workspace Navigation
+  const renderWorkspaceNav = (isOverlay = false) => (
+    <div className="qb-nav-group">
+      <div className="qb-nav-group-header">
+        <span className="qb-nav-group-title">STUDY WORKSPACE</span>
+      </div>
+      <nav className="qb-nav-list" aria-label="Study Workspace">
+        {navItems.map(({ id, label, badgeText, badgeType, icon: Icon, title }) => {
           const isSelected = active === id;
           const clickHandler = handlers[id];
 
@@ -163,29 +183,19 @@ export default function SideNav({
             <button
               key={id}
               type="button"
-              className={`qb-drawer-nav-item${isSelected ? " is-active" : ""}`}
+              className={`qb-nav-item${isSelected ? " is-active" : ""}`}
               onClick={isOverlay ? handleNavigate(clickHandler) : clickHandler}
+              title={title}
             >
-              <div className="qb-drawer-nav-icon-wrap">
-                <Icon size={19} />
+              <div className="qb-nav-item-lead">
+                <Icon size={17} className="qb-nav-item-icon" />
+                <span className="qb-nav-item-label">{label}</span>
               </div>
-              <div className="qb-drawer-nav-text-wrap">
-                <div className="qb-drawer-nav-label-row">
-                  <span className="qb-drawer-nav-title">{label}</span>
-                  {id === "home" && totalQuestions > 0 && (
-                    <span className="qb-drawer-item-badge">
-                      {totalQuestions}
-                    </span>
-                  )}
-                  {id === "mock" && (
-                    <span className="qb-drawer-item-badge accent">
-                      Timed
-                    </span>
-                  )}
-                </div>
-                <span className="qb-drawer-nav-desc">{subtitle}</span>
-              </div>
-              <ChevronRight size={14} className="qb-drawer-nav-arrow" />
+              {badgeText && (
+                <span className={`qb-nav-badge${badgeType === "accent" ? " is-accent" : ""}`}>
+                  {badgeText}
+                </span>
+              )}
             </button>
           );
         })}
@@ -193,23 +203,131 @@ export default function SideNav({
     </div>
   );
 
-  // Reusable Quick Stats Widget
-  const renderStatsWidget = () => (
-    <div className="qb-drawer-stats-card">
-      <div className="qb-drawer-stats-head">
-        <Sparkles size={14} className="qb-drawer-stats-icon" />
-        <span>Study Progress</span>
+  // Reusable Exam Subjects Quick Jump
+  const renderSubjectsNav = () => (
+    <div className="qb-nav-group qb-nav-subjects-group">
+      <div className="qb-nav-group-header">
+        <span className="qb-nav-group-title">EXAM SUBJECTS</span>
       </div>
-      <div className="qb-drawer-stats-grid">
-        <div className="qb-drawer-stat-col">
-          <strong>{totalQuestions}</strong>
-          <span>Items in Bank</span>
-        </div>
-        <div className="qb-drawer-stat-sep" />
-        <div className="qb-drawer-stat-col">
-          <strong>{starredCount}</strong>
-          <span>Starred</span>
-        </div>
+      <div className="qb-nav-subjects-list" role="list">
+        {EXAM_SUBJECTS.map((sub) => {
+          const isCurrentTopic = active === "home" && activeTopic === sub.id;
+          const count = topicCounts[sub.id] ?? 0;
+          const SubIcon = sub.icon;
+
+          return (
+            <button
+              key={sub.id}
+              type="button"
+              className={`qb-nav-subject-btn${isCurrentTopic ? " is-active" : ""}`}
+              onClick={() => handleTopicClick(sub.id)}
+              title={`Filter by ${sub.label} (${count} questions)`}
+            >
+              <div className="qb-nav-subject-left">
+                <SubIcon size={15} style={{ color: sub.color }} className="qb-nav-subject-icon" />
+                <span className="qb-nav-subject-name">{sub.label}</span>
+              </div>
+              <span className="qb-nav-subject-count tabular-nums">{count}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  // Reusable Bottom User Section & Preferences
+  const renderFooterSection = (isOverlay = false) => (
+    <div className="qb-nav-footer">
+      {/* Quick Summary Strip */}
+      <div className="qb-nav-quick-meta">
+        <span className="tabular-nums">{totalQuestions} questions</span>
+        <span className="qb-nav-meta-dot">·</span>
+        <span className="tabular-nums">⭐ {starredCount} starred</span>
+      </div>
+
+      {/* User Card */}
+      <div className="qb-nav-user-row">
+        {isAuthenticated ? (
+          <div className="qb-nav-user-info">
+            <div className="qb-nav-user-avatar">
+              {profile?.fullName ? (
+                profile.fullName.slice(0, 2).toUpperCase()
+              ) : (
+                <UserCircle2 size={20} />
+              )}
+            </div>
+            <div className="qb-nav-user-details">
+              <span className="qb-nav-user-name">{profile?.fullName || "Reviewer"}</span>
+              <span className="qb-nav-user-email">{profile?.email || "Signed In"}</span>
+            </div>
+            {onSignOut && (
+              <button
+                type="button"
+                className="qb-nav-icon-action-btn"
+                onClick={() => {
+                  if (isOverlay && onClose) onClose();
+                  onSignOut();
+                }}
+                title="Sign Out"
+                aria-label="Sign Out"
+              >
+                <LogOut size={15} />
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="qb-nav-guest-row">
+            <div className="qb-nav-guest-meta">
+              <span className="qb-nav-guest-title">Practice as Guest</span>
+              <span className="qb-nav-guest-sub">Sync progress to cloud</span>
+            </div>
+            {onSignIn && (
+              <button
+                type="button"
+                className="qb-nav-signin-pill"
+                onClick={() => {
+                  if (isOverlay && onClose) onClose();
+                  onSignIn();
+                }}
+                title="Sign In to QBANK"
+              >
+                <LogIn size={13} />
+                <span>Sign In</span>
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Utility Actions Strip */}
+      <div className="qb-nav-utility-row">
+        {onToggleTheme && (
+          <button
+            type="button"
+            className="qb-nav-utility-btn"
+            onClick={onToggleTheme}
+            title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+            aria-label="Toggle theme"
+          >
+            {isDark ? <Sun size={15} /> : <Moon size={15} />}
+            <span>{isDark ? "Light Mode" : "Dark Mode"}</span>
+          </button>
+        )}
+        {onOpenHelp && (
+          <button
+            type="button"
+            className="qb-nav-utility-btn"
+            onClick={() => {
+              if (isOverlay && onClose) onClose();
+              onOpenHelp();
+            }}
+            title="Reviewer shortcuts & CSC exam guide"
+            aria-label="Help and shortcuts"
+          >
+            <HelpCircle size={15} />
+            <span>Help</span>
+          </button>
+        )}
       </div>
     </div>
   );
@@ -222,79 +340,123 @@ export default function SideNav({
       <div className="qb-mnav-ov" onClick={onClose}>
         <aside
           ref={cardRef}
-          className="qb-side-drawer"
+          className="qb-side-drawer qb-modern-drawer"
           role="dialog"
           aria-modal="true"
           aria-label="Navigation drawer"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Drawer Top Header */}
-          <div className="qb-drawer-head">
-            <div
-              className="qb-drawer-brand"
-              onClick={handleNavigate(onLanding || onHome)}
-              style={{ cursor: "pointer" }}
-              title="Return to Overview"
-            >
-              <img src={brandLogo} alt="QBANK logo" className="qb-drawer-logo" />
-              <div className="qb-drawer-brand-text">
-                <span className="qb-drawer-title">QBANK</span>
-                <span className="qb-drawer-sub">Civil Service Reviewer</span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              className="qb-drawer-close-btn"
-              onClick={onClose}
-              aria-label="Close navigation menu"
-              title="Close menu"
-            >
-              <X size={18} />
-            </button>
+          {renderBrandHeader(true)}
+          <div className="qb-modern-drawer-scroll">
+            {renderWorkspaceNav(true)}
+            {renderSubjectsNav()}
           </div>
-
-          {renderUserSection(true)}
-          {renderNavList(true)}
-          {renderStatsWidget()}
+          {renderFooterSection(true)}
         </aside>
       </div>
     );
   }
 
-  // Desktop Rail variant (Expanded or Collapsed)
+  // Desktop Sidebar (Expanded or Compact Icon Rail)
   return (
     <aside className={`qb-side${open ? " qb-side-expanded" : " qb-side-collapsed"}`}>
-      <div className="qb-side-inner">
+      <div className="qb-side-inner qb-modern-sidebar-inner">
         {open ? (
           <>
-            {renderUserSection(false)}
-            {renderNavList(false)}
-            {renderStatsWidget()}
+            {renderBrandHeader(false)}
+            <div className="qb-modern-sidebar-scroll">
+              {renderWorkspaceNav(false)}
+              {renderSubjectsNav()}
+            </div>
+            {renderFooterSection(false)}
           </>
         ) : (
-          <nav className="qb-side-nav qb-side-nav-collapsed" aria-label="Desktop Sidebar">
-            {NAV_ITEMS.map(({ id, label, shortLabel, title, icon: Icon }) => {
-              const isSelected = active === id;
+          /* Sleek Desktop Rail (Icon Mode) */
+          <div className="qb-rail-wrap">
+            {/* Top Expand Button */}
+            {onToggleNav && (
+              <button
+                type="button"
+                className="qb-rail-toggle-btn"
+                onClick={onToggleNav}
+                title="Expand sidebar"
+                aria-label="Expand sidebar"
+              >
+                <PanelLeftOpen size={18} />
+              </button>
+            )}
 
-              return (
+            <div className="qb-rail-divider" />
+
+            {/* Core Nav Items */}
+            <nav className="qb-rail-nav" aria-label="Desktop rail navigation">
+              {navItems.map(({ id, label, shortLabel, icon: Icon, badgeText }) => {
+                const isSelected = active === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    className={`qb-rail-btn${isSelected ? " is-active" : ""}`}
+                    onClick={handlers[id]}
+                    title={`${label} ${badgeText ? `(${badgeText})` : ""}`}
+                    aria-label={label}
+                  >
+                    <Icon size={19} className="qb-rail-btn-icon" />
+                    {isSelected && <span className="qb-rail-active-bar" />}
+                  </button>
+                );
+              })}
+            </nav>
+
+            <div className="qb-rail-divider" />
+
+            {/* Quick Topic Subject Icons */}
+            <div className="qb-rail-topics" aria-label="Subject quick jump">
+              {EXAM_SUBJECTS.map((sub) => {
+                const isCurrentTopic = active === "home" && activeTopic === sub.id;
+                const count = topicCounts[sub.id] ?? 0;
+                const SubIcon = sub.icon;
+                return (
+                  <button
+                    key={sub.id}
+                    type="button"
+                    className={`qb-rail-topic-btn${isCurrentTopic ? " is-active" : ""}`}
+                    onClick={() => handleTopicClick(sub.id)}
+                    title={`${sub.label} (${count} questions)`}
+                    aria-label={sub.label}
+                  >
+                    <SubIcon size={16} style={{ color: sub.color }} />
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Rail Bottom Tools */}
+            <div className="qb-rail-bottom">
+              {onToggleTheme && (
                 <button
-                  key={id}
                   type="button"
-                  className={`qb-nav-item-collapsed${isSelected ? " on" : ""}`}
-                  onClick={handlers[id]}
-                  title={`${label} - ${title}`}
-                  aria-label={label}
+                  className="qb-rail-tool-btn"
+                  onClick={onToggleTheme}
+                  title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+                  aria-label="Toggle theme"
                 >
-                  <div className="qb-drawer-nav-icon-wrap">
-                    <Icon size={20} />
-                    {id === "mock" && <span className="qb-nav-dot-accent" title="Timed Mock Exam" />}
-                  </div>
-                  <span className="qb-nav-text-collapsed">{shortLabel || label}</span>
+                  {isDark ? <Sun size={17} /> : <Moon size={17} />}
                 </button>
-              );
-            })}
-          </nav>
+              )}
+              {onOpenHelp && (
+                <button
+                  type="button"
+                  className="qb-rail-tool-btn"
+                  onClick={onOpenHelp}
+                  title="Reviewer shortcuts & Help"
+                  aria-label="Reviewer shortcuts"
+                >
+                  <HelpCircle size={17} />
+                </button>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </aside>

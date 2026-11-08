@@ -1,7 +1,30 @@
 import { useState, useRef, useEffect } from "react";
-import { Search, SlidersHorizontal, ChevronDown, X, Star, RotateCcw } from "lucide-react";
+import {
+  Search,
+  SlidersHorizontal,
+  ChevronDown,
+  X,
+  Star,
+  RotateCcw,
+  Tag,
+  Layers,
+  Calculator,
+  BookOpen,
+  Landmark,
+  BrainCircuit,
+  FileSpreadsheet,
+} from "lucide-react";
 import { TOPICS } from "../../constants/appConstants";
 import type { SearchAndFilterProps, TopicDef, TopicId } from "../../types";
+
+const TOPIC_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>> = {
+  all: Layers,
+  numerical: Calculator,
+  verbal: BookOpen,
+  general: Landmark,
+  analytical: BrainCircuit,
+  clerical: FileSpreadsheet,
+};
 
 export default function SearchAndFilter({
   search,
@@ -116,7 +139,10 @@ export default function SearchAndFilter({
 
         {labelOptions.length > 0 && (
           <div className="qb-label-filter-col" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <span className="qb-filter-label">Problem Label</span>
+            <span className="qb-filter-label">
+              <Tag size={12} className="qb-filter-label-icon" aria-hidden="true" />
+              <span>Problem Label</span>
+            </span>
             <div className="qb-select" ref={labelFilterRef} data-dir={labelFilterDir} data-open={labelFilterOpen}>
               <button
                 className="qb-select-btn"
@@ -130,12 +156,15 @@ export default function SearchAndFilter({
                 }}
                 aria-expanded={labelFilterOpen}
               >
-                <span>
-                  {labelFilter === "all"
-                    ? "All Labels"
-                    : labelOptions.find((o) => o.value === labelFilter)?.label || "All Labels"}
+                <span className="qb-select-btn-lead">
+                  <Tag size={14} className="qb-select-lead-icon" aria-hidden="true" />
+                  <span className="qb-select-btn-text">
+                    {labelFilter === "all"
+                      ? "All Labels"
+                      : labelOptions.find((o) => o.value === labelFilter)?.label || "All Labels"}
+                  </span>
                 </span>
-                <ChevronDown size={16} />
+                <ChevronDown size={15} className="qb-select-chevron" />
               </button>
               <div className={`qb-select-menu${labelFilterOpen ? " open" : ""}`}>
                 <button
@@ -146,7 +175,8 @@ export default function SearchAndFilter({
                     setLabelFilterOpen(false);
                   }}
                 >
-                  All Labels
+                  <Tag size={13} className="qb-select-item-icon" aria-hidden="true" />
+                  <span className="qb-select-item-label">All Labels</span>
                 </button>
                 {labelOptions.map((option) => (
                   <button
@@ -158,7 +188,9 @@ export default function SearchAndFilter({
                       setLabelFilterOpen(false);
                     }}
                   >
-                    {option.label} ({option.count})
+                    <Tag size={13} className="qb-select-item-icon" aria-hidden="true" />
+                    <span className="qb-select-item-label">{option.label}</span>
+                    <span className="qb-select-count tabular-nums">({option.count})</span>
                   </button>
                 ))}
               </div>
@@ -179,6 +211,7 @@ export default function SearchAndFilter({
           ].map((p) => {
             const isSelected = topicFilter === p.id;
             const topicCol = getTopicColor(p.id);
+            const Icon = TOPIC_ICONS[p.id] || Layers;
             return (
               <button
                 key={p.id}
@@ -188,13 +221,12 @@ export default function SearchAndFilter({
                 style={isSelected && p.id !== "all" ? { borderColor: `${topicCol}66`, color: topicCol } : {}}
                 onClick={() => onTopicChange(p.id as TopicId | "all")}
               >
-                {p.id !== "all" && (
-                  <span
-                    className="qb-pill-dot"
-                    style={{ backgroundColor: topicCol }}
-                    aria-hidden="true"
-                  />
-                )}
+                <Icon
+                  size={14}
+                  className="qb-topic-pill-icon"
+                  style={{ color: p.id === "all" ? (isSelected ? "inherit" : "var(--text-muted)") : topicCol }}
+                  aria-hidden="true"
+                />
                 <span>{p.label}</span>
                 <span className="qb-pill-count tabular-nums">{p.count}</span>
               </button>

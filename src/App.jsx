@@ -971,9 +971,14 @@ export default function App() {
         }}
         onSignInWithEmail={signInWithEmail}
         onSignInWithGoogle={signInWithGoogle}
+        onGoHome={handleGoHome}
+        onGoMockExam={handleGoMockExam}
+        onGoTips={handleGoTips}
+        onGoNotes={handleGoNotes}
       />
     );
   }
+
 
   return (
     <div className={`qb${isDark ? "" : " light"}`}>
@@ -1016,6 +1021,12 @@ export default function App() {
             profile={profile}
             onSignIn={handleSignIn}
             onSignOut={handleSignOut}
+            activeTopic={topicFilter}
+            onSelectTopic={(t) => {
+              setTopicFilter(t);
+              handleGoHome();
+            }}
+            topicCounts={counts}
           />
         )}
 
@@ -1030,6 +1041,7 @@ export default function App() {
               onMockExam={handleGoMockExam}
               onTips={handleGoTips}
               onNotes={handleGoNotes}
+              onToggleNav={() => setNavOpen((prev) => !prev)}
               totalQuestions={qs.length}
               starredCount={favoriteCount}
               isDark={isDark}
@@ -1039,6 +1051,12 @@ export default function App() {
               profile={profile}
               onSignIn={handleSignIn}
               onSignOut={handleSignOut}
+              activeTopic={topicFilter}
+              onSelectTopic={(t) => {
+                setTopicFilter(t);
+                handleGoHome();
+              }}
+              topicCounts={counts}
             />
           )}
           <main ref={mainRef} className={`qb-main${view === "mockRun" ? " qb-main-exam" : view === "detail" ? " qb-main-detail" : ""}`}>
