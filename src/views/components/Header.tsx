@@ -11,9 +11,17 @@ import {
   HelpCircle,
   CheckCircle2,
   Sparkles,
+  Bell,
 } from "lucide-react";
 import brandLogo from "../../models/Image/logo.png";
-import type { HeaderProps } from "../../types";
+import NotificationsModal from "./NotificationsModal";
+import SettingsModal from "./SettingsModal";
+import type { HeaderProps, AppSettings, UserProfile } from "../../types";
+
+interface ExtendedHeaderProps extends HeaderProps {
+  onResetSettings?: () => void;
+  onUpdateProfile?: (partial: Partial<UserProfile>) => Promise<{ success: boolean }>;
+}
 
 export default function Header({
   isDark,
@@ -30,10 +38,21 @@ export default function Header({
   onSignIn,
   onSignOut,
   onOpenHelp,
-}: HeaderProps) {
+  onOpenSettings,
+  onMockExam,
+  onTips,
+  onNotes,
+  settings,
+  onUpdateSettings,
+  onResetSettings,
+  onUpdateProfile,
+}: ExtendedHeaderProps) {
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
   const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
+  const [notificationsOpen, setNotificationsOpen] = useState<boolean>(false);
+  const [unreadCount, setUnreadCount] = useState<number>(3);
   const menuRef = useRef<HTMLDivElement>(null);
+  const notifWrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!menuOpen) return undefined;
@@ -57,7 +76,11 @@ export default function Header({
 
   const openSettings = () => {
     setMenuOpen(false);
-    setSettingsOpen(true);
+    if (onOpenSettings) {
+      onOpenSettings();
+    } else {
+      setSettingsOpen(true);
+    }
   };
 
   const handleSignOut = async () => {
@@ -143,6 +166,35 @@ export default function Header({
           >
             {isDark ? <Sun size={17} /> : <Moon size={17} />}
           </button>
+
+          {/* Notifications Center Button & Panel */}
+          <div className="qb-hdr-notif-wrap" ref={notifWrapRef}>
+            <button
+              type="button"
+              className={`qb-hdr-action-btn qb-hdr-notif-btn${unreadCount > 0 ? " has-unread" : ""}${notificationsOpen ? " is-active" : ""}`}
+              onClick={() => setNotificationsOpen((prev) => !prev)}
+              title="Notifications & Reviewer Updates"
+              aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
+              aria-expanded={notificationsOpen}
+            >
+              <Bell size={17} />
+              {unreadCount > 0 && (
+                <span className="qb-hdr-notif-badge" aria-hidden="true">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </button>
+
+            <NotificationsModal
+              isOpen={notificationsOpen}
+              onClose={() => setNotificationsOpen(false)}
+              onNavigateToMockExam={onMockExam}
+              onNavigateToTips={onTips}
+              onNavigateToNotes={onNotes}
+              onNavigateToQuestions={onHome}
+              onUnreadCountChange={setUnreadCount}
+            />
+          </div>
 
           {/* Quick Help Guide */}
           {onOpenHelp && (

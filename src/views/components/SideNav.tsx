@@ -10,8 +10,7 @@ import {
   Landmark,
   BrainCircuit,
   FileSpreadsheet,
-  PanelLeftClose,
-  PanelLeftOpen,
+  Star,
   X,
   LogIn,
   LogOut,
@@ -19,6 +18,9 @@ import {
   Sun,
   Moon,
   HelpCircle,
+  Settings,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import brandLogo from "../../models/Image/logo.png";
 import type { SideNavProps, TopicId } from "../../types";
@@ -57,6 +59,7 @@ export default function SideNav({
   isDark = false,
   onToggleTheme,
   onOpenHelp,
+  onOpenSettings,
   isAuthenticated = false,
   profile = null,
   onSignIn,
@@ -64,6 +67,7 @@ export default function SideNav({
   activeTopic = "all",
   onSelectTopic,
   topicCounts = {},
+  settings,
 }: SideNavProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   useOverlayDialogA11y(variant === "overlay" && open, onClose, cardRef);
@@ -156,12 +160,12 @@ export default function SideNav({
         onToggleNav && (
           <button
             type="button"
-            className="qb-nav-collapse-btn"
+            className="qb-nav-close-btn"
             onClick={onToggleNav}
-            title={open ? "Collapse sidebar" : "Expand sidebar"}
-            aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
+            aria-label="Collapse sidebar"
+            title="Collapse sidebar"
           >
-            <PanelLeftClose size={16} />
+            <PanelLeftClose size={18} />
           </button>
         )
       )}
@@ -175,7 +179,7 @@ export default function SideNav({
         <span className="qb-nav-group-title">STUDY WORKSPACE</span>
       </div>
       <nav className="qb-nav-list" aria-label="Study Workspace">
-        {navItems.map(({ id, label, badgeText, badgeType, icon: Icon, title }) => {
+        {navItems.map(({ id, label, badgeText, badgeType, icon: Icon, title }, idx) => {
           const isSelected = active === id;
           const clickHandler = handlers[id];
 
@@ -183,10 +187,12 @@ export default function SideNav({
             <button
               key={id}
               type="button"
+              style={{ "--nav-idx": idx } as React.CSSProperties}
               className={`qb-nav-item${isSelected ? " is-active" : ""}`}
               onClick={isOverlay ? handleNavigate(clickHandler) : clickHandler}
               title={title}
             >
+              <span className="qb-nav-indicator" aria-hidden="true" />
               <div className="qb-nav-item-lead">
                 <Icon size={17} className="qb-nav-item-icon" />
                 <span className="qb-nav-item-label">{label}</span>
@@ -210,7 +216,7 @@ export default function SideNav({
         <span className="qb-nav-group-title">EXAM SUBJECTS</span>
       </div>
       <div className="qb-nav-subjects-list" role="list">
-        {EXAM_SUBJECTS.map((sub) => {
+        {EXAM_SUBJECTS.map((sub, idx) => {
           const isCurrentTopic = active === "home" && activeTopic === sub.id;
           const count = topicCounts[sub.id] ?? 0;
           const SubIcon = sub.icon;
@@ -219,10 +225,12 @@ export default function SideNav({
             <button
               key={sub.id}
               type="button"
+              style={{ "--nav-idx": idx + 4 } as React.CSSProperties}
               className={`qb-nav-subject-btn${isCurrentTopic ? " is-active" : ""}`}
               onClick={() => handleTopicClick(sub.id)}
               title={`Filter by ${sub.label} (${count} questions)`}
             >
+              <span className="qb-nav-subject-indicator" aria-hidden="true" />
               <div className="qb-nav-subject-left">
                 <SubIcon size={15} style={{ color: sub.color }} className="qb-nav-subject-icon" />
                 <span className="qb-nav-subject-name">{sub.label}</span>
@@ -242,7 +250,10 @@ export default function SideNav({
       <div className="qb-nav-quick-meta">
         <span className="tabular-nums">{totalQuestions} questions</span>
         <span className="qb-nav-meta-dot">·</span>
-        <span className="tabular-nums">⭐ {starredCount} starred</span>
+        <span className="qb-nav-meta-starred tabular-nums">
+          <Star size={12} className="qb-nav-meta-star-icon" fill="currentColor" />
+          <span>{starredCount} starred</span>
+        </span>
       </div>
 
       {/* User Card */}
@@ -328,6 +339,21 @@ export default function SideNav({
             <span>Help</span>
           </button>
         )}
+        {onOpenSettings && (
+          <button
+            type="button"
+            className="qb-nav-utility-btn"
+            onClick={() => {
+              if (isOverlay && onClose) onClose();
+              onOpenSettings();
+            }}
+            title="App Settings, Optimizer & Preferences"
+            aria-label="Settings and Preferences"
+          >
+            <Settings size={15} />
+            <span>Settings</span>
+          </button>
+        )}
       </div>
     </div>
   );
@@ -357,23 +383,12 @@ export default function SideNav({
     );
   }
 
-  // Desktop Sidebar (Expanded or Compact Icon Rail)
-  return (
-    <aside className={`qb-side${open ? " qb-side-expanded" : " qb-side-collapsed"}`}>
-      <div className="qb-side-inner qb-modern-sidebar-inner">
-        {open ? (
-          <>
-            {renderBrandHeader(false)}
-            <div className="qb-modern-sidebar-scroll">
-              {renderWorkspaceNav(false)}
-              {renderSubjectsNav()}
-            </div>
-            {renderFooterSection(false)}
-          </>
-        ) : (
-          /* Sleek Desktop Rail (Icon Mode) */
+  // Desktop Sidebar (Clean Fixed Navigation with Collapsed Rail Support)
+  if (!open) {
+    return (
+      <aside className="qb-side qb-side-collapsed" aria-label="Sidebar collapsed">
+        <div className="qb-side-inner qb-modern-sidebar-inner">
           <div className="qb-rail-wrap">
-            {/* Top Expand Button */}
             {onToggleNav && (
               <button
                 type="button"
@@ -388,60 +403,60 @@ export default function SideNav({
 
             <div className="qb-rail-divider" />
 
-            {/* Core Nav Items */}
-            <nav className="qb-rail-nav" aria-label="Desktop rail navigation">
-              {navItems.map(({ id, label, shortLabel, icon: Icon, badgeText }) => {
+            <div className="qb-rail-nav">
+              {navItems.map(({ id, shortLabel, icon: Icon, title }) => {
                 const isSelected = active === id;
+                const clickHandler = handlers[id];
+
                 return (
                   <button
                     key={id}
                     type="button"
                     className={`qb-rail-btn${isSelected ? " is-active" : ""}`}
-                    onClick={handlers[id]}
-                    title={`${label} ${badgeText ? `(${badgeText})` : ""}`}
-                    aria-label={label}
+                    onClick={clickHandler}
+                    title={title || shortLabel}
+                    aria-label={shortLabel}
                   >
-                    <Icon size={19} className="qb-rail-btn-icon" />
                     {isSelected && <span className="qb-rail-active-bar" />}
+                    <Icon size={17} />
                   </button>
                 );
               })}
-            </nav>
+            </div>
 
             <div className="qb-rail-divider" />
 
-            {/* Quick Topic Subject Icons */}
-            <div className="qb-rail-topics" aria-label="Subject quick jump">
+            <div className="qb-rail-topics">
               {EXAM_SUBJECTS.map((sub) => {
                 const isCurrentTopic = active === "home" && activeTopic === sub.id;
                 const count = topicCounts[sub.id] ?? 0;
                 const SubIcon = sub.icon;
+
                 return (
                   <button
                     key={sub.id}
                     type="button"
                     className={`qb-rail-topic-btn${isCurrentTopic ? " is-active" : ""}`}
                     onClick={() => handleTopicClick(sub.id)}
-                    title={`${sub.label} (${count} questions)`}
+                    title={`${sub.label} (${count} Qs)`}
                     aria-label={sub.label}
                   >
-                    <SubIcon size={16} style={{ color: sub.color }} />
+                    <SubIcon size={15} style={{ color: sub.color }} />
                   </button>
                 );
               })}
             </div>
 
-            {/* Rail Bottom Tools */}
             <div className="qb-rail-bottom">
               {onToggleTheme && (
                 <button
                   type="button"
                   className="qb-rail-tool-btn"
                   onClick={onToggleTheme}
-                  title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-                  aria-label="Toggle theme"
+                  title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                  aria-label="Toggle Theme"
                 >
-                  {isDark ? <Sun size={17} /> : <Moon size={17} />}
+                  {isDark ? <Sun size={15} /> : <Moon size={15} />}
                 </button>
               )}
               {onOpenHelp && (
@@ -449,15 +464,39 @@ export default function SideNav({
                   type="button"
                   className="qb-rail-tool-btn"
                   onClick={onOpenHelp}
-                  title="Reviewer shortcuts & Help"
-                  aria-label="Reviewer shortcuts"
+                  title="Help & Shortcuts"
+                  aria-label="Help"
                 >
-                  <HelpCircle size={17} />
+                  <HelpCircle size={15} />
+                </button>
+              )}
+              {onOpenSettings && (
+                <button
+                  type="button"
+                  className="qb-rail-tool-btn"
+                  onClick={onOpenSettings}
+                  title="Settings & Preferences"
+                  aria-label="Settings"
+                >
+                  <Settings size={15} />
                 </button>
               )}
             </div>
           </div>
-        )}
+        </div>
+      </aside>
+    );
+  }
+
+  return (
+    <aside className="qb-side qb-side-expanded">
+      <div className="qb-side-inner qb-modern-sidebar-inner">
+        {renderBrandHeader(false)}
+        <div className="qb-modern-sidebar-scroll">
+          {renderWorkspaceNav(false)}
+          {renderSubjectsNav()}
+        </div>
+        {renderFooterSection(false)}
       </div>
     </aside>
   );

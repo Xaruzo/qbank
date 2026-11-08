@@ -3,8 +3,8 @@
  * Handles communication with storage.
  * Priority: Supabase (Shared) > window.storage (Environment) > localStorage (Local)
  */
-import { supabase, isNetworkOrFetchError } from '../utils/supabaseClient';
-import { FAVORITES_KEY, MOCK_EXAM_HISTORY_KEY } from '../constants/appConstants';
+import { supabase, isNetworkOrFetchError, isValidUuid, isUuidOrSyntaxError } from '../utils/supabaseClient';
+import { FAVORITES_KEY, MOCK_EXAM_HISTORY_KEY, SYSTEM_AUTH_STORAGE_KEY } from '../constants/appConstants';
 
 const PENDING_UPSERTS_KEY = "cse-qbank-pending-upserts-v1";
 const SYNCED_ONCE_KEY = "cse-qbank-synced-once-v1";
@@ -197,6 +197,7 @@ const serializeMockExamAttempt = (attempt, userId) => ({
 });
 
 const fetchRemoteMockExamHistory = async (userId) => {
+  if (!supabase || !isValidUuid(userId)) return [];
   const { data, error } = await supabase
     .from(MOCK_EXAM_ATTEMPTS_TABLE)
     .select('id, completed_at, score_percent, correct_count, wrong_count, unanswered_count, total_count, time_spent_ms, topic_stats, questions')
@@ -204,7 +205,10 @@ const fetchRemoteMockExamHistory = async (userId) => {
     .order('completed_at', { ascending: false })
     .limit(MOCK_EXAM_HISTORY_LIMIT);
 
-  if (error) throw error;
+  if (error) {
+    if (isUuidOrSyntaxError(error)) return [];
+    throw error;
+  }
   return Array.isArray(data) ? data.map(normalizeMockExamAttempt) : [];
 };
 
@@ -434,15 +438,23 @@ export const storageModel = {
   },
 
   async syncMockExamAttempt(attempt, userId) {
-    if (!supabase || !userId || !attempt?.id) return;
-    const { error } = await supabase
-      .from(MOCK_EXAM_ATTEMPTS_TABLE)
-      .upsert(serializeMockExamAttempt(attempt, userId), { onConflict: 'id' });
-    if (error) throw error;
+    if (!supabase || !isValidUuid(userId) || !attempt?.id) return;
+    try {
+      const { error } = await supabase
+        .from(MOCK_EXAM_ATTEMPTS_TABLE)
+        .upsert(serializeMockExamAttempt(attempt, userId), { onConflict: 'id' });
+      if (error) {
+        if (isUuidOrSyntaxError(error)) return;
+        throw error;
+      }
+    } catch (e) {
+      if (isUuidOrSyntaxError(e)) return;
+      throw e;
+    }
   },
 
   async flushPendingMockExamAttempts(userId) {
-    if (!supabase || !userId) return false;
+    if (!supabase || !isValidUuid(userId)) return false;
     if (typeof navigator !== "undefined" && navigator.onLine === false) return false;
 
     const pending = await this.getPendingMockExamAttempts(userId);
@@ -456,7 +468,9 @@ export const storageModel = {
         await this.syncMockExamAttempt(attempt, userId);
         syncedAny = true;
       } catch (e) {
-        console.error("Failed to sync pending mock exam attempt:", e);
+        if (!isUuidOrSyntaxError(e)) {
+          console.error("Failed to sync pending mock exam attempt:", e);
+        }
         failed.push(attempt);
       }
     }
@@ -469,10 +483,28 @@ export const storageModel = {
     if (!userId) return [];
 
     const key = userId ? `${MOCK_EXAM_HISTORY_KEY}:${userId}` : MOCK_EXAM_HISTORY_KEY;
-    const cachedHistory = await readMockHistoryCache(key);
+    let cachedHistory = await readMockHistoryCache(key);
+
+    // If cache is empty, check legacy email-based cache
+    if ((!cachedHistory || cachedHistory.length === 0) && userId) {
+      try {
+        const legacyRaw = localStorage.getItem(SYSTEM_AUTH_STORAGE_KEY);
+        if (legacyRaw) {
+          const sysUser = JSON.parse(legacyRaw);
+          if (sysUser?.email && sysUser.email !== userId) {
+            const legacyHistory = await readMockHistoryCache(`${MOCK_EXAM_HISTORY_KEY}:${sysUser.email}`);
+            if (legacyHistory && legacyHistory.length > 0) {
+              cachedHistory = legacyHistory;
+              await writeMockHistoryCache(key, cachedHistory);
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
     const pendingHistory = await this.getPendingMockExamAttempts(userId);
 
-    if (supabase) {
+    if (supabase && isValidUuid(userId)) {
       try {
         let remoteHistory = await fetchRemoteMockExamHistory(userId);
         const remoteIds = new Set(remoteHistory.map((attempt) => attempt.id));
@@ -494,7 +526,9 @@ export const storageModel = {
         localStorage.removeItem(MOCK_EXAM_HISTORY_KEY);
         return mergedHistory;
       } catch (e) {
-        console.error("Failed to load mock exam history from Supabase:", e);
+        if (!isUuidOrSyntaxError(e)) {
+          console.error("Failed to load mock exam history from Supabase:", e);
+        }
       }
     }
 

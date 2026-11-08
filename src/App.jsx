@@ -19,6 +19,7 @@ import LoadingSpinner from "./views/components/LoadingSpinner";
 import SkeletonLoader, { MockSkeletonLoader, TipsSkeletonLoader } from "./views/components/SkeletonLoader";
 import HelpModal from "./views/components/HelpModal";
 import AuthModal from "./views/components/AuthModal";
+import SettingsModal from "./views/components/SettingsModal";
 import TutorialGuide from "./views/components/TutorialGuide";
 import LandingPage from "./views/components/LandingPage";
 import SignInPage from "./views/components/SignInPage";
@@ -26,6 +27,7 @@ import CountUp from "./views/components/CountUp";
 import { useAuthController } from "./controllers/useAuthController";
 import { useQuestionsController } from "./controllers/useQuestionsController";
 import { useThemeController } from "./controllers/useThemeController";
+import { useSettingsController } from "./controllers/useSettingsController";
 import { storageModel } from "./models/storageModel";
 import { tipsModel } from "./models/tipsModel";
 import { favoritesModel } from "./models/favoritesModel";
@@ -76,12 +78,20 @@ export default function App() {
     isAuthenticated,
     user,
     profile,
+    updateProfile,
     signInWithGoogle,
     signInWithEmail,
     signOut,
   } = useAuthController();
   
   const { isDark, toggleTheme } = useThemeController();
+  const {
+    settings,
+    updateSettings,
+    toggleLiteMode,
+    toggleAnimations,
+    resetSettings,
+  } = useSettingsController();
   
   const { 
     qs, loading, refreshing, favoritesLoading, search, setSearch, topicFilter, setTopicFilter, labelFilter, setLabelFilter,
@@ -121,6 +131,7 @@ export default function App() {
   const [isCompact, setIsCompact] = useState(() => window.matchMedia ? window.matchMedia("(min-width: 601px) and (max-width: 1099px)").matches : false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [runGuide, setRunGuide] = useState(false);
   const mainRef = useRef(null);
   const qsRef = useRef(qs);
@@ -998,6 +1009,14 @@ export default function App() {
           onSignIn={handleSignIn}
           onSignOut={handleSignOut}
           onOpenHelp={handleOpenHelp}
+          onOpenSettings={() => setShowSettingsModal(true)}
+          onMockExam={handleGoMockExam}
+          onTips={handleGoTips}
+          onNotes={handleGoNotes}
+          settings={settings}
+          onUpdateSettings={updateSettings}
+          onResetSettings={resetSettings}
+          onUpdateProfile={updateProfile}
         />
 
         {/* Unified Overlay Navigation Drawer for Mobile & Tablet/Compact */}
@@ -1017,6 +1036,7 @@ export default function App() {
             isDark={isDark}
             onToggleTheme={toggleTheme}
             onOpenHelp={handleOpenHelp}
+            onOpenSettings={() => setShowSettingsModal(true)}
             isAuthenticated={isAuthenticated}
             profile={profile}
             onSignIn={handleSignIn}
@@ -1027,6 +1047,7 @@ export default function App() {
               handleGoHome();
             }}
             topicCounts={counts}
+            settings={settings}
           />
         )}
 
@@ -1047,6 +1068,7 @@ export default function App() {
               isDark={isDark}
               onToggleTheme={toggleTheme}
               onOpenHelp={handleOpenHelp}
+              onOpenSettings={() => setShowSettingsModal(true)}
               isAuthenticated={isAuthenticated}
               profile={profile}
               onSignIn={handleSignIn}
@@ -1057,6 +1079,7 @@ export default function App() {
                 handleGoHome();
               }}
               topicCounts={counts}
+              settings={settings}
             />
           )}
           <main ref={mainRef} className={`qb-main${view === "mockRun" ? " qb-main-exam" : view === "detail" ? " qb-main-detail" : ""}`}>
@@ -1450,6 +1473,22 @@ export default function App() {
         onSignInWithEmail={signInWithEmail}
         onSignInWithGoogle={signInWithGoogle}
         isDark={isDark}
+      />
+
+      <SettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+        settings={settings}
+        onUpdateSettings={updateSettings}
+        onResetSettings={resetSettings}
+        profile={profile}
+        onUpdateProfile={updateProfile}
+        isDark={isDark}
+        onToggleTheme={toggleTheme}
+        isAuthenticated={isAuthenticated}
+        totalQuestions={qs.length}
+        mockAttemptsCount={mockHistory.length}
+        favoritesCount={favoriteCount}
       />
     </div>
   );

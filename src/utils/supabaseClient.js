@@ -36,3 +36,19 @@ export const isNetworkOrFetchError = (err) => {
     (typeof navigator !== "undefined" && navigator.onLine === false)
   );
 };
+
+export const isValidUuid = (val) => {
+  if (!val || typeof val !== 'string') return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val.trim());
+};
+
+export const isUuidOrSyntaxError = (err) => {
+  if (!err) return false;
+  const code = err.code || "";
+  const msg = (err.message || err.details || (typeof err === "string" ? err : "") || "").toLowerCase();
+  return (
+    code === "22P02" ||
+    msg.includes("invalid input syntax for type uuid") ||
+    msg.includes("22p02")
+  );
+};

@@ -86,9 +86,9 @@ const STICKY_PRESETS = [
 ];
 
 const CALLOUT_PRESETS = [
-  { id: "final", label: "✅ Final Answer Box", defaultText: "∴ Final Answer: ", bg: "#dcfce7", border: "#16a34a", text: "#14532d" },
-  { id: "formula", label: "💡 Formula / Shortcut", defaultText: "💡 Shortcut / Formula:\n", bg: "#fef3c7", border: "#d97706", text: "#78350f" },
-  { id: "trap", label: "⚠️ Common Exam Trap", defaultText: "⚠️ Watch Out:\n", bg: "#fee2e2", border: "#dc2626", text: "#7f1d1d" },
+  { id: "final", label: "Final Answer Box", defaultText: "∴ Final Answer: ", bg: "#dcfce7", border: "#16a34a", text: "#14532d" },
+  { id: "formula", label: "Formula / Shortcut", defaultText: "Shortcut / Formula:\n", bg: "#fef3c7", border: "#d97706", text: "#78350f" },
+  { id: "trap", label: "Common Exam Trap", defaultText: "Watch Out:\n", bg: "#fee2e2", border: "#dc2626", text: "#7f1d1d" },
 ];
 
 const EXTRA_MATH_SYMBOLS = [
@@ -7069,7 +7069,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
                       title="Connected to Shapes. Click to Detach."
                       style={{ color: "#2563eb", background: "rgba(59, 130, 246, 0.12)", border: "1px solid rgba(59, 130, 246, 0.28)" }}
                     >
-                      <span style={{ fontSize: 11, fontWeight: 700 }}>🔗 Linked</span>
+                      <span style={{ fontSize: 11, fontWeight: 700 }}>Linked</span>
                     </button>
                   ) : (
                     <button

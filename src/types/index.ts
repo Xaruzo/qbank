@@ -86,11 +86,25 @@ export interface MockExamAttempt {
   questions?: any[];
 }
 
+export interface AppSettings {
+  liteMode: boolean;
+  animationsEnabled: boolean;
+  examTarget: "professional" | "subprofessional";
+  targetExamDate?: string;
+  dailyStudyGoal: number;
+  soundEffects: boolean;
+  hapticFeedback: boolean;
+}
+
 export interface UserProfile {
   fullName: string;
   email: string;
   avatarUrl?: string | null;
   initials: string;
+  avatarColor?: string;
+  examTarget?: "professional" | "subprofessional";
+  targetExamDate?: string;
+  dailyStudyGoal?: number;
 }
 
 export interface HeaderProps {
@@ -110,6 +124,12 @@ export interface HeaderProps {
   onSignInWithGoogle?: () => Promise<{ error: any }>;
   onSignOut?: () => Promise<void> | void;
   onOpenHelp?: () => void;
+  onOpenSettings?: () => void;
+  onMockExam?: () => void;
+  onTips?: () => void;
+  onNotes?: () => void;
+  settings?: AppSettings;
+  onUpdateSettings?: (partial: Partial<AppSettings>) => void;
 }
 
 export interface SideNavProps {
@@ -127,6 +147,7 @@ export interface SideNavProps {
   isDark?: boolean;
   onToggleTheme?: () => void;
   onOpenHelp?: () => void;
+  onOpenSettings?: () => void;
   isAuthenticated?: boolean;
   profile?: UserProfile | null;
   onSignIn?: () => void;
@@ -136,6 +157,7 @@ export interface SideNavProps {
   activeTopic?: string;
   onSelectTopic?: (topicId: TopicId | "all") => void;
   topicCounts?: Record<string, number>;
+  settings?: AppSettings;
 }
 
 export interface StatsProps {

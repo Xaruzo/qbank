@@ -170,8 +170,24 @@ export const notesModel = {
 
     if (!raw && userId) {
       try {
-        raw = await storageModel.getLocal(NOTES_KEY);
+        const legacyAuth = localStorage.getItem("cse-qbank-system-user-auth");
+        if (legacyAuth) {
+          const sysUser = JSON.parse(legacyAuth);
+          if (sysUser?.email && sysUser.email !== userId) {
+            const emailRaw = await storageModel.getLocal(getNotesKey(sysUser.email));
+            if (emailRaw) {
+              raw = emailRaw;
+              await storageModel.setLocal(key, emailRaw);
+            }
+          }
+        }
       } catch (_) {}
+
+      if (!raw) {
+        try {
+          raw = await storageModel.getLocal(NOTES_KEY);
+        } catch (_) {}
+      }
     }
 
     if (!raw) {

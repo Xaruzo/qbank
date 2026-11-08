@@ -62,7 +62,7 @@ const writeValue = async (key, value) => {
       return;
     } catch {}
   }
-  try { localStorage.setItem(key, value); } catch (_) {}
+  try { localStorage.setItem(key, value); } catch {}
 };
 
 const getFavoritesCacheKey = (userId) => (userId ? `${FAVORITES_CACHE_KEY}:${userId}` : FAVORITES_KEY);

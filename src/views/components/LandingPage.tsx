@@ -518,7 +518,10 @@ export default function LandingPage({
                   <div className="qb-scratchpad-paper">
                     <div className="qb-scratchpad-header">
                       <span>EXAMINEE SCRATCH WORK · NO CALCULATORS ALLOWED</span>
-                      <span className="qb-scratchpad-pencil">✏️ Yellow HB / No. 2</span>
+                      <span className="qb-scratchpad-pencil">
+                        <Edit3 size={12} className="qb-scratchpad-pencil-icon" style={{ display: "inline-block", verticalAlign: "-1px", marginRight: 4 }} />
+                        Yellow HB / No. 2
+                      </span>
                     </div>
                     <pre className="qb-scratchpad-handwriting">{currentPreview.scratchpadNote}</pre>
                   </div>
