@@ -48,3 +48,6 @@ TIPS_ENHANCEMENT_SQL.txt
 
 # Database CSV exports
 qbank database/
+
+# AI Studio local files
+.aistudio/
