@@ -36,6 +36,23 @@ const isQuestionDeleted = (questionLike) => !!(
   || questionLike?.deleted_at
 );
 
+// Drawings dominate the payload size (~13 MB of ~14 MB), so the bulk question
+// list never carries them. They are fetched per-question on demand and are
+// stripped from the local cache to keep localStorage well under quota.
+const stripQuestionSolutionDraws = (value) => {
+  try {
+    const parsed = JSON.parse(value);
+    if (!Array.isArray(parsed)) return value;
+    return JSON.stringify(parsed.map((q) => {
+      if (!q || typeof q !== "object" || !("solutionDraw" in q)) return q;
+      const { solutionDraw, ...rest } = q;
+      return rest;
+    }));
+  } catch {
+    return value;
+  }
+};
+
 const normalizePendingQuestionOperation = (entry, fallbackId = null) => {
   if (!entry) return null;
 
@@ -231,7 +248,7 @@ const fetchFreshQuestionsValue = async (storageApi) => {
   try {
     const res = await supabase
       .from('questions')
-      .select('*')
+      .select('id, topic, label, question, choices, correct, solution, created_at, updated_at, deleted_at')
       .order('created_at', { ascending: true });
     data = res.data;
     error = res.error;
@@ -255,7 +272,6 @@ const fetchFreshQuestionsValue = async (storageApi) => {
   const mappedData = data.map(q => ({
     ...q,
     label: typeof q.label === "string" ? q.label : "",
-    solutionDraw: q.solution_draw,
     dateAdded: q.created_at,
     updatedAt: q.updated_at || q.deleted_at || q.created_at,
     deletedAt: q.deleted_at || null,
@@ -798,6 +814,23 @@ export const storageModel = {
   },
 
   /**
+   * Fetches only the drawing for a question. Returns undefined when the row
+   * does not exist, null when it has no drawing.
+   */
+  async getQuestionSolutionDraw(id) {
+    if (!supabase || !id) return undefined;
+    const { data, error } = await supabase
+      .from('questions')
+      .select('solution_draw')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data) return undefined;
+    return data.solution_draw ?? null;
+  },
+
+  /**
    * Syncs a specific question to Supabase
    */
   async syncQuestion(q) {
@@ -827,21 +860,24 @@ export const storageModel = {
         return { status: "stale_remote" };
       }
 
+      const payload = {
+        id: q.id,
+        topic: q.topic,
+        label: typeof q.label === "string" ? q.label : "",
+        question: q.question,
+        choices: q.choices,
+        correct: q.correct,
+        solution: q.solution,
+        created_at: q.dateAdded,
+        updated_at: updatedAt,
+        deleted_at: null,
+      };
+      // Keep the existing drawing when the caller never loaded it.
+      if (q.solutionDraw !== undefined) payload.solution_draw = q.solutionDraw;
+
       const { error } = await supabase
         .from('questions')
-        .upsert({
-          id: q.id,
-          topic: q.topic,
-          label: typeof q.label === "string" ? q.label : "",
-          question: q.question,
-          choices: q.choices,
-          correct: q.correct,
-          solution: q.solution,
-          solution_draw: q.solutionDraw, // Correct column name
-          created_at: q.dateAdded,
-          updated_at: updatedAt,
-          deleted_at: null,
-        }, { onConflict: 'id' });
+        .upsert(payload, { onConflict: 'id' });
       
       if (error) throw error;
       await this.markSyncedOnce(q.id);
@@ -875,15 +911,16 @@ export const storageModel = {
   async set(key, value) {
     // We handle remote sync individually via syncQuestion now to be more robust,
     // but we still save locally as a backup.
+    const safeValue = key === "cse-qbank-v1" ? stripQuestionSolutionDraws(value) : value;
     if (window.storage && typeof window.storage.set === 'function') {
       try {
-        await window.storage.set(key, value);
+        await window.storage.set(key, safeValue);
         return;
       } catch (e) {
         console.warn(`window.storage.set failed for key ${key}:`, e);
       }
     }
-    try { localStorage.setItem(key, value); } catch (_) {}
+    try { localStorage.setItem(key, safeValue); } catch (_) {}
   },
 
   async delete(id) {

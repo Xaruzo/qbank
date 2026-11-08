@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useDeferredValue } from "react";
+import { useState, useEffect, useRef, useMemo, useDeferredValue, useCallback } from "react";
 import { KEY, SAMPLES, TOPICS } from "../constants/appConstants";
 import { storageModel } from "../models/storageModel";
 import { favoritesModel } from "../models/favoritesModel";
@@ -78,6 +78,9 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
   const [favoriteOnly, setFavoriteOnly] = useState(false);
   const [sortBy, setSortBy] = useState("favorites");
   const initRequestRef = useRef(0);
+  const qsRef = useRef([]);
+  const solutionDrawCacheRef = useRef(new Map());
+  const solutionDrawRequestsRef = useRef(new Map());
 
   const normalizeQuestion = (q, favoriteIds = new Set()) => ({
     ...q,
@@ -104,6 +107,10 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
   const persistQuestionsCache = (next) => {
     storageModel.set(KEY, JSON.stringify(next)).catch(() => {});
   };
+
+  useEffect(() => {
+    qsRef.current = qs;
+  }, [qs]);
 
   useEffect(() => {
     if (isAuthLoading) return;
@@ -143,6 +150,16 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
     };
   }, []);
 
+  const applyCachedDrawings = (list) => {
+    let changed = false;
+    const next = list.map((q) => {
+      if (q.solutionDraw !== undefined || !solutionDrawCacheRef.current.has(q.id)) return q;
+      changed = true;
+      return { ...q, solutionDraw: solutionDrawCacheRef.current.get(q.id) };
+    });
+    return changed ? next : list;
+  };
+
   async function init() {
     const requestId = initRequestRef.current + 1;
     initRequestRef.current = requestId;
@@ -159,7 +176,7 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
       const cachedFavoriteSet = new Set(cachedFavoriteIds);
 
       if (cachedQuestionsValue !== null) {
-        const normalized = parseQuestionsValue(cachedQuestionsValue, cachedFavoriteSet);
+        const normalized = applyCachedDrawings(parseQuestionsValue(cachedQuestionsValue, cachedFavoriteSet));
         setQs(normalized);
         setLoading(false);
         renderedInitialState = true;
@@ -215,7 +232,7 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
         const favoriteIds = new Set(Array.isArray(freshFavoriteIds) ? freshFavoriteIds : []);
 
         if (freshQuestionsValue !== null) {
-          const normalized = parseQuestionsValue(freshQuestionsValue, favoriteIds);
+          const normalized = applyCachedDrawings(parseQuestionsValue(freshQuestionsValue, favoriteIds));
           setQs(normalized);
           setLoading(false);
           persistQuestionsCache(normalized);
@@ -283,6 +300,50 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
     }
   }
 
+  const ensureSolutionDraw = useCallback(async (id) => {
+    if (!id) return null;
+
+    const cached = solutionDrawCacheRef.current.get(id);
+    if (cached !== undefined) {
+      setQs((current) => {
+        if (current.every((q) => q.id !== id || q.solutionDraw !== undefined)) return current;
+        return current.map((q) => (q.id === id ? { ...q, solutionDraw: cached } : q));
+      });
+      return cached;
+    }
+
+    const existing = qsRef.current.find((q) => q.id === id);
+    if (existing && existing.solutionDraw !== undefined) {
+      solutionDrawCacheRef.current.set(id, existing.solutionDraw);
+      return existing.solutionDraw;
+    }
+
+    if (solutionDrawRequestsRef.current.has(id)) {
+      return solutionDrawRequestsRef.current.get(id);
+    }
+
+    const request = storageModel.getQuestionSolutionDraw(id)
+      .then((draw) => {
+        if (draw !== undefined) {
+          solutionDrawCacheRef.current.set(id, draw);
+          setQs((current) => current.map((q) => (q.id === id ? { ...q, solutionDraw: draw } : q)));
+        }
+        return draw;
+      })
+      .catch((error) => {
+        if (!isNetworkOrFetchError(error)) {
+          console.warn("Failed to load question drawing:", error);
+        }
+        return undefined;
+      })
+      .finally(() => {
+        solutionDrawRequestsRef.current.delete(id);
+      });
+
+    solutionDrawRequestsRef.current.set(id, request);
+    return request;
+  }, []);
+
   const saveQuestion = async (form, editId) => {
     const previous = editId ? qs.find(x => x.id === editId) : null;
     const q = {
@@ -292,6 +353,7 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
       updatedAt: new Date().toISOString(),
       favorite: previous?.favorite || false,
     };
+    if (q.solutionDraw !== undefined) solutionDrawCacheRef.current.set(q.id, q.solutionDraw);
     const nextQs = editId ? qs.map(x => x.id === editId ? q : x) : [...qs, q];
     
     // First, sync to remote database if available
@@ -313,6 +375,8 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
 
   const deleteQuestion = async (id) => {
     await storageModel.delete(id);
+    solutionDrawCacheRef.current.delete(id);
+    solutionDrawRequestsRef.current.delete(id);
     const nextQs = qs.filter(q => q.id !== id);
     await persist(nextQs);
   };
@@ -401,6 +465,7 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
     setSortBy,
     saveQuestion,
     deleteQuestion,
+    ensureSolutionDraw,
     toggleFavorite,
     counts,
     labelOptions,

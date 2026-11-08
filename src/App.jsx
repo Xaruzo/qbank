@@ -96,7 +96,7 @@ export default function App() {
   const { 
     qs, loading, refreshing, favoritesLoading, search, setSearch, topicFilter, setTopicFilter, labelFilter, setLabelFilter,
     favoriteOnly, setFavoriteOnly,
-    sortBy, setSortBy, saveQuestion, deleteQuestion, toggleFavorite, counts, labelOptions, filteredQuestions 
+    sortBy, setSortBy, saveQuestion, deleteQuestion, ensureSolutionDraw, toggleFavorite, counts, labelOptions, filteredQuestions 
   } = useQuestionsController(user?.id, isAuthLoading);
 
   const [view, setView] = useState(() => {
@@ -219,6 +219,14 @@ export default function App() {
   useEffect(() => {
     qsRef.current = qs;
   }, [qs]);
+
+  useEffect(() => {
+    if (view === "detail" && selectedId) {
+      void ensureSolutionDraw(selectedId);
+    } else if (view === "add" && editId) {
+      void ensureSolutionDraw(editId);
+    }
+  }, [view, selectedId, editId, ensureSolutionDraw]);
 
   useEffect(() => {
     examRef.current = exam;

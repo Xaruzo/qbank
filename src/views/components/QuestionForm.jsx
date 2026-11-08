@@ -47,6 +47,25 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
   const [activeChoice, setActiveChoice] = useState(null);
   const [useCustomLabel, setUseCustomLabel] = useState(!initialData?.label || !PROBLEM_LABELS.includes(initialData.label));
 
+  // The drawing is fetched after the question list loads, so the edit form can
+  // mount before it arrives. Adopt it unless the user already touched visuals.
+  useEffect(() => {
+    if (!initialData?.id || initialData.solutionDraw === undefined) return;
+    const draw = initialData.solutionDraw;
+    const isDataUrl = typeof draw === "string" && draw.startsWith("data:image");
+    setForm((current) => {
+      if (current.id !== initialData.id || current.solutionDraw !== undefined) return current;
+      return {
+        ...current,
+        solutionDraw: draw,
+        solutionUpload: isDataUrl ? draw : initialData.solutionUpload || null,
+      };
+    });
+    setVisualMode((current) => current ?? (
+      initialData.solutionUpload || isDataUrl ? "upload" : draw ? "draw" : null
+    ));
+  }, [initialData?.id, initialData?.solutionDraw, initialData?.solutionUpload]);
+
   const topicLabel = useMemo(() => TOPICS.find(t => t.id === form.topic)?.label || "Topic", [form.topic]);
 
   const undoStacks = useRef({ question: [], solution: [], choices: [[], [], [], [], []] });
