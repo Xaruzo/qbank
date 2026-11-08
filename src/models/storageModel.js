@@ -757,6 +757,18 @@ export const storageModel = {
     return readLocalValue(key);
   },
 
+  async setLocal(key, value) {
+    if (window.storage && typeof window.storage.set === 'function') {
+      try {
+        await window.storage.set(key, value);
+        return;
+      } catch (e) {
+        console.warn(`window.storage.set failed for key ${key}:`, e);
+      }
+    }
+    try { localStorage.setItem(key, value); } catch (_) {}
+  },
+
   async getFreshQuestions() {
     if (!supabase) return this.getLocal("cse-qbank-v1");
     try {

@@ -21,17 +21,31 @@ import {
   Italic,
   Underline,
   Columns,
+  X,
 } from "lucide-react";
 import { notesModel } from "../../models/notesModel";
 import { NOTE_TOPICS } from "../../constants/appConstants";
 import type { StudyNote, TopicId } from "../../types";
 import MarkdownText from "./MarkdownText";
+import CustomSelect from "./CustomSelect";
 
 interface NoteColorOption {
   id: "default" | "amber" | "purple" | "blue" | "emerald" | "rose";
   label: string;
   hex: string;
 }
+
+const SORT_OPTIONS = [
+  { value: "newest", label: "Recently Updated" },
+  { value: "oldest", label: "Oldest First" },
+  { value: "title-az", label: "Title (A - Z)" },
+  { value: "title-za", label: "Title (Z - A)" },
+];
+
+const TOPIC_SELECT_OPTIONS = NOTE_TOPICS.filter((t) => t.id !== "all").map((topic) => ({
+  value: topic.id,
+  label: topic.label,
+}));
 
 const NOTE_COLORS: NoteColorOption[] = [
   { id: "default", label: "Classic Slate", hex: "#64748b" },
@@ -398,53 +412,64 @@ export default function NotesPage({ userId, onBack, initialNoteId = null }: Note
               })}
             </div>
 
-            {/* Sub-Filters: Pinned toggle & Sort */}
+            {/* Sub-Filters: Pinned toggle & Modern Custom Dropdown */}
             <div className="qb-notes-subfilters">
               <button
                 type="button"
                 className={`qb-notes-filter-toggle${pinnedOnly ? " is-active" : ""}`}
                 onClick={() => setPinnedOnly(!pinnedOnly)}
+                title={pinnedOnly ? "Show all notes" : "Filter by pinned notes only"}
               >
                 <Pin size={13} />
                 <span>Pinned ({notes.filter((n) => n.pinned).length})</span>
               </button>
 
               <div className="qb-notes-sort-select-wrap">
-                <select
-                  className="qb-notes-sort-select"
+                <CustomSelect
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as any)}
-                  aria-label="Sort notes"
-                >
-                  <option value="newest">Recently Updated</option>
-                  <option value="oldest">Oldest First</option>
-                  <option value="title-az">Title (A - Z)</option>
-                  <option value="title-za">Title (Z - A)</option>
-                </select>
+                  onChange={(val) => setSortBy(val as any)}
+                  options={SORT_OPTIONS}
+                  className="qb-notes-sort-dropdown"
+                />
               </div>
             </div>
 
-            {/* Tag Pills (Wrapping, never cut off!) */}
+            {/* Tag Filter Section: non-cramped, smooth horizontal scroll, zero tag-pushing */}
             {allTags.length > 0 && (
-              <div className="qb-notes-tag-filter-row" aria-label="Filter by tag">
-                <span className="qb-notes-tag-label">Tags:</span>
-                <button
-                  type="button"
-                  className={`qb-notes-tag-pill${activeTag === "all" ? " is-active" : ""}`}
-                  onClick={() => setActiveTag("all")}
-                >
-                  All
-                </button>
-                {allTags.map((tag) => (
+              <div className="qb-notes-tags-section">
+                <div className="qb-notes-tags-header">
+                  <span>Filter by Tag</span>
+                  {activeTag !== "all" && (
+                    <button
+                      type="button"
+                      className="qb-notes-tag-clear"
+                      onClick={() => setActiveTag("all")}
+                      title="Clear active tag filter"
+                    >
+                      <X size={12} />
+                      <span>Clear: #{activeTag}</span>
+                    </button>
+                  )}
+                </div>
+                <div className="qb-notes-tag-filter-row" aria-label="Filter notes by tag">
                   <button
-                    key={tag}
                     type="button"
-                    className={`qb-notes-tag-pill${activeTag === tag ? " is-active" : ""}`}
-                    onClick={() => setActiveTag(activeTag === tag ? "all" : tag)}
+                    className={`qb-notes-tag-pill${activeTag === "all" ? " is-active" : ""}`}
+                    onClick={() => setActiveTag("all")}
                   >
-                    #{tag}
+                    All Tags
                   </button>
-                ))}
+                  {allTags.map((tag) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      className={`qb-notes-tag-pill${activeTag === tag ? " is-active" : ""}`}
+                      onClick={() => setActiveTag(activeTag === tag ? "all" : tag)}
+                    >
+                      #{tag}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -573,18 +598,12 @@ export default function NotesPage({ userId, onBack, initialNoteId = null }: Note
                   </button>
 
                   <div className="qb-note-topic-select-wrap">
-                    <select
-                      className="qb-note-topic-select"
+                    <CustomSelect
                       value={editTopic}
-                      onChange={(e) => setEditTopic(e.target.value as TopicId)}
-                      aria-label="Select topic"
-                    >
-                      {NOTE_TOPICS.filter((t) => t.id !== "all").map((topic) => (
-                        <option key={topic.id} value={topic.id}>
-                          {topic.label}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(val) => setEditTopic(val as TopicId)}
+                      options={TOPIC_SELECT_OPTIONS}
+                      className="qb-note-topic-dropdown"
+                    />
                   </div>
 
                   {/* Accent Color Picker */}

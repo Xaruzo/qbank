@@ -179,7 +179,7 @@ export default function TutorialGuide({ run, onFinish, isDark }) {
             color: isDark ? '#ffffff' : '#000000',
             lineHeight: '1.2',
             marginBottom: '12px',
-            fontFamily: "'Syne', sans-serif"
+            fontFamily: "'Plus Jakarta Sans', sans-serif"
           }}>
             {currentStepData.title}
           </h2>

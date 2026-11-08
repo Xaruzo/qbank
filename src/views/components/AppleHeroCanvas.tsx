@@ -118,9 +118,13 @@ export default function AppleHeroCanvas({
     const handleResize = () => {
       const rect = canvas.getBoundingClientRect();
       const dpr = Math.min(window.devicePixelRatio || 1, 1.75);
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      drawFrame(frameIndexRef.current);
+      const newW = Math.round(rect.width * dpr);
+      const newH = Math.round(rect.height * dpr);
+      if (newW > 0 && newH > 0 && (canvas.width !== newW || canvas.height !== newH)) {
+        canvas.width = newW;
+        canvas.height = newH;
+        drawFrame(frameIndexRef.current);
+      }
     };
 
     handleResize();

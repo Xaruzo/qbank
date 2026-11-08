@@ -380,7 +380,9 @@ export default function LandingPage({
                 <span aria-hidden="true" className="qb-desk-sep">·</span>
                 <span className="qb-desk-booklet">TEST BOOKLET NO: 2026-CSE</span>
                 <span aria-hidden="true" className="qb-desk-sep">·</span>
-                <span className="qb-desk-category">{currentPreview.label}</span>
+                <span className="qb-desk-category" title={currentPreview.label}>
+                  {currentPreview.label}
+                </span>
               </div>
 
               {/* Live Ticking Pacing Gauge */}
