@@ -23,7 +23,17 @@ export function useThemeController() {
 
   useLayoutEffect(() => {
     const root = document.documentElement;
+    const body = document.body;
+    const isLight = theme === "light";
+
     root.classList.add("qb-theme-switching");
+    root.classList.toggle("light", isLight);
+    root.setAttribute("data-theme", theme);
+    if (body) {
+      body.classList.toggle("light", isLight);
+      body.setAttribute("data-theme", theme);
+    }
+
     // Force synchronous style/layout flush while transitions are disabled
     void root.offsetHeight;
 

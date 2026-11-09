@@ -5,6 +5,7 @@ interface AppleHeroCanvasProps {
   frameCount?: number;
   scrollTargetRef?: React.RefObject<HTMLElement | null>;
   isDark?: boolean;
+  disableScrollScrubbing?: boolean;
 }
 
 const TOTAL_FRAMES = 30;
@@ -50,6 +51,7 @@ export default function AppleHeroCanvas({
   frameCount = TOTAL_FRAMES,
   scrollTargetRef,
   isDark = true,
+  disableScrollScrubbing = false,
 }: AppleHeroCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const imagesRef = useRef<HTMLImageElement[]>([]);
@@ -319,6 +321,11 @@ export default function AppleHeroCanvas({
     };
 
     const handleScroll = () => {
+      if (disableScrollScrubbing) {
+        targetFrameRef.current = 0;
+        scrollRatioRef.current = 0;
+        return;
+      }
       const progress = getScrollProgress();
       scrollRatioRef.current = progress;
 
@@ -331,15 +338,18 @@ export default function AppleHeroCanvas({
       targetFrameRef.current = normalizedCycle * (frameCount - 1);
     };
 
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    if (scrollTargetRef?.current) {
-      scrollTargetRef.current.addEventListener("scroll", handleScroll, {
-        passive: true,
-      });
-    }
-    const rootEl = document.querySelector(".qb-landing-root");
-    if (rootEl) {
-      rootEl.addEventListener("scroll", handleScroll, { passive: true });
+    const rootEl = typeof document !== "undefined" ? document.querySelector(".qb-landing-root") : null;
+
+    if (!disableScrollScrubbing) {
+      window.addEventListener("scroll", handleScroll, { passive: true });
+      if (scrollTargetRef?.current) {
+        scrollTargetRef.current.addEventListener("scroll", handleScroll, {
+          passive: true,
+        });
+      }
+      if (rootEl) {
+        rootEl.addEventListener("scroll", handleScroll, { passive: true });
+      }
     }
 
     handleScroll();
@@ -351,7 +361,7 @@ export default function AppleHeroCanvas({
 
       if (!prefersReducedMotion) {
         // Continuous ambient breathing drift (moves ±1.2 frames even when user stops scrolling)
-        const idleBreathing = Math.sin(timestamp * 0.0009) * 1.5;
+        const idleBreathing = disableScrollScrubbing ? 0 : Math.sin(timestamp * 0.0009) * 1.5;
         const effectiveTarget = Math.max(
           0,
           Math.min(frameCount - 1, targetFrameRef.current + idleBreathing)
@@ -383,7 +393,7 @@ export default function AppleHeroCanvas({
         rootEl.removeEventListener("scroll", handleScroll);
       }
     };
-  }, [frameCount, isDark, scrollTargetRef]);
+  }, [frameCount, isDark, scrollTargetRef, disableScrollScrubbing]);
 
   return (
     <div

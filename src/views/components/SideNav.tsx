@@ -413,7 +413,7 @@ export default function SideNav({
 
     return (
       <div
-        className="qb-profile-popover"
+        className={`qb-profile-popover${!isDark ? " light" : ""}`}
         role="dialog"
         aria-label="Profile and quick preferences"
         onClick={(e) => e.stopPropagation()}
@@ -714,7 +714,7 @@ export default function SideNav({
                 {profileMenuOpen && railCoords && createPortal(
                   <div
                     ref={railPopoverRef}
-                    className="qb-rail-portal-popover-wrap"
+                    className={`qb-rail-portal-popover-wrap${!isDark ? " light" : ""}`}
                     style={{
                       position: "fixed",
                       top: `${railCoords.top}px`,

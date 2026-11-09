@@ -146,8 +146,8 @@ export default function SignInPage({
 
   return (
     <div className={`qb-signin-root${isDark ? "" : " light"}`}>
-      {/* Living Apple-Style Frame-by-Frame Canvas Background */}
-      <AppleHeroCanvas isDark={isDark} />
+      {/* Living Apple-Style Frame-by-Frame Canvas Background (Stable frame, zero shifting on form toggle) */}
+      <AppleHeroCanvas isDark={isDark} disableScrollScrubbing />
       <div className="qb-signin-scrim" aria-hidden="true" />
 
       {/* Top Bar */}
