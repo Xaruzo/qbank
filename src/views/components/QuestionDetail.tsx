@@ -61,7 +61,7 @@ export default function QuestionDetail({
       if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
         if ((e.key === 'ArrowLeft' && hasPrev) || (e.key === 'ArrowRight' && hasNext)) {
           e.preventDefault();
-          document.activeElement?.blur();
+          (document.activeElement as HTMLElement | null)?.blur();
           if (e.key === 'ArrowLeft') prevRef.current();
           else nextRef.current();
         }

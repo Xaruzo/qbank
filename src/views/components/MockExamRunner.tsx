@@ -140,7 +140,7 @@ export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit, onBac
       if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
         if ((e.key === 'ArrowLeft' && exam.currentIndex > 0) || (e.key === 'ArrowRight' && exam.currentIndex < exam.orderIds.length - 1)) {
           e.preventDefault();
-          document.activeElement?.blur();
+          (document.activeElement as HTMLElement | null)?.blur();
           if (e.key === 'ArrowLeft') goPrevRef.current();
           else goNextRef.current();
         }

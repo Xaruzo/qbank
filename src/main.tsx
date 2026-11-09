@@ -1,7 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import App from './App.jsx'
-import ErrorBoundary from './views/components/ErrorBoundary.jsx'
+import App from './App'
+import ErrorBoundary from './views/components/ErrorBoundary'
 import './styles/App.css'
 
 if (import.meta.env.PROD && "serviceWorker" in navigator) {

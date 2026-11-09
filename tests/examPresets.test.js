@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { EXAM_PRESETS, TOPICS } from "../src/constants/appConstants.js";
-import { buildMockExamAttempt } from "../src/utils/mockExamAnalytics.js";
+import { EXAM_PRESETS, TOPICS } from "../src/constants/appConstants";
+import { buildMockExamAttempt } from "../src/utils/mockExamAnalytics";
 
 describe("Civil Service Exam Presets Configuration", () => {
   it("defines accurate professional level specifications (170 items, 3h 10m)", () => {

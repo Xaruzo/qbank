@@ -286,16 +286,16 @@ const fetchFreshQuestionsValue = async (storageApi) => {
   }
 
   const pendingMap = await storageApi.getPendingUpsertsMap();
-  const pendingOperations = Object.fromEntries(
+  const pendingOperations: Record<string, any> = Object.fromEntries(
     Object.entries(pendingMap || {})
       .map(([id, entry]) => [id, normalizePendingQuestionOperation(entry, id)])
       .filter(([, entry]) => !!entry)
   );
-  const syncedOnceIds = new Set(await storageApi.getSyncedOnceIds());
+  const syncedOnceIds = new Set<string>(await storageApi.getSyncedOnceIds());
 
-  const merged = new Map();
-  const remoteIds = new Set();
-  const remoteRecords = new Map(mappedData.map(q => [q.id, q]));
+  const merged = new Map<string, any>();
+  const remoteIds = new Set<string>();
+  const remoteRecords = new Map<string, any>(mappedData.map((q: any) => [q.id, q]));
   const remoteAllIds = new Set(remoteRecords.keys());
   const remoteDeleted = new Set(
     mappedData
@@ -860,7 +860,7 @@ export const storageModel = {
         return { status: "stale_remote" };
       }
 
-      const payload = {
+      const payload: Record<string, any> = {
         id: q.id,
         topic: q.topic,
         label: typeof q.label === "string" ? q.label : "",

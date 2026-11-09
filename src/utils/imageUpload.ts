@@ -7,13 +7,13 @@ import { supabase } from "./supabaseClient";
  * @param {number} quality - JPEG quality 0-1 (default 0.8)
  * @returns {Promise<Blob>} Compressed image blob
  */
-export async function compressImage(file, maxWidth = 1200, quality = 0.8) {
-  return new Promise((resolve, reject) => {
+export async function compressImage(file: File, maxWidth = 1200, quality = 0.8) {
+  return new Promise<Blob>((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
-    reader.onload = (e) => {
+    reader.onload = () => {
       const img = new Image();
-      img.src = e.target.result;
+      img.src = reader.result as string;
       img.onload = () => {
         const canvas = document.createElement("canvas");
         let { width, height } = img;

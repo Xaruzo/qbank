@@ -19,6 +19,7 @@ import {
   Settings,
   PanelLeftClose,
   PanelLeftOpen,
+  type LucideIcon,
 } from "lucide-react";
 import brandLogo from "../../models/Image/logo.png";
 import type { SideNavProps, TopicId } from "../../types";
@@ -30,7 +31,7 @@ interface NavItemDef {
   badgeText?: string | null;
   badgeType?: "accent" | "neutral";
   title: string;
-  icon: React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>;
+  icon: LucideIcon;
 }
 
 const EXAM_SUBJECTS = [

@@ -152,7 +152,7 @@ export interface SideNavProps {
   onSignInWithEmail?: (email: string, password?: string) => Promise<{ error: any; mode?: string; message?: string }>;
   onSignOut?: () => Promise<void> | void;
   onToggleNav?: () => void;
-  activeTopic?: string;
+  activeTopic?: TopicId | "all";
   onSelectTopic?: (topicId: TopicId | "all") => void;
   topicCounts?: Record<string, number>;
   settings?: AppSettings;
@@ -196,6 +196,8 @@ export interface QuestionListProps {
   sortBy: string;
   onSortChange: (sortVal: string) => void;
   canManageQuestions?: boolean;
+  authAvailable?: boolean;
+  isAuthenticated?: boolean;
   onAddQuestion?: () => void;
   onNavigateToTips?: () => void;
   resetKey?: any;

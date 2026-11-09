@@ -207,7 +207,7 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
       try {
         const freshQuestionsValue = !shouldFetchFreshQuestions
           ? null
-          : await storageModel.getFreshQuestions(true).catch((error) => {
+          : await storageModel.getFreshQuestions().catch((error) => {
               if (isNetworkOrFetchError(error)) {
                 console.warn("Could not refresh questions (offline or network unreachable), keeping local state:", error?.message || error);
               } else {

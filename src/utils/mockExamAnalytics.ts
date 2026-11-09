@@ -1,13 +1,13 @@
 import { TOPICS } from "../constants/appConstants";
 
-const topicMetaMap = new Map(TOPICS.map((topic) => [topic.id, topic]));
+const topicMetaMap = new Map<string, any>(TOPICS.map((topic) => [topic.id, topic]));
 
-const toPercent = (value, total) => {
+const toPercent = (value: number, total: number) => {
   if (!total) return 0;
   return Math.round((value / total) * 100);
 };
 
-const createTopicBucket = (topicId) => {
+const createTopicBucket = (topicId: string) => {
   const topic = topicMetaMap.get(topicId) || {
     id: topicId || "other",
     label: "Other",
@@ -27,14 +27,14 @@ const createTopicBucket = (topicId) => {
   };
 };
 
-export const formatExamDuration = (ms) => {
+export const formatExamDuration = (ms: number) => {
   const totalSec = Math.max(0, Math.floor(ms / 1000));
   const h = Math.floor(totalSec / 3600);
   const m = Math.floor((totalSec % 3600) / 60);
   return `${h}h ${m}m`;
 };
 
-export const formatAttemptDate = (value) => {
+export const formatAttemptDate = (value: any) => {
   if (!value) return "Unknown date";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Unknown date";
@@ -47,7 +47,7 @@ export const formatAttemptDate = (value) => {
   });
 };
 
-export const buildQuestionLookup = (qMap, questionSnapshots = {}) => {
+export const buildQuestionLookup = (qMap: Map<string, any>, questionSnapshots: Record<string, any> = {}) => {
   const merged = new Map(qMap);
   Object.entries(questionSnapshots || {}).forEach(([id, question]) => {
     if (!merged.has(id) && question) merged.set(id, question);
@@ -55,7 +55,7 @@ export const buildQuestionLookup = (qMap, questionSnapshots = {}) => {
   return merged;
 };
 
-export const calculateExamMetrics = (exam, qMap, now = Date.now()) => {
+export const calculateExamMetrics = (exam: any, qMap: Map<string, any>, now = Date.now()) => {
   const questionLookup = buildQuestionLookup(qMap, exam?.questionSnapshots);
   const totalCount = Number.isFinite(exam?.totalCount) ? exam.totalCount : exam?.orderIds?.length || 0;
   const reviewMap = exam?.review || {};
@@ -70,7 +70,7 @@ export const calculateExamMetrics = (exam, qMap, now = Date.now()) => {
   let correctCount = 0;
   let wrongCount = 0;
 
-  const topicBuckets = new Map();
+  const topicBuckets = new Map<string, ReturnType<typeof createTopicBucket>>();
 
   for (const id of exam?.orderIds || []) {
     const question = questionLookup.get(id);
@@ -129,7 +129,7 @@ export const calculateExamMetrics = (exam, qMap, now = Date.now()) => {
   };
 };
 
-export const buildMockExamAttempt = (exam, qMap, completedAt = Date.now()) => {
+export const buildMockExamAttempt = (exam: any, qMap: Map<string, any>, completedAt = Date.now()) => {
   const completedAtIso = new Date(completedAt).toISOString();
   const metrics = calculateExamMetrics(exam, qMap, completedAt);
   const questions = (exam?.orderIds || []).map((id, index) => {
@@ -170,7 +170,7 @@ export const buildMockExamAttempt = (exam, qMap, completedAt = Date.now()) => {
   };
 };
 
-export const buildReviewExamFromAttempt = (attempt, qMap, startQuestionId = null) => {
+export const buildReviewExamFromAttempt = (attempt: any, qMap: Map<string, any>, startQuestionId: string | null = null) => {
   const orderIds = (attempt?.questions || []).map((question) => question.id);
   const answers = {};
   const questionSnapshots = {};
@@ -214,7 +214,7 @@ export const buildReviewExamFromAttempt = (attempt, qMap, startQuestionId = null
   };
 };
 
-export const buildMistakeDrillExam = (attempt, qMap) => {
+export const buildMistakeDrillExam = (attempt: any, qMap: Map<string, any>) => {
   const questionLookup = buildQuestionLookup(qMap);
   const missedQuestions = (attempt?.questions || []).filter((q) => !q.isCorrect);
   const orderIds = missedQuestions
@@ -244,7 +244,7 @@ export const buildMistakeDrillExam = (attempt, qMap) => {
   };
 };
 
-export const calculatePacingStats = (timeSpentMs, totalCount, mode = "professional") => {
+export const calculatePacingStats = (timeSpentMs: number, totalCount: number, mode = "professional") => {
   const safeTotal = Math.max(1, totalCount || 1);
   const safeTimeMs = Math.max(0, timeSpentMs || 0);
   const secondsPerItem = Math.round(safeTimeMs / safeTotal / 1000);

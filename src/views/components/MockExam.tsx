@@ -23,12 +23,12 @@ const scoreMeterClass = (pct) => (pct >= 75 ? " qb-mock-meter-high" : pct >= 50 
 
 export default function MockExam({
   totalQuestions,
-  proQuestionsCount,
-  subProQuestionsCount,
+  proQuestionsCount = undefined,
+  subProQuestionsCount = undefined,
   presets = EXAM_PRESETS,
   onStartProfessional,
-  onStartSubprofessional,
-  onStartExam,
+  onStartSubprofessional = undefined,
+  onStartExam = undefined,
   activeExam = null,
   isActiveExamLoading = false,
   onResumeActiveExam,

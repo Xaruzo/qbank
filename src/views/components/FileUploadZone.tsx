@@ -18,7 +18,7 @@ export default function FileUploadZone({
   currentFile,
   onRemoveFile,
   userId,
-  isDark,
+  isDark = false,
 }) {
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);

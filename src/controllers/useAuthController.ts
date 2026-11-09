@@ -39,7 +39,7 @@ const writeLocalCredentials = (credentials) => {
   }
 };
 
-const bytesToHex = (bytes) =>
+const bytesToHex = (bytes: Uint8Array) =>
   Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 
 const createSalt = () => {
@@ -209,7 +209,7 @@ export function useAuthController() {
    * - Without Supabase, accounts are stored locally with salted password
    *   hashes so passwords are still verified.
    */
-  const signInWithEmail = async (email, password = "", options = {}) => {
+  const signInWithEmail = async (email, password = "", options: { mode?: string } = {}) => {
     const cleanEmail = (email || "").trim().toLowerCase();
     if (!cleanEmail || !EMAIL_PATTERN.test(cleanEmail)) {
       return { error: new Error("Please enter a valid email address.") };
@@ -392,18 +392,19 @@ export function useAuthController() {
         });
 
         // Sync to public.profiles if the table is created
-        await supabase
-          .from("profiles")
-          .upsert({
-            id: session.user.id,
-            email: session.user.email,
-            full_name: nextCustom.fullName,
-            avatar_url: remoteAvatarUrl,
-            avatar_color: nextCustom.avatarColor,
-            exam_target: nextCustom.examTarget,
-            updated_at: new Date().toISOString(),
-          }, { onConflict: "id" })
-          .catch(() => {});
+        try {
+          await supabase
+            .from("profiles")
+            .upsert({
+              id: session.user.id,
+              email: session.user.email,
+              full_name: nextCustom.fullName,
+              avatar_url: remoteAvatarUrl,
+              avatar_color: nextCustom.avatarColor,
+              exam_target: nextCustom.examTarget,
+              updated_at: new Date().toISOString(),
+            }, { onConflict: "id" });
+        } catch {}
       } catch (err) {
         console.warn("Could not sync profile to remote auth:", err);
       }

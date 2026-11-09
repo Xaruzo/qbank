@@ -36,7 +36,7 @@ export const MASTERY_LEVELS = {
   MASTERED: { id: 'mastered', label: 'Mastered', icon: 'CheckCircle2', color: '#10b981' },
 };
 
-const safeParse = (raw, fallback) => {
+const safeParse = (raw: any, fallback: any) => {
   try {
     const parsed = JSON.parse(raw);
     return parsed ?? fallback;
@@ -45,7 +45,7 @@ const safeParse = (raw, fallback) => {
   }
 };
 
-const normalizeTipsMap = (value) => {
+const normalizeTipsMap = (value: any): Record<string, any> => {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
 
   return Object.entries(value).reduce((acc, [questionId, tipData]) => {
@@ -66,30 +66,32 @@ const normalizeTipsMap = (value) => {
         attachmentPath: "",
       };
     } else if (tipData && typeof tipData === "object") {
-      const text = typeof tipData.text === "string" ? tipData.text : "";
-      const attachmentUrl = typeof tipData.attachmentUrl === "string" ? tipData.attachmentUrl : "";
-      if (!text.trim() && !tipData.canvasData && !attachmentUrl.trim()) return acc;
+      const tip = tipData as any;
+      const text = typeof tip.text === "string" ? tip.text : "";
+      const attachmentUrl = typeof tip.attachmentUrl === "string" ? tip.attachmentUrl : "";
+      if (!text.trim() && !tip.canvasData && !attachmentUrl.trim()) return acc;
       acc[questionId] = {
         text,
-        canvasData: tipData.canvasData || null,
-        category: tipData.category || 'general',
-        masteryLevel: tipData.masteryLevel || 'learning',
-        lastReviewed: tipData.lastReviewed || null,
+        canvasData: tip.canvasData || null,
+        category: tip.category || 'general',
+        masteryLevel: tip.masteryLevel || 'learning',
+        lastReviewed: tip.lastReviewed || null,
         attachmentUrl,
-        attachmentType: typeof tipData.attachmentType === "string" ? tipData.attachmentType : "",
-        attachmentName: typeof tipData.attachmentName === "string" ? tipData.attachmentName : "",
-        attachmentPath: typeof tipData.attachmentPath === "string" ? tipData.attachmentPath : "",
+        attachmentType: typeof tip.attachmentType === "string" ? tip.attachmentType : "",
+        attachmentName: typeof tip.attachmentName === "string" ? tip.attachmentName : "",
+        attachmentPath: typeof tip.attachmentPath === "string" ? tip.attachmentPath : "",
       };
     }
     return acc;
   }, {});
 };
 
-const normalizePendingMap = (value) => {
+const normalizePendingMap = (value: any): Record<string, any> => {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
 
-  return Object.entries(value).reduce((acc, [questionId, op]) => {
-    if (!questionId || !op || typeof op !== "object") return acc;
+  return Object.entries(value).reduce((acc, [questionId, opData]) => {
+    if (!questionId || !opData || typeof opData !== "object") return acc;
+    const op = opData as any;
 
     if (op.deleted) {
       acc[questionId] = {

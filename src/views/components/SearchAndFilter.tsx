@@ -13,11 +13,12 @@ import {
   Landmark,
   BrainCircuit,
   FileSpreadsheet,
+  type LucideIcon,
 } from "lucide-react";
 import { TOPICS } from "../../constants/appConstants";
 import type { SearchAndFilterProps, TopicDef, TopicId } from "../../types";
 
-const TOPIC_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>> = {
+const TOPIC_ICONS: Record<string, LucideIcon> = {
   all: Layers,
   numerical: Calculator,
   verbal: BookOpen,

@@ -1,10 +1,12 @@
+import type { TopicDef } from "../types";
+
 export const TOPICS = [
   { id: "numerical",  label: "Numerical",  short: "NUM", color: "#f5a623" },
   { id: "verbal",     label: "Verbal",     short: "VRB", color: "#22d3ee" },
   { id: "general",    label: "Gen. Info",  short: "GEN", color: "#a78bfa" },
   { id: "analytical", label: "Analytical", short: "ANA", color: "#34d399" },
   { id: "clerical",   label: "Clerical",   short: "CLE", color: "#f43f5e" },
-];
+] as TopicDef[];
 
 export const SORT_OPTIONS = [
   { value: "favorites", label: "Favorites First" },

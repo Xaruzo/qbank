@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseMathText } from "../src/utils/parseMathText.js";
+import { parseMathText } from "../src/utils/parseMathText";
 
 describe("parseMathText", () => {
   it("returns a single text part for plain prose", () => {

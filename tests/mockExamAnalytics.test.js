@@ -5,7 +5,7 @@ import {
   calculateExamMetrics,
   buildMockExamAttempt,
   buildReviewExamFromAttempt,
-} from "../src/utils/mockExamAnalytics.js";
+} from "../src/utils/mockExamAnalytics";
 
 // Topic ids deliberately NOT in TOPICS so bucket fallbacks ("Other") keep
 // the assertions independent of the live topic catalog.

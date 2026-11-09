@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Keep the model fully offline: the mocked client forces the local-cache
 // code paths, so no network or Supabase credentials are needed.
-vi.mock("../src/utils/supabaseClient.js", () => ({ supabase: null }));
+vi.mock("../src/utils/supabaseClient", () => ({ supabase: null }));
 
 // Minimal storage stubs. `localStorageReads` counts real cache reads so the
 // tests can prove the memory cache short-circuits them.
@@ -28,7 +28,7 @@ beforeEach(() => {
 
 const loadModel = async () => {
   vi.resetModules();
-  const { tipsModel } = await import("../src/models/tipsModel.js");
+  const { tipsModel } = await import("../src/models/tipsModel");
   return tipsModel;
 };
 

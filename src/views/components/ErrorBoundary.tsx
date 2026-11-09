@@ -6,17 +6,20 @@ import { AlertTriangle, RotateCcw, Home } from "lucide-react";
  * tree below it so the app never turns into a blank white screen.
  * Styling uses the app's CSS variables so it matches both dark and light themes.
  */
-class ErrorBoundary extends React.Component {
-  constructor(props) {
+type ErrorBoundaryProps = { children?: React.ReactNode };
+type ErrorBoundaryState = { hasError: boolean; error: any };
+
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(error: any) {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error, errorInfo) {
+  componentDidCatch(error: any, errorInfo: any) {
     console.error("QBANK crashed:", error, errorInfo);
   }
 

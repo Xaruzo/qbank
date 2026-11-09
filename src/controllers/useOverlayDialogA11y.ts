@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 
 /**
  * Shared a11y behavior for temporary overlay dialogs (nav drawers).
@@ -19,7 +19,11 @@ import { useEffect, useRef } from "react";
  * @param {Function} onClose Close callback (Escape).
  * @param {import("react").RefObject<HTMLElement>} cardRef Ref of the dialog element.
  */
-export function useOverlayDialogA11y(open, onClose, cardRef) {
+export function useOverlayDialogA11y(
+  open: boolean,
+  onClose: (() => void) | null | undefined,
+  cardRef: RefObject<HTMLElement | null>
+) {
   const onCloseRef = useRef(onClose);
 
   useEffect(() => {
@@ -30,11 +34,11 @@ export function useOverlayDialogA11y(open, onClose, cardRef) {
     if (!open) return undefined;
 
     const card = cardRef.current;
-    const previouslyFocused = document.activeElement;
-    const focusables = card ? Array.from(card.querySelectorAll("button")) : [];
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const focusables = card ? Array.from(card.querySelectorAll<HTMLElement>("button")) : [];
     if (focusables.length) focusables[0].focus();
 
-    const handleKey = (e) => {
+    const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         if (onCloseRef.current) onCloseRef.current();
         return;

@@ -14,8 +14,8 @@ function mergeClassNames(...names) {
   return names.filter(Boolean).join(" ");
 }
 
-function renderMathChildren(children) {
-  return React.Children.map(children, (child, index) => {
+function renderMathChildren(children: any) {
+  return React.Children.map(children, (child: any, index) => {
     if (typeof child === "string") {
       return <MathText key={`math-${index}`} text={child} />;
     }
@@ -24,18 +24,19 @@ function renderMathChildren(children) {
       return child;
     }
 
-    const className = child.props?.className;
+    const element = child as React.ReactElement<any>;
+    const className = element.props?.className;
     if (typeof className === "string" && className.includes("katex")) {
-      return child;
+      return element;
     }
 
-    if (child.type === "code" || child.type === "pre") {
-      return React.cloneElement(child, { key: child.key ?? index });
+    if (element.type === "code" || element.type === "pre") {
+      return React.cloneElement(element, { key: element.key ?? index });
     }
 
-    return React.cloneElement(child, {
-      key: child.key ?? index,
-      children: renderMathChildren(child.props.children),
+    return React.cloneElement(element, {
+      key: element.key ?? index,
+      children: renderMathChildren(element.props.children),
     });
   });
 }
@@ -213,7 +214,7 @@ const inlineComponents = {
   },
 };
 
-function MarkdownText({ text, className, inline = false }) {
+function MarkdownText({ text, className = "", inline = false }) {
   const raw = typeof text === "string" ? text : "";
   const source = inline ? raw : normalizeSingleLineDisplayMath(autoWrapLatex(raw));
   const RootTag = inline ? "span" : "div";

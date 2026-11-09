@@ -24,7 +24,7 @@ function SymbolButton({ symbol, title, onClick }) {
   );
 }
 
-export default function SymbolToolbar({ targetRef, value, onChange, disabled }) {
+export default function SymbolToolbar({ targetRef, value, onChange, disabled = false }) {
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef(null);
 
@@ -38,7 +38,7 @@ export default function SymbolToolbar({ targetRef, value, onChange, disabled }) 
     return () => window.removeEventListener("mousedown", handle);
   }, [moreOpen]);
 
-  const insert = (text, cursorOffset, selectLength = 0) => {
+  const insert = (text, cursorOffset = undefined, selectLength = 0) => {
     if (disabled) return;
     const el = targetRef?.current;
     if (!el) return;

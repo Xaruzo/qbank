@@ -1,8 +1,8 @@
-const Bar = ({ w, h, extra }) => (
+const Bar = ({ w, h, extra = {} }) => (
   <div className="qb-skel-bar" style={{ width: w, height: h, ...extra }} />
 );
 
-const Chip = ({ w = 130, h = 34, br = 999, extra }) => (
+const Chip = ({ w = 130, h = 34, br = 999, extra = {} }) => (
   <span className="qb-skel-chip" style={{ width: w, height: h, borderRadius: br, ...extra }} />
 );
 

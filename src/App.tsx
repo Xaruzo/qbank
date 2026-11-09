@@ -34,6 +34,7 @@ import { favoritesModel } from "./models/favoritesModel";
 import { buildMockExamAttempt, buildReviewExamFromAttempt, buildMistakeDrillExam } from "./utils/mockExamAnalytics";
 import { Home, ClipboardList, Lightbulb, PlayCircle, ArrowRight, BookOpen, Plus, ShieldCheck } from "lucide-react";
 import { QUESTION_ADMIN_UIDS, QUESTION_ADMIN_EMAILS, EXAM_PRESETS } from "./constants/appConstants";
+import type { TopicId } from "./types";
 
 const PageLoader = ({ view }) => {
   if (view === "tips" || view === "tipDetail" || view === "notes") return <TipsSkeletonLoader />;
@@ -1047,7 +1048,7 @@ export default function App() {
             profile={profile}
             onSignIn={handleSignIn}
             onSignOut={handleSignOut}
-            activeTopic={topicFilter}
+            activeTopic={topicFilter as TopicId | "all"}
             onSelectTopic={(t) => {
               setTopicFilter(t);
               handleGoHome();
@@ -1077,7 +1078,7 @@ export default function App() {
               profile={profile}
               onSignIn={handleSignIn}
               onSignOut={handleSignOut}
-              activeTopic={topicFilter}
+              activeTopic={topicFilter as TopicId | "all"}
               onSelectTopic={(t) => {
                 setTopicFilter(t);
                 handleGoHome();

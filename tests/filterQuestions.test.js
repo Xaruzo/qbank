@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { filterAndSortQuestions } from "../src/controllers/useQuestionsController.js";
+import { filterAndSortQuestions } from "../src/controllers/useQuestionsController";
 
 const q = (over) => ({
   id: "x",

@@ -6,7 +6,7 @@ const FAVORITES_PENDING_KEY = "cse-qbank-favorites-pending-v1";
 const USER_FAVORITES_TABLE = "user_favorites";
 let hasLoggedMissingFavoritesTable = false;
 
-const safeParse = (raw, fallback) => {
+const safeParse = (raw: any, fallback: any) => {
   try {
     const parsed = JSON.parse(raw);
     return parsed ?? fallback;
@@ -20,11 +20,12 @@ const normalizeFavoritesIds = (value) => {
   return value.filter((id) => typeof id === "string" && id.trim());
 };
 
-const normalizePendingMap = (value) => {
+const normalizePendingMap = (value: any): Record<string, any> => {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
 
-  return Object.entries(value).reduce((acc, [questionId, op]) => {
-    if (!questionId || !op || typeof op !== "object") return acc;
+  return Object.entries(value).reduce((acc, [questionId, opData]) => {
+    if (!questionId || !opData || typeof opData !== "object") return acc;
+    const op = opData as any;
     if (typeof op.added !== "boolean") return acc;
 
     acc[questionId] = {
@@ -77,7 +78,7 @@ const writeFavoritesCache = async (ids, userId = null) => {
   await writeValue(getFavoritesCacheKey(userId), JSON.stringify(normalizeFavoritesIds(ids)));
 };
 
-const readPendingMap = async (userId) => {
+const readPendingMap = async (userId): Promise<Record<string, any>> => {
   if (!userId) return {};
   const key = getPendingFavoritesKey(userId);
   const raw = await readValue(key);
