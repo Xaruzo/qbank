@@ -569,7 +569,7 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
   const [size, setSize] = useState(2);
   const sizeRef = useRef(size);
   useEffect(() => { sizeRef.current = size; }, [size]);
-  const [height, setHeight] = useState(360);
+  const [height, setHeight] = useState(700);
   const [layersVersion, setLayersVersion] = useState(0);
   const [activeLayerIds, setActiveLayerIds] = useState([]);
   const [fontSize, setFontSize] = useState(24);
@@ -638,8 +638,8 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
   const alignMenuRef = useRef(null);
   const layerDragRef = useRef(null);
   const dragJustEndedRef = useRef(false);
-  const MIN_H = 260;
-  const MAX_H = 2000;
+  const MIN_H = 500;
+  const MAX_H = 2400;
   const BASE_W = 820;
   const HR_LINE_THICKNESS = 2;
   const FONT_SIZE_MIN = 8;
@@ -6585,6 +6585,23 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
             </button>
             <button className="draw-tb" onClick={downloadImage} title="Export / Download Diagram as PNG">
               <Download size={14} />
+            </button>
+            <div className="draw-bar-subdivider" />
+            <button
+              className="draw-tb"
+              onClick={() => bumpBoardHeight(200)}
+              title="Add 200px Vertical Space (+ Height)"
+              style={{ fontSize: 11, fontWeight: 700, padding: "0 6px", color: "var(--text)" }}
+            >
+              + Height
+            </button>
+            <button
+              className="draw-tb"
+              onClick={() => bumpBoardHeight(-150)}
+              title="Reduce Vertical Space (- Height)"
+              style={{ fontSize: 11, fontWeight: 700, padding: "0 6px", color: "var(--text-muted)" }}
+            >
+              - Height
             </button>
             {(!isMobile && narrow) && (
               <>
