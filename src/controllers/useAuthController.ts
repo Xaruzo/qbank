@@ -67,6 +67,21 @@ const hashLocalPassword = async (password, salt) => {
   return (hash >>> 0).toString(16);
 };
 
+export const updateLocalAccountPassword = async (email: string, newPassword: string): Promise<boolean> => {
+  const cleanEmail = (email || "").trim().toLowerCase();
+  if (!cleanEmail || !newPassword) return false;
+  const credentials = readLocalCredentials();
+  const salt = createSalt();
+  const hash = await hashLocalPassword(newPassword, salt);
+  credentials[cleanEmail] = {
+    salt,
+    hash,
+    updatedAt: new Date().toISOString(),
+    createdAt: credentials[cleanEmail]?.createdAt || new Date().toISOString(),
+  };
+  return writeLocalCredentials(credentials);
+};
+
 const toAuthError = (error, fallback) => {
   const raw = error?.message || (typeof error === "string" ? error : "") || fallback;
   const lower = raw.toLowerCase();
@@ -88,7 +103,7 @@ const toAuthError = (error, fallback) => {
     lower.includes("too many requests") ||
     lower.includes("security purposes")
   ) {
-    message = "Too many attempts. Please wait a moment before trying again.";
+    message = "Too many attempts. For security, Supabase limits instant login links to once every 60 seconds. Please check your inbox/spam folder for the email already sent, wait 60 seconds to resend, or switch to Password login / Google sign-in to enter immediately.";
   } else if (isNetworkOrFetchError(error)) {
     message = "Could not reach the authentication service. The Supabase cloud project may be paused, or an ad-blocker/shield (like Brave Shields) may be blocking the request. You can also sign in using a password.";
   }
@@ -255,6 +270,30 @@ export function useAuthController() {
             password,
           });
           if (error) {
+            // Check if user recently reset their password via Brevo OTP verification
+            const credentials = readLocalCredentials();
+            const saved = credentials[cleanEmail];
+            if (saved?.salt && saved?.hash) {
+              const hash = await hashLocalPassword(password, saved.salt);
+              if (hash === saved.hash) {
+                const sysUser = {
+                  id: emailToDeterministicUuid(cleanEmail),
+                  email: cleanEmail,
+                  user_metadata: { full_name: cleanEmail.split("@")[0] },
+                  auth_type: "system_email",
+                };
+                try {
+                  localStorage.setItem(SYSTEM_AUTH_STORAGE_KEY, JSON.stringify(sysUser));
+                } catch {}
+                setSystemUser(sysUser);
+                return {
+                  error: null,
+                  mode: "system_direct",
+                  user: sysUser,
+                  message: "Welcome back! Signed in with your updated reviewer credentials.",
+                };
+              }
+            }
             return { error: toAuthError(error, "Failed to sign in. Please check your credentials.") };
           }
           if (!data?.session) {

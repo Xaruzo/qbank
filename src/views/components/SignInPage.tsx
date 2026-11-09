@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Mail,
   KeyRound,
@@ -22,7 +22,8 @@ import {
   Compass,
 } from "lucide-react";
 import brandLogo from "../../models/Image/logo.png";
-import examHallImg from "../../assets/images/exam_hall_atmosphere_1794130533049.jpg";
+import AppleHeroCanvas from "./AppleHeroCanvas";
+import ForgotPasswordModal from "./ForgotPasswordModal";
 import type { SignInPageProps } from "../../types";
 
 export default function SignInPage({
@@ -44,9 +45,20 @@ export default function SignInPage({
   const [confirmPassword, setConfirmPassword] = useState<string>("");
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [usePassword, setUsePassword] = useState<boolean>(true);
+  const [showForgotPassword, setShowForgotPassword] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [successMsg, setSuccessMsg] = useState<string>("");
+  const [resendCooldown, setResendCooldown] = useState<number>(0);
+
+  // 60-second cooldown timer for rate-limited instant login emails
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const interval = setInterval(() => {
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [resendCooldown]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,13 +87,22 @@ export default function SignInPage({
       }
     }
 
+    if (!usePassword && resendCooldown > 0) {
+      setErrorMsg(`Please wait ${resendCooldown}s before requesting another instant login link.`);
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await onSignInWithEmail(cleanEmail, usePassword ? password : "", {
         mode: isRegisterMode ? "signup" : "signin",
       });
       if (res?.error) {
-        setErrorMsg(res.error.message || "Failed to authenticate. Please check your credentials.");
+        const errMsg = res.error.message || "Failed to authenticate. Please check your credentials.";
+        setErrorMsg(errMsg);
+        if (errMsg.includes("Too many attempts") || errMsg.includes("60 seconds") || errMsg.includes("rate limit")) {
+          setResendCooldown(60);
+        }
       } else if (res?.mode === "confirm_email") {
         setSuccessMsg(
           res.message || "Account created. Check your email to confirm it, then sign in."
@@ -90,6 +111,9 @@ export default function SignInPage({
         setPassword("");
         setConfirmPassword("");
       } else {
+        if (!usePassword) {
+          setResendCooldown(60);
+        }
         const message = res?.message || (isRegisterMode ? "Account created and logged in!" : "Welcome back! Redirecting to reviewer...");
         setSuccessMsg(message);
         setTimeout(() => {
@@ -122,12 +146,8 @@ export default function SignInPage({
 
   return (
     <div className={`qb-signin-root${isDark ? "" : " light"}`}>
-      {/* Background Academic Hall Atmosphere */}
-      <div
-        className="qb-signin-bg"
-        style={{ backgroundImage: `url(${examHallImg})` }}
-        aria-hidden="true"
-      />
+      {/* Living Apple-Style Frame-by-Frame Canvas Background */}
+      <AppleHeroCanvas isDark={isDark} />
       <div className="qb-signin-scrim" aria-hidden="true" />
 
       {/* Top Bar */}
@@ -260,8 +280,41 @@ export default function SignInPage({
               {/* Alert Feedback */}
               {errorMsg && (
                 <div className="qb-signin-alert danger" role="alert">
-                  <AlertCircle size={16} />
-                  <span>{errorMsg}</span>
+                  <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+                  <div className="qb-signin-alert-text">
+                    <p style={{ margin: 0 }}>{errorMsg}</p>
+                    {!usePassword && (errorMsg.includes("Too many attempts") || errorMsg.includes("60 seconds") || errorMsg.includes("rate limit")) && (
+                      <div className="qb-signin-rate-limit-helper" style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(239, 68, 68, 0.25)" }}>
+                        <p style={{ margin: "0 0 6px 0", fontSize: "12px", opacity: 0.9 }}>
+                          <strong>Why did this happen?</strong> Supabase enforces an anti-spam limit of 1 email per 60 seconds. You don't have to wait!
+                        </p>
+                        <button
+                          type="button"
+                          className="qb-signin-switch-pwd-action"
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 5,
+                            background: "#f5a623",
+                            color: "#050914",
+                            border: "none",
+                            borderRadius: 6,
+                            padding: "5px 10px",
+                            fontSize: "12px",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                          }}
+                          onClick={() => {
+                            setUsePassword(true);
+                            setErrorMsg("");
+                          }}
+                        >
+                          <KeyRound size={13} />
+                          <span>Switch to Password Login to Enter Immediately</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -318,13 +371,23 @@ export default function SignInPage({
                         Password
                       </label>
                       {!isRegisterMode && (
-                        <button
-                          type="button"
-                          className="qb-signin-hint-btn"
-                          onClick={() => setUsePassword(false)}
-                        >
-                          Use instant link instead
-                        </button>
+                        <div className="qb-signin-label-actions">
+                          <button
+                            type="button"
+                            className="qb-signin-hint-btn highlight"
+                            onClick={() => setShowForgotPassword(true)}
+                          >
+                            Forgot password?
+                          </button>
+                          <span className="qb-signin-hint-sep">·</span>
+                          <button
+                            type="button"
+                            className="qb-signin-hint-btn"
+                            onClick={() => setUsePassword(false)}
+                          >
+                            Instant link
+                          </button>
+                        </div>
                       )}
                     </div>
                     <div className="qb-signin-input-wrap">
@@ -405,13 +468,22 @@ export default function SignInPage({
                         ? "Want passwordless? Click for Magic Link login"
                         : "Have a password? Switch to password login"}
                     </button>
+                    {usePassword && (
+                      <button
+                        type="button"
+                        className="qb-signin-forgot-link"
+                        onClick={() => setShowForgotPassword(true)}
+                      >
+                        Forgot password? Reset with code
+                      </button>
+                    )}
                   </div>
                 )}
 
                 <button
                   type="submit"
                   className="qb-signin-submit-btn"
-                  disabled={loading}
+                  disabled={loading || (!usePassword && resendCooldown > 0)}
                 >
                   {loading ? (
                     <span className="qb-signin-loading-text">Authenticating...</span>
@@ -422,6 +494,8 @@ export default function SignInPage({
                           ? "Create Free Account"
                           : usePassword
                           ? "Sign In to QBANK"
+                          : resendCooldown > 0
+                          ? `Resend Login Link (${resendCooldown}s)`
                           : "Send Instant Login Link"}
                       </span>
                       <ArrowRight size={16} />
@@ -565,6 +639,19 @@ export default function SignInPage({
           </p>
         </div>
       </footer>
+
+      {/* Forgot Password Modal with Brevo Email & 6-Digit Code */}
+      <ForgotPasswordModal
+        isOpen={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+        defaultEmail={email}
+        onPasswordResetSuccess={(resetEmail, newPwd) => {
+          setEmail(resetEmail);
+          setPassword(newPwd);
+          setUsePassword(true);
+          setSuccessMsg("Password reset successfully! Click 'Sign In to QBANK' to continue.");
+        }}
+      />
     </div>
   );
 }
