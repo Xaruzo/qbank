@@ -1007,7 +1007,7 @@ export default function App() {
           onToggleTheme={toggleTheme} 
           onHome={handleGoHome}
           onLanding={handleGoLanding}
-          showNavToggle={true}
+          showNavToggle={isMobile || isCompact}
           navOpen={navOpen}
           onToggleNav={() => setNavOpen(v => !v)}
           authAvailable={authAvailable}
@@ -1041,8 +1041,6 @@ export default function App() {
             onClose={() => setNavOpen(false)}
             totalQuestions={qs.length}
             starredCount={favoriteCount}
-            isDark={isDark}
-            onToggleTheme={toggleTheme}
             onOpenHelp={handleOpenHelp}
             onOpenSettings={() => setShowSettingsModal(true)}
             isAuthenticated={isAuthenticated}
@@ -1073,8 +1071,6 @@ export default function App() {
               onToggleNav={() => setNavOpen((prev) => !prev)}
               totalQuestions={qs.length}
               starredCount={favoriteCount}
-              isDark={isDark}
-              onToggleTheme={toggleTheme}
               onOpenHelp={handleOpenHelp}
               onOpenSettings={() => setShowSettingsModal(true)}
               isAuthenticated={isAuthenticated}

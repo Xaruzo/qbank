@@ -15,8 +15,6 @@ import {
   LogIn,
   LogOut,
   UserCircle2,
-  Sun,
-  Moon,
   HelpCircle,
   Settings,
   PanelLeftClose,
@@ -332,8 +330,6 @@ export default function SideNav({
   onToggleNav,
   totalQuestions = 0,
   starredCount = 0,
-  isDark = false,
-  onToggleTheme,
   onOpenHelp,
   onOpenSettings,
   isAuthenticated = false,
@@ -555,18 +551,6 @@ export default function SideNav({
 
       {/* Utility Actions Strip */}
       <div className="qb-nav-utility-row">
-        {onToggleTheme && (
-          <button
-            type="button"
-            className="qb-nav-utility-btn"
-            onClick={onToggleTheme}
-            title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-            aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-          >
-            {isDark ? <Sun size={14} /> : <Moon size={14} />}
-            <span>{isDark ? "Light" : "Dark"}</span>
-          </button>
-        )}
         {onOpenHelp && (
           <button
             type="button"
@@ -689,17 +673,6 @@ export default function SideNav({
               </div>
 
               <div className="qb-rail-bottom">
-                {onToggleTheme && (
-                  <button
-                    type="button"
-                    className="qb-rail-tool-btn"
-                    onClick={onToggleTheme}
-                    title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-                    aria-label="Toggle Theme"
-                  >
-                    {isDark ? <Sun size={15} /> : <Moon size={15} />}
-                  </button>
-                )}
                 {onOpenHelp && (
                   <button
                     type="button"

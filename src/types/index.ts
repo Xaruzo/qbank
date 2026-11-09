@@ -144,8 +144,6 @@ export interface SideNavProps {
   onClose?: () => void;
   totalQuestions?: number;
   starredCount?: number;
-  isDark?: boolean;
-  onToggleTheme?: () => void;
   onOpenHelp?: () => void;
   onOpenSettings?: () => void;
   isAuthenticated?: boolean;
