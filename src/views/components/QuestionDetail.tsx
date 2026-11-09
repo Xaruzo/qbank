@@ -428,26 +428,6 @@ export default function QuestionDetail({
             <MarkdownText text={question.question} />
           </div>
 
-          {pick !== null && (
-            <div className={`qb-banner ${pick === question.correct ? "ok" : "no"}`}>
-              {pick === question.correct ? (
-                <div className="qb-banner-inner">
-                  <CheckCircle2 size={18} className="qb-banner-icon" />
-                  <div className="qb-banner-text">
-                    <strong>Correct!</strong> Choice {LETTERS[question.correct]} is right.
-                  </div>
-                </div>
-              ) : (
-                <div className="qb-banner-inner">
-                  <AlertCircle size={18} className="qb-banner-icon" />
-                  <div className="qb-banner-text">
-                    <strong>Incorrect.</strong> The correct answer is Choice <strong>{LETTERS[question.correct]}</strong>.
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
           <div className="qb-choices-group" role="radiogroup" aria-label="Answer choices">
             {question.choices.map((c, i) => {
               let cls = "qb-choice";
@@ -532,6 +512,25 @@ export default function QuestionDetail({
               </div>
             )}
           </div>
+
+          {pick !== null && (
+            <div
+              className={`qb-det-footer-verdict ${pick === question.correct ? "ok" : "no"}`}
+              role="status"
+              aria-live="polite"
+            >
+              {pick === question.correct ? (
+                <CheckCircle2 size={15} className="qb-det-footer-verdict-ico" />
+              ) : (
+                <AlertCircle size={15} className="qb-det-footer-verdict-ico" />
+              )}
+              <span>
+                {pick === question.correct
+                  ? `Correct! Choice ${LETTERS[question.correct]} is right.`
+                  : `Incorrect. The correct answer is ${LETTERS[question.correct]}.`}
+              </span>
+            </div>
+          )}
 
           <div className="qb-det-footer-right">
             <button
