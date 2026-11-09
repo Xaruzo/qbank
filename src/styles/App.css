@@ -9116,15 +9116,9 @@ button[data-action="skip"] {
 
 .qb-notes-topic-chips {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
-  overflow-x: auto;
   padding: 2px 0;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.qb-notes-topic-chips::-webkit-scrollbar {
-  display: none;
 }
 
 .qb-notes-topic-chip {
@@ -9259,18 +9253,10 @@ button[data-action="skip"] {
 
 .qb-notes-tag-filter-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
   padding: 2px 0 4px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  white-space: nowrap;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.qb-notes-tag-filter-row::-webkit-scrollbar {
-  display: none;
 }
 
 .qb-notes-tag-label {
