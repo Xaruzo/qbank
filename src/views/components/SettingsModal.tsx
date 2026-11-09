@@ -76,6 +76,7 @@ export default function SettingsModal({
   const [avatarUrl, setAvatarUrl] = useState<string | null>(profile?.avatarUrl || null);
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState(profile?.avatarColor || "amber");
+  const [avatarShape, setAvatarShape] = useState<"badge" | "circle">(profile?.avatarShape || "badge");
   const [examTarget, setExamTarget] = useState<"professional" | "subprofessional">(
     profile?.examTarget || settings.examTarget || "professional"
   );
@@ -91,6 +92,7 @@ export default function SettingsModal({
       setFullName(profile.fullName || "");
       setSelectedColor(profile.avatarColor || "amber");
       if (profile.avatarUrl !== undefined) setAvatarUrl(profile.avatarUrl);
+      if (profile.avatarShape) setAvatarShape(profile.avatarShape);
       if (profile.examTarget) setExamTarget(profile.examTarget);
       if (profile.targetExamDate) setExamDate(profile.targetExamDate);
       if (profile.dailyStudyGoal) setDailyGoal(profile.dailyStudyGoal);
@@ -171,6 +173,7 @@ export default function SettingsModal({
           fullName: trimmedName,
           avatarUrl,
           avatarColor: selectedColor,
+          avatarShape,
           examTarget,
           targetExamDate: examDate,
           dailyStudyGoal: dailyGoal,
@@ -411,7 +414,7 @@ export default function SettingsModal({
               {/* Profile Card Header with Live Avatar Preview & Image Controls */}
               <div className="qb-settings-profile-preview-card">
                 <div
-                  className="qb-settings-preview-avatar"
+                  className={`qb-settings-preview-avatar shape-${avatarShape}`}
                   style={
                     avatarUrl
                       ? undefined
@@ -435,6 +438,38 @@ export default function SettingsModal({
                     <span className="qb-settings-preview-target-badge">
                       {examTarget === "professional" ? "Professional (170 Qs)" : "Subprofessional (165 Qs)"}
                     </span>
+
+                    {/* Badge vs Circle Real-Time Shape Switcher */}
+                    <div className="qb-settings-shape-toggle-group" data-shape={avatarShape}>
+                      <div
+                        className={`qb-settings-shape-glider ${avatarShape === "circle" ? "is-circle" : "is-badge"}`}
+                        aria-hidden="true"
+                      />
+                      <button
+                        type="button"
+                        className={`qb-settings-shape-btn${avatarShape === "badge" ? " active" : ""}`}
+                        onClick={() => {
+                          setAvatarShape("badge");
+                          if (onUpdateProfile) onUpdateProfile({ avatarShape: "badge" });
+                        }}
+                        aria-pressed={avatarShape === "badge"}
+                      >
+                        <span className="shape-icon badge-shape" />
+                        <span>Badge</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={`qb-settings-shape-btn${avatarShape === "circle" ? " active" : ""}`}
+                        onClick={() => {
+                          setAvatarShape("circle");
+                          if (onUpdateProfile) onUpdateProfile({ avatarShape: "circle" });
+                        }}
+                        aria-pressed={avatarShape === "circle"}
+                      >
+                        <span className="shape-icon circle-shape" />
+                        <span>Circle</span>
+                      </button>
+                    </div>
                   </div>
                   <span className="qb-settings-preview-sub">
                     {isAuthenticated ? profile?.email || "Signed In" : "Local Reviewer Profile (Guest)"}

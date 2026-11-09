@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Check } from "lucide-react";
 import type { CustomSelectProps } from "../../types";
 
 export default function CustomSelect({
@@ -9,6 +9,7 @@ export default function CustomSelect({
   placeholder = "Select...",
   className = "",
   style = {},
+  leadIcon,
 }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [direction, setDirection] = useState<"down" | "up">("down");
@@ -57,24 +58,36 @@ export default function CustomSelect({
         }}
         aria-expanded={isOpen}
       >
-        <span>{displayText}</span>
-        <ChevronDown size={16} />
+        <span className="qb-select-btn-lead">
+          {leadIcon && <span className="qb-select-lead-icon">{leadIcon}</span>}
+          <span className="qb-select-btn-text">{displayText}</span>
+        </span>
+        <ChevronDown size={14} className={`qb-select-chevron${isOpen ? " is-open" : ""}`} />
       </button>
       <div className={`qb-select-menu${isOpen ? " open" : ""}`}>
         <div className="qb-select-menu-scroll">
-          {options.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              className={`qb-select-item${value === option.value ? " on" : ""}`}
-              onClick={() => {
-                onChange(option.value);
-                setIsOpen(false);
-              }}
-            >
-              {option.label}
-            </button>
-          ))}
+          {options.map((option) => {
+            const isSelected = value === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                className={`qb-select-item${isSelected ? " on" : ""}`}
+                onClick={() => {
+                  onChange(option.value);
+                  setIsOpen(false);
+                }}
+              >
+                <span className="qb-select-item-label">{option.label}</span>
+                {isSelected && (
+                  <Check size={14} className="qb-select-item-check" />
+                )}
+                {option.count !== undefined && (
+                  <span className="qb-select-count">{option.count}</span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

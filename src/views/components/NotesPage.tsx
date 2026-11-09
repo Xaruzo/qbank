@@ -22,6 +22,7 @@ import {
   Underline,
   Columns,
   X,
+  ArrowUpDown,
 } from "lucide-react";
 import { notesModel } from "../../models/notesModel";
 import { NOTE_TOPICS } from "../../constants/appConstants";
@@ -80,6 +81,7 @@ export default function NotesPage({ userId, onBack, initialNoteId = null }: Note
   const [selectedTopic, setSelectedTopic] = useState<string>("all");
   const [pinnedOnly, setPinnedOnly] = useState(false);
   const [activeTag, setActiveTag] = useState("all");
+  const [showAllTags, setShowAllTags] = useState(false);
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "title-az" | "title-za">("newest");
 
   // Selected note for editing/viewing
@@ -140,6 +142,16 @@ export default function NotesPage({ userId, onBack, initialNoteId = null }: Note
     });
     return Array.from(tagSet);
   }, [notes]);
+
+  // Clean, visible tag slice to prevent vertical scroll crowding
+  const visibleTags = useMemo(() => {
+    if (showAllTags || allTags.length <= 7) return allTags;
+    const firstSlice = allTags.slice(0, 7);
+    if (activeTag !== "all" && !firstSlice.includes(activeTag)) {
+      return [...firstSlice, activeTag];
+    }
+    return firstSlice;
+  }, [allTags, showAllTags, activeTag]);
 
   // Filtered & sorted notes
   const filteredNotes = useMemo(() => {
@@ -364,7 +376,7 @@ export default function NotesPage({ userId, onBack, initialNoteId = null }: Note
           {/* Search and Filters */}
           <div className="qb-notes-controls">
             <div className="qb-notes-search-wrap">
-              <Search size={16} className="qb-notes-search-icon" />
+              <Search size={15} className="qb-notes-search-icon" />
               <input
                 type="text"
                 className="qb-notes-search-input"
@@ -379,34 +391,40 @@ export default function NotesPage({ userId, onBack, initialNoteId = null }: Note
                   onClick={() => setSearch("")}
                   aria-label="Clear search"
                 >
-                  ×
+                  <X size={14} />
                 </button>
               )}
             </div>
 
-            {/* Topic Filter Chips with clean scrollbar */}
-            <div className="qb-notes-topic-chips" role="tablist" aria-label="Filter notes by topic">
+            {/* Modern Topic Segmented Filter Bar (Clean responsive wrap, zero scrollbars) */}
+            <div className="qb-notes-topic-bar" role="tablist" aria-label="Filter notes by topic">
               {NOTE_TOPICS.map((topic) => {
                 const isSelected = selectedTopic === topic.id;
+                const countForTopic =
+                  topic.id === "all"
+                    ? notes.length
+                    : notes.filter((n) => n.topic === topic.id).length;
                 return (
                   <button
                     key={topic.id}
                     type="button"
-                    className={`qb-notes-topic-chip${isSelected ? " is-active" : ""}`}
+                    className={`qb-notes-topic-pill${isSelected ? " is-active" : ""}`}
                     onClick={() => setSelectedTopic(topic.id)}
                     style={
                       isSelected && topic.color
                         ? { borderColor: topic.color, color: topic.color }
                         : {}
                     }
+                    title={topic.label}
                   >
-                    {topic.short && (
+                    {topic.color && topic.id !== "all" && (
                       <span
                         className="qb-notes-topic-dot"
                         style={{ backgroundColor: topic.color }}
                       />
                     )}
-                    <span>{topic.short || topic.label}</span>
+                    <span className="qb-notes-topic-title">{topic.short || topic.label}</span>
+                    <span className="qb-notes-topic-count tabular-nums">{countForTopic}</span>
                   </button>
                 );
               })}
@@ -420,8 +438,11 @@ export default function NotesPage({ userId, onBack, initialNoteId = null }: Note
                 onClick={() => setPinnedOnly(!pinnedOnly)}
                 title={pinnedOnly ? "Show all notes" : "Filter by pinned notes only"}
               >
-                <Pin size={13} />
-                <span>Pinned ({notes.filter((n) => n.pinned).length})</span>
+                <Pin size={13} className={pinnedOnly ? "text-amber-400" : ""} />
+                <span>Pinned</span>
+                <span className="qb-notes-pin-badge tabular-nums">
+                  {notes.filter((n) => n.pinned).length}
+                </span>
               </button>
 
               <div className="qb-notes-sort-select-wrap">
@@ -429,16 +450,20 @@ export default function NotesPage({ userId, onBack, initialNoteId = null }: Note
                   value={sortBy}
                   onChange={(val) => setSortBy(val as any)}
                   options={SORT_OPTIONS}
+                  leadIcon={<ArrowUpDown size={13} />}
                   className="qb-notes-sort-dropdown"
                 />
               </div>
             </div>
 
-            {/* Tag Filter Section: non-cramped, smooth horizontal scroll, zero tag-pushing */}
+            {/* Tag Filter Section: non-cramped, clean tag cloud, zero tag-pushing */}
             {allTags.length > 0 && (
               <div className="qb-notes-tags-section">
                 <div className="qb-notes-tags-header">
-                  <span>Filter by Tag</span>
+                  <div className="qb-notes-tags-header-left">
+                    <Tag size={12} className="qb-notes-tag-icon" />
+                    <span>Tags ({allTags.length})</span>
+                  </div>
                   {activeTag !== "all" && (
                     <button
                       type="button"
@@ -446,12 +471,12 @@ export default function NotesPage({ userId, onBack, initialNoteId = null }: Note
                       onClick={() => setActiveTag("all")}
                       title="Clear active tag filter"
                     >
-                      <X size={12} />
+                      <X size={11} />
                       <span>Clear: #{activeTag}</span>
                     </button>
                   )}
                 </div>
-                <div className="qb-notes-tag-filter-row" aria-label="Filter notes by tag">
+                <div className="qb-notes-tag-cloud" aria-label="Filter notes by tag">
                   <button
                     type="button"
                     className={`qb-notes-tag-pill${activeTag === "all" ? " is-active" : ""}`}
@@ -459,7 +484,7 @@ export default function NotesPage({ userId, onBack, initialNoteId = null }: Note
                   >
                     All Tags
                   </button>
-                  {allTags.map((tag) => (
+                  {visibleTags.map((tag) => (
                     <button
                       key={tag}
                       type="button"
@@ -469,6 +494,15 @@ export default function NotesPage({ userId, onBack, initialNoteId = null }: Note
                       #{tag}
                     </button>
                   ))}
+                  {allTags.length > 7 && (
+                    <button
+                      type="button"
+                      className="qb-notes-tag-expand-btn"
+                      onClick={() => setShowAllTags((prev) => !prev)}
+                    >
+                      {showAllTags ? "Show less" : `+${allTags.length - 7} more`}
+                    </button>
+                  )}
                 </div>
               </div>
             )}

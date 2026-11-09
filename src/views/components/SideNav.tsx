@@ -1,4 +1,5 @@
 import { useRef, useState, useLayoutEffect, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useOverlayDialogA11y } from "../../controllers/useOverlayDialogA11y";
 import {
   Layers,
@@ -242,14 +243,48 @@ export default function SideNav({
 }: SideNavProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
+  const railPopoverRef = useRef<HTMLDivElement>(null);
+  const railBtnRef = useRef<HTMLButtonElement>(null);
   const [profileMenuOpen, setProfileMenuOpen] = useState<boolean>(false);
+  const [railCoords, setRailCoords] = useState<{ top: number; left: number } | null>(null);
   useOverlayDialogA11y(variant === "overlay" && open, onClose, cardRef);
+
+  const updateRailCoords = () => {
+    if (railBtnRef.current) {
+      const rect = railBtnRef.current.getBoundingClientRect();
+      const popoverHeight = 350;
+      const top = Math.max(12, Math.min(window.innerHeight - popoverHeight - 12, rect.bottom - popoverHeight));
+      const left = rect.right + 12;
+      setRailCoords({ top, left });
+    }
+  };
+
+  useLayoutEffect(() => {
+    if (profileMenuOpen && !open) {
+      updateRailCoords();
+    }
+  }, [profileMenuOpen, open]);
+
+  useEffect(() => {
+    if (!profileMenuOpen || open) return;
+    const handleReposition = () => updateRailCoords();
+    window.addEventListener("resize", handleReposition);
+    window.addEventListener("scroll", handleReposition, true);
+    return () => {
+      window.removeEventListener("resize", handleReposition);
+      window.removeEventListener("scroll", handleReposition, true);
+    };
+  }, [profileMenuOpen, open]);
 
   // Click outside to dismiss PolicyPulse profile tooltip popover
   useEffect(() => {
     if (!profileMenuOpen) return undefined;
     const handlePointerDown = (e: MouseEvent) => {
-      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const inExpanded = popoverRef.current && popoverRef.current.contains(target);
+      const inRail = railPopoverRef.current && railPopoverRef.current.contains(target);
+      const inBtn = railBtnRef.current && railBtnRef.current.contains(target);
+      if (!inExpanded && !inRail && !inBtn) {
         setProfileMenuOpen(false);
       }
     };
@@ -385,7 +420,7 @@ export default function SideNav({
       >
         {/* User Card */}
         <div className="qb-profile-popover-user-card">
-          <div className="qb-profile-popover-avatar">
+          <div className={`qb-profile-popover-avatar shape-${profile?.avatarShape || "badge"}`}>
             {profile?.avatarUrl ? (
               <img src={profile.avatarUrl} alt={profile.fullName || "User"} className="qb-popover-avatar-img" />
             ) : profile?.fullName ? (
@@ -421,18 +456,23 @@ export default function SideNav({
 
         <div className="qb-profile-popover-divider" />
 
-        {/* APPEARANCE Segmented Toggle (Just like PolicyPulse!) */}
+        {/* APPEARANCE Segmented Toggle (Smooth sliding glider animation) */}
         <div className="qb-profile-popover-section">
           <span className="qb-profile-popover-section-label">APPEARANCE</span>
-          <div className="qb-profile-segmented-appearance">
+          <div className="qb-profile-segmented-appearance" data-theme={isDark ? "dark" : "light"}>
+            <div
+              className={`qb-seg-theme-glider ${isDark ? "is-dark" : "is-light"}`}
+              aria-hidden="true"
+            />
             <button
               type="button"
               className={`qb-seg-theme-btn${isDark ? " is-active" : ""}`}
               onClick={() => {
                 if (!isDark && onToggleTheme) onToggleTheme();
               }}
+              aria-pressed={isDark}
             >
-              <Moon size={14} />
+              <Moon size={14} className="qb-seg-theme-icon" />
               <span>Dark</span>
             </button>
             <button
@@ -441,8 +481,9 @@ export default function SideNav({
               onClick={() => {
                 if (isDark && onToggleTheme) onToggleTheme();
               }}
+              aria-pressed={!isDark}
             >
-              <Sun size={14} />
+              <Sun size={14} className="qb-seg-theme-icon" />
               <span>Light</span>
             </button>
           </div>
@@ -557,7 +598,7 @@ export default function SideNav({
           title={profile?.email || profile?.fullName || "Reviewer profile and workspace quick menu"}
         >
           <div className="qb-profile-trigger-avatar-wrap">
-            <div className="qb-profile-trigger-avatar">
+            <div className={`qb-profile-trigger-avatar shape-${profile?.avatarShape || "badge"}`}>
               {profile?.avatarUrl ? (
                 <img src={profile.avatarUrl} alt={profile.fullName || "User profile"} className="qb-avatar-img" />
               ) : profile?.fullName ? (
@@ -648,14 +689,16 @@ export default function SideNav({
 
               <div className="qb-rail-bottom">
                 <button
+                  ref={railBtnRef}
                   type="button"
                   className={`qb-rail-profile-btn${profileMenuOpen ? " is-active" : ""}`}
                   onClick={() => setProfileMenuOpen((prev) => !prev)}
                   title={profile?.fullName || (isAuthenticated ? "Reviewer profile" : "Guest profile")}
                   aria-label="Profile menu"
+                  aria-expanded={profileMenuOpen}
                 >
                   <div className="qb-profile-trigger-avatar-wrap">
-                    <div className="qb-profile-trigger-avatar small">
+                    <div className={`qb-profile-trigger-avatar small shape-${profile?.avatarShape || "badge"}`}>
                       {profile?.avatarUrl ? (
                         <img src={profile.avatarUrl} alt="Avatar" className="qb-avatar-img" />
                       ) : profile?.fullName ? (
@@ -667,6 +710,23 @@ export default function SideNav({
                     <span className={`qb-profile-online-dot${isAuthenticated ? " online" : " guest"}`} />
                   </div>
                 </button>
+
+                {profileMenuOpen && railCoords && createPortal(
+                  <div
+                    ref={railPopoverRef}
+                    className="qb-rail-portal-popover-wrap"
+                    style={{
+                      position: "fixed",
+                      top: `${railCoords.top}px`,
+                      left: `${railCoords.left}px`,
+                      width: "295px",
+                      zIndex: 999999,
+                    }}
+                  >
+                    {renderProfilePopover(false)}
+                  </div>,
+                  document.body
+                )}
 
                 {onOpenSettings && (
                   <button

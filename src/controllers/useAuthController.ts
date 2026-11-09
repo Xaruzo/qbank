@@ -140,6 +140,7 @@ const getProfileDetails = (user, customProfile) => {
     avatarUrl,
     initials,
     avatarColor: customProfile?.avatarColor || "amber",
+    avatarShape: customProfile?.avatarShape || user?.user_metadata?.avatar_shape || "badge",
     examTarget: customProfile?.examTarget || user?.user_metadata?.exam_target || "professional",
     targetExamDate: customProfile?.targetExamDate || "2026-08-09",
     dailyStudyGoal: customProfile?.dailyStudyGoal || 25,
@@ -390,6 +391,7 @@ export function useAuthController() {
           full_name: nextCustom.fullName,
           avatar_url: nextCustom.avatarUrl,
           avatar_color: nextCustom.avatarColor,
+          avatar_shape: nextCustom.avatarShape,
           exam_target: nextCustom.examTarget,
         },
       };
@@ -426,6 +428,7 @@ export function useAuthController() {
             full_name: nextCustom.fullName,
             avatar_url: remoteAvatarUrl,
             avatar_color: nextCustom.avatarColor,
+            avatar_shape: nextCustom.avatarShape,
             exam_target: nextCustom.examTarget,
           },
         });
@@ -440,6 +443,7 @@ export function useAuthController() {
               full_name: nextCustom.fullName,
               avatar_url: remoteAvatarUrl,
               avatar_color: nextCustom.avatarColor,
+              avatar_shape: nextCustom.avatarShape,
               exam_target: nextCustom.examTarget,
               updated_at: new Date().toISOString(),
             }, { onConflict: "id" });

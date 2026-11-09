@@ -99,7 +99,7 @@ export default function Header({
   };
 
   const accountIcon = (
-    <span className="qb-account-avatar" aria-hidden="true">
+    <span className={`qb-account-avatar shape-${profile?.avatarShape || "badge"}`} aria-hidden="true">
       {profile?.avatarUrl ? (
         <img
           src={profile.avatarUrl}
@@ -231,9 +231,9 @@ export default function Header({
             <div className="qb-account-wrap" ref={menuRef}>
               <button
                 type="button"
-                className={`qb-account-btn qb-account-btn-avatar${
-                  menuOpen ? " is-active" : ""
-                }`}
+                className={`qb-account-btn qb-account-btn-avatar shape-${
+                  profile?.avatarShape || "badge"
+                }${menuOpen ? " is-active" : ""}`}
                 onClick={() => setMenuOpen((open) => !open)}
                 aria-expanded={menuOpen}
                 aria-haspopup="menu"

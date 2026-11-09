@@ -244,6 +244,7 @@ export interface CustomSelectProps {
   placeholder?: string;
   className?: string;
   style?: React.CSSProperties;
+  leadIcon?: React.ReactNode;
 }
 
 export interface LandingPageProps {

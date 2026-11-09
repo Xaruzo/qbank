@@ -122,6 +122,13 @@ export default function SettingsPage({
 
   const daysRemaining = calculateDaysRemaining(examDate);
 
+  const handleShapeChange = (shape: "badge" | "circle") => {
+    setAvatarShape(shape);
+    if (onUpdateProfile) {
+      onUpdateProfile({ avatarShape: shape });
+    }
+  };
+
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -388,12 +395,17 @@ export default function SettingsPage({
                     </span>
                   </div>
 
-                  {/* Circle vs Badge Shape Switcher */}
-                  <div className="qb-settings-shape-toggle-group">
+                  {/* Circle vs Badge Shape Switcher with animated sliding glider */}
+                  <div className="qb-settings-shape-toggle-group" data-shape={avatarShape}>
+                    <div
+                      className={`qb-settings-shape-glider ${avatarShape === "circle" ? "is-circle" : "is-badge"}`}
+                      aria-hidden="true"
+                    />
                     <button
                       type="button"
                       className={`qb-settings-shape-btn${avatarShape === "badge" ? " active" : ""}`}
-                      onClick={() => setAvatarShape("badge")}
+                      onClick={() => handleShapeChange("badge")}
+                      aria-pressed={avatarShape === "badge"}
                     >
                       <span className="shape-icon badge-shape" />
                       <span>Badge</span>
@@ -401,7 +413,8 @@ export default function SettingsPage({
                     <button
                       type="button"
                       className={`qb-settings-shape-btn${avatarShape === "circle" ? " active" : ""}`}
-                      onClick={() => setAvatarShape("circle")}
+                      onClick={() => handleShapeChange("circle")}
+                      aria-pressed={avatarShape === "circle"}
                     >
                       <span className="shape-icon circle-shape" />
                       <span>Circle</span>

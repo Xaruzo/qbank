@@ -51,3 +51,4 @@ qbank database/
 
 # AI Studio local files
 .aistudio/
+public/assets/aistudio/
