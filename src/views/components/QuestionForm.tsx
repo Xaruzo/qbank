@@ -5,9 +5,16 @@ import DrawCanvas from "./DrawCanvas";
 import SymbolToolbar from "./SymbolToolbar";
 import { handleSymbolShortcuts } from "../../utils/symbolShortcuts";
 import { uploadImageToSupabase, validateImageFile } from "../../utils/imageUpload";
-import { ChevronLeft, ChevronDown, Pencil, Image, Loader } from "lucide-react";
+import { 
+  ChevronLeft, ChevronDown, Pencil, Image, Loader,
+  Trash2, Maximize2, Minimize2, Sparkles, Layers, X, Check, PenTool, ArrowLeft
+} from "lucide-react";
 
 export default function QuestionForm({ initialData, onSave, onCancel, layersHost, sideRailHost }) {
+  const [isDrawModalOpen, setIsDrawModalOpen] = useState(false);
+  const [tempDraw, setTempDraw] = useState(initialData?.solutionDraw || null);
+  const [modalLayersHostEl, setModalLayersHostEl] = useState<HTMLDivElement | null>(null);
+  const [showModalLayers, setShowModalLayers] = useState(true);
   const [form, setForm] = useState(initialData ? {
     ...initialData,
     label: typeof initialData.label === "string" ? initialData.label : "",
@@ -65,6 +72,83 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
       initialData.solutionUpload || isDataUrl ? "upload" : draw ? "draw" : null
     ));
   }, [initialData?.id, initialData?.solutionDraw, initialData?.solutionUpload]);
+
+  const drawPreviewUrl = useMemo(() => {
+    const d = form.solutionDraw;
+    if (!d) return null;
+    if (typeof d === "string") {
+      if (d.startsWith("data:image")) return d;
+      try {
+        const parsed = JSON.parse(d);
+        if (parsed && typeof parsed === "object" && parsed.dataURL) return parsed.dataURL;
+      } catch {
+        // ignore JSON parse error
+      }
+      return null;
+    }
+    if (typeof d === "object" && d?.dataURL) return d.dataURL;
+    return null;
+  }, [form.solutionDraw]);
+
+  const handleOpenDrawModal = () => {
+    setTempDraw(form.solutionDraw);
+    setIsDrawModalOpen(true);
+  };
+
+  const handleApplyDraw = () => {
+    setForm(f => ({ ...f, solutionDraw: tempDraw }));
+    setIsDrawModalOpen(false);
+  };
+
+  const handleCancelDraw = () => {
+    setIsDrawModalOpen(false);
+  };
+
+  const [isBrowserFs, setIsBrowserFs] = useState(false);
+
+  const toggleBrowserFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+        setIsBrowserFs(true);
+      } else {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+          setIsBrowserFs(false);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    const handleFsChange = () => {
+      setIsBrowserFs(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFsChange);
+    return () => document.removeEventListener("fullscreenchange", handleFsChange);
+  }, []);
+
+  useEffect(() => {
+    if (!isDrawModalOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsDrawModalOpen(false);
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        setForm(f => ({ ...f, solutionDraw: tempDraw }));
+        setIsDrawModalOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isDrawModalOpen, tempDraw]);
 
   const topicLabel = useMemo(() => TOPICS.find(t => t.id === form.topic)?.label || "Topic", [form.topic]);
 
@@ -478,9 +562,22 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
         />
 
         <div className="sol-tabs" aria-label="Additional visual content" style={{ marginTop:12 }}>
-          <button type="button" className={`sol-tab${visualMode==="draw"?" sol-on":""}`} onClick={() => setVisualMode(visualMode==="draw"?null:"draw")}>
+          <button 
+            type="button" 
+            className={`sol-tab${visualMode==="draw"?" sol-on":""}`} 
+            onClick={() => {
+              if (visualMode === "draw") {
+                setVisualMode(null);
+              } else {
+                setVisualMode("draw");
+                if (!form.solutionDraw) {
+                  handleOpenDrawModal();
+                }
+              }
+            }}
+          >
             <Pencil size={14} />
-            {form.solutionDraw ? "Drawing" : "Add Drawing"}
+            {form.solutionDraw ? "Whiteboard Diagram" : "Add Whiteboard"}
           </button>
           <button type="button" className={`sol-tab${visualMode==="upload"?" sol-on":""}`} onClick={() => setVisualMode(visualMode==="upload"?null:"upload")}>
             <Image size={14} />
@@ -489,22 +586,78 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
         </div>
 
         {visualMode==="draw" && (
-          <div style={{ marginTop:12 }}>
-            <DrawCanvas value={form.solutionDraw} onChange={v => setForm(f => ({...f, solutionDraw:v}))} layersHost={layersHost} />
-            {form.solutionDraw && (
-              <div style={{ display:"flex", justifyContent:"flex-end", marginTop:8 }}>
+          <div className="qb-draw-visual-section">
+            {form.solutionDraw ? (
+              <div className="qb-draw-preview-card">
+                <div 
+                  className="qb-draw-preview-media"
+                  onClick={handleOpenDrawModal}
+                  title="Click to open full-screen whiteboard studio"
+                >
+                  {drawPreviewUrl ? (
+                    <img src={drawPreviewUrl} alt="Solution diagram snapshot" className="qb-draw-preview-img" />
+                  ) : (
+                    <div className="qb-draw-preview-placeholder">
+                      <Sparkles size={24} />
+                      <span>Diagram Attached (Vector State)</span>
+                    </div>
+                  )}
+                  <div className="qb-draw-preview-overlay">
+                    <Maximize2 size={16} />
+                    <span>Open Full Screen</span>
+                  </div>
+                </div>
+
+                <div className="qb-draw-preview-info">
+                  <div className="qb-draw-preview-meta">
+                    <span className="qb-draw-badge-pill">
+                      <span className="qb-draw-pulse-dot" />
+                      Whiteboard Attached
+                    </span>
+                    <span className="qb-draw-preview-hint">Rendered in solution view & zoomable</span>
+                  </div>
+                  <h4 className="qb-draw-preview-title">Visual Solution Canvas</h4>
+                  <p className="qb-draw-preview-copy">
+                    This step-by-step diagram is linked to this question. Examinees can inspect it and zoom in full detail during review.
+                  </p>
+                  <div className="qb-draw-preview-actions">
+                    <button
+                      type="button"
+                      className="qb-draw-action-btn qb-draw-action-btn-edit"
+                      onClick={handleOpenDrawModal}
+                    >
+                      <Pencil size={14} />
+                      <span>Open Full-Screen Whiteboard</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="qb-draw-action-btn qb-draw-action-btn-remove"
+                      onClick={() => setConfirmRemoveDraw(true)}
+                    >
+                      <Trash2 size={14} />
+                      <span>Remove</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="qb-draw-empty-card">
+                <div className="qb-draw-empty-icon-wrap">
+                  <PenTool size={22} />
+                </div>
+                <div className="qb-draw-empty-content">
+                  <h4 className="qb-draw-empty-title">Visual Explanation & Whiteboard Studio</h4>
+                  <p className="qb-draw-empty-desc">
+                    Illustrate calculations, fraction cancellation steps, geometry angles, or ratio tables with vector brushes, text, and math symbols in a dedicated full-screen view.
+                  </p>
+                </div>
                 <button
                   type="button"
-                  onClick={() => setConfirmRemoveDraw(true)}
-                  style={{
-                    background:"none", border:"1px solid var(--border)", color:"#fff",
-                    fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:600,
-                    padding:"5px 12px", borderRadius:8, cursor:"pointer",
-                    display:"inline-flex", alignItems:"center", gap:6
-                  }}
+                  className="qb-draw-launch-btn"
+                  onClick={handleOpenDrawModal}
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                  Remove Drawing
+                  <Pencil size={14} />
+                  <span>Launch Full-Screen Whiteboard</span>
                 </button>
               </div>
             )}
@@ -588,6 +741,119 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
       </div>
 
       {!useSideRail && settingsPanel}
+
+      {isDrawModalOpen && createPortal(
+        <div 
+          className="qb-draw-studio-view" 
+          role="region" 
+          aria-label="Solution Whiteboard Studio"
+        >
+          {/* Studio Top Navigation Bar */}
+          <header className="qb-draw-studio-nav">
+            <div className="qb-draw-studio-nav-left">
+              <button
+                type="button"
+                className="qb-draw-studio-back-btn"
+                onClick={handleCancelDraw}
+                title="Return to Question Form (Esc)"
+              >
+                <ArrowLeft size={16} />
+                <span>Back to Question</span>
+              </button>
+
+              <div className="qb-draw-studio-divider" />
+
+              <div className="qb-draw-studio-info">
+                <div className="qb-draw-studio-title-line">
+                  <h2 className="qb-draw-studio-title">Solution Whiteboard Studio</h2>
+                  <span className="qb-draw-studio-badge">Full View</span>
+                  {topicLabel && (
+                    <span className="qb-draw-studio-topic-pill">{topicLabel}</span>
+                  )}
+                </div>
+                <span className="qb-draw-studio-sub">
+                  Full-screen vector workspace for math steps, formulas, and geometry
+                </span>
+              </div>
+            </div>
+
+            <div className="qb-draw-studio-nav-right">
+              <button
+                type="button"
+                className={`qb-draw-studio-tool-btn${showModalLayers ? " is-active" : ""}`}
+                onClick={() => setShowModalLayers(prev => !prev)}
+                title={showModalLayers ? "Hide Layers Panel" : "Show Layers Panel"}
+              >
+                <Layers size={14} />
+                <span>Layers</span>
+              </button>
+
+              <button
+                type="button"
+                className={`qb-draw-studio-tool-btn${isBrowserFs ? " is-active" : ""}`}
+                onClick={toggleBrowserFullscreen}
+                title={isBrowserFs ? "Exit Window Fullscreen" : "Window Fullscreen"}
+              >
+                {isBrowserFs ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                <span>{isBrowserFs ? "Exit Window" : "Window Fullscreen"}</span>
+              </button>
+
+              <div className="qb-draw-studio-divider" />
+
+              <button
+                type="button"
+                className="qb-draw-studio-btn-discard"
+                onClick={handleCancelDraw}
+                title="Discard canvas changes (Esc)"
+              >
+                Discard
+              </button>
+
+              <button
+                type="button"
+                className="qb-draw-studio-btn-save"
+                onClick={handleApplyDraw}
+                title="Save drawing and return to question (Ctrl+S)"
+              >
+                <Check size={16} />
+                <span>Save & Return to Question</span>
+              </button>
+            </div>
+          </header>
+
+          {/* Full View Studio Body */}
+          <main className="qb-draw-studio-body">
+            <div className="qb-draw-studio-canvas-area">
+              <DrawCanvas
+                value={tempDraw}
+                onChange={setTempDraw}
+                layersHost={showModalLayers ? modalLayersHostEl : null}
+              />
+            </div>
+
+            {showModalLayers && (
+              <aside className="qb-draw-studio-sidebar">
+                <div className="qb-draw-studio-sidebar-header">
+                  <div className="qb-draw-studio-sidebar-title">
+                    <Layers size={14} />
+                    <span>Visual Layers</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="qb-draw-studio-sidebar-close"
+                    onClick={() => setShowModalLayers(false)}
+                    title="Hide Layers Sidebar"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+                <div ref={setModalLayersHostEl} className="qb-studio-layers-slot" />
+              </aside>
+            )}
+          </main>
+        </div>,
+        document.body
+      )}
 
       {confirmRemoveDraw && createPortal(
         <div style={{

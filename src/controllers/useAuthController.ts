@@ -90,7 +90,7 @@ const toAuthError = (error, fallback) => {
   ) {
     message = "Too many attempts. Please wait a moment before trying again.";
   } else if (isNetworkOrFetchError(error)) {
-    message = "Could not reach the authentication service. Check your internet connection and try again.";
+    message = "Could not reach the authentication service. The Supabase cloud project may be paused, or an ad-blocker/shield (like Brave Shields) may be blocking the request. You can also sign in using a password.";
   }
   return new Error(message);
 };

@@ -1008,6 +1008,7 @@ export default function App() {
           onToggleTheme={toggleTheme} 
           onHome={handleGoHome}
           onLanding={handleGoLanding}
+          currentView={view}
           showNavToggle={isMobile || isCompact}
           navOpen={navOpen}
           onToggleNav={() => setNavOpen(v => !v)}
@@ -1399,13 +1400,12 @@ export default function App() {
                   <div ref={setEditorAsideHostEl} className="qb-editor-side-host" />
                   <div className="qb-editor-side-card qb-editor-side-card-layers">
                     <div className="qb-editor-side-card-head">
-                      <span className="qb-editor-side-kicker">Visual Layers</span>
-                      <div className="qb-editor-side-title">Drawing stack</div>
+                      <span className="qb-editor-side-kicker">Visual Solutions</span>
+                      <div className="qb-editor-side-title">Dedicated Whiteboard</div>
                       <p className="qb-editor-side-copy">
-                        When you open the drawing tool, its layers stay here so the main editor remains focused and uncluttered.
+                        Draw math steps, fraction trees, and geometry figures in a focused, fullscreen canvas dialog without scrolling interference.
                       </p>
                     </div>
-                    <div ref={setLayersHostEl} className="qb-layers-host" />
                   </div>
                 </div>
               </div>

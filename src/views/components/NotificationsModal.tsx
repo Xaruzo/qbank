@@ -329,6 +329,7 @@ export default function NotificationsModal({
                 <div className="qb-notif-item-top">
                   <span className="qb-notif-item-title">{notif.title}</span>
                   <div className="qb-notif-item-meta">
+                    {!notif.read && <span className="qb-notif-unread-dot" aria-label="Unread notification" />}
                     <span className="qb-notif-item-time">{notif.timestamp}</span>
                     <button
                       type="button"
@@ -358,7 +359,6 @@ export default function NotificationsModal({
                   </div>
                 )}
               </div>
-              {!notif.read && <span className="qb-notif-unread-dot" aria-hidden="true" />}
             </div>
           ))
         )}

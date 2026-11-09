@@ -112,6 +112,7 @@ export interface HeaderProps {
   onToggleTheme: () => void;
   onHome: () => void;
   onLanding?: () => void;
+  currentView?: string;
   showNavToggle?: boolean;
   navOpen?: boolean;
   onToggleNav?: () => void;

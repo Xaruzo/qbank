@@ -42,6 +42,7 @@ export default function Header({
   onMockExam,
   onTips,
   onNotes,
+  currentView = "home",
   settings,
   onUpdateSettings,
   onResetSettings,
@@ -152,12 +153,12 @@ export default function Header({
           {onLanding && !isAuthenticated && (
             <button
               type="button"
-              className="qb-hdr-landing-link"
+              className={`qb-hdr-landing-link${currentView === "landing" ? " is-active" : ""}`}
               onClick={onLanding}
               title="View Landing Page & Exam Overview"
               aria-label="View Landing Page & Exam Overview"
             >
-              <Sparkles size={14} />
+              <Sparkles size={14} className="qb-hdr-landing-icon" />
               <span>Overview</span>
             </button>
           )}
