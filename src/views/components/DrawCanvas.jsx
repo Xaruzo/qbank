@@ -51,7 +51,13 @@ import {
   Lock,
   Unlock,
   Layers2,
-  CircleDot
+  CircleDot,
+  Link2,
+  Binary,
+  Triangle,
+  GitBranch,
+  RotateCw,
+  Play
 } from "lucide-react";
 
 const CANVA_FONTS = [
@@ -3623,7 +3629,8 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
     if (!el || !canvas) return;
     const apply = () => {
       const w = Math.floor(el.clientWidth - 20);
-      const next = Math.max(280, Math.min(BASE_W, w || BASE_W));
+      const maxW = 1180;
+      const next = Math.max(280, Math.min(maxW, w || 820));
       if (canvas.getWidth() !== next) canvas.setWidth(next);
       canvas.calcOffset?.();
       canvas.requestRenderAll();
@@ -6235,7 +6242,8 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
                         <span>•→</span> Dot-to-Arrow
                       </button>
                       <button className="draw-tb" onClick={() => { connectSelectedShapes("curved"); setFlowchartMenuOpen(false); }} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 7px", color: "#2563eb", fontWeight: 700 }}>
-                        <span>🔗</span> Connect 2 Sel
+                        <Link2 size={13} />
+                        <span>Connect 2 Sel</span>
                       </button>
                     </div>
                   </div>
@@ -6268,22 +6276,28 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
                     <div className="draw-popover-section-title">Solution & Diagram Templates</div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                       <button className="draw-tb" onClick={() => addProcessTemplate("series")} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 8px" }}>
-                        <span>🔢</span> Number Series Pattern (+d Jumps)
+                        <Binary size={13} className="text-amber-500" />
+                        <span>Number Series Pattern (+d Jumps)</span>
                       </button>
                       <button className="draw-tb" onClick={() => addProcessTemplate("crossMultiply")} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 8px" }}>
-                        <span>✖️</span> Cross-Multiply Ratio Grid
+                        <X size={13} className="text-emerald-500" />
+                        <span>Cross-Multiply Ratio Grid</span>
                       </button>
                       <button className="draw-tb" onClick={() => addProcessTemplate("dstTriangle")} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 8px" }}>
-                        <span>📐</span> Distance-Speed-Time Triangle
+                        <Triangle size={13} className="text-cyan-500" />
+                        <span>Distance-Speed-Time Triangle</span>
                       </button>
                       <button className="draw-tb" onClick={() => addProcessTemplate("linear3")} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 8px" }}>
-                        <span>▶</span> 3-Step Process (1 ➔ 2 ➔ 3)
+                        <Play size={13} className="text-blue-500" />
+                        <span>3-Step Process (1 ➔ 2 ➔ 3)</span>
                       </button>
                       <button className="draw-tb" onClick={() => addProcessTemplate("decision")} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 8px" }}>
-                        <span>⌥</span> If-Else Decision Branch (Yes / No)
+                        <GitBranch size={13} className="text-purple-500" />
+                        <span>If-Else Decision Branch (Yes / No)</span>
                       </button>
                       <button className="draw-tb" onClick={() => addProcessTemplate("cycle")} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 8px" }}>
-                        <span>↺</span> 3-Node Cycle (Feedback Loop)
+                        <RotateCw size={13} className="text-pink-500" />
+                        <span>3-Node Cycle (Feedback Loop)</span>
                       </button>
                     </div>
                   </div>

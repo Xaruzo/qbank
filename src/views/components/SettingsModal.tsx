@@ -20,6 +20,7 @@ import {
   Upload,
   Image as ImageIcon,
   RotateCcw,
+  Bell,
 } from "lucide-react";
 import { useOverlayDialogA11y } from "../../controllers/useOverlayDialogA11y";
 import type { AppSettings, UserProfile } from "../../types";
@@ -570,12 +571,20 @@ export default function SettingsModal({
                     />
                   </div>
                   {daysRemaining !== null && (
-                    <span className="qb-settings-hint-text">
-                      {daysRemaining > 0
-                        ? `⏱️ ${daysRemaining} days remaining until exam day`
-                        : daysRemaining === 0
-                        ? "🔔 Exam is today! Good luck!"
-                        : "Past target date"}
+                    <span className="qb-settings-hint-text flex items-center gap-1.5">
+                      {daysRemaining > 0 ? (
+                        <>
+                          <Clock size={12} className="text-amber-500 shrink-0" />
+                          <span>{daysRemaining} days remaining until exam day</span>
+                        </>
+                      ) : daysRemaining === 0 ? (
+                        <>
+                          <Bell size={12} className="text-emerald-500 shrink-0" />
+                          <span>Exam is today! Good luck!</span>
+                        </>
+                      ) : (
+                        <span>Past target date</span>
+                      )}
                     </span>
                   )}
                 </div>

@@ -758,7 +758,9 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
                 title="Return to Question Form (Esc)"
               >
                 <ArrowLeft size={16} />
-                <span>Back to Question</span>
+                <span className="qb-draw-studio-btn-text">
+                  Back<span className="qb-draw-studio-btn-text-full"> to Question</span>
+                </span>
               </button>
 
               <div className="qb-draw-studio-divider" />
@@ -766,13 +768,14 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
               <div className="qb-draw-studio-info">
                 <div className="qb-draw-studio-title-line">
                   <h2 className="qb-draw-studio-title">Solution Whiteboard Studio</h2>
-                  <span className="qb-draw-studio-badge">Full View</span>
                   {topicLabel && (
-                    <span className="qb-draw-studio-topic-pill">{topicLabel}</span>
+                    <span className="qb-draw-studio-topic-label" title={`Exam Subject: ${topicLabel}`}>
+                      · {topicLabel}
+                    </span>
                   )}
                 </div>
                 <span className="qb-draw-studio-sub">
-                  Full-screen vector workspace for math steps, formulas, and geometry
+                  Vector workspace for math steps, formulas, and geometry
                 </span>
               </div>
             </div>
@@ -795,7 +798,9 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
                 title={isBrowserFs ? "Exit Window Fullscreen" : "Window Fullscreen"}
               >
                 {isBrowserFs ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-                <span>{isBrowserFs ? "Exit Window" : "Window Fullscreen"}</span>
+                <span className="qb-draw-studio-tool-label">
+                  {isBrowserFs ? "Exit" : "Fullscreen"}
+                </span>
               </button>
 
               <div className="qb-draw-studio-divider" />
@@ -816,7 +821,9 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
                 title="Save drawing and return to question (Ctrl+S)"
               >
                 <Check size={16} />
-                <span>Save & Return to Question</span>
+                <span>
+                  Save<span className="qb-draw-studio-btn-text-full"> & Return</span>
+                </span>
               </button>
             </div>
           </header>

@@ -419,7 +419,7 @@ export default function SideNav({
         </div>
       </div>
 
-      {isOverlay ? (
+      {isOverlay && (
         <button
           type="button"
           className="qb-nav-close-btn"
@@ -429,18 +429,6 @@ export default function SideNav({
         >
           <X size={18} />
         </button>
-      ) : (
-        onToggleNav && (
-          <button
-            type="button"
-            className="qb-nav-close-btn"
-            onClick={onToggleNav}
-            aria-label="Collapse sidebar"
-            title="Collapse sidebar"
-          >
-            <PanelLeftClose size={18} />
-          </button>
-        )
       )}
     </div>
   );
