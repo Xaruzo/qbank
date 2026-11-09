@@ -206,7 +206,7 @@ body {
   border-bottom: 1px solid var(--border);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
   height: var(--hdr-height);
-  padding: 0 24px 0 0;
+  padding: 0 24px 0 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
