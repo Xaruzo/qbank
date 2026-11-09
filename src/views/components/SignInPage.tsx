@@ -275,14 +275,28 @@ export default function SignInPage({
               {/* Auth Form */}
               <form onSubmit={handleSubmit} className="qb-signin-form">
                 <div className="qb-signin-field">
-                  <label htmlFor="signin-email" className="qb-signin-label">
-                    Email Address
-                  </label>
+                  <div className="qb-signin-label-row">
+                    <label htmlFor="signin-email" className="qb-signin-label">
+                      Email Address
+                    </label>
+                    <button
+                      type="button"
+                      className="qb-signin-hint-btn"
+                      onClick={() => setEmail("xaruzowarlord@gmail.com")}
+                      title="Quick fill registered admin email"
+                    >
+                      <Zap size={11} style={{ display: "inline", marginRight: 3 }} />
+                      Quick Admin Fill
+                    </button>
+                  </div>
                   <div className="qb-signin-input-wrap">
                     <Mail size={16} className="qb-signin-input-icon" />
                     <input
                       id="signin-email"
+                      name="email"
                       type="email"
+                      autoComplete="username email"
+                      spellCheck={false}
                       required
                       className="qb-signin-input"
                       placeholder="e.g. examinee@gmail.com"
@@ -291,6 +305,9 @@ export default function SignInPage({
                       disabled={loading}
                       autoFocus
                     />
+                    {email.trim().includes("@") && email.trim().includes(".") && (
+                      <CheckCircle2 size={16} className="qb-signin-input-valid-icon" />
+                    )}
                   </div>
                 </div>
 
@@ -314,7 +331,10 @@ export default function SignInPage({
                       <KeyRound size={16} className="qb-signin-input-icon" />
                       <input
                         id="signin-password"
+                        name="password"
                         type={showPassword ? "text" : "password"}
+                        autoComplete={isRegisterMode ? "new-password" : "current-password"}
+                        spellCheck={false}
                         required={usePassword}
                         className="qb-signin-input with-toggle"
                         placeholder={isRegisterMode ? "Create a secure password (6+ chars)" : "Enter your password"}
@@ -331,6 +351,14 @@ export default function SignInPage({
                         {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
                     </div>
+                    {isRegisterMode && (
+                      <div className="qb-signin-validation-list">
+                        <span className={`qb-signin-val-item${password.length >= 6 ? " met" : ""}`}>
+                          <CheckCircle2 size={12} />
+                          <span>At least 6 characters</span>
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -343,7 +371,10 @@ export default function SignInPage({
                       <KeyRound size={16} className="qb-signin-input-icon" />
                       <input
                         id="signin-confirm-password"
+                        name="confirmPassword"
                         type={showPassword ? "text" : "password"}
+                        autoComplete="new-password"
+                        spellCheck={false}
                         required
                         className="qb-signin-input"
                         placeholder="Re-enter your password"
@@ -352,6 +383,14 @@ export default function SignInPage({
                         disabled={loading}
                       />
                     </div>
+                    {confirmPassword.length > 0 && (
+                      <div className="qb-signin-validation-list">
+                        <span className={`qb-signin-val-item${password === confirmPassword ? " met" : ""}`}>
+                          <CheckCircle2 size={12} />
+                          <span>{password === confirmPassword ? "Passwords match" : "Passwords do not match"}</span>
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
 

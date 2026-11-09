@@ -19,7 +19,7 @@ import LoadingSpinner from "./views/components/LoadingSpinner";
 import SkeletonLoader, { MockSkeletonLoader, TipsSkeletonLoader } from "./views/components/SkeletonLoader";
 import HelpModal from "./views/components/HelpModal";
 import AuthModal from "./views/components/AuthModal";
-import SettingsModal from "./views/components/SettingsModal";
+import SettingsPage from "./views/components/SettingsPage";
 import TutorialGuide from "./views/components/TutorialGuide";
 import LandingPage from "./views/components/LandingPage";
 import SignInPage from "./views/components/SignInPage";
@@ -106,6 +106,7 @@ export default function App() {
       const page = params.get("page");
       if (page === "landing") return "landing";
       if (page === "signin" || page === "login") return "signIn";
+      if (page === "settings") return "settings";
       if (page) return "list";
       const hasEntered = sessionStorage.getItem("qbank-session-active") === "true";
       return hasEntered ? "list" : "landing";
@@ -128,11 +129,11 @@ export default function App() {
   const [hasLoadedActiveMockExam, setHasLoadedActiveMockExam] = useState(false);
   const [selectedMockAttemptId, setSelectedMockAttemptId] = useState(null);
   const [selectedNoteId, setSelectedNoteId] = useState(null);
+  const [settingsTab, setSettingsTab] = useState<string>("identity");
   const [isMobile, setIsMobile] = useState(() => window.matchMedia ? window.matchMedia("(max-width: 600px)").matches : false);
   const [isCompact, setIsCompact] = useState(() => window.matchMedia ? window.matchMedia("(min-width: 601px) and (max-width: 1099px)").matches : false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [runGuide, setRunGuide] = useState(false);
   const mainRef = useRef(null);
   const qsRef = useRef(qs);
@@ -484,6 +485,19 @@ export default function App() {
         return;
       }
 
+      if (page === "settings") {
+        const tab = params.get("tab") || "identity";
+        setSelectedMockAttemptId(null);
+        setDeepLinkShowSol(false);
+        setEditId(null);
+        setExam(null);
+        setSelectedId(null);
+        setSelectedNoteId(null);
+        setSettingsTab(tab);
+        setView("settings");
+        return;
+      }
+
       if (page === "tip") {
         setSelectedMockAttemptId(null);
         setDeepLinkShowSol(false);
@@ -653,6 +667,19 @@ export default function App() {
     const query = noteId ? `?page=notes&note=${encodeURIComponent(noteId)}` : `?page=notes`;
     window.history.pushState({}, "", query);
     setView("notes");
+  };
+
+  const handleGoSettings = (tab = "identity") => {
+    setEditId(null);
+    setSelectedId(null);
+    setSelectedMockAttemptId(null);
+    setSelectedNoteId(null);
+    setDeepLinkShowSol(false);
+    setExam(null);
+    setSettingsTab(tab);
+    window.history.pushState({}, "", `?page=settings&tab=${encodeURIComponent(tab)}`);
+    setView("settings");
+    setNavOpen(false);
   };
 
   const handleOpenTipDetail = (questionId) => {
@@ -1019,7 +1046,7 @@ export default function App() {
           onSignIn={handleSignIn}
           onSignOut={handleSignOut}
           onOpenHelp={handleOpenHelp}
-          onOpenSettings={() => setShowSettingsModal(true)}
+          onOpenSettings={handleGoSettings}
           onMockExam={handleGoMockExam}
           onTips={handleGoTips}
           onNotes={handleGoNotes}
@@ -1044,7 +1071,7 @@ export default function App() {
             totalQuestions={qs.length}
             starredCount={favoriteCount}
             onOpenHelp={handleOpenHelp}
-            onOpenSettings={() => setShowSettingsModal(true)}
+            onOpenSettings={handleGoSettings}
             isAuthenticated={isAuthenticated}
             profile={profile}
             onSignIn={handleSignIn}
@@ -1056,6 +1083,9 @@ export default function App() {
             }}
             topicCounts={counts}
             settings={settings}
+            isDark={isDark}
+            onToggleTheme={toggleTheme}
+            isQuestionAdmin={isQuestionAdmin}
           />
         )}
 
@@ -1074,7 +1104,7 @@ export default function App() {
               totalQuestions={qs.length}
               starredCount={favoriteCount}
               onOpenHelp={handleOpenHelp}
-              onOpenSettings={() => setShowSettingsModal(true)}
+              onOpenSettings={handleGoSettings}
               isAuthenticated={isAuthenticated}
               profile={profile}
               onSignIn={handleSignIn}
@@ -1086,6 +1116,9 @@ export default function App() {
               }}
               topicCounts={counts}
               settings={settings}
+              isDark={isDark}
+              onToggleTheme={toggleTheme}
+              isQuestionAdmin={isQuestionAdmin}
             />
           )}
           <main ref={mainRef} className={`qb-main${view === "mockRun" ? " qb-main-exam" : view === "detail" ? " qb-main-detail" : ""}`}>
@@ -1384,6 +1417,26 @@ export default function App() {
                   onRequireAuth={handleSignIn}
                 />
               )
+            ) : view === "settings" ? (
+              <SettingsPage
+                initialTab={settingsTab}
+                settings={settings}
+                onUpdateSettings={updateSettings}
+                onResetSettings={resetSettings}
+                profile={profile}
+                onUpdateProfile={updateProfile}
+                isDark={isDark}
+                onToggleTheme={toggleTheme}
+                isAuthenticated={isAuthenticated}
+                isQuestionAdmin={isQuestionAdmin}
+                totalQuestions={qs.length}
+                mockAttemptsCount={mockHistory.length}
+                favoritesCount={favoriteCount}
+                notesCount={0}
+                onBackToMain={handleGoHome}
+                onSignIn={handleSignIn}
+                onSignOut={handleSignOut}
+              />
             ) : view === "add" ? (
               <div className="qb-editor-shell">
               <div className="qb-editor">
@@ -1478,22 +1531,6 @@ export default function App() {
         onSignInWithEmail={signInWithEmail}
         onSignInWithGoogle={signInWithGoogle}
         isDark={isDark}
-      />
-
-      <SettingsModal
-        isOpen={showSettingsModal}
-        onClose={() => setShowSettingsModal(false)}
-        settings={settings}
-        onUpdateSettings={updateSettings}
-        onResetSettings={resetSettings}
-        profile={profile}
-        onUpdateProfile={updateProfile}
-        isDark={isDark}
-        onToggleTheme={toggleTheme}
-        isAuthenticated={isAuthenticated}
-        totalQuestions={qs.length}
-        mockAttemptsCount={mockHistory.length}
-        favoritesCount={favoriteCount}
       />
     </div>
   );

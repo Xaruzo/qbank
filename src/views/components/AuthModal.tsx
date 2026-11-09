@@ -120,7 +120,10 @@ export default function AuthModal({
               <Mail size={16} className="qb-auth-input-icon" />
               <input
                 id="auth-email-input"
+                name="email"
                 type="email"
+                autoComplete="username email"
+                spellCheck={false}
                 required
                 className="qb-auth-input"
                 placeholder="e.g. yourname@gmail.com"
@@ -141,7 +144,10 @@ export default function AuthModal({
                 <KeyRound size={16} className="qb-auth-input-icon" />
                 <input
                   id="auth-password-input"
+                  name="password"
                   type="password"
+                  autoComplete="current-password"
+                  spellCheck={false}
                   className="qb-auth-input"
                   placeholder="Enter your password"
                   value={password}

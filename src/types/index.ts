@@ -102,6 +102,8 @@ export interface UserProfile {
   avatarUrl?: string | null;
   initials: string;
   avatarColor?: string;
+  avatarShape?: "circle" | "badge";
+  avatarPreset?: string;
   examTarget?: "professional" | "subprofessional";
   targetExamDate?: string;
   dailyStudyGoal?: number;
@@ -125,12 +127,13 @@ export interface HeaderProps {
   onSignInWithGoogle?: () => Promise<{ error: any }>;
   onSignOut?: () => Promise<void> | void;
   onOpenHelp?: () => void;
-  onOpenSettings?: () => void;
+  onOpenSettings?: (tab?: string) => void;
   onMockExam?: () => void;
   onTips?: () => void;
   onNotes?: () => void;
   settings?: AppSettings;
   onUpdateSettings?: (partial: Partial<AppSettings>) => void;
+  isQuestionAdmin?: boolean;
 }
 
 export interface SideNavProps {
@@ -142,11 +145,14 @@ export interface SideNavProps {
   onMockExam?: () => void;
   onTips?: () => void;
   onNotes?: () => void;
+  onSettings?: (tab?: string) => void;
   onClose?: () => void;
   totalQuestions?: number;
   starredCount?: number;
+  isDark?: boolean;
+  onToggleTheme?: () => void;
   onOpenHelp?: () => void;
-  onOpenSettings?: () => void;
+  onOpenSettings?: (tab?: string) => void;
   isAuthenticated?: boolean;
   profile?: UserProfile | null;
   onSignIn?: () => void;
@@ -157,6 +163,27 @@ export interface SideNavProps {
   onSelectTopic?: (topicId: TopicId | "all") => void;
   topicCounts?: Record<string, number>;
   settings?: AppSettings;
+  isQuestionAdmin?: boolean;
+}
+
+export interface SettingsPageProps {
+  initialTab?: string;
+  settings: AppSettings;
+  onUpdateSettings: (partial: Partial<AppSettings>) => void;
+  onResetSettings?: () => void;
+  profile: UserProfile | null;
+  onUpdateProfile?: (partial: Partial<UserProfile>) => Promise<{ success: boolean }>;
+  isDark: boolean;
+  onToggleTheme: () => void;
+  isAuthenticated: boolean;
+  isQuestionAdmin?: boolean;
+  totalQuestions?: number;
+  mockAttemptsCount?: number;
+  favoritesCount?: number;
+  notesCount?: number;
+  onBackToMain: () => void;
+  onSignIn?: () => void;
+  onSignOut?: () => void;
 }
 
 export interface StatsProps {

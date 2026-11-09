@@ -5,11 +5,6 @@ import {
   Timer,
   NotebookPen,
   Lightbulb,
-  Calculator,
-  BookOpen,
-  Landmark,
-  BrainCircuit,
-  FileSpreadsheet,
   Star,
   X,
   LogIn,
@@ -19,6 +14,12 @@ import {
   Settings,
   PanelLeftClose,
   PanelLeftOpen,
+  ChevronsUpDown,
+  User,
+  Moon,
+  Sun,
+  Sliders,
+  ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 import brandLogo from "../../models/Image/logo.png";
@@ -33,14 +34,6 @@ interface NavItemDef {
   title: string;
   icon: LucideIcon;
 }
-
-const EXAM_SUBJECTS = [
-  { id: "numerical" as TopicId, label: "Numerical Ability", short: "NUM", icon: Calculator, color: "#f5a623" },
-  { id: "verbal" as TopicId, label: "Verbal Ability", short: "VRB", icon: BookOpen, color: "#22d3ee" },
-  { id: "general" as TopicId, label: "General Information", short: "GEN", icon: Landmark, color: "#a78bfa" },
-  { id: "analytical" as TopicId, label: "Analytical Ability", short: "ANA", icon: BrainCircuit, color: "#34d399" },
-  { id: "clerical" as TopicId, label: "Clerical Operations", short: "CLE", icon: FileSpreadsheet, color: "#f43f5e" },
-];
 
 interface WorkspaceNavListProps {
   navItems: NavItemDef[];
@@ -134,104 +127,6 @@ function WorkspaceNavList({
         );
       })}
     </nav>
-  );
-}
-
-interface SubjectsNavListProps {
-  subjects: typeof EXAM_SUBJECTS;
-  active: string;
-  activeTopic: TopicId | "all";
-  topicCounts: Record<string, number>;
-  onTopicClick: (topicId: TopicId) => void;
-}
-
-function SubjectsNavList({
-  subjects,
-  active,
-  activeTopic,
-  topicCounts,
-  onTopicClick,
-}: SubjectsNavListProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-  const [glider, setGlider] = useState<{ top: number; height: number; ready: boolean }>({
-    top: 0,
-    height: 0,
-    ready: false,
-  });
-
-  const isCurrentSection = active === "home" && activeTopic !== "all";
-
-  const updateGlider = () => {
-    if (!isCurrentSection) {
-      setGlider((prev) => ({ ...prev, ready: false }));
-      return;
-    }
-    const activeEl = itemRefs.current[activeTopic];
-    const container = containerRef.current;
-    if (activeEl && container) {
-      const cRect = container.getBoundingClientRect();
-      const elRect = activeEl.getBoundingClientRect();
-      setGlider({
-        top: elRect.top - cRect.top,
-        height: elRect.height,
-        ready: true,
-      });
-    } else {
-      setGlider((prev) => ({ ...prev, ready: false }));
-    }
-  };
-
-  useLayoutEffect(() => {
-    updateGlider();
-  }, [active, activeTopic, isCurrentSection]);
-
-  useEffect(() => {
-    window.addEventListener("resize", updateGlider);
-    return () => window.removeEventListener("resize", updateGlider);
-  }, [active, activeTopic, isCurrentSection]);
-
-  return (
-    <div ref={containerRef} className="qb-nav-subjects-list" role="list">
-      {glider.ready && (
-        <div
-          className="qb-nav-subject-glider"
-          style={{
-            transform: `translateY(${glider.top}px)`,
-            height: `${glider.height}px`,
-          }}
-          aria-hidden="true"
-        >
-          <span className="qb-nav-subject-glider-bar" />
-          <span className="qb-nav-subject-glider-pill" />
-        </div>
-      )}
-      {subjects.map((sub, idx) => {
-        const isCurrentTopic = active === "home" && activeTopic === sub.id;
-        const count = topicCounts[sub.id] ?? 0;
-        const SubIcon = sub.icon;
-
-        return (
-          <button
-            key={sub.id}
-            ref={(el) => {
-              itemRefs.current[sub.id] = el;
-            }}
-            type="button"
-            style={{ "--nav-idx": idx + 4 } as React.CSSProperties}
-            className={`qb-nav-subject-btn${isCurrentTopic ? " is-active" : ""}`}
-            onClick={() => onTopicClick(sub.id)}
-            title={`Filter by ${sub.label} (${count} questions)`}
-          >
-            <div className="qb-nav-subject-left">
-              <SubIcon size={15} style={{ color: sub.color }} className="qb-nav-subject-icon" />
-              <span className="qb-nav-subject-name">{sub.label}</span>
-            </div>
-            <span className="qb-nav-subject-count tabular-nums">{count}</span>
-          </button>
-        );
-      })}
-    </div>
   );
 }
 
@@ -331,6 +226,8 @@ export default function SideNav({
   onToggleNav,
   totalQuestions = 0,
   starredCount = 0,
+  isDark = true,
+  onToggleTheme,
   onOpenHelp,
   onOpenSettings,
   isAuthenticated = false,
@@ -341,9 +238,31 @@ export default function SideNav({
   onSelectTopic,
   topicCounts = {},
   settings,
+  isQuestionAdmin = false,
 }: SideNavProps) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const [profileMenuOpen, setProfileMenuOpen] = useState<boolean>(false);
   useOverlayDialogA11y(variant === "overlay" && open, onClose, cardRef);
+
+  // Click outside to dismiss PolicyPulse profile tooltip popover
+  useEffect(() => {
+    if (!profileMenuOpen) return undefined;
+    const handlePointerDown = (e: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setProfileMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setProfileMenuOpen(false);
+    };
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [profileMenuOpen]);
 
   const handlers: Record<string, (() => void) | undefined> = {
     home: onHome,
@@ -396,12 +315,6 @@ export default function SideNav({
     if (onClose) onClose();
   };
 
-  const handleTopicClick = (topicId: TopicId | "all") => {
-    if (onSelectTopic) onSelectTopic(topicId);
-    if (handlers.home) handlers.home();
-    if (onClose) onClose();
-  };
-
   // Reusable Top Brand Row
   const renderBrandHeader = (isOverlay = false) => (
     <div className="qb-nav-brand-header">
@@ -419,7 +332,7 @@ export default function SideNav({
         </div>
       </div>
 
-      {isOverlay && (
+      {isOverlay ? (
         <button
           type="button"
           className="qb-nav-close-btn"
@@ -429,7 +342,17 @@ export default function SideNav({
         >
           <X size={18} />
         </button>
-      )}
+      ) : onToggleNav ? (
+        <button
+          type="button"
+          className="qb-nav-collapse-btn"
+          onClick={onToggleNav}
+          aria-label="Collapse sidebar"
+          title="Collapse sidebar"
+        >
+          <PanelLeftClose size={18} />
+        </button>
+      ) : null}
     </div>
   );
 
@@ -449,21 +372,164 @@ export default function SideNav({
     </div>
   );
 
-  // Reusable Exam Subjects Quick Jump with animated focus glider
-  const renderSubjectsNav = () => (
-    <div className="qb-nav-group qb-nav-subjects-group">
-      <div className="qb-nav-group-header">
-        <span className="qb-nav-group-title">EXAM SUBJECTS</span>
+  // PolicyPulse Profile Tooltip Popover Menu
+  const renderProfilePopover = (isOverlay = false) => {
+    if (!profileMenuOpen) return null;
+
+    return (
+      <div
+        className="qb-profile-popover"
+        role="dialog"
+        aria-label="Profile and quick preferences"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* User Card */}
+        <div className="qb-profile-popover-user-card">
+          <div className="qb-profile-popover-avatar">
+            {profile?.avatarUrl ? (
+              <img src={profile.avatarUrl} alt={profile.fullName || "User"} className="qb-popover-avatar-img" />
+            ) : profile?.fullName ? (
+              profile.fullName.slice(0, 2).toUpperCase()
+            ) : (
+              <UserCircle2 size={24} />
+            )}
+          </div>
+          <div className="qb-profile-popover-user-meta">
+            <div className="qb-profile-popover-name-row">
+              <span className="qb-profile-popover-name">
+                {profile?.fullName || (isAuthenticated ? "Reviewer" : "Practice as Guest")}
+              </span>
+              {isQuestionAdmin ? (
+                <span className="qb-popover-role-pill admin">ADMIN</span>
+              ) : isAuthenticated ? (
+                <span className="qb-popover-role-pill pro">REVIEWER</span>
+              ) : (
+                <span className="qb-popover-role-pill guest">GUEST</span>
+              )}
+            </div>
+            <span className="qb-profile-popover-email">
+              {profile?.email || (isAuthenticated ? "Online Account" : "Offline local")}
+            </span>
+            <div className="qb-profile-popover-persona-line">
+              <span className="persona-label">Persona:</span>
+              <span className="persona-val">
+                {profile?.examTarget === "subprofessional" ? "Subprofessional · 165 Qs" : "Professional · 170 Qs"}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="qb-profile-popover-divider" />
+
+        {/* APPEARANCE Segmented Toggle (Just like PolicyPulse!) */}
+        <div className="qb-profile-popover-section">
+          <span className="qb-profile-popover-section-label">APPEARANCE</span>
+          <div className="qb-profile-segmented-appearance">
+            <button
+              type="button"
+              className={`qb-seg-theme-btn${isDark ? " is-active" : ""}`}
+              onClick={() => {
+                if (!isDark && onToggleTheme) onToggleTheme();
+              }}
+            >
+              <Moon size={14} />
+              <span>Dark</span>
+            </button>
+            <button
+              type="button"
+              className={`qb-seg-theme-btn${!isDark ? " is-active" : ""}`}
+              onClick={() => {
+                if (isDark && onToggleTheme) onToggleTheme();
+              }}
+            >
+              <Sun size={14} />
+              <span>Light</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="qb-profile-popover-divider" />
+
+        {/* Menu Actions */}
+        <div className="qb-profile-popover-actions">
+          <button
+            type="button"
+            className="qb-profile-popover-item"
+            onClick={() => {
+              setProfileMenuOpen(false);
+              if (isOverlay && onClose) onClose();
+              if (onOpenSettings) onOpenSettings("identity");
+            }}
+          >
+            <User size={15} />
+            <span>Edit Profile & Picture</span>
+          </button>
+
+          <button
+            type="button"
+            className="qb-profile-popover-item"
+            onClick={() => {
+              setProfileMenuOpen(false);
+              if (isOverlay && onClose) onClose();
+              if (onOpenSettings) onOpenSettings("persona");
+            }}
+          >
+            <Sliders size={15} />
+            <span>Persona & Workspace Settings</span>
+          </button>
+
+          {onOpenHelp && (
+            <button
+              type="button"
+              className="qb-profile-popover-item"
+              onClick={() => {
+                setProfileMenuOpen(false);
+                if (isOverlay && onClose) onClose();
+                onOpenHelp();
+              }}
+            >
+              <HelpCircle size={15} />
+              <span>Reviewer Guide & Shortcuts</span>
+            </button>
+          )}
+
+          <div className="qb-profile-popover-divider" />
+
+          {isAuthenticated ? (
+            onSignOut && (
+              <button
+                type="button"
+                className="qb-profile-popover-item danger"
+                onClick={() => {
+                  setProfileMenuOpen(false);
+                  if (isOverlay && onClose) onClose();
+                  onSignOut();
+                }}
+              >
+                <LogOut size={15} />
+                <span>Sign Out</span>
+              </button>
+            )
+          ) : (
+            onSignIn && (
+              <button
+                type="button"
+                className="qb-profile-popover-item signin"
+                onClick={() => {
+                  setProfileMenuOpen(false);
+                  if (isOverlay && onClose) onClose();
+                  onSignIn();
+                }}
+              >
+                <LogIn size={15} />
+                <span>Sign In to QBANK</span>
+              </button>
+            )
+          )}
+        </div>
       </div>
-      <SubjectsNavList
-        subjects={EXAM_SUBJECTS}
-        active={active}
-        activeTopic={activeTopic}
-        topicCounts={topicCounts}
-        onTopicClick={handleTopicClick}
-      />
-    </div>
-  );
+    );
+  };
 
   // Reusable Bottom User Section & Preferences
   const renderFooterSection = (isOverlay = false) => (
@@ -478,98 +544,42 @@ export default function SideNav({
         </span>
       </div>
 
-      {/* User Card */}
-      <div className="qb-nav-user-row">
-        {isAuthenticated ? (
-          <div className="qb-nav-user-info">
-            <div className="qb-nav-user-avatar">
+      {/* PolicyPulse Profile Trigger & Popover Anchor */}
+      <div className="qb-profile-popover-anchor" ref={popoverRef}>
+        {renderProfilePopover(isOverlay)}
+
+        <button
+          type="button"
+          className={`qb-profile-trigger-tile${profileMenuOpen ? " is-active" : ""}`}
+          onClick={() => setProfileMenuOpen((prev) => !prev)}
+          aria-expanded={profileMenuOpen}
+          aria-haspopup="dialog"
+          title={profile?.email || profile?.fullName || "Reviewer profile and workspace quick menu"}
+        >
+          <div className="qb-profile-trigger-avatar-wrap">
+            <div className="qb-profile-trigger-avatar">
               {profile?.avatarUrl ? (
-                <img
-                  src={profile.avatarUrl}
-                  alt={profile.fullName || "User profile"}
-                  className="qb-avatar-img"
-                />
+                <img src={profile.avatarUrl} alt={profile.fullName || "User profile"} className="qb-avatar-img" />
               ) : profile?.fullName ? (
                 profile.fullName.slice(0, 2).toUpperCase()
               ) : (
                 <UserCircle2 size={20} />
               )}
             </div>
-            <div className="qb-nav-user-details">
-              <span className="qb-nav-user-name">{profile?.fullName || "Reviewer"}</span>
-              <span className="qb-nav-user-email">{profile?.email || "Signed In"}</span>
-            </div>
-            {onSignOut && (
-              <button
-                type="button"
-                className="qb-nav-icon-action-btn"
-                onClick={() => {
-                  if (isOverlay && onClose) onClose();
-                  onSignOut();
-                }}
-                title="Sign Out"
-                aria-label="Sign Out"
-              >
-                <LogOut size={15} />
-              </button>
-            )}
+            <span className={`qb-profile-online-dot${isAuthenticated ? " online" : " guest"}`} />
           </div>
-        ) : (
-          <div className="qb-nav-guest-row">
-            <div className="qb-nav-guest-meta">
-              <span className="qb-nav-guest-title">Practice as Guest</span>
-              <span className="qb-nav-guest-sub">Sync progress to cloud</span>
-            </div>
-            {onSignIn && (
-              <button
-                type="button"
-                className="qb-nav-signin-pill"
-                onClick={() => {
-                  if (isOverlay && onClose) onClose();
-                  onSignIn();
-                }}
-                title="Sign In to QBANK"
-              >
-                <LogIn size={13} />
-                <span>Sign In</span>
-              </button>
-            )}
-          </div>
-        )}
-      </div>
 
-      {/* Utility Actions Strip */}
-      <div className="qb-nav-utility-row">
-        {onOpenHelp && (
-          <button
-            type="button"
-            className="qb-nav-utility-btn"
-            onClick={() => {
-              if (isOverlay && onClose) onClose();
-              onOpenHelp();
-            }}
-            title="Reviewer shortcuts & CSC exam guide"
-            aria-label="Help and shortcuts"
-          >
-            <HelpCircle size={14} />
-            <span>Help</span>
-          </button>
-        )}
-        {onOpenSettings && (
-          <button
-            type="button"
-            className="qb-nav-utility-btn"
-            onClick={() => {
-              if (isOverlay && onClose) onClose();
-              onOpenSettings();
-            }}
-            title="App Settings, Optimizer & Preferences"
-            aria-label="Settings and Preferences"
-          >
-            <Settings size={14} />
-            <span>Settings</span>
-          </button>
-        )}
+          <div className="qb-profile-trigger-meta">
+            <span className="qb-profile-trigger-name">
+              {profile?.fullName || (isAuthenticated ? "Reviewer" : "Practice as Guest")}
+            </span>
+            <span className="qb-profile-trigger-email">
+              {profile?.email || (isAuthenticated ? "Online Account" : "Offline mode")}
+            </span>
+          </div>
+
+          <ChevronsUpDown size={14} className="qb-profile-trigger-icon" />
+        </button>
       </div>
     </div>
   );
@@ -591,7 +601,6 @@ export default function SideNav({
           {renderBrandHeader(true)}
           <div className="qb-modern-drawer-scroll">
             {renderWorkspaceNav(true)}
-            {renderSubjectsNav()}
           </div>
           {renderFooterSection(true)}
         </aside>
@@ -611,7 +620,6 @@ export default function SideNav({
             {renderBrandHeader(false)}
             <div className="qb-modern-sidebar-scroll">
               {renderWorkspaceNav(false)}
-              {renderSubjectsNav()}
             </div>
             {renderFooterSection(false)}
           </div>
@@ -638,46 +646,33 @@ export default function SideNav({
                 handlers={handlers}
               />
 
-              <div className="qb-rail-divider" />
-
-              <div className="qb-rail-topics">
-                {EXAM_SUBJECTS.map((sub) => {
-                  const isCurrentTopic = active === "home" && activeTopic === sub.id;
-                  const count = topicCounts[sub.id] ?? 0;
-                  const SubIcon = sub.icon;
-
-                  return (
-                    <button
-                      key={sub.id}
-                      type="button"
-                      className={`qb-rail-topic-btn${isCurrentTopic ? " is-active" : ""}`}
-                      onClick={() => handleTopicClick(sub.id)}
-                      title={`${sub.label} (${count} Qs)`}
-                      aria-label={sub.label}
-                    >
-                      <SubIcon size={15} style={{ color: sub.color }} />
-                    </button>
-                  );
-                })}
-              </div>
-
               <div className="qb-rail-bottom">
-                {onOpenHelp && (
-                  <button
-                    type="button"
-                    className="qb-rail-tool-btn"
-                    onClick={onOpenHelp}
-                    title="Help & Shortcuts"
-                    aria-label="Help"
-                  >
-                    <HelpCircle size={15} />
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className={`qb-rail-profile-btn${profileMenuOpen ? " is-active" : ""}`}
+                  onClick={() => setProfileMenuOpen((prev) => !prev)}
+                  title={profile?.fullName || (isAuthenticated ? "Reviewer profile" : "Guest profile")}
+                  aria-label="Profile menu"
+                >
+                  <div className="qb-profile-trigger-avatar-wrap">
+                    <div className="qb-profile-trigger-avatar small">
+                      {profile?.avatarUrl ? (
+                        <img src={profile.avatarUrl} alt="Avatar" className="qb-avatar-img" />
+                      ) : profile?.fullName ? (
+                        profile.fullName.slice(0, 2).toUpperCase()
+                      ) : (
+                        <UserCircle2 size={18} />
+                      )}
+                    </div>
+                    <span className={`qb-profile-online-dot${isAuthenticated ? " online" : " guest"}`} />
+                  </div>
+                </button>
+
                 {onOpenSettings && (
                   <button
                     type="button"
                     className="qb-rail-tool-btn"
-                    onClick={onOpenSettings}
+                    onClick={() => onOpenSettings("identity")}
                     title="Settings & Preferences"
                     aria-label="Settings"
                   >
