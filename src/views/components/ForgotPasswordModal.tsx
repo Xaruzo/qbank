@@ -44,6 +44,7 @@ export default function ForgotPasswordModal({
   const [previewCode, setPreviewCode] = useState<string | null>(null);
   const [isIpNotice, setIsIpNotice] = useState<boolean>(false);
   const [resendCooldown, setResendCooldown] = useState<number>(0);
+  const [localCode, setLocalCode] = useState<string>("");
 
   const digitRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -70,8 +71,6 @@ export default function ForgotPasswordModal({
   if (!isOpen) return null;
 
   const currentCode = codeDigits.join("");
-
-  const [localCode, setLocalCode] = useState<string>("");
 
   const callAuthApi = async (url: string, body: object) => {
     try {
