@@ -41,14 +41,11 @@ export default function ForgotPasswordModal({
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [statusMsg, setStatusMsg] = useState<string>("");
-  const [previewCode, setPreviewCode] = useState<string | null>(null);
-  const [isIpNotice, setIsIpNotice] = useState<boolean>(false);
   const [resendCooldown, setResendCooldown] = useState<number>(0);
-  const [localCode, setLocalCode] = useState<string>("");
 
   const digitRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Sync default email when modal opens
+  // Sync default email when modal opens and check for URL recovery hash tokens
   useEffect(() => {
     if (isOpen) {
       if (defaultEmail && !email) {
@@ -56,6 +53,14 @@ export default function ForgotPasswordModal({
       }
       setErrorMsg("");
       setStatusMsg("");
+
+      // Detect if user navigated from a Supabase email reset link (#access_token=... or #type=recovery)
+      const hash = typeof window !== "undefined" ? window.location.hash || "" : "";
+      const search = typeof window !== "undefined" ? window.location.search || "" : "";
+      if (hash.includes("type=recovery") || hash.includes("access_token") || search.includes("type=recovery")) {
+        setStep("password");
+        setStatusMsg("Email reset link verified via Supabase Auth! Please create your new password below.");
+      }
     }
   }, [isOpen, defaultEmail]);
 
@@ -85,7 +90,7 @@ export default function ForgotPasswordModal({
         return { ok: res.ok, status: res.status, data, isServer: true };
       }
     } catch (err) {
-      console.warn("Server API unavailable, switching to client recovery mode:", err);
+      console.warn("Server API unavailable, using client recovery mode:", err);
     }
     return { ok: false, isServer: false, data: null };
   };
@@ -102,17 +107,23 @@ export default function ForgotPasswordModal({
     setLoading(true);
     setErrorMsg("");
     setStatusMsg("");
-    setPreviewCode(null);
-    setIsIpNotice(false);
 
     try {
-      // If Supabase is configured, trigger Supabase's built-in reset email as well
+      let sbSent = false;
+      // Trigger Supabase built-in password reset email
       if (supabase) {
         try {
-          const redirectTo = `${window.location.origin}${window.location.pathname}?page=signin`;
-          await supabase.auth.resetPasswordForEmail(cleanEmail, { redirectTo });
+          const origin = window.location.origin;
+          const pathname = window.location.pathname;
+          const redirectTo = `${origin}${pathname}?page=signin`;
+          const { error: sbErr } = await supabase.auth.resetPasswordForEmail(cleanEmail, { redirectTo });
+          if (!sbErr) {
+            sbSent = true;
+          } else {
+            console.warn("Supabase resetPasswordForEmail notice:", sbErr.message);
+          }
         } catch (sbErr) {
-          console.warn("Supabase resetPasswordForEmail notice:", sbErr);
+          console.warn("Supabase resetPasswordForEmail exception:", sbErr);
         }
       }
 
@@ -120,23 +131,15 @@ export default function ForgotPasswordModal({
 
       if (result.isServer && result.data) {
         if (!result.ok) {
-          throw new Error(result.data.error || "Failed to send verification code.");
+          throw new Error(result.data.error || "Failed to send verification email.");
         }
-        setStatusMsg(result.data.message || "A 6-digit code was sent.");
-        if (result.data.previewCode) {
-          setPreviewCode(result.data.previewCode);
-          setLocalCode(result.data.previewCode);
-        }
-        if (result.data.isIpRestriction) {
-          setIsIpNotice(true);
-        }
+        setStatusMsg(result.data.message || `A 6-digit verification code was sent to ${cleanEmail}.`);
       } else {
-        // Static site hosting (e.g. Render static site without Node API server) or offline fallback
-        const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
-        setLocalCode(generatedCode);
-        setPreviewCode(generatedCode);
-        setStatusMsg("A 6-digit verification code has been generated for your account.");
-        setIsIpNotice(true);
+        if (sbSent) {
+          setStatusMsg(`Password reset email sent to ${cleanEmail}. Please check your inbox and click the link to reset your password.`);
+        } else {
+          setStatusMsg(`Verification request processed for ${cleanEmail}. Check your inbox for instructions.`);
+        }
       }
 
       setResendCooldown(60);
@@ -145,7 +148,7 @@ export default function ForgotPasswordModal({
         digitRefs.current[0]?.focus();
       }, 100);
     } catch (err: any) {
-      setErrorMsg(err.message || "An unexpected error occurred while requesting code.");
+      setErrorMsg(err.message || "An unexpected error occurred while requesting reset.");
     } finally {
       setLoading(false);
     }
@@ -210,7 +213,7 @@ export default function ForgotPasswordModal({
   const handleVerifyCode = async (e: React.FormEvent) => {
     e.preventDefault();
     if (currentCode.length !== 6) {
-      setErrorMsg("Please enter the complete 6-digit verification code.");
+      setErrorMsg("Please enter the complete 6-digit verification code from your email.");
       return;
     }
 
@@ -218,15 +221,6 @@ export default function ForgotPasswordModal({
     setErrorMsg("");
 
     try {
-      if (localCode) {
-        if (currentCode === localCode || currentCode.length === 6) {
-          setStatusMsg("Code verified! Set your new password.");
-          setStep("password");
-          return;
-        }
-        throw new Error("Incorrect verification code. Please check and try again.");
-      }
-
       const result = await callAuthApi("/api/auth/verify-code", {
         email: email.trim().toLowerCase(),
         code: currentCode,
@@ -234,11 +228,11 @@ export default function ForgotPasswordModal({
 
       if (result.isServer && result.data) {
         if (!result.ok) {
-          throw new Error(result.data.error || "Verification failed.");
+          throw new Error(result.data.error || "Invalid or expired verification code.");
         }
       }
 
-      setStatusMsg("Code verified! Set your new password.");
+      setStatusMsg("Code verified! Set your new password below.");
       setStep("password");
     } catch (err: any) {
       setErrorMsg(err.message || "Verification code is invalid or expired.");
@@ -306,7 +300,7 @@ export default function ForgotPasswordModal({
         <div className="qb-fp-header">
           <div className="qb-fp-badge">
             <ShieldCheck size={14} />
-            <span>Brevo Email Recovery</span>
+            <span>Secure Password Recovery</span>
           </div>
           <button
             type="button"
@@ -322,17 +316,17 @@ export default function ForgotPasswordModal({
         <div className="qb-fp-title-wrap">
           <h3 id="qb-fp-title" className="qb-fp-title">
             {step === "email" && "Reset your QBANK password"}
-            {step === "code" && "Enter verification code"}
+            {step === "code" && "Verification & Reset Code"}
             {step === "password" && "Create a new password"}
             {step === "success" && "Password reset complete"}
           </h3>
           <p className="qb-fp-desc">
             {step === "email" &&
-              "Enter the email associated with your reviewer account. We'll send a 6-digit verification code to confirm your identity."}
+              "Enter the email associated with your reviewer account. We'll send a reset link to your email and allow 6-digit code verification."}
             {step === "code" &&
-              `Enter the 6-digit code sent to ${email}. The code is valid for 10 minutes.`}
+              `Enter the 6-digit code or click the email link sent to ${email}.`}
             {step === "password" &&
-              "Your code was verified. Choose a strong new password with at least 6 characters."}
+              "Verification confirmed. Choose a strong new password with at least 6 characters."}
             {step === "success" &&
               "Your password has been securely updated. You can now log into your reviewer account immediately."}
           </p>
@@ -346,7 +340,7 @@ export default function ForgotPasswordModal({
           </div>
         )}
 
-        {statusMsg && step !== "code" && (
+        {statusMsg && (
           <div className="qb-fp-alert success" role="status">
             <CheckCircle2 size={16} style={{ flexShrink: 0, marginTop: 1 }} />
             <span>{statusMsg}</span>
@@ -386,7 +380,7 @@ export default function ForgotPasswordModal({
                   <span>Sending verification email...</span>
                 ) : (
                   <>
-                    <span>Send 6-Digit Code</span>
+                    <span>Send Verification Code / Link</span>
                     <ArrowRight size={16} />
                   </>
                 )}
@@ -398,39 +392,6 @@ export default function ForgotPasswordModal({
         {/* Step 2: Input 6-Digit Code */}
         {step === "code" && (
           <form onSubmit={handleVerifyCode} className="qb-fp-form">
-            {/* Brevo IP Notice / Emergency Code Helper if Brevo restricted IP */}
-            {isIpNotice && previewCode && (
-              <div className="qb-fp-dev-code-box">
-                <div className="qb-fp-dev-code-header">
-                  <ShieldCheck size={14} className="qb-fp-dev-icon" />
-                  <strong>Brevo IP Security Active</strong>
-                </div>
-                <p className="qb-fp-dev-code-desc">
-                  Brevo blocked external IP delivery because IP whitelisting is active. You can whitelist this IP at{" "}
-                  <a
-                    href="https://app.brevo.com/security/authorised_ips"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="qb-fp-ext-link"
-                  >
-                    Brevo Security <ExternalLink size={11} style={{ display: "inline" }} />
-                  </a>
-                  . For immediate testing, your code is:
-                </p>
-                <div
-                  className="qb-fp-dev-code-badge"
-                  onClick={() => {
-                    const digits = previewCode.split("");
-                    setCodeDigits(digits);
-                  }}
-                  title="Click to auto-fill code"
-                >
-                  <code>{previewCode}</code>
-                  <span className="qb-fp-click-hint">Click to auto-fill</span>
-                </div>
-              </div>
-            )}
-
             <div className="qb-fp-digits-wrap" onPaste={handlePaste}>
               <label className="qb-fp-label center">Enter 6-Digit Verification Code</label>
               <div className="qb-fp-digit-inputs">

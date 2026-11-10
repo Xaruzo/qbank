@@ -51,6 +51,15 @@ export default function SignInPage({
   const [successMsg, setSuccessMsg] = useState<string>("");
   const [resendCooldown, setResendCooldown] = useState<number>(0);
 
+  // Auto-open forgot password modal if landing on page with recovery token
+  useEffect(() => {
+    const hash = typeof window !== "undefined" ? window.location.hash || "" : "";
+    const search = typeof window !== "undefined" ? window.location.search || "" : "";
+    if (hash.includes("type=recovery") || hash.includes("access_token") || search.includes("type=recovery")) {
+      setShowForgotPassword(true);
+    }
+  }, []);
+
   // 60-second cooldown timer for rate-limited instant login emails
   useEffect(() => {
     if (resendCooldown <= 0) return;

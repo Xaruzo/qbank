@@ -334,21 +334,9 @@ async function startServer() {
         });
       }
 
-      // If Brevo rejected due to IP authorization or unverified sender:
-      // We inform the user gracefully, and include the previewCode so that testing/development
-      // is never blocked, along with the direct link to authorize IP in Brevo.
-      const isIpIssue =
-        (apiResult.message && apiResult.message.includes("unrecognised IP address")) ||
-        (apiResult.message && apiResult.message.includes("authorised_ips"));
-
-      return res.json({
-        success: true,
-        delivered: false,
-        previewCode: code,
-        isIpRestriction: isIpIssue,
-        message: isIpIssue
-          ? `Code generated! Note: Brevo has an IP whitelist enabled on this account. To receive direct inbox emails, whitelist this app's IP at https://app.brevo.com/security/authorised_ips. For immediate testing, your code is provided below.`
-          : `Code generated! ${apiResult.message || "Email delivery queued"}. For immediate testing, your code is provided below.`,
+      console.warn("[Forgot Password] Email delivery failed:", apiResult, smtpResult);
+      return res.status(500).json({
+        error: apiResult?.message || "Failed to dispatch verification email. Please check your Brevo configuration.",
       });
     } catch (err: any) {
       console.error("[Forgot Password Error]:", err);
