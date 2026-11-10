@@ -279,6 +279,14 @@ body {
   color: #f5a623;
 }
 
+/* Desktop: the rail owns its own expand/collapse controls, so the header
+   toggle is redundant there. It stays available for the mobile/tablet drawer. */
+@media (min-width: 1100px) {
+  .qb-hdr-menu-btn {
+    display: none !important;
+  }
+}
+
 .qb-add-btn {
   background: #f5a623;
   border: 1px solid #d9911e;
@@ -1075,6 +1083,7 @@ body {
 .qb-main-inner.qb-main-inner-detail { max-width:1040px; margin:0 auto; padding:20px 24px; padding-bottom:calc(20px + env(safe-area-inset-bottom, 0px)); min-height:100%; height:100%; display:flex; flex-direction:column; overflow:hidden; }
 
 .qb-main-inner.qb-main-inner-mock-attempt { max-width:1180px; }
+.qb-main-inner.qb-main-inner-settings { max-width:none; margin:0; padding:0; padding-bottom:0; min-height:100%; }
 
 .qb-loading-text { font-family:'Fira Mono',monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--text-faint); }
 
@@ -3123,12 +3132,8 @@ body.qb-guide-active .qb {
 }
 
 .qb-side.qb-side-collapsed {
-  width: 0 !important;
-  flex: 0 0 0 !important;
-  border-right: none !important;
-  overflow: hidden !important;
-  opacity: 0;
-  pointer-events: none;
+  width: 60px;
+  flex: 0 0 60px;
 }
 
 .qb-side.qb-side-expanded {
@@ -16060,7 +16065,7 @@ body:has(.qb-landing-root) {
   letter-spacing: 0.02em;
   line-height: 1;
   color: inherit;
-  opacity: 0.85;
+  opacity: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -16178,6 +16183,15 @@ body:has(.qb-landing-root) {
   background: var(--bg);
   color: var(--text);
   padding: 24px;
+}
+
+/* Readability: lift secondary text in dark mode, deepen it in light mode */
+.qb-settings-page-root:not(.light) {
+  --text-muted: #cbd5e1;
+}
+
+.qb-settings-page-root.light {
+  --text-muted: #334155;
 }
 
 @media (max-width: 768px) {
@@ -16538,7 +16552,6 @@ body:has(.qb-landing-root) {
 .qb-settings-avatar-spec {
   font-size: 11px;
   color: var(--text-muted);
-  opacity: 0.8;
 }
 
 /* Shape switcher: Badge vs Circle */
@@ -18514,11 +18527,11 @@ body:has(.qb-landing-root) {
 
 .qb:not(.light) .qb-nav-item .qb-nav-item-icon,
 .qb:not(.light) .qb-nav-item svg,
-.qb:not(.light) .qb-side svg,
-.qb:not(.light) .qb-side-drawer svg,
-.qb:not(.light) .qb-modern-drawer svg,
+.qb:not(.light) .qb-side svg:not(.qb-seg-theme-icon),
+.qb:not(.light) .qb-side-drawer svg:not(.qb-seg-theme-icon),
+.qb:not(.light) .qb-modern-drawer svg:not(.qb-seg-theme-icon),
 .qb:not(.light) .qb-rail-btn svg {
-  color: #cbd5e1 !important;
+  color: #e2e8f0 !important;
   opacity: 1 !important;
 }
 
@@ -18660,33 +18673,6 @@ body:has(.qb-landing-root) {
 .qb.light .qb-nav-collapse-btn:hover {
   background: #f1f5f9 !important;
   color: #0f172a !important;
-}
-
-/* Rail Toggle Button High Contrast */
-.qb:not(.light) .qb-rail-toggle-btn {
-  color: #cbd5e1 !important;
-  border-color: rgba(255, 255, 255, 0.12) !important;
-  background: rgba(255, 255, 255, 0.04) !important;
-}
-
-.qb:not(.light) .qb-rail-toggle-btn:hover {
-  color: #ffffff !important;
-  background: rgba(255, 255, 255, 0.12) !important;
-  border-color: rgba(255, 255, 255, 0.25) !important;
-}
-
-.light .qb-rail-toggle-btn,
-.qb.light .qb-rail-toggle-btn {
-  color: #1e293b !important;
-  background: #ffffff !important;
-  border-color: #cbd5e1 !important;
-}
-
-.light .qb-rail-toggle-btn:hover,
-.qb.light .qb-rail-toggle-btn:hover {
-  color: #0284c7 !important;
-  background: #f1f5f9 !important;
-  border-color: #94a3b8 !important;
 }
 
 

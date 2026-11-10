@@ -762,10 +762,10 @@ export default function SideNav({
                   type="button"
                   className="qb-rail-toggle-btn"
                   onClick={onToggleNav}
-                  title="Toggle sidebar expansion"
-                  aria-label="Toggle sidebar expansion"
+                  title="Expand sidebar"
+                  aria-label="Expand sidebar"
                 >
-                  <PanelLeftClose size={18} />
+                  <PanelLeftOpen size={18} />
                 </button>
               )}
 

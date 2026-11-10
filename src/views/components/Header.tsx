@@ -251,41 +251,6 @@ export default function Header({
                   <button
                     type="button"
                     className="qb-profile-menu-item"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      onToggleTheme();
-                    }}
-                  >
-                    {isDark ? <Sun size={16} /> : <Moon size={16} />}
-                    <span>{isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}</span>
-                  </button>
-
-                  {onLanding && (
-                    <button
-                      type="button"
-                      className="qb-profile-menu-item"
-                      onClick={() => {
-                        setMenuOpen(false);
-                        onLanding();
-                      }}
-                    >
-                      <Sparkles size={16} />
-                      <span>About & Landing Page</span>
-                    </button>
-                  )}
-
-                  <button
-                    type="button"
-                    className="qb-profile-menu-item"
-                    onClick={handleOpenHelp}
-                  >
-                    <HelpCircle size={16} />
-                    <span>Reviewer Guide & Shortcuts</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className="qb-profile-menu-item"
                     onClick={openSettings}
                   >
                     <Settings size={16} />
