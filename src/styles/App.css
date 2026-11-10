@@ -18627,5 +18627,69 @@ body:has(.qb-landing-root) {
   color: #d97706 !important;
 }
 
+/* Sidebar Collapse Button Styling */
+.qb-nav-collapse-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--border, #17253b);
+  background: var(--surface, #0d1524);
+  color: #cbd5e1 !important;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  flex-shrink: 0;
+}
+
+.qb-nav-collapse-btn:hover {
+  background: var(--surface-h, #111d31) !important;
+  color: #ffffff !important;
+  border-color: var(--border-h, #314564) !important;
+}
+
+.light .qb-nav-collapse-btn,
+.qb.light .qb-nav-collapse-btn {
+  color: #1e293b !important;
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+}
+
+.light .qb-nav-collapse-btn:hover,
+.qb.light .qb-nav-collapse-btn:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+/* Rail Toggle Button High Contrast */
+.qb:not(.light) .qb-rail-toggle-btn {
+  color: #cbd5e1 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+.qb:not(.light) .qb-rail-toggle-btn:hover {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+.light .qb-rail-toggle-btn,
+.qb.light .qb-rail-toggle-btn {
+  color: #1e293b !important;
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+}
+
+.light .qb-rail-toggle-btn:hover,
+.qb.light .qb-rail-toggle-btn:hover {
+  color: #0284c7 !important;
+  background: #f1f5f9 !important;
+  border-color: #94a3b8 !important;
+}
+
+
+
 
 

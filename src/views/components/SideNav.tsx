@@ -432,7 +432,7 @@ export default function SideNav({
         </div>
       </div>
 
-      {isOverlay && (
+      {isOverlay ? (
         <button
           type="button"
           className="qb-nav-close-btn"
@@ -442,6 +442,18 @@ export default function SideNav({
         >
           <X size={18} />
         </button>
+      ) : (
+        onToggleNav && (
+          <button
+            type="button"
+            className="qb-nav-collapse-btn"
+            onClick={onToggleNav}
+            aria-label="Collapse sidebar panel"
+            title="Collapse sidebar panel"
+          >
+            <PanelLeftClose size={18} />
+          </button>
+        )
       )}
     </div>
   );
@@ -750,10 +762,10 @@ export default function SideNav({
                   type="button"
                   className="qb-rail-toggle-btn"
                   onClick={onToggleNav}
-                  title="Expand sidebar"
-                  aria-label="Expand sidebar"
+                  title="Toggle sidebar expansion"
+                  aria-label="Toggle sidebar expansion"
                 >
-                  <PanelLeftOpen size={18} />
+                  <PanelLeftClose size={18} />
                 </button>
               )}
 
