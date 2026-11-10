@@ -112,7 +112,24 @@ export default function NotificationsModal({
   });
 
   const [activeTab, setActiveTab] = useState<"all" | "unread" | "exam" | "study">("all");
+  const [indicatorStyle, setIndicatorStyle] = useState<{ left: number; width: number }>({ left: 0, width: 0 });
   const modalRef = useRef<HTMLDivElement>(null);
+  const tabContainerRef = useRef<HTMLDivElement>(null);
+  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  // Sync animated tab pill position
+  useEffect(() => {
+    if (!isOpen) return;
+    const currentTabEl = tabRefs.current[activeTab];
+    if (currentTabEl && tabContainerRef.current) {
+      const containerRect = tabContainerRef.current.getBoundingClientRect();
+      const tabRect = currentTabEl.getBoundingClientRect();
+      setIndicatorStyle({
+        left: tabRect.left - containerRect.left,
+        width: tabRect.width,
+      });
+    }
+  }, [activeTab, notifications, isOpen]);
 
   // Sync unread count to parent
   useEffect(() => {
@@ -128,9 +145,14 @@ export default function NotificationsModal({
     if (!isOpen) return;
 
     const handlePointerDown = (e: MouseEvent) => {
-      if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
-        onClose();
-      }
+      const target = e.target as Node;
+      if (modalRef.current?.contains(target)) return;
+
+      // Ignore clicks on header notification wrap so trigger button onClick can toggle properly
+      const notifWrap = document.querySelector(".qb-hdr-notif-wrap");
+      if (notifWrap?.contains(target)) return;
+
+      onClose();
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -261,10 +283,21 @@ export default function NotificationsModal({
         </div>
 
         {/* Filter Tabs */}
-        <div className="qb-notif-tabs" role="tablist">
+        <div className="qb-notif-tabs" ref={tabContainerRef} role="tablist">
+          {indicatorStyle.width > 0 && (
+            <span
+              className="qb-notif-tab-indicator"
+              style={{
+                left: `${indicatorStyle.left}px`,
+                width: `${indicatorStyle.width}px`,
+              }}
+              aria-hidden="true"
+            />
+          )}
           <button
             type="button"
             role="tab"
+            ref={(el) => { tabRefs.current["all"] = el; }}
             aria-selected={activeTab === "all"}
             className={`qb-notif-tab${activeTab === "all" ? " is-active" : ""}`}
             onClick={() => setActiveTab("all")}
@@ -274,6 +307,7 @@ export default function NotificationsModal({
           <button
             type="button"
             role="tab"
+            ref={(el) => { tabRefs.current["unread"] = el; }}
             aria-selected={activeTab === "unread"}
             className={`qb-notif-tab${activeTab === "unread" ? " is-active" : ""}`}
             onClick={() => setActiveTab("unread")}
@@ -283,6 +317,7 @@ export default function NotificationsModal({
           <button
             type="button"
             role="tab"
+            ref={(el) => { tabRefs.current["exam"] = el; }}
             aria-selected={activeTab === "exam"}
             className={`qb-notif-tab${activeTab === "exam" ? " is-active" : ""}`}
             onClick={() => setActiveTab("exam")}
@@ -292,6 +327,7 @@ export default function NotificationsModal({
           <button
             type="button"
             role="tab"
+            ref={(el) => { tabRefs.current["study"] = el; }}
             aria-selected={activeTab === "study"}
             className={`qb-notif-tab${activeTab === "study" ? " is-active" : ""}`}
             onClick={() => setActiveTab("study")}
@@ -302,7 +338,7 @@ export default function NotificationsModal({
       </div>
 
       {/* Notification Items List */}
-      <div className="qb-notif-list">
+      <div className="qb-notif-list" key={activeTab}>
         {filteredNotifications.length === 0 ? (
           <div className="qb-notif-empty">
             <div className="qb-notif-empty-icon">

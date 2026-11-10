@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from "react";
 import { TOPICS } from "../../constants/appConstants";
 import { Check } from "lucide-react";
 import type { StatsProps, TopicDef, TopicId } from "../../types";
@@ -19,6 +20,32 @@ export default function Stats({
   topicFilter = "all",
   onSelectTopic,
 }: StatsProps) {
+  const [isVisible, setIsVisible] = useState(false);
+  const sectionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (typeof IntersectionObserver === "undefined") {
+      setIsVisible(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          if (sectionRef.current) observer.unobserve(sectionRef.current);
+        }
+      },
+      { threshold: 0.15 }
+    );
+
+    if (sectionRef.current) {
+      observer.observe(sectionRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
   const statItems: StatItem[] = [
     {
       id: "all",
@@ -45,7 +72,7 @@ export default function Stats({
   ];
 
   return (
-    <section className="qb-stats-wrap" aria-label="Topic Coverage Overview">
+    <section ref={sectionRef} className="qb-stats-wrap" aria-label="Topic Coverage Overview">
       <div className="qb-section-head">
         <div>
           <div className="qb-section-kicker">Topic Distribution</div>
@@ -76,14 +103,27 @@ export default function Stats({
                 )}
               </div>
               <span className="qb-stat-n tabular-nums">
-                <CountUp end={item.value} duration={1100} />
+                <CountUp end={isVisible ? item.value : 0} duration={1200} />
               </span>
               <span className="qb-stat-name">{item.label}</span>
-              <div className="qb-stat-meta-row">
-                <span className="qb-stat-note">{item.note}</span>
-                <span className="qb-stat-pct tabular-nums">
-                  <CountUp end={item.percent} suffix="%" duration={1100} />
-                </span>
+              <div className="qb-stat-meter-container">
+                <div className="qb-stat-meter-header">
+                  <span className="qb-stat-meter-label">
+                    {item.id === "all" ? "Total Bank" : `${item.value} items`}
+                  </span>
+                  <span className="qb-stat-meter-badge tabular-nums">
+                    <CountUp end={isVisible ? item.percent : 0} suffix="%" duration={1200} />
+                  </span>
+                </div>
+                <div className="qb-stat-meter-track" aria-hidden="true">
+                  <div
+                    className="qb-stat-meter-bar"
+                    style={{
+                      width: isVisible ? `${Math.max(item.percent, 3)}%` : "0%",
+                      backgroundColor: item.color,
+                    }}
+                  />
+                </div>
               </div>
             </button>
           );

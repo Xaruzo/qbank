@@ -163,17 +163,6 @@ export default function Header({
             </button>
           )}
 
-          {/* Quick Theme Switcher */}
-          <button
-            type="button"
-            className="qb-hdr-action-btn"
-            onClick={onToggleTheme}
-            title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-            aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-          >
-            {isDark ? <Sun size={17} /> : <Moon size={17} />}
-          </button>
-
           {/* Notifications Center Button & Panel */}
           <div className="qb-hdr-notif-wrap" ref={notifWrapRef}>
             <button

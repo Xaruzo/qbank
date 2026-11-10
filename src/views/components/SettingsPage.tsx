@@ -25,18 +25,31 @@ import {
   FileSpreadsheet,
   CheckCircle2,
   BookOpen,
+  GraduationCap,
+  Landmark,
+  Award,
+  Bot,
+  Gamepad2,
+  FileText,
+  Type,
+  AlertTriangle,
 } from "lucide-react";
 import type { SettingsPageProps, TopicId } from "../../types";
 
-const AVATAR_PRESETS = [
-  { id: "initials", label: "Initials", icon: "🔤" },
-  { id: "scholar", label: "Scholar", icon: "🎓" },
-  { id: "servant", label: "Civil Officer", icon: "🏛️" },
-  { id: "topnotcher", label: "Top Ranker", icon: "🥇" },
-  { id: "anime", label: "Anime", icon: "🎨" },
-  { id: "robot", label: "Smart Bot", icon: "🤖" },
-  { id: "pixel", label: "Pixel Art", icon: "👾" },
-  { id: "notion", label: "Notionist", icon: "📝" },
+const AVATAR_PRESETS: Array<{
+  id: string;
+  label: string;
+  icon?: React.ReactNode;
+  color?: string;
+}> = [
+  { id: "initials", label: "Initials", icon: <Type size={14} /> },
+  { id: "scholar", label: "Scholar", icon: <GraduationCap size={14} /> },
+  { id: "servant", label: "Civil Officer", icon: <Landmark size={14} /> },
+  { id: "topnotcher", label: "Top Ranker", icon: <Award size={14} /> },
+  { id: "creative", label: "Creative", icon: <Palette size={14} /> },
+  { id: "robot", label: "Smart Bot", icon: <Bot size={14} /> },
+  { id: "gamer", label: "Gamer", icon: <Gamepad2 size={14} /> },
+  { id: "notion", label: "Notionist", icon: <FileText size={14} /> },
   { id: "indigo", label: "Indigo", color: "#6366f1" },
   { id: "emerald", label: "Emerald", color: "#10b981" },
   { id: "rose", label: "Rose", color: "#f43f5e" },
@@ -634,12 +647,20 @@ export default function SettingsPage({
                     />
                   </div>
                   {daysRemaining !== null && (
-                    <span className="qb-settings-field-hint">
-                      {daysRemaining > 0
-                        ? `⏱️ ${daysRemaining} days remaining until exam day.`
-                        : daysRemaining === 0
-                        ? "🚨 Exam is scheduled for today!"
-                        : "Exam date has passed. Update for your upcoming batch."}
+                    <span className="qb-settings-field-hint" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                      {daysRemaining > 0 ? (
+                        <>
+                          <Clock size={13} />
+                          <span>{daysRemaining} days remaining until exam day.</span>
+                        </>
+                      ) : daysRemaining === 0 ? (
+                        <>
+                          <AlertTriangle size={13} color="#f59e0b" />
+                          <span>Exam is scheduled for today!</span>
+                        </>
+                      ) : (
+                        <span>Exam date has passed. Update for your upcoming batch.</span>
+                      )}
                     </span>
                   )}
                 </div>

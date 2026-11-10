@@ -260,16 +260,6 @@ export default function LandingPage({
       {/* ── Hero Section with Atmospheric Background Animation & Human Craftsmanship ── */}
       <section className="qb-landing-hero">
 
-        {/* Ambient Subtle Study Dust / Particle Layer */}
-        <div className="qb-landing-particles" aria-hidden="true">
-          <span className="qb-particle p1">80.00%</span>
-          <span className="qb-particle p2">67s / item</span>
-          <span className="qb-particle p3">170 items</span>
-          <span className="qb-particle p4">RA 6713</span>
-          <span className="qb-particle p5">No Calculator</span>
-          <span className="qb-particle p6">Lead Pencil #2</span>
-        </div>
-
         {/* Measured Gradient Scrim for WCAG AA Contrast */}
         <div className="qb-landing-hero-scrim" aria-hidden="true" />
 

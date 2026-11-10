@@ -328,20 +328,9 @@ export default function SignInPage({
               {/* Auth Form */}
               <form onSubmit={handleSubmit} className="qb-signin-form">
                 <div className="qb-signin-field">
-                  <div className="qb-signin-label-row">
-                    <label htmlFor="signin-email" className="qb-signin-label">
-                      Email Address
-                    </label>
-                    <button
-                      type="button"
-                      className="qb-signin-hint-btn"
-                      onClick={() => setEmail("xaruzowarlord@gmail.com")}
-                      title="Quick fill registered admin email"
-                    >
-                      <Zap size={11} style={{ display: "inline", marginRight: 3 }} />
-                      Quick Admin Fill
-                    </button>
-                  </div>
+                  <label htmlFor="signin-email" className="qb-signin-label">
+                    Email Address
+                  </label>
                   <div className="qb-signin-input-wrap">
                     <Mail size={16} className="qb-signin-input-icon" />
                     <input
@@ -364,68 +353,56 @@ export default function SignInPage({
                   </div>
                 </div>
 
-                {usePassword && (
-                  <div className="qb-signin-field">
-                    <div className="qb-signin-label-row">
-                      <label htmlFor="signin-password" className="qb-signin-label">
-                        Password
-                      </label>
-                      {!isRegisterMode && (
-                        <div className="qb-signin-label-actions">
-                          <button
-                            type="button"
-                            className="qb-signin-hint-btn highlight"
-                            onClick={() => setShowForgotPassword(true)}
-                          >
-                            Forgot password?
-                          </button>
-                          <span className="qb-signin-hint-sep">·</span>
-                          <button
-                            type="button"
-                            className="qb-signin-hint-btn"
-                            onClick={() => setUsePassword(false)}
-                          >
-                            Instant link
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                    <div className="qb-signin-input-wrap">
-                      <KeyRound size={16} className="qb-signin-input-icon" />
-                      <input
-                        id="signin-password"
-                        name="password"
-                        type={showPassword ? "text" : "password"}
-                        autoComplete={isRegisterMode ? "new-password" : "current-password"}
-                        spellCheck={false}
-                        required={usePassword}
-                        className="qb-signin-input with-toggle"
-                        placeholder={isRegisterMode ? "Create a secure password (6+ chars)" : "Enter your password"}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        disabled={loading}
-                      />
+                <div className="qb-signin-field">
+                  <div className="qb-signin-label-row">
+                    <label htmlFor="signin-password" className="qb-signin-label">
+                      Password
+                    </label>
+                    {!isRegisterMode && (
                       <button
                         type="button"
-                        className="qb-signin-pwd-toggle"
-                        onClick={() => setShowPassword(!showPassword)}
-                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        className="qb-signin-hint-btn highlight"
+                        onClick={() => setShowForgotPassword(true)}
                       >
-                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        Forgot password?
                       </button>
-                    </div>
-                    {isRegisterMode && (
-                      <div className="qb-signin-validation-list">
-                        <span className={`qb-signin-val-item${password.length >= 6 ? " met" : ""}`}>
-                          <CheckCircle2 size={12} />
-                          <span>At least 6 characters</span>
-                        </span>
-                      </div>
                     )}
                   </div>
-                )}
+                  <div className="qb-signin-input-wrap">
+                    <KeyRound size={16} className="qb-signin-input-icon" />
+                    <input
+                      id="signin-password"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      autoComplete={isRegisterMode ? "new-password" : "current-password"}
+                      spellCheck={false}
+                      required
+                      className="qb-signin-input with-toggle"
+                      placeholder={isRegisterMode ? "Create a secure password (6+ chars)" : "Enter your password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={loading}
+                    />
+                    <button
+                      type="button"
+                      className="qb-signin-pwd-toggle"
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                  {isRegisterMode && (
+                    <div className="qb-signin-validation-list">
+                      <span className={`qb-signin-val-item${password.length >= 6 ? " met" : ""}`}>
+                        <CheckCircle2 size={12} />
+                        <span>At least 6 characters</span>
+                      </span>
+                    </div>
+                  )}
+                </div>
 
-                {isRegisterMode && usePassword && (
+                {isRegisterMode && (
                   <div className="qb-signin-field">
                     <label htmlFor="signin-confirm-password" className="qb-signin-label">
                       Confirm Password
@@ -453,29 +430,6 @@ export default function SignInPage({
                           <span>{password === confirmPassword ? "Passwords match" : "Passwords do not match"}</span>
                         </span>
                       </div>
-                    )}
-                  </div>
-                )}
-
-                {!isRegisterMode && (
-                  <div className="qb-signin-options-row">
-                    <button
-                      type="button"
-                      className="qb-signin-mode-toggle"
-                      onClick={() => setUsePassword(!usePassword)}
-                    >
-                      {usePassword
-                        ? "Want passwordless? Click for Magic Link login"
-                        : "Have a password? Switch to password login"}
-                    </button>
-                    {usePassword && (
-                      <button
-                        type="button"
-                        className="qb-signin-forgot-link"
-                        onClick={() => setShowForgotPassword(true)}
-                      >
-                        Forgot password? Reset with code
-                      </button>
                     )}
                   </div>
                 )}

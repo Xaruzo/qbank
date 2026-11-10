@@ -1086,7 +1086,7 @@ export default function App() {
           onHome={handleGoHome}
           onLanding={handleGoLanding}
           currentView={view}
-          showNavToggle={isMobile || isCompact}
+          showNavToggle={true}
           navOpen={navOpen}
           onToggleNav={toggleNav}
           authAvailable={authAvailable}

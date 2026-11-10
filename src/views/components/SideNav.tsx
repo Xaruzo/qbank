@@ -383,8 +383,6 @@ export default function SideNav({
       id: "home",
       label: "Question Bank",
       shortLabel: "Bank",
-      badgeText: totalQuestions > 0 ? `${totalQuestions}` : null,
-      badgeType: unseenNewCount > 0 ? "accent" : "neutral",
       title: "Question Bank (All practice questions)",
       icon: Layers,
     },
@@ -393,8 +391,6 @@ export default function SideNav({
       label: "Timed Mock Exam",
       shortLabel: "Mock Exam",
       railLabel: "Mock",
-      badgeText: "170 Qs",
-      badgeType: "accent",
       title: "Timed Mock Exam (Full CSC Simulation)",
       icon: Timer,
     },
@@ -402,8 +398,6 @@ export default function SideNav({
       id: "notes",
       label: "Study Notes",
       shortLabel: "Notes",
-      badgeText: "Scratchpad",
-      badgeType: "neutral",
       title: "Study Notes & Reviewer Scratchpad",
       icon: NotebookPen,
     },
@@ -411,8 +405,6 @@ export default function SideNav({
       id: "tips",
       label: "Tips & Methods",
       shortLabel: "Tips",
-      badgeText: "Visual Cues",
-      badgeType: "neutral",
       title: "Tips, Whiteboards & Problem Methods",
       icon: Lightbulb,
     },
@@ -440,7 +432,7 @@ export default function SideNav({
         </div>
       </div>
 
-      {isOverlay ? (
+      {isOverlay && (
         <button
           type="button"
           className="qb-nav-close-btn"
@@ -450,17 +442,7 @@ export default function SideNav({
         >
           <X size={18} />
         </button>
-      ) : onToggleNav ? (
-        <button
-          type="button"
-          className="qb-nav-collapse-btn"
-          onClick={onToggleNav}
-          aria-label="Collapse sidebar"
-          title="Collapse sidebar"
-        >
-          <PanelLeftClose size={18} />
-        </button>
-      ) : null}
+      )}
     </div>
   );
 
