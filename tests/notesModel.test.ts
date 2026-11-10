@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Minimal storage stubs
-const backingStore = new Map();
+const backingStore = new Map<string, string>();
 const localStorageStub = {
-  getItem: (key) => (backingStore.has(key) ? backingStore.get(key) : null),
-  setItem: (key, value) => {
+  getItem: (key: string) => (backingStore.has(key) ? backingStore.get(key) ?? null : null),
+  setItem: (key: string, value: string) => {
     backingStore.set(key, String(value));
   },
-  removeItem: (key) => {
+  removeItem: (key: string) => {
     backingStore.delete(key);
   },
 };
@@ -16,8 +16,8 @@ beforeEach(() => {
   backingStore.clear();
   vi.stubGlobal("window", {
     storage: {
-      get: async (key) => ({ value: backingStore.get(key) || null }),
-      set: async (key, value) => {
+      get: async (key: string) => ({ value: backingStore.get(key) || null }),
+      set: async (key: string, value: string) => {
         backingStore.set(key, String(value));
       },
     },
@@ -111,9 +111,11 @@ describe("notesModel", () => {
         id: "1",
         title: "Math Rule",
         content: "Work formula: $1/A + 1/B = 1/T$",
-        topic: "numerical",
+        topic: "numerical" as const,
         tags: ["Math"],
+        pinned: false,
         createdAt: "2026-01-01",
+        updatedAt: "2026-01-01",
       },
     ];
 

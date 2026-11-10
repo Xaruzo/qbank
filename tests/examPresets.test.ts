@@ -65,11 +65,15 @@ describe("Preset Question Filtering", () => {
 });
 
 describe("Mock Exam Attempts for Both Presets", () => {
-  const questions = [
+  type AttemptQuestion = { id: string; topic: string; correct: number };
+
+  const questions: AttemptQuestion[] = [
     { id: "p1", topic: "analytical", correct: 0 },
     { id: "s1", topic: "clerical", correct: 1 },
   ];
-  const qMap = new Map(questions.map((q) => [q.id, q]));
+  const qMap = new Map<string, AttemptQuestion>(
+    questions.map((q): [string, AttemptQuestion] => [q.id, q])
+  );
 
   it("builds an attempt preserving professional mode", () => {
     const exam = {

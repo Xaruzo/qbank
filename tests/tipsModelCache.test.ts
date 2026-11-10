@@ -7,16 +7,16 @@ vi.mock("../src/utils/supabaseClient", () => ({ supabase: null }));
 // Minimal storage stubs. `localStorageReads` counts real cache reads so the
 // tests can prove the memory cache short-circuits them.
 let localStorageReads = 0;
-const backingStore = new Map();
+const backingStore = new Map<string, string>();
 const localStorageStub = {
-  getItem: (key) => {
+  getItem: (key: string) => {
     localStorageReads += 1;
-    return backingStore.has(key) ? backingStore.get(key) : null;
+    return backingStore.has(key) ? backingStore.get(key) ?? null : null;
   },
-  setItem: (key, value) => {
+  setItem: (key: string, value: string) => {
     backingStore.set(key, String(value));
   },
-  removeItem: (key) => {
+  removeItem: (key: string) => {
     backingStore.delete(key);
   },
 };

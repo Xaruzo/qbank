@@ -7,14 +7,23 @@ import {
   buildReviewExamFromAttempt,
 } from "../src/utils/mockExamAnalytics";
 
+type AnalyticsQuestion = {
+  id: string;
+  topic: string;
+  correct: number;
+  question: string;
+};
+
 // Topic ids deliberately NOT in TOPICS so bucket fallbacks ("Other") keep
 // the assertions independent of the live topic catalog.
-const questions = [
+const questions: AnalyticsQuestion[] = [
   { id: "1", topic: "t1", correct: 0, question: "Live text one" },
   { id: "2", topic: "t1", correct: 1, question: "Live text two" },
   { id: "3", topic: "t2", correct: 2, question: "Live text three" },
 ];
-const qMap = new Map(questions.map((q) => [q.id, q]));
+const qMap = new Map<string, AnalyticsQuestion>(
+  questions.map((q): [string, AnalyticsQuestion] => [q.id, q])
+);
 
 const exam = {
   sessionId: "s1",
@@ -139,7 +148,10 @@ describe("buildReviewExamFromAttempt", () => {
     expect(review.questionSnapshots["2"].question).toBe("Live text two");
 
     // Question no longer in the live bank -> falls back to the attempt record
-    const partialMap = new Map([["1", qMap.get("1")], ["2", qMap.get("2")]]);
+    const partialMap = new Map<string, AnalyticsQuestion | undefined>([
+      ["1", qMap.get("1")],
+      ["2", qMap.get("2")],
+    ]);
     const review2 = buildReviewExamFromAttempt(baseAttempt, partialMap, null);
     expect(review2.questionSnapshots["3"].question).toBe("Question text unavailable");
     expect(review2.questionSnapshots["3"].topic).toBe("t2");

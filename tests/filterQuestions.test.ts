@@ -1,7 +1,18 @@
 import { describe, it, expect } from "vitest";
 import { filterAndSortQuestions } from "../src/controllers/useQuestionsController";
 
-const q = (over) => ({
+type TestQuestion = {
+  id: string;
+  question: string;
+  choices: string[];
+  solution: string;
+  label: string;
+  topic: string;
+  favorite: boolean;
+  dateAdded?: string;
+};
+
+const q = (over: Partial<TestQuestion> = {}): TestQuestion => ({
   id: "x",
   question: "",
   choices: [],
@@ -12,16 +23,24 @@ const q = (over) => ({
   ...over,
 });
 
-const questions = [
+const questions: TestQuestion[] = [
   q({ id: "1", question: "What is alpha decay?", topic: "t1", label: "Basics", favorite: true }),
   q({ id: "2", question: "Explain beta particles", topic: "t2", choices: ["gamma choice", "delta"] }),
   q({ id: "3", question: "Gamma rays overview", topic: "t1", solution: "alpha solution detail", dateAdded: "2026-01-02T00:00:00Z" }),
   q({ id: "4", question: "Delta epsilon", topic: "t3", label: "Advanced", dateAdded: "2026-02-01T00:00:00Z" }),
 ];
 
+type RunOptions = {
+  search?: string;
+  topicFilter?: string;
+  labelFilter?: string;
+  sortBy?: string;
+  favoriteOnly?: boolean;
+};
+
 // The hook lowercases the search needle before calling the pipeline
 // (see useQuestionsController); `run` mirrors that same contract.
-const run = ({ search = "", ...rest } = {}) =>
+const run = ({ search = "", ...rest }: RunOptions = {}) =>
   filterAndSortQuestions(questions, {
     search: search.toLowerCase(),
     topicFilter: "all",
@@ -30,7 +49,7 @@ const run = ({ search = "", ...rest } = {}) =>
     ...rest,
   });
 
-const ids = (result) => result.map((x) => x.id);
+const ids = (result: Array<{ id: string }>) => result.map((x) => x.id);
 
 describe("filterAndSortQuestions — filtering", () => {
   it("returns everything when search is empty", () => {
