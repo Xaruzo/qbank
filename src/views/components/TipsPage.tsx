@@ -23,7 +23,10 @@ import {
   ArrowRight,
   Layers,
   Sparkles,
+  ChevronDown,
 } from "lucide-react";
+
+const TIPS_PAGE_SIZE = 12;
 
 export default function TipsPage({
   questions = [],
@@ -42,6 +45,7 @@ export default function TipsPage({
   const [filterMastery, setFilterMastery] = useState("all");
   const [filterResource, setFilterResource] = useState("all"); // 'all' | 'saved' | 'diagram' | 'attachment' | 'notes'
   const [showFilters, setShowFilters] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(TIPS_PAGE_SIZE);
 
   useEffect(() => {
     let active = true;
@@ -215,10 +219,20 @@ export default function TipsPage({
     return m;
   }, [filteredQuestions]);
 
+  // Reset progressive disclosure whenever the result set changes.
+  useEffect(() => {
+    setVisibleCount(TIPS_PAGE_SIZE);
+  }, [search, filterTopic, filterCategory, filterMastery, filterResource]);
+
+  const visibleQuestions = useMemo(
+    () => filteredQuestions.slice(0, visibleCount),
+    [filteredQuestions, visibleCount]
+  );
+
   const tipColumns = useMemo(() => {
     const cols = [[], []];
     const sums = [0, 0];
-    filteredQuestions.forEach((q) => {
+    visibleQuestions.forEach((q) => {
       const tipData = tipsMap?.[q.id];
       const hasImage = !!(
         tipData &&
@@ -232,7 +246,7 @@ export default function TipsPage({
       sums[col] += weight;
     });
     return cols;
-  }, [filteredQuestions, tipsMap]);
+  }, [visibleQuestions, tipsMap]);
 
   // Active filter count for badge & reset
   const activeFiltersCount =
@@ -396,7 +410,7 @@ export default function TipsPage({
   };
 
   return (
-    <div className="fu">
+    <div className="fu qb-tips-page">
       {/* Hero Banner for Tips & Tricks */}
       <section className="qb-tips-hero">
         <div className="qb-tips-hero-main">
@@ -721,6 +735,22 @@ export default function TipsPage({
             ))
           )}
         </div>
+
+        {filteredQuestions.length > visibleCount && (
+          <div className="qb-tips-showmore">
+            <span className="qb-tips-showmore-count">
+              Showing {visibleCount} of {filteredQuestions.length} methods
+            </span>
+            <button
+              type="button"
+              className="qb-tips-showmore-btn"
+              onClick={() => setVisibleCount((count) => count + TIPS_PAGE_SIZE)}
+            >
+              <ChevronDown size={16} />
+              <span>Show more methods</span>
+            </button>
+          </div>
+        )}
       </section>
     </div>
   );
