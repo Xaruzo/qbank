@@ -7,8 +7,17 @@ import { handleSymbolShortcuts } from "../../utils/symbolShortcuts";
 import { uploadImageToSupabase, validateImageFile } from "../../utils/imageUpload";
 import { 
   ChevronLeft, ChevronDown, Pencil, Image, Loader,
-  Trash2, Maximize2, Minimize2, Sparkles, Layers, X, Check, PenTool, ArrowLeft
+  Trash2, Maximize2, Minimize2, Sparkles, Layers, X, Check, PenTool, ArrowLeft,
+  Calculator, BookOpen, Globe, BrainCircuit, ClipboardList
 } from "lucide-react";
+
+const TOPIC_ICON_MAP: Record<string, typeof Calculator> = {
+  numerical: Calculator,
+  verbal: BookOpen,
+  general: Globe,
+  analytical: BrainCircuit,
+  clerical: ClipboardList,
+};
 
 export default function QuestionForm({ initialData, onSave, onCancel, layersHost, sideRailHost }) {
   const [isDrawModalOpen, setIsDrawModalOpen] = useState(false);
@@ -150,7 +159,9 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
     };
   }, [isDrawModalOpen, tempDraw]);
 
-  const topicLabel = useMemo(() => TOPICS.find(t => t.id === form.topic)?.label || "Topic", [form.topic]);
+  const currentTopicObj = useMemo(() => TOPICS.find(t => t.id === form.topic) || TOPICS[0], [form.topic]);
+  const topicLabel = currentTopicObj.label;
+  const TopicIcon = TOPIC_ICON_MAP[currentTopicObj.id] || Calculator;
 
   const undoStacks = useRef({ question: [], solution: [], choices: [[], [], [], [], []] });
 
@@ -318,31 +329,39 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
                 }
                 setTopicOpen(o => !o);
               }} aria-expanded={topicOpen}>
-                <span>{topicLabel}</span>
-                <ChevronDown size={16} />
+                <span className="qb-select-btn-lead" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {TopicIcon && <TopicIcon size={16} style={{ color: currentTopicObj.color, flexShrink: 0 }} />}
+                  <span>{currentTopicObj.label}</span>
+                </span>
+                <ChevronDown size={16} className="qb-select-chevron" />
               </button>
               <div className={`qb-select-menu${topicOpen ? " open" : ""}`}>
-                {TOPICS.map(t => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    className={`qb-select-item${t.id === form.topic ? " on" : ""}`}
-                    onClick={() => {
-                      setForm(f => ({ ...f, topic: t.id }));
-                      setTopicOpen(false);
-                    }}
-                  >
-                    {t.label}
-                  </button>
-                ))}
+                {TOPICS.map(t => {
+                  const Icon = TOPIC_ICON_MAP[t.id];
+                  const isSelected = t.id === form.topic;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      className={`qb-select-item${isSelected ? " on" : ""}`}
+                      style={{ display: "flex", alignItems: "center", gap: 9 }}
+                      onClick={() => {
+                        setForm(f => ({ ...f, topic: t.id }));
+                        setTopicOpen(false);
+                      }}
+                    >
+                      {Icon && <Icon size={15} style={{ color: t.color, flexShrink: 0 }} />}
+                      <span>{t.label}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
 
           <div>
             <label className="qb-flabel">
-              Label{" "}
-              <span style={{ textTransform:"none", letterSpacing:0, fontFamily:"DM Sans,sans-serif", fontSize:11, color:"var(--text-faint)" }}>(optional)</span>
+              Label <span className="qb-flabel-sub">(optional)</span>
             </label>
             <div>
               {!useCustomLabel ? (
@@ -445,9 +464,27 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
           </p>
         </div>
         <div className="qb-form-hero-meta" aria-label="Editor highlights">
-          <span className="qb-form-chip" data-label="Choices">Up to 5 answer choices</span>
-          <span className="qb-form-chip" data-label="Visual">Visual solution support</span>
-          <span className="qb-form-chip" data-label="Controls">Topic and label controls</span>
+          <div className="qb-form-chip-pill">
+            <Sparkles size={15} className="qb-chip-icon qb-icon-amber" />
+            <div className="qb-chip-text">
+              <span className="qb-chip-title">CHOICES</span>
+              <span className="qb-chip-desc">Up to 5 answer options</span>
+            </div>
+          </div>
+          <div className="qb-form-chip-pill">
+            <PenTool size={15} className="qb-chip-icon qb-icon-cyan" />
+            <div className="qb-chip-text">
+              <span className="qb-chip-title">VISUAL</span>
+              <span className="qb-chip-desc">Canvas solution support</span>
+            </div>
+          </div>
+          <div className="qb-form-chip-pill">
+            <Layers size={15} className="qb-chip-icon qb-icon-purple" />
+            <div className="qb-chip-text">
+              <span className="qb-chip-title">CONTROLS</span>
+              <span className="qb-chip-desc">Topic & preset labels</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -470,7 +507,9 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
       </div>
 
       <div className="qb-fsec">
-        <label className="qb-flabel">Choices <span style={{ textTransform:"none", letterSpacing:0, fontFamily:"DM Sans,sans-serif", fontSize:11, color:"var(--text-faint)" }}>— select radio for correct answer</span></label>
+        <label className="qb-flabel">
+          Choices <span className="qb-flabel-sub">— select radio for correct answer</span>
+        </label>
         {form.choices.map((c,i) => (
           <div key={i} className="qb-crow">
             <input type="radio" className="qb-cradio" name="correct" checked={form.correct===i} onChange={() => setForm({...form, correct:i})} />
@@ -508,17 +547,12 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
           {form.choices.length >= 5 ? (
             <button
               type="button"
-              className="qb-add-choice"
+              className="qb-add-choice qb-remove-choice-btn"
               onClick={() => {
                 const nc = [...form.choices];
                 nc.pop();
                 const newCorrect = form.correct >= nc.length ? 0 : form.correct;
                 setForm({...form, choices: nc, correct: newCorrect});
-              }}
-              style={{
-                background:"none", border:"1px solid var(--border)", color:"var(--text-muted)",
-                fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:600,
-                padding:"6px 12px", borderRadius:8, cursor:"pointer"
               }}
             >
               – Remove 5th choice
@@ -528,11 +562,6 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
               type="button"
               className="qb-add-choice"
               onClick={() => setForm({...form, choices: [...form.choices, ""]})}
-              style={{
-                background:"none", border:"1px dashed var(--border)", color:"var(--text-muted)",
-                fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:600,
-                padding:"6px 12px", borderRadius:8, cursor:"pointer"
-              }}
             >
               + Add 5th choice (optional)
             </button>
@@ -542,8 +571,7 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
 
       <div className="qb-fsec">
         <label className="qb-flabel">
-          Solution / Explanation{" "}
-          <span style={{ textTransform:"none", letterSpacing:0, fontFamily:"DM Sans,sans-serif", fontSize:11, color:"var(--text-faint)" }}>(optional)</span>
+          Solution / Explanation <span className="qb-flabel-sub">(optional)</span>
         </label>
 
         <textarea ref={solutionRef} className="qb-fta" placeholder="Write the step-by-step solution here..." value={form.solution}
@@ -863,40 +891,37 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
       )}
 
       {confirmRemoveDraw && createPortal(
-        <div style={{
-          position:"fixed", inset:0, zIndex:9999,
-          display:"flex", alignItems:"center", justifyContent:"center",
-          background:"rgba(0,0,0,.55)", backdropFilter:"blur(4px)"
-        }}>
-          <div style={{
-            background:"var(--surface-h)", border:"1px solid var(--border)",
-            borderRadius:14, padding:24, maxWidth:340, width:"90%",
-            boxShadow:"0 20px 50px rgba(0,0,0,.4)"
-          }}>
-            <div style={{ fontSize:14, fontWeight:600, marginBottom:8 }}>Remove drawing?</div>
-            <div style={{ fontSize:13, color:"var(--text-muted)", marginBottom:18, lineHeight:1.4 }}>
-              This will permanently delete your drawing.
-            </div>
-            <div style={{ display:"flex", gap:10, justifyContent:"flex-end" }}>
+        <div
+          className="qb-modal-backdrop qb-delete-modal-overlay"
+          role="presentation"
+          onClick={() => setConfirmRemoveDraw(false)}
+        >
+          <div
+            className="qb-modal-card"
+            style={{ maxWidth: 380 }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="qb-remove-draw-title"
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 id="qb-remove-draw-title" className="qb-modal-title">
+              Remove drawing?
+            </h3>
+            <p className="qb-modal-text">
+              This will permanently remove the solution diagram from this question.
+            </p>
+            <div className="qb-modal-actions">
               <button
                 type="button"
+                className="qb-modal-btn qb-modal-btn-cancel"
                 onClick={() => setConfirmRemoveDraw(false)}
-                style={{
-                  background:"none", border:"1px solid var(--border)", color:"var(--text-muted)",
-                  fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:600,
-                  padding:"8px 16px", borderRadius:10, cursor:"pointer"
-                }}
               >
                 Cancel
               </button>
               <button
                 type="button"
+                className="qb-modal-btn qb-modal-btn-danger"
                 onClick={() => { setForm(f => ({...f, solutionDraw: null})); setVisualMode(null); setConfirmRemoveDraw(false); }}
-                style={{
-                  background:"#dc2626", border:"none", color:"#fff",
-                  fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:600,
-                  padding:"8px 16px", borderRadius:10, cursor:"pointer"
-                }}
               >
                 Remove
               </button>

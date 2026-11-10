@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { TOPICS, LETTERS } from "../../constants/appConstants";
 import {
   ChevronLeft,
@@ -38,7 +39,9 @@ export default function QuestionDetail({
 }) {
   const [pick, setPick] = useState(null);
   const [showSol, setShowSol] = useState(false);
-  const [confirmDel, setConfirmDel] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const cancelDeleteBtnRef = useRef<HTMLButtonElement>(null);
   const [expanded, setExpanded] = useState(false);
   const [answerMs, setAnswerMs] = useState(0);
   const [timerRunning, setTimerRunning] = useState(false);
@@ -88,7 +91,8 @@ export default function QuestionDetail({
   useEffect(() => {
     setPick(null);
     setShowSol(!!forceShowSolution);
-    setConfirmDel(false);
+    setIsDeleteModalOpen(false);
+    setIsDeleting(false);
     setExpanded(false);
     setAnswerMs(0);
     timerStartRef.current = Date.now();
@@ -99,6 +103,30 @@ export default function QuestionDetail({
       cardScrollRef.current.scrollTop = 0;
     }
   }, [question.id, forceShowSolution]);
+
+  useEffect(() => {
+    if (!isDeleteModalOpen) return;
+    cancelDeleteBtnRef.current?.focus();
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isDeleting) {
+        e.preventDefault();
+        setIsDeleteModalOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isDeleteModalOpen, isDeleting]);
+
+  const handleConfirmDelete = async () => {
+    if (isDeleting) return;
+    setIsDeleting(true);
+    try {
+      await onDelete(question.id);
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteModalOpen(false);
+    }
+  };
 
   useEffect(() => {
     if (!timerRunning) return;
@@ -376,7 +404,7 @@ export default function QuestionDetail({
               <Star size={15} fill={question.favorite ? "currentColor" : "none"} />
             </button>
 
-            {canManageQuestions && !confirmDel ? (
+            {canManageQuestions && (
               <div className="qb-det-admin-group">
                 <button
                   type="button"
@@ -390,33 +418,15 @@ export default function QuestionDetail({
                 <button
                   type="button"
                   className="qb-del-btn"
-                  onClick={() => setConfirmDel(true)}
+                  onClick={() => setIsDeleteModalOpen(true)}
                   title="Delete question"
+                  aria-haspopup="dialog"
                 >
                   <Trash2 size={13} className="qb-btn-icon" />
                   <span>Delete</span>
                 </button>
               </div>
-            ) : canManageQuestions && confirmDel ? (
-              <div className="qb-det-admin-group">
-                <button
-                  type="button"
-                  className="qb-del-cancel"
-                  onClick={() => setConfirmDel(false)}
-                >
-                  <X size={13} />
-                  <span>Cancel</span>
-                </button>
-                <button
-                  type="button"
-                  className="qb-del-confirm"
-                  onClick={() => onDelete(question.id)}
-                >
-                  <Trash2 size={13} />
-                  <span>Confirm Delete</span>
-                </button>
-              </div>
-            ) : null}
+            )}
           </div>
         </div>
       </div>
@@ -561,6 +571,88 @@ export default function QuestionDetail({
           </div>
         </div>
       </div>
+
+      {/* Industry-Standard Accessible Delete Confirmation Modal */}
+      {isDeleteModalOpen &&
+        createPortal(
+          <div
+            className="qb-modal-backdrop qb-delete-modal-overlay"
+            role="presentation"
+            onClick={() => {
+              if (!isDeleting) setIsDeleteModalOpen(false);
+            }}
+          >
+            <div
+              className="qb-modal-card qb-delete-modal-card"
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="qb-delete-title"
+              aria-describedby="qb-delete-desc"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="qb-delete-modal-header">
+                <div className="qb-delete-modal-icon-badge" aria-hidden="true">
+                  <Trash2 size={22} />
+                </div>
+                <div className="qb-delete-modal-headings">
+                  <h3 id="qb-delete-title" className="qb-modal-title qb-delete-modal-title">
+                    Delete Question?
+                  </h3>
+                  <p id="qb-delete-desc" className="qb-modal-text qb-delete-modal-desc">
+                    Are you sure you want to delete this question? This action will permanently remove it from the question bank and cannot be undone.
+                  </p>
+                </div>
+              </div>
+
+              {/* Context Preview of the question being deleted */}
+              <div className="qb-delete-modal-preview">
+                <div className="qb-delete-modal-preview-meta">
+                  <span className="qb-delete-modal-topic-pill">
+                    {topic?.label || question.topic}
+                  </span>
+                  {questionIndex && totalQuestions ? (
+                    <span className="qb-delete-modal-idx">
+                      Item {questionIndex} of {totalQuestions}
+                    </span>
+                  ) : null}
+                  {label && <span className="qb-delete-modal-code">{label}</span>}
+                </div>
+                <p className="qb-delete-modal-preview-text">
+                  {question.question.length > 180
+                    ? `${question.question.slice(0, 180).trim()}…`
+                    : question.question}
+                </p>
+                <div className="qb-delete-modal-preview-footer">
+                  <span>{question.choices?.length || 4} answer choices</span>
+                  {hasSolution && <span>• Includes solution explanation</span>}
+                </div>
+              </div>
+
+              <div className="qb-modal-actions qb-delete-modal-actions">
+                <button
+                  ref={cancelDeleteBtnRef}
+                  type="button"
+                  className="qb-modal-btn qb-modal-btn-cancel qb-delete-modal-btn-cancel"
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  disabled={isDeleting}
+                >
+                  <X size={14} className="qb-btn-icon" />
+                  <span>Cancel</span>
+                </button>
+                <button
+                  type="button"
+                  className="qb-modal-btn qb-modal-btn-danger qb-delete-modal-btn-delete"
+                  onClick={handleConfirmDelete}
+                  disabled={isDeleting}
+                >
+                  <Trash2 size={14} className="qb-btn-icon" />
+                  <span>{isDeleting ? "Deleting…" : "Delete Question"}</span>
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

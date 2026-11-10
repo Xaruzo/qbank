@@ -99,19 +99,27 @@ export default function Header({
   };
 
   const accountIcon = (
-    <span className={`qb-account-avatar shape-${profile?.avatarShape || "badge"}`} aria-hidden="true">
-      {profile?.avatarUrl ? (
-        <img
-          src={profile.avatarUrl}
-          alt={profile.fullName || "User profile"}
-          className="qb-avatar-img"
-        />
-      ) : profile?.fullName ? (
-        profile.fullName.slice(0, 2).toUpperCase()
-      ) : (
-        <UserCircle2 size={20} strokeWidth={1.8} />
-      )}
-    </span>
+    <div className="qb-profile-trigger-avatar-wrap">
+      <div
+        className={`qb-header-avatar qb-account-avatar qb-profile-trigger-avatar shape-${
+          profile?.avatarShape || "badge"
+        }`}
+        aria-hidden="true"
+      >
+        {profile?.avatarUrl ? (
+          <img
+            src={profile.avatarUrl}
+            alt={profile.fullName || "User profile"}
+            className="qb-avatar-img"
+          />
+        ) : profile?.fullName ? (
+          profile.fullName.slice(0, 2).toUpperCase()
+        ) : (
+          <UserCircle2 size={18} strokeWidth={1.8} />
+        )}
+      </div>
+      <span className={`qb-profile-online-dot${isAuthenticated ? " online" : " guest"}`} />
+    </div>
   );
 
   return (
@@ -222,12 +230,13 @@ export default function Header({
             <div className="qb-account-wrap" ref={menuRef}>
               <button
                 type="button"
-                className={`qb-account-btn qb-account-btn-avatar shape-${
+                className={`qb-account-btn-avatar shape-${
                   profile?.avatarShape || "badge"
                 }${menuOpen ? " is-active" : ""}`}
                 onClick={() => setMenuOpen((open) => !open)}
                 aria-expanded={menuOpen}
                 aria-haspopup="menu"
+                aria-label={profile?.fullName ? `${profile.fullName}'s account menu` : "Account menu"}
                 title={profile?.email || profile?.fullName || "Account menu"}
               >
                 {accountIcon}

@@ -187,6 +187,13 @@ function RailNavList({
 
   useLayoutEffect(() => {
     updateGlider();
+    // Re-check after sidebar width transition completes (280ms duration)
+    const t1 = setTimeout(updateGlider, 80);
+    const t2 = setTimeout(updateGlider, 300);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   }, [active, navItems]);
 
   useEffect(() => {
