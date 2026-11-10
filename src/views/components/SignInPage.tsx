@@ -354,20 +354,9 @@ export default function SignInPage({
                 </div>
 
                 <div className="qb-signin-field">
-                  <div className="qb-signin-label-row">
-                    <label htmlFor="signin-password" className="qb-signin-label">
-                      Password
-                    </label>
-                    {!isRegisterMode && (
-                      <button
-                        type="button"
-                        className="qb-signin-hint-btn highlight"
-                        onClick={() => setShowForgotPassword(true)}
-                      >
-                        Forgot password?
-                      </button>
-                    )}
-                  </div>
+                  <label htmlFor="signin-password" className="qb-signin-label">
+                    Password
+                  </label>
                   <div className="qb-signin-input-wrap">
                     <KeyRound size={16} className="qb-signin-input-icon" />
                     <input
@@ -392,6 +381,17 @@ export default function SignInPage({
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
+                  {!isRegisterMode && (
+                    <div className="qb-signin-under-field-row">
+                      <button
+                        type="button"
+                        className="qb-signin-forgot-link"
+                        onClick={() => setShowForgotPassword(true)}
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
+                  )}
                   {isRegisterMode && (
                     <div className="qb-signin-validation-list">
                       <span className={`qb-signin-val-item${password.length >= 6 ? " met" : ""}`}>

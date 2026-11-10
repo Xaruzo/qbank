@@ -17550,6 +17550,13 @@ body:has(.qb-landing-root) {
   font-size: 11px;
 }
 
+.qb-signin-under-field-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 4px;
+}
+
 .qb-signin-forgot-link {
   background: none;
   border: none;
@@ -17559,12 +17566,14 @@ body:has(.qb-landing-root) {
   cursor: pointer;
   padding: 4px 0;
   text-align: right;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  line-height: 1;
 }
 
 .qb-signin-forgot-link:hover {
   text-decoration: underline;
   opacity: 0.9;
+  transform: translateY(-0.5px);
 }
 
 .qb-fp-backdrop {

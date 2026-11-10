@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "tsx server.ts",
     "start": "node server.ts",
-    "build": "vite build",
-    "install:build": "npm install && npm run build",
+    "build": "NODE_OPTIONS='--max-old-space-size=450' vite build",
+    "install:build": "npm ci --prefer-offline && npm run build",
     "preview": "vite preview",
     "lint": "eslint . --max-warnings 130",
     "test": "vitest run",

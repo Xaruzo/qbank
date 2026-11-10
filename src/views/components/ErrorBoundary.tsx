@@ -82,10 +82,32 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
           <h1 style={{ fontSize: 18, marginBottom: 8 }}>
             Something went wrong
           </h1>
-          <p style={{ fontSize: 13, color: "var(--text-muted, #9fb0c8)", marginBottom: 20, lineHeight: 1.5 }}>
+          <p style={{ fontSize: 13, color: "var(--text-muted, #9fb0c8)", marginBottom: 16, lineHeight: 1.5 }}>
             The app hit an unexpected error. Your saved questions, tips, and mock exam
             history are safe. Reload to continue studying.
           </p>
+
+          {this.state.error && (
+            <div
+              style={{
+                textAlign: "left",
+                background: "rgba(0, 0, 0, 0.4)",
+                border: "1px solid rgba(245, 158, 11, 0.25)",
+                borderRadius: 8,
+                padding: "10px 12px",
+                marginBottom: 20,
+                fontSize: 12,
+                color: "#fca5a5",
+                fontFamily: "monospace",
+                maxHeight: 140,
+                overflowY: "auto",
+                wordBreak: "break-word",
+                whiteSpace: "pre-wrap",
+              }}
+            >
+              {String(this.state.error?.message || this.state.error)}
+            </div>
+          )}
           <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
             <button
               type="button"

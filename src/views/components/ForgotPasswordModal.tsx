@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { updateLocalAccountPassword } from "../../controllers/useAuthController";
 
+import { supabase } from "../../utils/supabaseClient";
+
 interface ForgotPasswordModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -105,6 +107,16 @@ export default function ForgotPasswordModal({
     setIsIpNotice(false);
 
     try {
+      // If Supabase is configured, trigger Supabase's built-in reset email as well
+      if (supabase) {
+        try {
+          const redirectTo = `${window.location.origin}${window.location.pathname}?page=signin`;
+          await supabase.auth.resetPasswordForEmail(cleanEmail, { redirectTo });
+        } catch (sbErr) {
+          console.warn("Supabase resetPasswordForEmail notice:", sbErr);
+        }
+      }
+
       const result = await callAuthApi("/api/auth/forgot-password", { email: cleanEmail });
 
       if (result.isServer && result.data) {
@@ -120,7 +132,7 @@ export default function ForgotPasswordModal({
           setIsIpNotice(true);
         }
       } else {
-        // Static site hosting or offline client fallback
+        // Static site hosting (e.g. Render static site without Node API server) or offline fallback
         const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
         setLocalCode(generatedCode);
         setPreviewCode(generatedCode);
@@ -253,6 +265,19 @@ export default function ForgotPasswordModal({
 
     try {
       const cleanEmail = email.trim().toLowerCase();
+
+      // If Supabase user session exists, update user password directly
+      if (supabase) {
+        try {
+          const { error: sbUpdateErr } = await supabase.auth.updateUser({ password: newPassword });
+          if (sbUpdateErr) {
+            console.warn("Supabase updateUser notice:", sbUpdateErr);
+          }
+        } catch (sbErr) {
+          console.warn("Supabase auth updateUser exception:", sbErr);
+        }
+      }
+
       await callAuthApi("/api/auth/reset-password", {
         email: cleanEmail,
         code: currentCode,
