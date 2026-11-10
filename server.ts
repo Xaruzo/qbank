@@ -499,8 +499,16 @@ async function startServer() {
     app.use(vite.middlewares);
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`QBANK Full-Stack Server running on http://0.0.0.0:${PORT}`);
+  const server = app.listen(PORT, "0.0.0.0", () => {
+    console.log(`QBANK Full-Stack Server running on http://localhost:${PORT}`);
+  });
+  server.on("error", (err: Error & { code?: string }) => {
+    if (err.code === "EADDRINUSE") {
+      console.error(`Port ${PORT} is already in use by another process.`);
+      console.error(`Stop it with: netstat -ano | findstr :${PORT} then taskkill /f /pid <PID>`);
+      process.exit(1);
+    }
+    throw err;
   });
 }
 
