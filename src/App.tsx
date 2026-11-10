@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Header from "./views/components/Header";
 import Stats from "./views/components/Stats";
 import SearchAndFilter from "./views/components/SearchAndFilter";
@@ -85,7 +85,7 @@ export default function App() {
     signOut,
   } = useAuthController();
   
-  const { isDark, toggleTheme } = useThemeController();
+  const { isDark, themeMode, setThemeMode, toggleTheme } = useThemeController();
   const {
     settings,
     updateSettings,
@@ -120,7 +120,36 @@ export default function App() {
   const [layersHostEl, setLayersHostEl] = useState(null);
   const [editorAsideHostEl, setEditorAsideHostEl] = useState(null);
 
-  const [navOpen, setNavOpen] = useState(false);
+  // PolicyPulse sidebar logic: the collapsed rail width persists across
+  // reloads, the desktop shell starts expanded by default, and the
+  // tablet/compact breakpoint auto-collapses unless the user flipped it
+  // manually during this session.
+  const [navOpen, setNavOpen] = useState(() => {
+    try {
+      const stored = window.localStorage?.getItem("qbank-nav-open");
+      if (stored === "1") return true;
+      if (stored === "0") return false;
+    } catch (error) {
+      void error;
+    }
+    return !(window.matchMedia && (window.matchMedia("(max-width: 600px)").matches || window.matchMedia("(min-width: 601px) and (max-width: 1099px)").matches));
+  });
+  const navManualOverrideRef = useRef(false);
+  const toggleNav = useCallback(() => {
+    navManualOverrideRef.current = true; // PolicyPulse manual-override guard
+    setNavOpen((prev) => {
+      const next = !prev;
+      // Persist the desktop rail policy only (the drawer is session-local).
+      if (window.matchMedia && window.matchMedia("(min-width: 1100px)").matches) {
+        try {
+          window.localStorage?.setItem("qbank-nav-open", next ? "1" : "0");
+        } catch (error) {
+          void error;
+        }
+      }
+      return next;
+    });
+  }, []);
   const [exam, setExam] = useState(null);
   const [mockHistory, setMockHistory] = useState([]);
   const [isMockHistoryLoading, setIsMockHistoryLoading] = useState(false);
@@ -215,8 +244,29 @@ export default function App() {
 
   useEffect(() => {
     // Entering compact width: never start with the drawer covering content.
-    if (isCompact) setNavOpen(false);
+    // PolicyPulse auto-collapse also resets the manual-override guard once
+    // per breakpoint trip so a later desktop return restores the saved rail.
+    if (isCompact) {
+      navManualOverrideRef.current = false;
+      setNavOpen(false);
+    }
   }, [isCompact]);
+
+  useEffect(() => {
+    // PolicyPulse restore-on-desktop: returning to the desktop breakpoint
+    // re-applies the persisted rail policy unless the user already made a
+    // manual expand/collapse choice during this resize trip.
+    if (!isMobile && !isCompact) {
+      if (navManualOverrideRef.current) return;
+      try {
+        const stored = window.localStorage?.getItem("qbank-nav-open");
+        if (stored === "1") setNavOpen((prev) => (prev ? prev : true));
+        else if (stored === "0") setNavOpen((prev) => (prev ? false : prev));
+      } catch (error) {
+        void error;
+      }
+    }
+  }, [isMobile, isCompact]);
 
   useEffect(() => {
     qsRef.current = qs;
@@ -1038,7 +1088,7 @@ export default function App() {
           currentView={view}
           showNavToggle={isMobile || isCompact}
           navOpen={navOpen}
-          onToggleNav={() => setNavOpen(v => !v)}
+          onToggleNav={toggleNav}
           authAvailable={authAvailable}
           isAuthLoading={isAuthLoading}
           isAuthenticated={isAuthenticated}
@@ -1085,6 +1135,8 @@ export default function App() {
             settings={settings}
             isDark={isDark}
             onToggleTheme={toggleTheme}
+            themeMode={themeMode}
+            onSetThemeMode={setThemeMode}
             isQuestionAdmin={isQuestionAdmin}
           />
         )}
@@ -1100,7 +1152,7 @@ export default function App() {
               onMockExam={handleGoMockExam}
               onTips={handleGoTips}
               onNotes={handleGoNotes}
-              onToggleNav={() => setNavOpen((prev) => !prev)}
+              onToggleNav={toggleNav}
               totalQuestions={qs.length}
               starredCount={favoriteCount}
               onOpenHelp={handleOpenHelp}
@@ -1118,6 +1170,8 @@ export default function App() {
               settings={settings}
               isDark={isDark}
               onToggleTheme={toggleTheme}
+              themeMode={themeMode}
+              onSetThemeMode={setThemeMode}
               isQuestionAdmin={isQuestionAdmin}
             />
           )}

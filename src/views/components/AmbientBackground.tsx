@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
-import heroDeskImg from "../../assets/images/hero_desk_reviewer_1794130533596.jpg";
-import examHallImg from "../../assets/images/exam_hall_atmosphere_1794130533049.jpg";
+
+const heroDeskImg = "/hero_desk_reviewer.webp";
+const examHallImg = "/exam_hall_atmosphere.webp";
 
 interface AmbientBackgroundProps {
   isDark?: boolean;

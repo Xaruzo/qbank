@@ -151,6 +151,8 @@ export interface SideNavProps {
   starredCount?: number;
   isDark?: boolean;
   onToggleTheme?: () => void;
+  themeMode?: "dark" | "light" | "system";
+  onSetThemeMode?: (mode: "dark" | "light" | "system") => void;
   onOpenHelp?: () => void;
   onOpenSettings?: (tab?: string) => void;
   isAuthenticated?: boolean;

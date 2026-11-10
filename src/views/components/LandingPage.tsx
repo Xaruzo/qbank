@@ -19,8 +19,6 @@ import {
   RotateCcw,
 } from "lucide-react";
 import brandLogo from "../../models/Image/logo.png";
-import heroDeskImg from "../../assets/images/hero_desk_reviewer_1794130533596.jpg";
-import examHallImg from "../../assets/images/exam_hall_atmosphere_1794130533049.jpg";
 import AppleHeroCanvas from "./AppleHeroCanvas";
 import type { LandingPageProps, TopicId } from "../../types";
 import { TOPICS } from "../../constants/appConstants";
@@ -852,7 +850,7 @@ export default function LandingPage({
       {/* ── Bottom Call to Action ── */}
       <section
         className="qb-landing-banner"
-        style={{ backgroundImage: `url(${examHallImg})` }}
+        style={{ backgroundImage: "url(/exam_hall_atmosphere.webp)" }}
       >
         <div className="qb-landing-banner-overlay" />
         <div className="qb-landing-banner-inner">

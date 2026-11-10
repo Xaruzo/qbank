@@ -19,6 +19,7 @@ import {
   User,
   Moon,
   Sun,
+  Monitor,
   Sliders,
   ShieldCheck,
   type LucideIcon,
@@ -30,6 +31,7 @@ interface NavItemDef {
   id: "home" | "mock" | "tips" | "notes";
   label: string;
   shortLabel: string;
+  railLabel?: string;
   badgeText?: string | null;
   badgeType?: "accent" | "neutral";
   title: string;
@@ -58,6 +60,9 @@ function WorkspaceNavList({
     height: 0,
     ready: false,
   });
+  // PolicyPulse icon activation pop: clicking the already-active tab re-runs
+  // the spring animation by remounting the icon node.
+  const [pulseKeys, setPulseKeys] = useState<Record<string, number>>({});
 
   const updateGlider = () => {
     const activeEl = itemRefs.current[active];
@@ -112,11 +117,22 @@ function WorkspaceNavList({
             type="button"
             style={{ "--nav-idx": idx } as React.CSSProperties}
             className={`qb-nav-item${isSelected ? " is-active" : ""}`}
-            onClick={isOverlay && onNavigate ? onNavigate(clickHandler) : clickHandler}
+            onClick={() => {
+              // PolicyPulse re-click pulse on the already-active destination
+              if (isSelected) setPulseKeys((prev) => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
+              if (isOverlay && onNavigate) onNavigate(clickHandler)();
+              else if (clickHandler) clickHandler();
+            }}
             title={title}
           >
             <div className="qb-nav-item-lead">
-              <Icon size={17} className="qb-nav-item-icon" />
+              <span
+                key={pulseKeys[id] || 0}
+                className="qb-nav-icon-pop-wrap"
+                aria-hidden="true"
+              >
+                <Icon size={17} className="qb-nav-item-icon" />
+              </span>
               <span className="qb-nav-item-label">{label}</span>
             </div>
             {badgeText && (
@@ -135,12 +151,16 @@ interface RailNavListProps {
   navItems: NavItemDef[];
   active: string;
   handlers: Record<string, (() => void) | undefined>;
+  // PolicyPulse unseen-style dot: rail surfaces with new content since the
+  // last visit get an accent dot pinned to their icon.
+  newDotIds?: string[];
 }
 
 function RailNavList({
   navItems,
   active,
   handlers,
+  newDotIds = [],
 }: RailNavListProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -149,6 +169,7 @@ function RailNavList({
     height: 0,
     ready: false,
   });
+  const [pulseKeys, setPulseKeys] = useState<Record<string, number>>({});
 
   const updateGlider = () => {
     const activeEl = itemRefs.current[active];
@@ -190,9 +211,11 @@ function RailNavList({
           <span className="qb-rail-glider-pill" />
         </div>
       )}
-      {navItems.map(({ id, shortLabel, icon: Icon, title }) => {
+      {navItems.map(({ id, shortLabel, railLabel, icon: Icon, title }) => {
         const isSelected = active === id;
         const clickHandler = handlers[id];
+        const showDot = newDotIds.includes(id);
+        const railText = railLabel || shortLabel;
 
         return (
           <button
@@ -202,11 +225,19 @@ function RailNavList({
             }}
             type="button"
             className={`qb-rail-btn${isSelected ? " is-active" : ""}`}
-            onClick={clickHandler}
+            onClick={() => {
+              // PolicyPulse re-click pulse on the already-active destination
+              if (isSelected) setPulseKeys((prev) => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
+              if (clickHandler) clickHandler();
+            }}
             title={title || shortLabel}
             aria-label={shortLabel}
           >
-            <Icon size={17} />
+            <span key={pulseKeys[id] || 0} className="qb-nav-icon-pop-wrap" aria-hidden="true">
+              <Icon size={17} />
+            </span>
+            <span className="qb-rail-btn-label">{railText}</span>
+            {showDot && <span className="qb-rail-btn-dot" aria-hidden="true" />}
           </button>
         );
       })}
@@ -239,6 +270,8 @@ export default function SideNav({
   onSelectTopic,
   topicCounts = {},
   settings,
+  themeMode,
+  onSetThemeMode,
   isQuestionAdmin = false,
 }: SideNavProps) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -247,6 +280,42 @@ export default function SideNav({
   const railBtnRef = useRef<HTMLButtonElement>(null);
   const [profileMenuOpen, setProfileMenuOpen] = useState<boolean>(false);
   const [railCoords, setRailCoords] = useState<{ top: number; left: number } | null>(null);
+
+  // PolicyPulse unread logic: track how many questions were present at the
+  // last bank visit; additions since then surface as a "new" indicator that
+  // resets when the reviewer opens the Question Bank.
+  const SEEN_QUESTIONS_KEY = "qbank-seen-questions-total";
+  const [seenTotal, setSeenTotal] = useState<number | null>(() => {
+    try {
+      const stored = window.localStorage?.getItem(SEEN_QUESTIONS_KEY);
+      return stored == null || stored === "" ? null : Number(stored) || 0;
+    } catch {
+      return null;
+    }
+  });
+  const unseenNewCount =
+    seenTotal != null && totalQuestions > seenTotal ? totalQuestions - seenTotal : 0;
+  const newDotIds = unseenNewCount > 0 ? ["home"] : [];
+
+  useEffect(() => {
+    // Visiting the bank resets the unread tracking (PolicyPulse seen-reset).
+    if (active !== "home" || totalQuestions <= 0) return;
+    setSeenTotal((prev) => (prev === totalQuestions ? prev : totalQuestions));
+  }, [active, totalQuestions]);
+
+  useEffect(() => {
+    if (seenTotal == null) return;
+    try {
+      window.localStorage?.setItem(SEEN_QUESTIONS_KEY, String(seenTotal));
+    } catch {
+      // Ignore storage write errors
+    }
+  }, [seenTotal]);
+
+  const rolePillClass = isQuestionAdmin ? "admin" : isAuthenticated ? "pro" : "guest";
+  const rolePillLabel = isQuestionAdmin ? "ADMIN" : isAuthenticated ? "REVIEWER" : "GUEST";
+  const activeThemeMode = themeMode ?? (isDark ? "dark" : "light");
+
   useOverlayDialogA11y(variant === "overlay" && open, onClose, cardRef);
 
   const updateRailCoords = () => {
@@ -267,12 +336,15 @@ export default function SideNav({
 
   useEffect(() => {
     if (!profileMenuOpen || open) return;
-    const handleReposition = () => updateRailCoords();
-    window.addEventListener("resize", handleReposition);
-    window.addEventListener("scroll", handleReposition, true);
+    // PolicyPulse auto-dismiss: the floating rail popover closes when the
+    // viewport resizes (covers entering tablet/mobile mid-menu).
+    const handleResize = () => setProfileMenuOpen(false);
+    const handleScroll = () => updateRailCoords();
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("scroll", handleScroll, true);
     return () => {
-      window.removeEventListener("resize", handleReposition);
-      window.removeEventListener("scroll", handleReposition, true);
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("scroll", handleScroll, true);
     };
   }, [profileMenuOpen, open]);
 
@@ -312,7 +384,7 @@ export default function SideNav({
       label: "Question Bank",
       shortLabel: "Bank",
       badgeText: totalQuestions > 0 ? `${totalQuestions}` : null,
-      badgeType: "neutral",
+      badgeType: unseenNewCount > 0 ? "accent" : "neutral",
       title: "Question Bank (All practice questions)",
       icon: Layers,
     },
@@ -320,6 +392,7 @@ export default function SideNav({
       id: "mock",
       label: "Timed Mock Exam",
       shortLabel: "Mock Exam",
+      railLabel: "Mock",
       badgeText: "170 Qs",
       badgeType: "accent",
       title: "Timed Mock Exam (Full CSC Simulation)",
@@ -396,6 +469,7 @@ export default function SideNav({
     <div className="qb-nav-group">
       <div className="qb-nav-group-header">
         <span className="qb-nav-group-title">STUDY WORKSPACE</span>
+        <span className={`qb-popover-role-pill ${rolePillClass} qb-nav-role-pill`}>{rolePillLabel}</span>
       </div>
       <WorkspaceNavList
         navItems={navItems}
@@ -459,33 +533,55 @@ export default function SideNav({
         {/* APPEARANCE Segmented Toggle (Smooth sliding glider animation) */}
         <div className="qb-profile-popover-section">
           <span className="qb-profile-popover-section-label">APPEARANCE</span>
-          <div className="qb-profile-segmented-appearance" data-theme={isDark ? "dark" : "light"}>
+          <div
+            className="qb-profile-segmented-appearance"
+            data-theme={activeThemeMode}
+            data-mode={onSetThemeMode ? "ternary" : "binary"}
+          >
             <div
-              className={`qb-seg-theme-glider ${isDark ? "is-dark" : "is-light"}`}
+              className={`qb-seg-theme-glider is-${activeThemeMode}`}
               aria-hidden="true"
             />
             <button
               type="button"
-              className={`qb-seg-theme-btn${isDark ? " is-active" : ""}`}
+              className={`qb-seg-theme-btn${activeThemeMode === "dark" ? " is-active" : ""}`}
               onClick={() => {
-                if (!isDark && onToggleTheme) onToggleTheme();
+                if (activeThemeMode === "dark") return;
+                if (onSetThemeMode) onSetThemeMode("dark");
+                else if (!isDark && onToggleTheme) onToggleTheme();
               }}
-              aria-pressed={isDark}
+              aria-pressed={activeThemeMode === "dark"}
             >
               <Moon size={14} className="qb-seg-theme-icon" />
               <span>Dark</span>
             </button>
             <button
               type="button"
-              className={`qb-seg-theme-btn${!isDark ? " is-active" : ""}`}
+              className={`qb-seg-theme-btn${activeThemeMode === "light" ? " is-active" : ""}`}
               onClick={() => {
-                if (isDark && onToggleTheme) onToggleTheme();
+                if (activeThemeMode === "light") return;
+                if (onSetThemeMode) onSetThemeMode("light");
+                else if (isDark && onToggleTheme) onToggleTheme();
               }}
-              aria-pressed={!isDark}
+              aria-pressed={activeThemeMode === "light"}
             >
               <Sun size={14} className="qb-seg-theme-icon" />
               <span>Light</span>
             </button>
+            {onSetThemeMode && (
+              <button
+                type="button"
+                className={`qb-seg-theme-btn${activeThemeMode === "system" ? " is-active" : ""}`}
+                onClick={() => {
+                  if (activeThemeMode !== "system") onSetThemeMode("system");
+                }}
+                aria-pressed={activeThemeMode === "system"}
+                title="Follow the device appearance"
+              >
+                <Monitor size={14} className="qb-seg-theme-icon" />
+                <span>System</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -685,9 +781,13 @@ export default function SideNav({
                 navItems={navItems}
                 active={active}
                 handlers={handlers}
+                newDotIds={newDotIds}
               />
 
               <div className="qb-rail-bottom">
+                <span className={`qb-popover-role-pill ${rolePillClass} qb-rail-role-pill`}>
+                  {rolePillLabel}
+                </span>
                 <button
                   ref={railBtnRef}
                   type="button"
