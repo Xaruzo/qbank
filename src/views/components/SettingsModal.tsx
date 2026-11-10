@@ -21,6 +21,8 @@ import {
   Image as ImageIcon,
   RotateCcw,
   Bell,
+  CheckCircle2,
+  Cpu,
 } from "lucide-react";
 import { useOverlayDialogA11y } from "../../controllers/useOverlayDialogA11y";
 import type { AppSettings, UserProfile } from "../../types";
@@ -297,82 +299,123 @@ export default function SettingsModal({
           {/* TAB 1: OPTIMIZER & PERFORMANCE */}
           {activeTab === "optimizer" && (
             <div className="qb-settings-tab-pane">
-              {/* LITE / Power Saver Mode Card */}
-              <div className={`qb-settings-card-block${settings.liteMode ? " is-highlighted" : ""}`}>
-                <div className="qb-settings-card-lead">
-                  <div className={`qb-settings-icon-badge${settings.liteMode ? " is-accent" : ""}`}>
-                    <Zap size={18} />
-                  </div>
-                  <div className="qb-settings-card-content">
-                    <div className="qb-settings-card-header-row">
-                      <h3 className="qb-settings-card-title">LITE / Power Saver Mode</h3>
-                      <span className={`qb-settings-state-tag${settings.liteMode ? " active" : ""}`}>
-                        {settings.liteMode ? "Active" : "Standard"}
-                      </span>
+              {/* Device Performance & Animation Optimizer */}
+              <div className="qb-perf-optimizer-container" style={{ margin: 0 }}>
+                <div className="qb-perf-optimizer-header">
+                  <div className="qb-perf-header-lead">
+                    <Activity size={20} className="qb-perf-icon-glow" />
+                    <div>
+                      <h3 className="qb-perf-title">Device Performance & Animation Optimizer</h3>
+                      <p className="qb-perf-desc">
+                        Adaptive hardware scaling: automatically throttles GPU-heavy backdrop blur filters and CSS animations on budget devices or battery saver for smooth 60 FPS performance.
+                      </p>
                     </div>
-                    <p className="qb-settings-card-desc">
-                      Optimizes GPU overhead, strips intensive glass blur filters, simplifies box shadows, and pauses non-essential background animations. Extends battery life on laptops and mobile phones.
-                    </p>
                   </div>
+
+                  {(() => {
+                    const currentTier =
+                      settings.performanceTier ||
+                      (settings.liteMode ? "lite" : !settings.animationsEnabled ? "lite" : "high");
+                    return (
+                      <div className="qb-perf-tier-badge">
+                        <span className="qb-perf-tier-label">Active Tier:</span>
+                        <span className="qb-perf-tier-val">
+                          {currentTier === "high"
+                            ? "HIGH (FORCED)"
+                            : currentTier === "lite"
+                            ? "LITE (POWER-SAVER)"
+                            : "AUTO (DETECTED)"}
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </div>
 
-                <div className="qb-settings-card-footer">
-                  <div className="qb-settings-footer-info">
-                    <Activity size={13} />
-                    <span>{settings.liteMode ? "Low GPU & Memory Footprint" : "Standard High-Fidelity Rendering"}</span>
-                  </div>
-                  <button
-                    type="button"
-                    className={`qb-toggle-switch${settings.liteMode ? " is-on" : ""}`}
-                    onClick={() => onUpdateSettings({ liteMode: !settings.liteMode })}
-                    aria-label="Toggle LITE / Power saver mode"
-                    role="switch"
-                    aria-checked={settings.liteMode}
-                  >
-                    <span className="qb-toggle-knob" />
-                  </button>
-                </div>
-              </div>
+                {/* 3 Interactive Cards */}
+                {(() => {
+                  const currentTier =
+                    settings.performanceTier ||
+                    (settings.liteMode ? "lite" : !settings.animationsEnabled ? "lite" : "high");
 
-              {/* Animation Toggle Card */}
-              <div className={`qb-settings-card-block${!settings.animationsEnabled ? " is-highlighted" : ""}`}>
-                <div className="qb-settings-card-lead">
-                  <div className="qb-settings-icon-badge">
-                    <Sparkles size={18} />
-                  </div>
-                  <div className="qb-settings-card-content">
-                    <div className="qb-settings-card-header-row">
-                      <h3 className="qb-settings-card-title">Navigation & UI Animations</h3>
-                      <span className={`qb-settings-state-tag${settings.animationsEnabled ? " active" : ""}`}>
-                        {settings.animationsEnabled ? "Fluid Motion" : "Reduced"}
-                      </span>
+                  return (
+                    <div className="qb-perf-cards-grid">
+                      {/* Card 1: Adaptive Auto-Detect */}
+                      <button
+                        type="button"
+                        className={`qb-perf-card${currentTier === "auto" ? " is-selected is-auto" : ""}`}
+                        onClick={() => onUpdateSettings({ performanceTier: "auto" })}
+                      >
+                        <div className="qb-perf-card-head">
+                          <div className="qb-perf-card-title-group">
+                            <div className="qb-perf-icon-badge is-auto">
+                              <Sparkles size={16} />
+                            </div>
+                            <span className="qb-perf-card-title">Adaptive Auto-Detect</span>
+                          </div>
+                          <div className="qb-perf-card-check-slot">
+                            {currentTier === "auto" && (
+                              <CheckCircle2 size={18} className="qb-perf-check-icon" />
+                            )}
+                          </div>
+                        </div>
+                        <p className="qb-perf-card-desc">
+                          Inspects CPU cores, device memory, and OS battery/motion signals to dynamically calibrate animations.
+                        </p>
+                        <span className="qb-perf-card-tag recommended">Recommended</span>
+                      </button>
+
+                      {/* Card 2: High Fidelity */}
+                      <button
+                        type="button"
+                        className={`qb-perf-card${currentTier === "high" ? " is-selected is-high" : ""}`}
+                        onClick={() => onUpdateSettings({ performanceTier: "high" })}
+                      >
+                        <div className="qb-perf-card-head">
+                          <div className="qb-perf-card-title-group">
+                            <div className="qb-perf-icon-badge is-high">
+                              <Zap size={16} />
+                            </div>
+                            <span className="qb-perf-card-title">High Fidelity</span>
+                          </div>
+                          <div className="qb-perf-card-check-slot">
+                            {currentTier === "high" && (
+                              <CheckCircle2 size={18} className="qb-perf-check-icon" />
+                            )}
+                          </div>
+                        </div>
+                        <p className="qb-perf-card-desc">
+                          Enables full spring motion physics, translucent backdrop-blur shaders, and rich fluid transitions across all panels.
+                        </p>
+                        <span className="qb-perf-card-tag workstation">Workstations & PCs</span>
+                      </button>
+
+                      {/* Card 3: Lite / Power-Saver */}
+                      <button
+                        type="button"
+                        className={`qb-perf-card${currentTier === "lite" ? " is-selected is-lite" : ""}`}
+                        onClick={() => onUpdateSettings({ performanceTier: "lite" })}
+                      >
+                        <div className="qb-perf-card-head">
+                          <div className="qb-perf-card-title-group">
+                            <div className="qb-perf-icon-badge is-lite">
+                              <Cpu size={16} />
+                            </div>
+                            <span className="qb-perf-card-title">Lite / Power-Saver</span>
+                          </div>
+                          <div className="qb-perf-card-check-slot">
+                            {currentTier === "lite" && (
+                              <CheckCircle2 size={18} className="qb-perf-check-icon" />
+                            )}
+                          </div>
+                        </div>
+                        <p className="qb-perf-card-desc">
+                          Disables heavy GPU backdrop blur, stops ambient pulse loops, and accelerates transitions to 0.08s for maximum FPS and battery.
+                        </p>
+                        <span className="qb-perf-card-tag lowspec">Low-Spec & Tablets</span>
+                      </button>
                     </div>
-                    <p className="qb-settings-card-desc">
-                      Controls smooth left-hand side panel navigation animations, active indicator glides, modal scale-ins, and button hover micro-interactions.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="qb-settings-card-footer">
-                  <div className="qb-settings-footer-info">
-                    <Clock size={13} />
-                    <span>
-                      {settings.animationsEnabled
-                        ? "Smooth spring settling (150ms–200ms)"
-                        : "Instant zero-motion transitions"}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    className={`qb-toggle-switch${settings.animationsEnabled ? " is-on" : ""}`}
-                    onClick={() => onUpdateSettings({ animationsEnabled: !settings.animationsEnabled })}
-                    aria-label="Toggle UI animations"
-                    role="switch"
-                    aria-checked={settings.animationsEnabled}
-                  >
-                    <span className="qb-toggle-knob" />
-                  </button>
-                </div>
+                  );
+                })()}
               </div>
 
               {/* Sound & Haptic Feedback */}

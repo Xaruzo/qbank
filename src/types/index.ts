@@ -89,6 +89,7 @@ export interface MockExamAttempt {
 export interface AppSettings {
   liteMode: boolean;
   animationsEnabled: boolean;
+  performanceTier?: "auto" | "high" | "lite";
   examTarget: "professional" | "subprofessional";
   targetExamDate?: string;
   dailyStudyGoal: number;

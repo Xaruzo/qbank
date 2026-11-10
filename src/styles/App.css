@@ -3250,7 +3250,6 @@ body.qb-guide-active .qb {
   min-width: 0;
   flex: 1;
   box-sizing: border-box;
-  animation: qb-nav-fade-slide 0.26s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .qb-side-collapsed-content {
@@ -3261,30 +3260,8 @@ body.qb-guide-active .qb {
   min-width: 0;
   flex: 1;
   box-sizing: border-box;
-  animation: qb-nav-rail-enter 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-@keyframes qb-nav-fade-slide {
-  from {
-    opacity: 0;
-    transform: translateX(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes qb-nav-rail-enter {
-  from {
-    opacity: 0;
-    transform: scale(0.94);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
 
 .qb-nav-item {
   width: 100%;
@@ -14221,9 +14198,9 @@ body:has(.qb-landing-root) {
   width: 34px;
   height: 34px;
   border-radius: 8px;
-  border: none;
+  border: 1px solid transparent;
   background: transparent;
-  color: var(--text-faint);
+  color: #94a3b8 !important;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -14232,8 +14209,19 @@ body:has(.qb-landing-root) {
 }
 
 .qb-rail-tool-btn:hover {
-  color: var(--text-heading);
-  background: var(--surface-h);
+  color: #f8fafc !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.light .qb-rail-tool-btn {
+  color: #64748b !important;
+}
+
+.light .qb-rail-tool-btn:hover {
+  color: #0f172a !important;
+  background: #e2e8f0 !important;
+  border-color: #cbd5e1 !important;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -14782,19 +14770,6 @@ body:has(.qb-landing-root) {
 .qb-nav-item {
   position: relative;
   transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease, transform 0.16s ease;
-  animation: qb-nav-item-enter 0.25s cubic-bezier(0.16, 1, 0.3, 1) backwards;
-  animation-delay: calc(var(--nav-idx, 0) * 0.03s);
-}
-
-@keyframes qb-nav-item-enter {
-  0% {
-    opacity: 0;
-    transform: translateX(-10px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateX(0);
-  }
 }
 
 .qb-nav-item:hover {
@@ -16819,11 +16794,9 @@ body:has(.qb-landing-root) {
   justify-content: center;
 }
 
-.qb-nav-item.is-active .qb-nav-icon-pop-wrap,
-.qb-rail-btn.is-active .qb-nav-icon-pop-wrap,
 .qb-nav-item:hover .qb-nav-icon-pop-wrap,
 .qb-rail-btn:hover .qb-nav-icon-pop-wrap {
-  animation: qb-nav-icon-pop 0.42s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: qb-nav-icon-pop 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Ternary (Dark / Light / System) appearance segmented control */
@@ -19648,6 +19621,367 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   color: #fbbf24 !important;
   background: rgba(245, 166, 35, 0.14) !important;
   border-color: rgba(245, 166, 35, 0.45) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DEVICE PERFORMANCE & ANIMATION OPTIMIZER (IMAGE_23698F3C REFERENCE)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.qb-perf-optimizer-container {
+  background: var(--surface, #1e1f24);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  border-radius: 16px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.28);
+  margin-top: 6px;
+}
+
+.light .qb-perf-optimizer-container {
+  background: #ffffff;
+  border-color: var(--border, #e2e8f0);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+.qb-perf-optimizer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 48px;
+}
+
+.qb-perf-header-lead {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 680px;
+}
+
+.qb-perf-icon-glow {
+  color: #10b981;
+  flex-shrink: 0;
+  margin-top: 2px;
+  filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.4));
+}
+
+.qb-perf-title {
+  font-size: 16.5px;
+  font-weight: 700;
+  color: var(--text, #ffffff);
+  margin: 0 0 4px 0;
+  letter-spacing: -0.01em;
+}
+
+.qb-perf-desc {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-muted, #94a3b8);
+  margin: 0;
+}
+
+/* Fixed-Width Active Tier Badge with Dark/Light Adaptive Contrast */
+.qb-perf-tier-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  background: rgba(14, 165, 233, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.32);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  width: 236px;
+  min-width: 236px;
+  max-width: 236px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.qb-perf-tier-label {
+  color: #f1f5f9 !important;
+  font-weight: 600;
+}
+
+.qb-perf-tier-val {
+  color: #38bdf8 !important;
+  font-family: 'Fira Mono', monospace;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-align: right;
+}
+
+.light .qb-perf-tier-badge {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+}
+
+.light .qb-perf-tier-label {
+  color: #0f172a !important;
+  font-weight: 700;
+}
+
+.light .qb-perf-tier-val {
+  color: #0369a1 !important;
+  font-weight: 700;
+}
+
+/* 3-Card Grid with Symmetric Card Sizing */
+.qb-perf-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  align-items: stretch;
+}
+
+@media (max-width: 860px) {
+  .qb-perf-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.qb-perf-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 2px solid var(--border, rgba(255, 255, 255, 0.08));
+  border-radius: 13px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+  position: relative;
+  outline: none;
+  min-height: 172px;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.light .qb-perf-card {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.qb-perf-card:hover:not(.is-selected) {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.light .qb-perf-card:hover:not(.is-selected) {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+/* QBANK Signature Amber / Orange Selected Card States */
+.qb-perf-card.is-selected {
+  border: 2px solid #f59e0b !important;
+  background: rgba(245, 158, 11, 0.08) !important;
+  box-shadow: 0 0 24px -4px rgba(245, 158, 11, 0.35), inset 0 0 16px rgba(245, 158, 11, 0.04) !important;
+}
+
+.light .qb-perf-card.is-selected {
+  border: 2px solid #d97706 !important;
+  background: rgba(217, 119, 6, 0.06) !important;
+  box-shadow: 0 4px 18px rgba(217, 119, 6, 0.16) !important;
+}
+
+.qb-perf-card.is-selected.is-auto {
+  border-color: #f59e0b !important;
+}
+
+.qb-perf-card.is-selected.is-high {
+  border-color: #f59e0b !important;
+}
+
+.qb-perf-card.is-selected.is-lite {
+  border-color: #f59e0b !important;
+}
+
+/* Dedicated High-Contrast Icon Badges */
+.qb-perf-icon-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.qb-perf-icon-badge.is-auto {
+  background: rgba(56, 189, 248, 0.14);
+  color: #38bdf8 !important;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.qb-perf-icon-badge.is-high {
+  background: rgba(245, 158, 11, 0.16);
+  color: #f59e0b !important;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.qb-perf-icon-badge.is-lite {
+  background: rgba(251, 191, 36, 0.14);
+  color: #fbbf24 !important;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.qb-perf-icon-badge svg {
+  stroke-width: 2.2px;
+}
+
+.qb-perf-check-icon {
+  color: #f59e0b !important;
+  flex-shrink: 0;
+}
+
+.qb-perf-card-check-slot {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Color utilities for Lucide SVGs */
+.text-cyan-400 {
+  color: #38bdf8 !important;
+}
+.text-emerald-400 {
+  color: #34d399 !important;
+}
+.text-amber-400 {
+  color: #fbbf24 !important;
+}
+.text-orange-400 {
+  color: #fb923c !important;
+}
+
+.qb-perf-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 32px;
+}
+
+.qb-perf-card-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.qb-perf-card-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text, #ffffff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.qb-perf-card-desc {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-muted, #94a3b8);
+  margin: 0;
+  min-height: 52px;
+  flex: 1;
+}
+
+.qb-perf-card-tag {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 6px;
+  width: fit-content;
+  margin-top: 4px;
+  display: inline-flex;
+  align-items: center;
+  letter-spacing: 0.02em;
+}
+
+.qb-perf-card-tag.recommended {
+  background: rgba(99, 102, 241, 0.12);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.qb-perf-card-tag.workstation {
+  background: rgba(16, 185, 129, 0.1);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.28);
+}
+
+.qb-perf-card-tag.lowspec {
+  background: rgba(245, 158, 11, 0.1);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.28);
+}
+
+/* Specs Bottom Strip */
+.qb-perf-specs-strip {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 9px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 11.5px;
+  flex-wrap: wrap;
+}
+
+.light .qb-perf-specs-strip {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
+.qb-perf-specs-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted, #94a3b8);
+}
+
+.qb-perf-specs-left strong {
+  color: var(--text, #ffffff);
+  font-weight: 600;
+}
+
+.light .qb-perf-specs-left strong {
+  color: #0f172a;
+}
+
+.qb-perf-specs-dot {
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.light .qb-perf-specs-dot {
+  color: #94a3b8;
+}
+
+.qb-perf-specs-right {
+  color: #38bdf8;
+  font-weight: 500;
+  font-size: 11.5px;
+}
+
+.light .qb-perf-specs-right {
+  color: #0284c7;
 }
 
 
