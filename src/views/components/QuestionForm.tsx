@@ -344,14 +344,14 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
                       key={t.id}
                       type="button"
                       className={`qb-select-item${isSelected ? " on" : ""}`}
-                      style={{ display: "flex", alignItems: "center", gap: 9 }}
                       onClick={() => {
                         setForm(f => ({ ...f, topic: t.id }));
                         setTopicOpen(false);
                       }}
                     >
                       {Icon && <Icon size={15} style={{ color: t.color, flexShrink: 0 }} />}
-                      <span>{t.label}</span>
+                      <span className="qb-select-item-label">{t.label}</span>
+                      {isSelected && <Check size={14} className="qb-select-item-check" />}
                     </button>
                   );
                 })}

@@ -619,27 +619,16 @@ body {
 @media (hover: hover) {
   .qb-account-btn-avatar:hover {
     transform: scale(1.08);
-    filter: brightness(1.06);
-  }
-  .qb-account-btn-avatar:hover .qb-header-avatar,
-  .qb-account-btn-avatar:hover .qb-account-avatar,
-  .qb-account-btn-avatar:hover .qb-profile-trigger-avatar {
-    box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.85), 0 4px 14px rgba(245, 166, 35, 0.3), 0 2px 8px rgba(0, 0, 0, 0.45) !important;
+    filter: brightness(1.08);
   }
 }
 
 .qb-account-btn-avatar:active {
-  transform: scale(0.95);
+  transform: scale(0.96);
 }
 
 .qb-account-btn-avatar.is-active {
-  transform: scale(1.02);
-}
-
-.qb-account-btn-avatar.is-active .qb-header-avatar,
-.qb-account-btn-avatar.is-active .qb-account-avatar,
-.qb-account-btn-avatar.is-active .qb-profile-trigger-avatar {
-  box-shadow: 0 0 0 2.5px #f5a623, 0 0 14px rgba(245, 166, 35, 0.45) !important;
+  transform: scale(1.08);
 }
 
 .qb-account-btn-avatar:focus-visible {
@@ -5614,19 +5603,21 @@ body.qb-guide-active .qb {
 }
 
 .qb-select-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  text-align: left !important;
 }
 
 .qb-select-item-label {
   flex: 1;
-  text-align: left;
+  text-align: left !important;
 }
 
 .qb-select-item-check {
   color: var(--accent, #f5a623);
+  margin-left: auto !important;
   flex-shrink: 0;
 }
 
