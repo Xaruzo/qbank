@@ -151,6 +151,13 @@ export default function SettingsModal({
         ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, maxDim, maxDim);
         const dataUrl = canvas.toDataURL("image/jpeg", 0.88);
         setAvatarUrl(dataUrl);
+        if (onUpdateProfile) {
+          onUpdateProfile({
+            avatarUrl: dataUrl,
+            avatarPreset: null,
+            avatarShape,
+          });
+        }
       };
       img.src = reader.result as string;
     };
@@ -161,6 +168,12 @@ export default function SettingsModal({
   const handleRemovePhoto = () => {
     setAvatarUrl(null);
     setAvatarError(null);
+    if (onUpdateProfile) {
+      onUpdateProfile({
+        avatarUrl: null,
+        avatarPreset: null,
+      });
+    }
   };
 
   const handleProfileSave = async (e: React.FormEvent) => {
@@ -540,12 +553,12 @@ export default function SettingsModal({
                     {avatarUrl && (
                       <button
                         type="button"
-                        className="qb-settings-photo-btn danger"
+                        className="qb-settings-trash-btn"
                         onClick={handleRemovePhoto}
-                        title="Remove custom picture and use initials"
+                        title="Remove custom picture and reset to initials"
+                        aria-label="Remove profile picture"
                       >
-                        <RotateCcw size={13} />
-                        <span>Remove Photo</span>
+                        <Trash2 size={15} />
                       </button>
                     )}
                   </div>

@@ -127,7 +127,10 @@ const getProfileDetails = (user, customProfile) => {
     user?.user_metadata?.full_name ||
     user?.user_metadata?.name ||
     fallbackName;
-  const avatarUrl = customProfile?.avatarUrl ?? user?.user_metadata?.avatar_url ?? null;
+  const avatarUrl =
+    customProfile && "avatarUrl" in customProfile
+      ? customProfile.avatarUrl
+      : (user?.user_metadata?.avatar_url ?? null);
   const initials = fullName
     .split(" ")
     .filter(Boolean)
@@ -141,6 +144,7 @@ const getProfileDetails = (user, customProfile) => {
     initials,
     avatarColor: customProfile?.avatarColor || "amber",
     avatarShape: customProfile?.avatarShape || user?.user_metadata?.avatar_shape || "badge",
+    avatarPreset: customProfile?.avatarPreset || user?.user_metadata?.avatar_preset || null,
     examTarget: customProfile?.examTarget || user?.user_metadata?.exam_target || "professional",
     targetExamDate: customProfile?.targetExamDate || "2026-08-09",
     dailyStudyGoal: customProfile?.dailyStudyGoal || 25,
@@ -392,6 +396,7 @@ export function useAuthController() {
           avatar_url: nextCustom.avatarUrl,
           avatar_color: nextCustom.avatarColor,
           avatar_shape: nextCustom.avatarShape,
+          avatar_preset: nextCustom.avatarPreset,
           exam_target: nextCustom.examTarget,
         },
       };

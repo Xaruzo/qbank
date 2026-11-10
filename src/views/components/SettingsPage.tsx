@@ -37,6 +37,7 @@ import {
   Cpu,
 } from "lucide-react";
 import type { SettingsPageProps, TopicId } from "../../types";
+import { generatePresetSvgUrl } from "../../utils/avatarPresets";
 
 const AVATAR_PRESETS: Array<{
   id: string;
@@ -50,8 +51,10 @@ const AVATAR_PRESETS: Array<{
   { id: "topnotcher", label: "Top Ranker", icon: <Award size={14} /> },
   { id: "creative", label: "Creative", icon: <Palette size={14} /> },
   { id: "robot", label: "Smart Bot", icon: <Bot size={14} /> },
-  { id: "gamer", label: "Gamer", icon: <Gamepad2 size={14} /> },
+  { id: "anime", label: "Anime", icon: <Sparkles size={14} /> },
+  { id: "pixel", label: "Pixel Art", icon: <Gamepad2 size={14} /> },
   { id: "notion", label: "Notionist", icon: <FileText size={14} /> },
+  { id: "shapes", label: "Shapes", icon: <Layers size={14} /> },
   { id: "indigo", label: "Indigo", color: "#6366f1" },
   { id: "emerald", label: "Emerald", color: "#10b981" },
   { id: "rose", label: "Rose", color: "#f43f5e" },
@@ -85,6 +88,7 @@ export default function SettingsPage({
   const [email] = useState(profile?.email || (isAuthenticated ? "examinee@gmail.com" : "guest@offline.local"));
   const [avatarUrl, setAvatarUrl] = useState<string | null>(profile?.avatarUrl || null);
   const [avatarShape, setAvatarShape] = useState<"circle" | "badge">(profile?.avatarShape || "circle");
+  const [selectedPreset, setSelectedPreset] = useState<string | null>(profile?.avatarPreset || null);
   const [selectedColor, setSelectedColor] = useState<string>(profile?.avatarColor || "amber");
   const [examTarget, setExamTarget] = useState<"professional" | "subprofessional">(
     profile?.examTarget || settings.examTarget || "professional"
@@ -141,6 +145,7 @@ export default function SettingsPage({
       setFullName(profile.fullName || "");
       if (profile.avatarUrl !== undefined) setAvatarUrl(profile.avatarUrl);
       if (profile.avatarShape) setAvatarShape(profile.avatarShape);
+      if (profile.avatarPreset !== undefined) setSelectedPreset(profile.avatarPreset || null);
       if (profile.avatarColor) setSelectedColor(profile.avatarColor);
       if (profile.examTarget) setExamTarget(profile.examTarget);
       if (profile.targetExamDate) setExamDate(profile.targetExamDate);
@@ -153,7 +158,7 @@ export default function SettingsPage({
     .filter(Boolean)
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() || "")
-    .join("") || "U";
+    .join("") || "R";
 
   const calculateDaysRemaining = (targetDateStr: string) => {
     try {
@@ -170,8 +175,38 @@ export default function SettingsPage({
 
   const handleShapeChange = (shape: "badge" | "circle") => {
     setAvatarShape(shape);
-    if (onUpdateProfile) {
+    if (selectedPreset) {
+      const svgDataUrl = generatePresetSvgUrl(selectedPreset, fullName || "Reviewer", shape);
+      setAvatarUrl(svgDataUrl);
+      if (onUpdateProfile) {
+        onUpdateProfile({ avatarShape: shape, avatarUrl: svgDataUrl, avatarPreset: selectedPreset });
+      }
+    } else if (onUpdateProfile) {
       onUpdateProfile({ avatarShape: shape });
+    }
+  };
+
+  const handleSelectPreset = (presetId: string) => {
+    setSelectedPreset(presetId);
+    const svgDataUrl = generatePresetSvgUrl(presetId, fullName || "Reviewer", avatarShape);
+    setAvatarUrl(svgDataUrl);
+    if (onUpdateProfile) {
+      onUpdateProfile({
+        avatarUrl: svgDataUrl,
+        avatarPreset: presetId,
+        avatarShape,
+      });
+    }
+  };
+
+  const handleRemoveAvatar = () => {
+    setAvatarUrl(null);
+    setSelectedPreset(null);
+    if (onUpdateProfile) {
+      onUpdateProfile({
+        avatarUrl: null,
+        avatarPreset: null,
+      });
     }
   };
 
@@ -208,6 +243,14 @@ export default function SettingsPage({
         ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, maxDim, maxDim);
         const dataUrl = canvas.toDataURL("image/jpeg", 0.88);
         setAvatarUrl(dataUrl);
+        setSelectedPreset(null);
+        if (onUpdateProfile) {
+          onUpdateProfile({
+            avatarUrl: dataUrl,
+            avatarPreset: null,
+            avatarShape,
+          });
+        }
       };
       img.src = reader.result as string;
     };
@@ -218,7 +261,16 @@ export default function SettingsPage({
   const handleApplyImageUrl = (e: React.FormEvent) => {
     e.preventDefault();
     if (!customImageUrl.trim()) return;
-    setAvatarUrl(customImageUrl.trim());
+    const cleanUrl = customImageUrl.trim();
+    setAvatarUrl(cleanUrl);
+    setSelectedPreset(null);
+    if (onUpdateProfile) {
+      onUpdateProfile({
+        avatarUrl: cleanUrl,
+        avatarPreset: null,
+        avatarShape,
+      });
+    }
     setImageUrlPromptOpen(false);
     setCustomImageUrl("");
   };
@@ -241,6 +293,7 @@ export default function SettingsPage({
           avatarUrl,
           avatarShape,
           avatarColor: selectedColor,
+          avatarPreset: selectedPreset || undefined,
           examTarget,
           targetExamDate: examDate,
           dailyStudyGoal: dailyGoal,
@@ -495,15 +548,15 @@ export default function SettingsPage({
                     <span>Image URL</span>
                   </button>
 
-                  {avatarUrl && (
+                  {(avatarUrl || selectedPreset) && (
                     <button
                       type="button"
-                      className="qb-settings-media-btn danger"
-                      onClick={() => setAvatarUrl(null)}
-                      title="Remove custom photo"
+                      className="qb-settings-trash-btn"
+                      onClick={handleRemoveAvatar}
+                      title="Remove profile picture / reset to default"
+                      aria-label="Remove profile picture"
                     >
-                      <Trash2 size={15} />
-                      <span>Remove</span>
+                      <Trash2 size={16} />
                     </button>
                   )}
                 </div>
@@ -546,17 +599,8 @@ export default function SettingsPage({
                       <button
                         key={preset.id}
                         type="button"
-                        className="qb-settings-preset-chip"
-                        onClick={() => {
-                          if (preset.color) {
-                            setSelectedColor(preset.id);
-                            setAvatarUrl(null);
-                          } else {
-                            // Emoji / avatar icon badge
-                            setAvatarUrl(null);
-                            setFullName((prev) => prev || "Reviewer");
-                          }
-                        }}
+                        className={`qb-settings-preset-chip${selectedPreset === preset.id ? " active" : ""}`}
+                        onClick={() => handleSelectPreset(preset.id)}
                       >
                         {preset.icon && <span className="preset-icon">{preset.icon}</span>}
                         {preset.color && (
