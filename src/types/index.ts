@@ -237,6 +237,7 @@ export interface SelectOption {
   value: string;
   label: string;
   count?: number;
+  icon?: React.ReactNode;
 }
 
 export interface CustomSelectProps {
@@ -247,6 +248,7 @@ export interface CustomSelectProps {
   className?: string;
   style?: React.CSSProperties;
   leadIcon?: React.ReactNode;
+  showCheckmark?: boolean;
 }
 
 export interface LandingPageProps {

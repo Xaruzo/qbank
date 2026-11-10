@@ -120,15 +120,17 @@ export default function Header({
         {/* Left: Hamburger & Brand */}
         <div className="qb-hdr-left">
           {showNavToggle && onToggleNav && (
-            <button
-              type="button"
-              className={`qb-hdr-menu-btn${navOpen ? " is-active" : ""}`}
-              onClick={onToggleNav}
-              aria-label={navOpen ? "Close sidebar menu" : "Open sidebar menu"}
-              title={navOpen ? "Close sidebar menu" : "Open sidebar menu"}
-            >
-              {navOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
+            <div className="qb-hdr-menu-slot">
+              <button
+                type="button"
+                className={`qb-hdr-menu-btn${navOpen ? " is-active" : ""}`}
+                onClick={onToggleNav}
+                aria-label={navOpen ? "Close sidebar menu" : "Open sidebar menu"}
+                title={navOpen ? "Close sidebar menu" : "Open sidebar menu"}
+              >
+                {navOpen ? <X size={20} /> : <Menu size={20} />}
+              </button>
+            </div>
           )}
 
           <div className="qb-logo-block">

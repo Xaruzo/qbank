@@ -10,6 +10,7 @@ export default function CustomSelect({
   className = "",
   style = {},
   leadIcon,
+  showCheckmark = false,
 }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [direction, setDirection] = useState<"down" | "up">("down");
@@ -59,7 +60,11 @@ export default function CustomSelect({
         aria-expanded={isOpen}
       >
         <span className="qb-select-btn-lead">
-          {leadIcon && <span className="qb-select-lead-icon">{leadIcon}</span>}
+          {leadIcon ? (
+            <span className="qb-select-lead-icon">{leadIcon}</span>
+          ) : selectedOption?.icon ? (
+            <span className="qb-select-lead-icon">{selectedOption.icon}</span>
+          ) : null}
           <span className="qb-select-btn-text">{displayText}</span>
         </span>
         <ChevronDown size={14} className={`qb-select-chevron${isOpen ? " is-open" : ""}`} />
@@ -78,8 +83,13 @@ export default function CustomSelect({
                   setIsOpen(false);
                 }}
               >
+                {option.icon && (
+                  <span className="qb-select-item-icon-wrap" aria-hidden="true">
+                    {option.icon}
+                  </span>
+                )}
                 <span className="qb-select-item-label">{option.label}</span>
-                {isSelected && (
+                {showCheckmark && isSelected && (
                   <Check size={14} className="qb-select-item-check" />
                 )}
                 {option.count !== undefined && (

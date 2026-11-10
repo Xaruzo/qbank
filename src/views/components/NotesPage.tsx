@@ -14,6 +14,9 @@ import {
   Code,
   ArrowLeft,
   Clock,
+  History,
+  ArrowDownAZ,
+  ArrowUpZA,
   Sparkles,
   CheckSquare,
   List,
@@ -26,7 +29,7 @@ import {
 } from "lucide-react";
 import { notesModel } from "../../models/notesModel";
 import { NOTE_TOPICS } from "../../constants/appConstants";
-import type { StudyNote, TopicId } from "../../types";
+import type { StudyNote, TopicId, SelectOption } from "../../types";
 import MarkdownText from "./MarkdownText";
 import CustomSelect from "./CustomSelect";
 
@@ -36,11 +39,27 @@ interface NoteColorOption {
   hex: string;
 }
 
-const SORT_OPTIONS = [
-  { value: "newest", label: "Recently Updated" },
-  { value: "oldest", label: "Oldest First" },
-  { value: "title-az", label: "Title (A - Z)" },
-  { value: "title-za", label: "Title (Z - A)" },
+const SORT_OPTIONS: SelectOption[] = [
+  {
+    value: "newest",
+    label: "Recently Updated",
+    icon: <Clock size={13} className="qb-notes-sort-icon" />,
+  },
+  {
+    value: "oldest",
+    label: "Oldest First",
+    icon: <History size={13} className="qb-notes-sort-icon" />,
+  },
+  {
+    value: "title-az",
+    label: "Title (A - Z)",
+    icon: <ArrowDownAZ size={13} className="qb-notes-sort-icon" />,
+  },
+  {
+    value: "title-za",
+    label: "Title (Z - A)",
+    icon: <ArrowUpZA size={13} className="qb-notes-sort-icon" />,
+  },
 ];
 
 const TOPIC_SELECT_OPTIONS = NOTE_TOPICS.filter((t) => t.id !== "all").map((topic) => ({
@@ -450,7 +469,7 @@ export default function NotesPage({ userId, onBack, initialNoteId = null }: Note
                   value={sortBy}
                   onChange={(val) => setSortBy(val as any)}
                   options={SORT_OPTIONS}
-                  leadIcon={<ArrowUpDown size={13} />}
+                  leadIcon={<ArrowUpDown size={13} className="qb-notes-sort-icon" />}
                   className="qb-notes-sort-dropdown"
                 />
               </div>

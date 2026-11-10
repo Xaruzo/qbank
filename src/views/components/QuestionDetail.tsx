@@ -13,7 +13,9 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
-  MousePointerClick
+  MousePointerClick,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import MarkdownText from "./MarkdownText";
 import usePlainTextCopy from "../../utils/usePlainTextCopy";
@@ -334,7 +336,7 @@ export default function QuestionDetail({
 
           <div className="qb-timer-pill" title="Time spent on this question">
             <Clock size={12} className="qb-timer-icon" />
-            <span>{answerTimeText}</span>
+            <span className="qb-timer-val">{answerTimeText}</span>
           </div>
         </div>
 
@@ -355,12 +357,12 @@ export default function QuestionDetail({
           <div className="qb-det-actions-group">
             <button
               type="button"
-              className="qb-det-action-btn qb-det-share-btn"
+              className={`qb-det-action-btn qb-det-share-btn${shareLabel !== "Share" ? " is-copied" : ""}`}
               aria-label="Share question link"
               title="Share question link"
               onClick={handleShare}
             >
-              <Link2 size={14} />
+              {shareLabel === "Share" ? <Link2 size={14} /> : <Check size={14} />}
               <span>{shareLabel}</span>
             </button>
 
@@ -382,7 +384,8 @@ export default function QuestionDetail({
                   onClick={() => onEdit(question)}
                   title="Edit question"
                 >
-                  Edit
+                  <Pencil size={13} className="qb-btn-icon" />
+                  <span>Edit</span>
                 </button>
                 <button
                   type="button"
@@ -390,7 +393,8 @@ export default function QuestionDetail({
                   onClick={() => setConfirmDel(true)}
                   title="Delete question"
                 >
-                  Delete
+                  <Trash2 size={13} className="qb-btn-icon" />
+                  <span>Delete</span>
                 </button>
               </div>
             ) : canManageQuestions && confirmDel ? (
@@ -400,14 +404,16 @@ export default function QuestionDetail({
                   className="qb-del-cancel"
                   onClick={() => setConfirmDel(false)}
                 >
-                  Cancel
+                  <X size={13} />
+                  <span>Cancel</span>
                 </button>
                 <button
                   type="button"
                   className="qb-del-confirm"
                   onClick={() => onDelete(question.id)}
                 >
-                  Confirm Delete
+                  <Trash2 size={13} />
+                  <span>Confirm Delete</span>
                 </button>
               </div>
             ) : null}

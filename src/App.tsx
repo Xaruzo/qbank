@@ -1194,7 +1194,19 @@ export default function App() {
           <main ref={mainRef} className={`qb-main${view === "mockRun" ? " qb-main-exam" : view === "detail" ? " qb-main-detail" : ""}`}>
             <div
               className={`qb-main-inner${
-                view === "add" ? " qb-main-inner-editor" : view === "mockRun" ? " qb-main-inner-exam" : view === "mockAttempt" ? " qb-main-inner-mock-attempt" : view === "detail" ? " qb-main-inner-detail" : view === "settings" ? " qb-main-inner-settings" : ""
+                view === "add"
+                  ? " qb-main-inner-editor"
+                  : view === "notes"
+                  ? " qb-main-inner-notes"
+                  : view === "mockRun"
+                  ? " qb-main-inner-exam"
+                  : view === "mockAttempt"
+                  ? " qb-main-inner-mock-attempt"
+                  : view === "detail"
+                  ? " qb-main-inner-detail"
+                  : view === "settings"
+                  ? " qb-main-inner-settings"
+                  : ""
               }`}
             >
             {loading ? (
