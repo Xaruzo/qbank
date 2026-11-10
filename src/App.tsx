@@ -108,8 +108,15 @@ export default function App() {
       if (page === "signin" || page === "login") return "signIn";
       if (page === "settings") return "settings";
       if (page) return "list";
-      const hasEntered = sessionStorage.getItem("qbank-session-active") === "true";
-      return hasEntered ? "list" : "landing";
+
+      // Check if user has an active session OR an existing authenticated user token in localStorage
+      const hasEntered = typeof sessionStorage !== "undefined" && sessionStorage.getItem("qbank-session-active") === "true";
+      const hasSystemUser = typeof localStorage !== "undefined" && !!localStorage.getItem("cse-qbank-system-user-v1");
+      const hasSupabaseToken = typeof localStorage !== "undefined" && Object.keys(localStorage).some(
+        (k) => k.startsWith("sb-") && k.includes("-auth-token")
+      );
+
+      return (hasEntered || hasSystemUser || hasSupabaseToken) ? "list" : "landing";
     } catch {
       return "landing";
     }
@@ -589,7 +596,16 @@ export default function App() {
       setSelectedId(null);
       setDeepLinkShowSol(false);
       const hasActiveSession = typeof sessionStorage !== "undefined" && sessionStorage.getItem("qbank-session-active") === "true";
-      if (!isAuthenticated && !hasActiveSession) {
+      const hasStoredAuthToken = typeof localStorage !== "undefined" && (
+        !!localStorage.getItem("cse-qbank-system-user-v1") ||
+        Object.keys(localStorage).some((k) => k.startsWith("sb-") && k.includes("-auth-token"))
+      );
+
+      if (isAuthenticated) {
+        try { sessionStorage.setItem("qbank-session-active", "true"); } catch (_) {}
+      }
+
+      if (!isAuthenticated && !hasActiveSession && !hasStoredAuthToken && !isAuthLoading) {
         setView("landing");
       } else {
         setView("list");
