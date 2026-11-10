@@ -325,7 +325,7 @@ const fetchRemoteTipsMap = async (userId) => {
 
   const { data, error } = await supabase
     .from(QUESTION_TIPS_TABLE)
-    .select("id, question_id, tip_text, canvas_data, tip_category, mastery_level, last_reviewed, linked_question_id:question_id")
+    .select("question_id, tip_text, canvas_data, tip_category, mastery_level, last_reviewed")
     .eq("user_id", userId);
 
   if (isMissingQuestionTipsTableError(error)) {

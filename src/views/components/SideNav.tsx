@@ -12,7 +12,6 @@ import {
   LogOut,
   UserCircle2,
   HelpCircle,
-  Settings,
   ChevronsUpDown,
   User,
   Moon,
@@ -796,18 +795,6 @@ export default function SideNav({
                     {renderProfilePopover(false)}
                   </div>,
                   document.body
-                )}
-
-                {onOpenSettings && (
-                  <button
-                    type="button"
-                    className="qb-rail-tool-btn"
-                    onClick={() => onOpenSettings("identity")}
-                    title="Settings & Preferences"
-                    aria-label="Settings"
-                  >
-                    <Settings size={15} />
-                  </button>
                 )}
               </div>
             </div>
