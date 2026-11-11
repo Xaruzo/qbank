@@ -187,61 +187,6 @@ export default function AvatarStudio({
     [facingMode, stopCameraStream]
   );
 
-  const captureCameraFrame = useCallback(() => {
-    const video = videoRef.current;
-    if (!video || !video.videoWidth || !video.videoHeight) return;
-
-    const vw = video.videoWidth;
-    const vh = video.videoHeight;
-    const captureCanvas = document.createElement("canvas");
-    captureCanvas.width = vw;
-    captureCanvas.height = vh;
-    const ctx = captureCanvas.getContext("2d");
-    if (!ctx) return;
-
-    ctx.save();
-    if (mirrorCamera) {
-      ctx.translate(vw, 0);
-      ctx.scale(-1, 1);
-    }
-    ctx.drawImage(video, 0, 0, vw, vh);
-    ctx.restore();
-
-    const snappedDataUrl = captureCanvas.toDataURL("image/jpeg", 0.92);
-    stopCameraStream();
-    openCropperWithSource(snappedDataUrl, true);
-  }, [mirrorCamera, stopCameraStream, openCropperWithSource]);
-
-  const handleTriggerShutter = () => {
-    if (!cameraReady || countdown !== null) return;
-    if (!useTimer) {
-      captureCameraFrame();
-      return;
-    }
-    let remaining = 3;
-    setCountdown(remaining);
-    countdownTimerRef.current = window.setInterval(() => {
-      remaining -= 1;
-      if (remaining <= 0) {
-        if (countdownTimerRef.current) {
-          window.clearInterval(countdownTimerRef.current);
-          countdownTimerRef.current = null;
-        }
-        setCountdown(null);
-        captureCameraFrame();
-      } else {
-        setCountdown(remaining);
-      }
-    }, 900);
-  };
-
-  const handleToggleCameraFacing = () => {
-    const nextFacing = facingMode === "user" ? "environment" : "user";
-    setFacingMode(nextFacing);
-    setMirrorCamera(nextFacing === "user");
-    void startCamera(nextFacing);
-  };
-
   const openCropperWithSource = useCallback((srcUrl: string, fromCamera = false) => {
     setErrorMsg("");
     let effectiveUrl = srcUrl;
@@ -300,6 +245,61 @@ export default function AvatarStudio({
     };
     rawImg.src = effectiveUrl;
   }, []);
+
+  const captureCameraFrame = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || !video.videoWidth || !video.videoHeight) return;
+
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    const captureCanvas = document.createElement("canvas");
+    captureCanvas.width = vw;
+    captureCanvas.height = vh;
+    const ctx = captureCanvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.save();
+    if (mirrorCamera) {
+      ctx.translate(vw, 0);
+      ctx.scale(-1, 1);
+    }
+    ctx.drawImage(video, 0, 0, vw, vh);
+    ctx.restore();
+
+    const snappedDataUrl = captureCanvas.toDataURL("image/jpeg", 0.92);
+    stopCameraStream();
+    openCropperWithSource(snappedDataUrl, true);
+  }, [mirrorCamera, stopCameraStream, openCropperWithSource]);
+
+  const handleTriggerShutter = () => {
+    if (!cameraReady || countdown !== null) return;
+    if (!useTimer) {
+      captureCameraFrame();
+      return;
+    }
+    let remaining = 3;
+    setCountdown(remaining);
+    countdownTimerRef.current = window.setInterval(() => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        if (countdownTimerRef.current) {
+          window.clearInterval(countdownTimerRef.current);
+          countdownTimerRef.current = null;
+        }
+        setCountdown(null);
+        captureCameraFrame();
+      } else {
+        setCountdown(remaining);
+      }
+    }, 900);
+  };
+
+  const handleToggleCameraFacing = () => {
+    const nextFacing = facingMode === "user" ? "environment" : "user";
+    setFacingMode(nextFacing);
+    setMirrorCamera(nextFacing === "user");
+    void startCamera(nextFacing);
+  };
 
   // ==========================================================================
   // Cropper core (clamped pan, canvas rendering, SVG normalization)
