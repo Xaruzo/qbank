@@ -12642,8 +12642,7 @@ body:has(.qb-landing-root) {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  background-size: cover;
-  background-position: center 40%;
+  background-color: #050914;
   padding: 90px 24px;
   overflow: hidden;
   text-align: center;

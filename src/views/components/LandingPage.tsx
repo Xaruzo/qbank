@@ -840,7 +840,6 @@ export default function LandingPage({
       {/* ── Bottom Call to Action ── */}
       <section
         className="qb-landing-banner"
-        style={{ backgroundImage: "url(/exam_hall_atmosphere.webp)" }}
       >
         <div className="qb-landing-banner-overlay" />
         <div className="qb-landing-banner-inner">
