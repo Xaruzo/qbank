@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import brandLogo from "../../models/Image/logo.png";
 import NotificationsModal from "./NotificationsModal";
-import SettingsModal from "./SettingsModal";
 import type { HeaderProps, AppSettings, UserProfile } from "../../types";
 
 interface ExtendedHeaderProps extends HeaderProps {

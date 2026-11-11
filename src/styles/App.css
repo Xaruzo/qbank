@@ -2085,15 +2085,19 @@ body.qb-guide-active .qb {
 
 .qb-question-section { display:flex; flex-direction:column; gap:14px; }
 
-.qb-list-meta { display:grid; grid-template-columns:minmax(0,1fr) auto auto; grid-template-areas:"meta add sort"; align-items:center; gap:16px; column-gap:16px; row-gap:12px; margin-bottom:0; padding:18px 20px; border-radius:22px; border:1px solid var(--border); background:var(--surface-grad); box-shadow:var(--shadow-card); }
+.qb-list-meta { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:0; padding:16px 20px; border-radius:20px; border:1px solid var(--border); background:var(--surface); box-shadow:var(--shadow-card); }
 
-.qb-list-meta-left { display:flex; align-items:center; gap:10px; grid-area:meta; min-width:0; }
+.qb-list-meta-header-row { display:flex; align-items:center; gap:16px; min-width:0; }
 
-.qb-list-meta .qb-sort-wrap { min-width:auto; }
+.qb-list-meta-left { display:flex; align-items:center; gap:10px; min-width:0; }
+
+.qb-list-meta-right { display:flex; align-items:center; margin-left:auto; }
+
+.qb-list-meta .qb-sort-wrap { display:flex; align-items:center; gap:10px; min-width:auto; }
 
 .qb-list-meta .qb-sort-wrap .qb-select { min-width:215px; }
 
-.qb-list-add-btn { grid-area:add; flex-shrink:0; }
+.qb-list-add-btn { flex-shrink:0; }
 
 .qb-list-meta-tips { grid-template-columns:minmax(0,1fr) auto; grid-template-areas:"meta search"; align-items:center; }
 
@@ -6794,49 +6798,64 @@ body.qb-guide-active .qb {
   .qb-sort-wrap { width:100%; justify-content:space-between; 
   }
   .qb-list-meta {
-    display:grid;
-    grid-template-columns:minmax(0, 1fr) auto;
-    grid-template-areas:
-      "meta meta"
-      "sort add";
-    align-items:end;
-    gap:12px 16px;
-    column-gap:16px;
-    row-gap:12px;
-    margin-bottom:14px;
-    padding:14px;
-    border:1px solid var(--border);
-    border-radius:14px;
-    background:linear-gradient(180deg, rgba(8,16,32,.35), rgba(8,16,32,.08));
-  
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 14px;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--surface);
+    height: auto;
+    min-height: auto;
   }
-  .light .qb-list-meta { background:linear-gradient(180deg, rgba(234,240,255,.95), rgba(255,255,255,.7)); 
+  .light .qb-list-meta {
+    background: var(--surface);
+  }
+  .qb-list-meta-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 12px;
   }
   .qb-list-meta-left {
-    grid-area:meta;
-    width:100%;
-    justify-content:space-between;
-    gap:12px;
-  
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 0;
   }
   .qb-list-meta-right {
-    grid-area:sort;
-    margin-left:0;
-    min-width:0;
-  
+    width: 100%;
+    margin-left: 0;
+    min-width: 0;
   }
   .qb-list-meta .qb-sort-wrap {
-    width:100%;
-    min-width:0;
-    flex-direction:column;
-    align-items:flex-start;
-    gap:6px;
-  
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+  }
+  .qb-list-meta .qb-sort-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10.5px;
+    flex-shrink: 0;
   }
   .qb-list-meta .qb-sort-wrap .qb-select {
-    min-width:0;
-    width:100%;
-  
+    min-width: 0 !important;
+    width: 100%;
+    flex: 1 1 auto;
+  }
+  .qb-list-meta .qb-sort-wrap .qb-select-btn {
+    min-width: 0 !important;
+    width: 100%;
+    height: 38px;
   }
   .qb-list-meta-tips {
     grid-template-columns:minmax(0, 1fr);
@@ -6863,14 +6882,16 @@ body.qb-guide-active .qb {
   
   }
   .qb-list-add-btn {
-    grid-area:add;
-    min-height:42px;
-    padding:10px 14px;
-    justify-content:center;
-    white-space:nowrap;
-    flex-shrink:0;
-    margin-left:0;
-  
+    min-height: 34px;
+    height: 34px;
+    padding: 0 12px;
+    font-size: 12px;
+    font-weight: 600;
+    justify-content: center;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-left: 0;
+    border-radius: 10px;
   }
   .qb-editor-shell { padding:16px; border-radius:22px; 
   }
@@ -7024,22 +7045,20 @@ body.qb-guide-active .qb {
     bottom: 0;
     z-index: 350;
     padding: 0 0 calc(env(safe-area-inset-bottom, 0px));
-    background: rgba(18, 20, 24, 0.95) !important;
+    background: rgba(14, 22, 38, 0.96) !important;
     backdrop-filter: blur(28px) saturate(180%) !important;
     -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-top: 1px solid var(--border) !important;
     border-left: none !important;
     border-right: none !important;
     border-bottom: none !important;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.35) !important;
+    box-shadow: 0 -8px 28px rgba(7, 12, 24, 0.65) !important;
     pointer-events: auto;
-  
   }
   .light .qb-mobile-tabbar {
     background: rgba(255, 255, 255, 0.96) !important;
-    border-top: 1px solid rgba(15, 23, 42, 0.08) !important;
-    box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.06) !important;
-  
+    border-top: 1px solid var(--border) !important;
+    box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.08) !important;
   }
 }
 
@@ -7101,19 +7120,54 @@ body.qb-guide-active .qb {
   .qb-exam-stat-value { font-size:18px; 
   }
   .qb-list-meta {
-    grid-template-columns:minmax(0, 1fr) auto;
-    grid-template-areas:
-      "meta meta"
-      "sort add";
-    column-gap:16px;
-    row-gap:12px;
-  
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 14px;
   }
-  .qb-list-meta-right { min-width:0; 
+  .qb-list-meta-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 10px;
   }
-  .qb-list-meta .qb-sort-wrap { min-width:0; width:100%; 
+  .qb-list-meta-left {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
   }
-  .qb-list-meta-left { flex-direction:column; align-items:flex-start; gap:4px; 
+  .qb-list-add-btn {
+    width: auto !important;
+    height: 32px !important;
+    padding: 0 10px !important;
+    font-size: 11.5px !important;
+    margin: 0 !important;
+  }
+  .qb-list-meta-right {
+    min-width: 0;
+    width: 100%;
+  }
+  .qb-list-meta .qb-sort-wrap {
+    min-width: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+  .qb-list-meta .qb-sort-wrap .qb-select {
+    min-width: 0 !important;
+    width: 100%;
+    flex: 1 1 auto;
+  }
+  .qb-list-meta .qb-sort-wrap .qb-select-btn {
+    min-width: 0 !important;
+    width: 100%;
+    height: 36px;
   }
   .qb-list-meta-tips {
     grid-template-areas:
@@ -7126,8 +7180,6 @@ body.qb-guide-active .qb {
     align-items:flex-start;
     gap:4px;
   
-  }
-  .qb-list-add-btn { width:100%; 
   }
   .qb-mobile-tabbar { padding: 0 0 calc(env(safe-area-inset-bottom, 0px)); 
   }
@@ -21093,4 +21145,294 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 .qb.light .qb-notes-tag-pill:not(.is-active) {
   color: #0f172a !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   QUESTION BANK ICON CONTRAST & THEME ALIGNMENT
+   Lighter color for dark mode, darker color for light mode
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* DARK MODE: Lighter icon colors */
+:root,
+.qb:not(.light) {
+  /* Search & Filter icons */
+  .qb-search-icon,
+  .qb-search-icon svg {
+    color: #cbd5e1 !important;
+    opacity: 0.95 !important;
+  }
+  .qb-search-clear-btn,
+  .qb-search-clear-btn svg {
+    color: #cbd5e1 !important;
+    opacity: 0.95 !important;
+  }
+  .qb-filter-label-icon,
+  .qb-sort-label-icon,
+  .qb-sort-label-icon svg,
+  .qb-filter-label-icon svg {
+    color: #cbd5e1 !important;
+    opacity: 0.95 !important;
+  }
+  .qb-filter-row-title svg {
+    color: #f1f5f9 !important;
+    opacity: 1 !important;
+  }
+  .qb-select-lead-icon,
+  .qb-select-btn-lead svg {
+    color: #cbd5e1 !important;
+    opacity: 0.95 !important;
+  }
+  .qb-select-chevron {
+    color: #cbd5e1 !important;
+    opacity: 0.95 !important;
+  }
+  .qb-select-item-icon,
+  .qb-select-item-icon-wrap svg {
+    color: #cbd5e1 !important;
+    opacity: 0.95 !important;
+  }
+  .qb-filter-reset-btn svg {
+    color: #cbd5e1 !important;
+    opacity: 0.95 !important;
+  }
+  .qb-filter-fav-btn:not(.on) svg {
+    color: #cbd5e1 !important;
+    opacity: 0.95 !important;
+  }
+  
+  /* Subject filter tabs */
+  .qb-pill:not(.on) .qb-topic-pill-icon {
+    color: #cbd5e1 !important;
+    opacity: 0.95 !important;
+  }
+  
+  /* Question Feed Cards */
+  .qb-fav-btn:not(.on) {
+    color: #cbd5e1 !important;
+    border-color: rgba(203, 213, 225, 0.28) !important;
+  }
+  .qb-fav-btn:not(.on) .qb-fav-ico {
+    color: #cbd5e1 !important;
+    opacity: 0.92 !important;
+  }
+  .qb-qarrow,
+  .qb-qcard-open svg {
+    color: #cbd5e1 !important;
+    opacity: 0.95 !important;
+  }
+
+  /* Empty state */
+  .qb-empty-ico {
+    color: #cbd5e1 !important;
+    opacity: 0.65 !important;
+  }
+
+  /* Hero & CTA icons */
+  .qb-hero-hub-link svg,
+  .qb-hero-preset-btn svg {
+    color: #f1f5f9 !important;
+  }
+  .qb-hero-secondary svg {
+    color: #f5a623 !important;
+  }
+  .qb-hero-cta svg {
+    color: #0b111e !important;
+  }
+
+  /* Question Detail view icons (opened from Question Bank) */
+  .qb-back svg,
+  .qb-det-nav-btn svg,
+  .qb-det-fav-btn:not(.on) svg,
+  .qb-det-action-btn:not(.danger):not(.primary) svg {
+    color: #e2e8f0 !important;
+    opacity: 0.95 !important;
+  }
+}
+
+/* LIGHT MODE: Darker icon colors */
+.light,
+.qb.light {
+  /* Search & Filter icons */
+  .qb-search-icon,
+  .qb-search-icon svg {
+    color: #1e293b !important;
+    opacity: 0.95 !important;
+  }
+  .qb-search-clear-btn,
+  .qb-search-clear-btn svg {
+    color: #1e293b !important;
+    opacity: 0.95 !important;
+  }
+  .qb-filter-label-icon,
+  .qb-sort-label-icon,
+  .qb-sort-label-icon svg,
+  .qb-filter-label-icon svg {
+    color: #334155 !important;
+    opacity: 0.95 !important;
+  }
+  .qb-filter-row-title svg {
+    color: #0f172a !important;
+    opacity: 1 !important;
+  }
+  .qb-select-lead-icon,
+  .qb-select-btn-lead svg {
+    color: #1e293b !important;
+    opacity: 0.95 !important;
+  }
+  .qb-select-chevron {
+    color: #1e293b !important;
+    opacity: 0.95 !important;
+  }
+  .qb-select-item-icon,
+  .qb-select-item-icon-wrap svg {
+    color: #334155 !important;
+    opacity: 0.95 !important;
+  }
+  .qb-filter-reset-btn svg {
+    color: #1e293b !important;
+    opacity: 0.95 !important;
+  }
+  .qb-filter-fav-btn:not(.on) svg {
+    color: #334155 !important;
+    opacity: 0.95 !important;
+  }
+
+  /* Subject filter tabs */
+  .qb-pill:not(.on) .qb-topic-pill-icon {
+    color: #334155 !important;
+    opacity: 0.95 !important;
+  }
+
+  /* Question Feed Cards */
+  .qb-fav-btn:not(.on) {
+    color: #334155 !important;
+    border-color: rgba(51, 65, 85, 0.28) !important;
+  }
+  .qb-fav-btn:not(.on) .qb-fav-ico {
+    color: #334155 !important;
+    opacity: 0.95 !important;
+  }
+  .qb-qarrow,
+  .qb-qcard-open svg {
+    color: #1e293b !important;
+    opacity: 0.95 !important;
+  }
+
+  /* Empty state */
+  .qb-empty-ico {
+    color: #0f172a !important;
+    opacity: 0.65 !important;
+  }
+
+  /* Hero & CTA icons */
+  .qb-hero-hub-link svg,
+  .qb-hero-preset-btn svg {
+    color: #0f172a !important;
+  }
+
+  /* Question Detail view icons */
+  .qb-back svg,
+  .qb-det-nav-btn svg,
+  .qb-det-fav-btn:not(.on) svg,
+  .qb-det-action-btn:not(.danger):not(.primary) svg {
+    color: #0f172a !important;
+    opacity: 0.95 !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MOBILE BOTTOM NAVIGATION THEME ALIGNMENT
+   ══════════════════════════════════════════════════════════════════════════ */
+.qb-mobile-tabbar {
+  background: rgba(14, 22, 38, 0.96) !important;
+  backdrop-filter: blur(28px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+  border-top: 1px solid var(--border) !important;
+  box-shadow: 0 -8px 28px rgba(7, 12, 24, 0.65) !important;
+}
+
+.qb-mobile-tab {
+  color: #94a3b8 !important;
+}
+
+.qb-mobile-tab:hover {
+  color: #f1f5f9 !important;
+}
+
+.qb-mobile-tab:active {
+  transform: scale(0.96);
+}
+
+.qb-mobile-tab.on {
+  color: #f5a623 !important;
+}
+
+.qb-mobile-tab-indicator {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.qb-mobile-tab.on .qb-mobile-tab-indicator {
+  background: #f5a623 !important;
+  box-shadow: 0 2px 10px rgba(245, 166, 35, 0.7) !important;
+}
+
+.qb-mobile-tab.on .qb-mobile-tab-surface {
+  background: rgba(245, 166, 35, 0.12) !important;
+  border-color: rgba(245, 166, 35, 0.28) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+.qb-mobile-tab-badge {
+  background: #f5a623 !important;
+  color: #070c18 !important;
+  font-weight: 800 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3) !important;
+}
+
+.qb-mobile-tab-live-dot {
+  background: #10b981 !important;
+  box-shadow: 0 0 8px #10b981 !important;
+}
+
+/* Light mode mobile bottom tab bar */
+.light .qb-mobile-tabbar,
+.qb.light .qb-mobile-tabbar {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-top: 1px solid var(--border) !important;
+  box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.08) !important;
+}
+
+.light .qb-mobile-tab,
+.qb.light .qb-mobile-tab {
+  color: #64748b !important;
+}
+
+.light .qb-mobile-tab:hover,
+.qb.light .qb-mobile-tab:hover {
+  color: #0f172a !important;
+}
+
+.light .qb-mobile-tab.on,
+.qb.light .qb-mobile-tab.on {
+  color: #d97706 !important;
+}
+
+.light .qb-mobile-tab.on .qb-mobile-tab-indicator,
+.qb.light .qb-mobile-tab.on .qb-mobile-tab-indicator {
+  background: #d97706 !important;
+  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.5) !important;
+}
+
+.light .qb-mobile-tab.on .qb-mobile-tab-surface,
+.qb.light .qb-mobile-tab.on .qb-mobile-tab-surface {
+  background: rgba(217, 119, 6, 0.08) !important;
+  border-color: rgba(217, 119, 6, 0.22) !important;
+}
+
+.light .qb-mobile-tab-badge,
+.qb.light .qb-mobile-tab-badge {
+  background: #d97706 !important;
+  color: #ffffff !important;
+}
+
 

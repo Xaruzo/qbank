@@ -18,8 +18,6 @@ import {
   Sun,
   Monitor,
   Sliders,
-  PanelLeftClose,
-  PanelLeftOpen,
   type LucideIcon,
 } from "lucide-react";
 import brandLogo from "../../models/Image/logo.png";
@@ -455,7 +453,7 @@ export default function SideNav({
         </div>
       </div>
 
-      {isOverlay ? (
+      {isOverlay && (
         <button
           type="button"
           className="qb-nav-close-btn"
@@ -465,18 +463,6 @@ export default function SideNav({
         >
           <X size={18} />
         </button>
-      ) : (
-        onToggleNav && (
-          <button
-            type="button"
-            className="qb-nav-collapse-btn"
-            onClick={onToggleNav}
-            aria-label="Collapse sidebar panel"
-            title="Collapse sidebar panel"
-          >
-            <PanelLeftClose size={18} />
-          </button>
-        )
       )}
     </div>
   );
@@ -785,19 +771,6 @@ export default function SideNav({
         ) : (
           <div className="qb-side-collapsed-content">
             <div className="qb-rail-wrap">
-              {onToggleNav && (
-                <button
-                  type="button"
-                  className="qb-rail-toggle-btn"
-                  onClick={onToggleNav}
-                  title="Expand sidebar"
-                  aria-label="Expand sidebar"
-                >
-                  <PanelLeftOpen size={18} />
-                </button>
-              )}
-              <div className="qb-rail-divider" />
-
               <RailNavList
                 navItems={navItems}
                 active={active}

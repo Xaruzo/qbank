@@ -28,6 +28,7 @@ import { useAuthController } from "./controllers/useAuthController";
 import { useQuestionsController } from "./controllers/useQuestionsController";
 import { useThemeController } from "./controllers/useThemeController";
 import { useSettingsController } from "./controllers/useSettingsController";
+import { useViewRouter } from "./controllers/useViewRouter";
 import { storageModel } from "./models/storageModel";
 import { tipsModel } from "./models/tipsModel";
 import { favoritesModel } from "./models/favoritesModel";
@@ -100,32 +101,61 @@ export default function App() {
     sortBy, setSortBy, saveQuestion, deleteQuestion, ensureSolutionDraw, toggleFavorite, counts, labelOptions, filteredQuestions 
   } = useQuestionsController(user?.id, isAuthLoading);
 
-  const [view, setView] = useState(() => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const page = params.get("page");
-      if (page === "landing") return "landing";
-      if (page === "signin" || page === "login") return "signIn";
-      if (page === "settings") return "settings";
-      if (page) return "list";
-
-      // Check if user has an active session OR an existing authenticated user token in localStorage
-      const hasEntered = typeof sessionStorage !== "undefined" && sessionStorage.getItem("qbank-session-active") === "true";
-      const hasSystemUser = typeof localStorage !== "undefined" && !!localStorage.getItem("cse-qbank-system-user-v1");
-      const hasSupabaseToken = typeof localStorage !== "undefined" && Object.keys(localStorage).some(
-        (k) => k.startsWith("sb-") && k.includes("-auth-token")
-      );
-
-      return (hasEntered || hasSystemUser || hasSupabaseToken) ? "list" : "landing";
-    } catch {
-      return "landing";
-    }
+  const {
+    view,
+    setView,
+    selectedId,
+    setSelectedId,
+    editId,
+    setEditId,
+    selectedMockAttemptId,
+    setSelectedMockAttemptId,
+    selectedNoteId,
+    setSelectedNoteId,
+    settingsTab,
+    setSettingsTab,
+    deepLinkShowSol,
+    setDeepLinkShowSol,
+    exam,
+    setExam,
+    navigateHome: handleGoHome,
+    navigateLanding,
+    navigateSignIn: handleSignIn,
+    navigateMockExam: handleGoMockExam,
+    navigateTips: handleGoTips,
+    navigateNotes: handleGoNotes,
+    navigateSettings,
+    navigateQuestionDetail: goToQuestionDetail,
+    navigateAddQuestion: handleGoAdd,
+    navigateEditQuestion,
+    navigateTipDetail: handleOpenTipDetail,
+    navigateMockAttempt: handleOpenMockAttempt,
+    navigateMockRun,
+  } = useViewRouter({
+    qs,
+    authAvailable,
+    isAuthenticated,
+    isAuthLoading,
   });
-  const [selectedId, setSelectedId] = useState(null);
-  const [editId, setEditId] = useState(null);
-  const [deepLinkShowSol, setDeepLinkShowSol] = useState(false);
-  const [layersHostEl, setLayersHostEl] = useState(null);
-  const [editorAsideHostEl, setEditorAsideHostEl] = useState(null);
+
+  const handleGoLanding = useCallback(() => {
+    navigateLanding();
+    setNavOpen(false);
+  }, [navigateLanding]);
+
+  const handleGoSettings = useCallback((tab: string = "identity") => {
+    navigateSettings(tab);
+    setNavOpen(false);
+  }, [navigateSettings]);
+
+  const handleGoEdit = useCallback((q: { id: string }) => {
+    navigateEditQuestion(q.id);
+  }, [navigateEditQuestion]);
+
+  const handleSelectQuestion = goToQuestionDetail;
+
+  const [layersHostEl, setLayersHostEl] = useState<HTMLElement | null>(null);
+  const [editorAsideHostEl, setEditorAsideHostEl] = useState<HTMLElement | null>(null);
 
   // PolicyPulse sidebar logic: the collapsed rail width persists across
   // reloads, the desktop shell starts expanded by default, and the
@@ -157,15 +187,11 @@ export default function App() {
       return next;
     });
   }, []);
-  const [exam, setExam] = useState(null);
-  const [mockHistory, setMockHistory] = useState([]);
+  const [mockHistory, setMockHistory] = useState<any[]>([]);
   const [isMockHistoryLoading, setIsMockHistoryLoading] = useState(false);
-  const [savedActiveMockExam, setSavedActiveMockExam] = useState(null);
+  const [savedActiveMockExam, setSavedActiveMockExam] = useState<any | null>(null);
   const [isActiveMockExamLoading, setIsActiveMockExamLoading] = useState(false);
   const [hasLoadedActiveMockExam, setHasLoadedActiveMockExam] = useState(false);
-  const [selectedMockAttemptId, setSelectedMockAttemptId] = useState(null);
-  const [selectedNoteId, setSelectedNoteId] = useState(null);
-  const [settingsTab, setSettingsTab] = useState<string>("identity");
   const [isMobile, setIsMobile] = useState(() => window.matchMedia ? window.matchMedia("(max-width: 600px)").matches : false);
   const [isCompact, setIsCompact] = useState(() => window.matchMedia ? window.matchMedia("(min-width: 601px) and (max-width: 1099px)").matches : false);
   const [showHelpModal, setShowHelpModal] = useState(false);
@@ -443,179 +469,7 @@ export default function App() {
     return () => window.clearTimeout(timeoutId);
   }, [exam, hasLoadedActiveMockExam, isAuthLoading, isAuthenticated, user?.id]);
 
-  useEffect(() => {
-    if (loading || isAuthLoading) return;
 
-    const syncFromUrl = () => {
-      const params = new URLSearchParams(window.location.search);
-      const page = params.get("page");
-      const id = params.get("q");
-      const attemptId = params.get("attempt");
-      const sol = params.get("sol") === "1";
-
-      if (page === "landing") {
-        setSelectedMockAttemptId(null);
-        setSelectedId(null);
-        setDeepLinkShowSol(false);
-        setEditId(null);
-        setExam(null);
-        setView("landing");
-        return;
-      }
-
-      if (page === "signin" || page === "login") {
-        setSelectedMockAttemptId(null);
-        setSelectedId(null);
-        setDeepLinkShowSol(false);
-        setEditId(null);
-        setExam(null);
-        setView("signIn");
-        return;
-      }
-
-      if (page === "mock") {
-        setSelectedId(null);
-        setDeepLinkShowSol(false);
-        setEditId(null);
-        setExam(null);
-        setView("mock");
-        return;
-      }
-
-      if (page === "mock-run") {
-        if (!isAuthenticated) {
-          setSelectedId(null);
-          setDeepLinkShowSol(false);
-          setEditId(null);
-          setExam(null);
-          setView("mock");
-          window.history.replaceState({}, "", `?page=mock`);
-          return;
-        }
-        setSelectedId(null);
-        setDeepLinkShowSol(false);
-        setEditId(null);
-        setView("mockRun");
-        return;
-      }
-
-      if (page === "mock-attempt") {
-        if (!isAuthenticated) {
-          setSelectedMockAttemptId(null);
-          setSelectedId(null);
-          setDeepLinkShowSol(false);
-          setEditId(null);
-          setExam(null);
-          setView("mock");
-          window.history.replaceState({}, "", `?page=mock`);
-          return;
-        }
-        setSelectedMockAttemptId(attemptId || null);
-        setSelectedId(null);
-        setDeepLinkShowSol(false);
-        setEditId(null);
-        setExam(null);
-        setView("mockAttempt");
-        return;
-      }
-
-      if (page === "tips") {
-        setSelectedMockAttemptId(null);
-        setDeepLinkShowSol(false);
-        setEditId(null);
-        setExam(null);
-        setSelectedId(null);
-        setSelectedNoteId(null);
-        setView("tips");
-        return;
-      }
-
-      if (page === "notes") {
-        const noteId = params.get("note");
-        setSelectedMockAttemptId(null);
-        setDeepLinkShowSol(false);
-        setEditId(null);
-        setExam(null);
-        setSelectedId(null);
-        setSelectedNoteId(noteId || null);
-        setView("notes");
-        return;
-      }
-
-      if (page === "settings") {
-        const tab = params.get("tab") || "identity";
-        setSelectedMockAttemptId(null);
-        setDeepLinkShowSol(false);
-        setEditId(null);
-        setExam(null);
-        setSelectedId(null);
-        setSelectedNoteId(null);
-        setSettingsTab(tab);
-        setView("settings");
-        return;
-      }
-
-      if (page === "tip") {
-        setSelectedMockAttemptId(null);
-        setDeepLinkShowSol(false);
-        setEditId(null);
-        setExam(null);
-        setSelectedNoteId(null);
-        if (id && qsRef.current.some(q => q.id === id)) {
-          setSelectedId(id);
-          setView("tipDetail");
-          return;
-        }
-        setSelectedId(null);
-        setView("tips");
-        return;
-      }
-
-      if (page === "add") {
-        const editParam = params.get("edit");
-        setSelectedMockAttemptId(null);
-        setDeepLinkShowSol(false);
-        setExam(null);
-        setSelectedId(null);
-        const editQ = editParam && qsRef.current.some(q => q.id === editParam) ? editParam : null;
-        setEditId(editQ);
-        setView("add");
-        return;
-      }
-
-      if (id && qsRef.current.some(q => q.id === id)) {
-        setSelectedId(id);
-        setSelectedMockAttemptId(null);
-        setDeepLinkShowSol(sol);
-        setEditId(null);
-        setView("detail");
-        return;
-      }
-
-      setSelectedMockAttemptId(null);
-      setSelectedId(null);
-      setDeepLinkShowSol(false);
-      const hasActiveSession = typeof sessionStorage !== "undefined" && sessionStorage.getItem("qbank-session-active") === "true";
-      const hasStoredAuthToken = typeof localStorage !== "undefined" && (
-        !!localStorage.getItem("cse-qbank-system-user-v1") ||
-        Object.keys(localStorage).some((k) => k.startsWith("sb-") && k.includes("-auth-token"))
-      );
-
-      if (isAuthenticated) {
-        try { sessionStorage.setItem("qbank-session-active", "true"); } catch (_) {}
-      }
-
-      if (!isAuthenticated && !hasActiveSession && !hasStoredAuthToken && !isAuthLoading) {
-        setView("landing");
-      } else {
-        setView("list");
-      }
-    };
-
-    syncFromUrl();
-    window.addEventListener("popstate", syncFromUrl);
-    return () => window.removeEventListener("popstate", syncFromUrl);
-  }, [authAvailable, loading, isAuthLoading, isAuthenticated]);
 
 
 
@@ -647,127 +501,9 @@ export default function App() {
     persistCompletedAttempt();
   }, [exam, isAuthenticated, qMap, user?.id]);
 
-  const handleGoAdd = () => {
-    setEditId(null);
-    setSelectedId(null);
-    setDeepLinkShowSol(false);
-    setExam(null);
-    window.history.pushState({}, "", `?page=add`);
-    setView("add");
-  };
-
-  const handleGoEdit = (q) => {
-    setEditId(q.id);
-    setSelectedId(null);
-    setDeepLinkShowSol(false);
-    setExam(null);
-    window.history.pushState({}, "", `?page=add&edit=${encodeURIComponent(q.id)}`);
-    setView("add");
-  };
-
   const handleCancelEdit = () => {
     if (editId) goToQuestionDetail(editId);
     else handleGoHome();
-  };
-
-  const handleSelectQuestion = (id) => {
-    setSelectedId(id);
-    setDeepLinkShowSol(false);
-    setExam(null);
-    window.history.pushState({}, "", `?q=${encodeURIComponent(id)}`);
-    setView("detail");
-  };
-
-  const handleGoHome = () => {
-    setEditId(null);
-    setSelectedId(null);
-    setSelectedMockAttemptId(null);
-    setSelectedNoteId(null);
-    setDeepLinkShowSol(false);
-    setExam(null);
-    try { sessionStorage.setItem("qbank-session-active", "true"); } catch (_) {}
-    window.history.pushState({}, "", window.location.pathname);
-    setView("list");
-  };
-
-  const handleGoLanding = () => {
-    setEditId(null);
-    setSelectedId(null);
-    setSelectedMockAttemptId(null);
-    setSelectedNoteId(null);
-    setDeepLinkShowSol(false);
-    setExam(null);
-    window.history.pushState({}, "", `?page=landing`);
-    setView("landing");
-    setNavOpen(false);
-  };
-
-  const handleGoMockExam = () => {
-    setEditId(null);
-    setSelectedId(null);
-    setSelectedMockAttemptId(null);
-    setDeepLinkShowSol(false);
-    setExam(null);
-    window.history.pushState({}, "", `?page=mock`);
-    setView("mock");
-  };
-
-  const handleGoTips = (questionId = null) => {
-    setEditId(null);
-    setSelectedMockAttemptId(null);
-    setDeepLinkShowSol(false);
-    setExam(null);
-    setSelectedId(null);
-    setSelectedNoteId(null);
-    window.history.pushState({}, "", `?page=tips`);
-    setView("tips");
-  };
-
-  const handleGoNotes = (noteId = null) => {
-    setEditId(null);
-    setSelectedId(null);
-    setSelectedMockAttemptId(null);
-    setDeepLinkShowSol(false);
-    setExam(null);
-    setSelectedNoteId(noteId);
-    const query = noteId ? `?page=notes&note=${encodeURIComponent(noteId)}` : `?page=notes`;
-    window.history.pushState({}, "", query);
-    setView("notes");
-  };
-
-  const handleGoSettings = (tab = "identity") => {
-    setEditId(null);
-    setSelectedId(null);
-    setSelectedMockAttemptId(null);
-    setSelectedNoteId(null);
-    setDeepLinkShowSol(false);
-    setExam(null);
-    setSettingsTab(tab);
-    window.history.pushState({}, "", `?page=settings&tab=${encodeURIComponent(tab)}`);
-    setView("settings");
-    setNavOpen(false);
-  };
-
-  const handleOpenTipDetail = (questionId) => {
-    if (!questionId) return;
-    setSelectedId(questionId);
-    setEditId(null);
-    setSelectedMockAttemptId(null);
-    setDeepLinkShowSol(false);
-    setExam(null);
-    window.history.pushState({}, "", `?page=tip&q=${encodeURIComponent(questionId)}`);
-    setView("tipDetail");
-  };
-
-  const handleOpenMockAttempt = (attemptId) => {
-    if (!attemptId) return;
-    setEditId(null);
-    setSelectedId(null);
-    setSelectedMockAttemptId(attemptId);
-    setDeepLinkShowSol(false);
-    setExam(null);
-    window.history.pushState({}, "", `?page=mock-attempt&attempt=${encodeURIComponent(attemptId)}`);
-    setView("mockAttempt");
   };
 
   const handleStartExam = (presetId = "professional") => {
@@ -865,46 +601,26 @@ export default function App() {
     setView("mockRun");
   };
 
-  const handleBackToAttempt = (attemptId) => {
+  const handleBackToAttempt = (attemptId?: string) => {
     const targetId = attemptId || selectedMockAttemptId;
     if (targetId) {
-      setEditId(null);
-      setSelectedId(null);
-      setDeepLinkShowSol(false);
-      setExam(null);
-      setSelectedMockAttemptId(targetId);
-      window.history.pushState({}, "", `?attempt=${encodeURIComponent(targetId)}`);
-      setView("mockAttempt");
+      handleOpenMockAttempt(targetId);
     } else {
       handleGoMockExam();
     }
   };
 
-  const goToQuestionDetail = (id) => {
-    setEditId(null);
-    setSelectedId(id);
-    setDeepLinkShowSol(false);
-    setExam(null);
-    window.history.pushState({}, "", `?q=${encodeURIComponent(id)}`);
-    setView("detail");
-  };
-
-  const handleSave = async (formData) => {
+  const handleSave = async (formData: any) => {
     if (!canManageQuestions) return;
     await saveQuestion(formData, editId);
     if (editId) goToQuestionDetail(editId);
     else handleGoHome();
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: string) => {
     if (!canManageQuestions) return;
     await deleteQuestion(id);
     handleGoHome();
-  };
-
-  const handleSignIn = () => {
-    window.history.pushState({}, "", `?page=signin`);
-    setView("signIn");
   };
 
   const handleAddQuestionAction = async () => {
@@ -927,8 +643,7 @@ export default function App() {
     const { error } = await signOut();
     if (error) console.error("Sign out failed:", error);
     try { sessionStorage.removeItem("qbank-session-active"); } catch (_) {}
-    window.history.pushState({}, "", `?page=landing`);
-    setView("landing");
+    handleGoLanding();
   };
 
   const handleOpenHelp = () => {
@@ -1042,10 +757,7 @@ export default function App() {
           try { sessionStorage.setItem("qbank-session-active", "true"); } catch (_) {}
           handleGoHome();
         }}
-        onSignIn={() => {
-          window.history.pushState({}, "", `?page=signin`);
-          setView("signIn");
-        }}
+        onSignIn={handleSignIn}
         onExploreGuest={() => {
           try { sessionStorage.setItem("qbank-session-active", "true"); } catch (_) {}
           handleGoHome();
@@ -1070,10 +782,7 @@ export default function App() {
       <SignInPage
         isDark={isDark}
         onToggleTheme={toggleTheme}
-        onBackToLanding={() => {
-          window.history.pushState({}, "", `?page=landing`);
-          setView("landing");
-        }}
+        onBackToLanding={handleGoLanding}
         onSuccessLogin={() => {
           try { sessionStorage.setItem("qbank-session-active", "true"); } catch (_) {}
           handleGoHome();

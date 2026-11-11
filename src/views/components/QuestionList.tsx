@@ -95,24 +95,26 @@ export default function QuestionList({
   return (
     <section className="qb-question-section" ref={copyAreaRef} id="qb-question-feed">
       <div className="qb-list-meta">
-        <div className="qb-list-meta-left">
-          <span className="qb-list-label">Question Feed</span>
-          <span className="qb-list-value">
-            {visibleCount < questions.length
-              ? `${visibleCount} of ${questions.length} shown`
-              : `${questions.length} shown`}
-          </span>
+        <div className="qb-list-meta-header-row">
+          <div className="qb-list-meta-left">
+            <span className="qb-list-label">Question Feed</span>
+            <span className="qb-list-value">
+              {visibleCount < questions.length
+                ? `${visibleCount} of ${questions.length} shown`
+                : `${questions.length} shown`}
+            </span>
+          </div>
+          {canManageQuestions && onAddQuestion && (
+            <button
+              type="button"
+              className="qb-add-btn qb-list-add-btn"
+              onClick={onAddQuestion}
+            >
+              <Plus size={15} className="qb-add-btn-icon" />
+              <span className="qb-add-btn-text">Add Question</span>
+            </button>
+          )}
         </div>
-        {canManageQuestions && onAddQuestion && (
-          <button
-            type="button"
-            className="qb-add-btn qb-list-add-btn"
-            onClick={onAddQuestion}
-          >
-            <Plus size={15} className="qb-add-btn-icon" />
-            <span className="qb-add-btn-text">Add Question</span>
-          </button>
-        )}
         <div className="qb-list-meta-right">
           <div className="qb-sort-wrap">
             <span className="qb-sort-label">
