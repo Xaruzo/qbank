@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   ShieldCheck,
   User,
@@ -7,10 +7,6 @@ import {
   Database,
   ArrowLeft,
   Check,
-  Camera,
-  Upload,
-  Link as LinkIcon,
-  Trash2,
   Calendar,
   Layers,
   Sparkles,
@@ -21,7 +17,6 @@ import {
   Clock,
   RotateCcw,
   Download,
-  AlertCircle,
   FileSpreadsheet,
   CheckCircle2,
   BookOpen,
@@ -30,28 +25,7 @@ import {
   Cpu,
 } from "lucide-react";
 import type { SettingsPageProps, TopicId } from "../../types";
-import { generatePresetSvgUrl } from "../../utils/avatarPresets";
-import { useOverlayDialogA11y } from "../../controllers/useOverlayDialogA11y";
-
-const AVATAR_PRESETS: Array<{
-  id: string;
-  label: string;
-}> = [
-  { id: "initials", label: "Initials" },
-  { id: "scholar", label: "Scholar" },
-  { id: "servant", label: "Civil Officer" },
-  { id: "topnotcher", label: "Top Ranker" },
-  { id: "creative", label: "Creative" },
-  { id: "robot", label: "Smart Bot" },
-  { id: "anime", label: "Anime" },
-  { id: "pixel", label: "Pixel Art" },
-  { id: "notion", label: "Notionist" },
-  { id: "shapes", label: "Shapes" },
-  { id: "indigo", label: "Indigo" },
-  { id: "emerald", label: "Emerald" },
-  { id: "rose", label: "Rose" },
-  { id: "amber", label: "Amber" },
-];
+import AvatarStudio from "./AvatarStudio";
 
 export default function SettingsPage({
   initialTab = "identity",
@@ -73,14 +47,12 @@ export default function SettingsPage({
   onSignOut,
 }: SettingsPageProps) {
   const [activeTab, setActiveTab] = useState<string>(initialTab);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form State
   const [fullName, setFullName] = useState(profile?.fullName || "");
   const [email] = useState(profile?.email || (isAuthenticated ? "examinee@gmail.com" : "guest@offline.local"));
   const [avatarUrl, setAvatarUrl] = useState<string | null>(profile?.avatarUrl || null);
   const [avatarShape, setAvatarShape] = useState<"circle" | "badge">(profile?.avatarShape || "circle");
-  const [selectedPreset, setSelectedPreset] = useState<string | null>(profile?.avatarPreset || null);
   const [selectedColor, setSelectedColor] = useState<string>(profile?.avatarColor || "amber");
   const [examTarget, setExamTarget] = useState<"professional" | "subprofessional">(
     profile?.examTarget || settings.examTarget || "professional"
@@ -88,17 +60,9 @@ export default function SettingsPage({
   const [examDate, setExamDate] = useState(profile?.targetExamDate || settings.targetExamDate || "2026-08-09");
   const [dailyGoal, setDailyGoal] = useState<number>(profile?.dailyStudyGoal || settings.dailyStudyGoal || 25);
 
-  const [imageUrlPromptOpen, setImageUrlPromptOpen] = useState(false);
-  const [customImageUrl, setCustomImageUrl] = useState("");
-  const [avatarError, setAvatarError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [clearCacheConfirm, setClearCacheConfirm] = useState(false);
-
-  // Pending badge confirmation (preview before applying, industry-standard flow)
-  const [pendingPreset, setPendingPreset] = useState<string | null>(null);
-  const presetConfirmCardRef = useRef<HTMLDivElement>(null);
-  useOverlayDialogA11y(!!pendingPreset, () => setPendingPreset(null), presetConfirmCardRef);
 
   // Real-time hardware capabilities detection for Performance & Animation Optimizer
   const [hwStats, setHwStats] = useState({
@@ -142,20 +106,12 @@ export default function SettingsPage({
       setFullName(profile.fullName || "");
       if (profile.avatarUrl !== undefined) setAvatarUrl(profile.avatarUrl);
       if (profile.avatarShape) setAvatarShape(profile.avatarShape);
-      if (profile.avatarPreset !== undefined) setSelectedPreset(profile.avatarPreset || null);
       if (profile.avatarColor) setSelectedColor(profile.avatarColor);
       if (profile.examTarget) setExamTarget(profile.examTarget);
       if (profile.targetExamDate) setExamDate(profile.targetExamDate);
       if (profile.dailyStudyGoal) setDailyGoal(profile.dailyStudyGoal);
     }
   }, [profile]);
-
-  const initials = fullName
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() || "")
-    .join("") || "R";
 
   const calculateDaysRemaining = (targetDateStr: string) => {
     try {
@@ -170,136 +126,10 @@ export default function SettingsPage({
 
   const daysRemaining = calculateDaysRemaining(examDate);
 
-  const handleShapeChange = (shape: "badge" | "circle") => {
+  // Avatar Studio drafts (PolicyPulse flow): stage locally, persist on Save
+  const handleStageAvatar = (url: string | null, shape: "circle" | "badge") => {
+    setAvatarUrl(url);
     setAvatarShape(shape);
-    if (selectedPreset) {
-      const svgDataUrl = generatePresetSvgUrl(selectedPreset, fullName || "Reviewer", shape);
-      setAvatarUrl(svgDataUrl);
-      if (onUpdateProfile) {
-        onUpdateProfile({ avatarShape: shape, avatarUrl: svgDataUrl, avatarPreset: selectedPreset });
-      }
-    } else if (onUpdateProfile) {
-      onUpdateProfile({ avatarShape: shape });
-    }
-  };
-
-  const handleSelectPreset = (presetId: string) => {
-    // Only stage the selection — applying requires explicit confirmation
-    setPendingPreset(presetId);
-  };
-
-  const handleConfirmPreset = () => {
-    if (!pendingPreset) return;
-    const presetId = pendingPreset;
-    setPendingPreset(null);
-    setSelectedPreset(presetId);
-    const svgDataUrl = generatePresetSvgUrl(presetId, fullName || "Reviewer", avatarShape);
-    setAvatarUrl(svgDataUrl);
-    if (onUpdateProfile) {
-      onUpdateProfile({
-        avatarUrl: svgDataUrl,
-        avatarPreset: presetId,
-        avatarShape,
-      });
-    }
-  };
-
-  const handleCancelPreset = () => {
-    setPendingPreset(null);
-  };
-
-  // Live thumbnail previews for the preset picker (regenerate with name & shape)
-  const presetThumbs = useMemo(() => {
-    const map: Record<string, string> = {};
-    for (const preset of AVATAR_PRESETS) {
-      map[preset.id] = generatePresetSvgUrl(preset.id, fullName.trim() || "Reviewer", avatarShape);
-    }
-    return map;
-  }, [fullName, avatarShape]);
-
-  const pendingPresetMeta = useMemo(() => {
-    if (!pendingPreset) return null;
-    const preset = AVATAR_PRESETS.find((p) => p.id === pendingPreset);
-    return {
-      label: preset?.label || pendingPreset,
-      url: generatePresetSvgUrl(pendingPreset, fullName.trim() || "Reviewer", avatarShape),
-    };
-  }, [pendingPreset, fullName, avatarShape]);
-
-  const handleRemoveAvatar = () => {
-    setAvatarUrl(null);
-    setSelectedPreset(null);
-    if (onUpdateProfile) {
-      onUpdateProfile({
-        avatarUrl: null,
-        avatarPreset: null,
-      });
-    }
-  };
-
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      setAvatarError("Please select a valid image file (PNG, JPG, or WebP).");
-      return;
-    }
-
-    if (file.size > 8 * 1024 * 1024) {
-      setAvatarError("File size is too large (maximum 8MB).");
-      return;
-    }
-
-    setAvatarError(null);
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        const maxDim = 256;
-        canvas.width = maxDim;
-        canvas.height = maxDim;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
-
-        const minSide = Math.min(img.width, img.height);
-        const sx = (img.width - minSide) / 2;
-        const sy = (img.height - minSide) / 2;
-
-        ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, maxDim, maxDim);
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.88);
-        setAvatarUrl(dataUrl);
-        setSelectedPreset(null);
-        if (onUpdateProfile) {
-          onUpdateProfile({
-            avatarUrl: dataUrl,
-            avatarPreset: null,
-            avatarShape,
-          });
-        }
-      };
-      img.src = reader.result as string;
-    };
-    reader.readAsDataURL(file);
-    e.target.value = "";
-  };
-
-  const handleApplyImageUrl = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!customImageUrl.trim()) return;
-    const cleanUrl = customImageUrl.trim();
-    setAvatarUrl(cleanUrl);
-    setSelectedPreset(null);
-    if (onUpdateProfile) {
-      onUpdateProfile({
-        avatarUrl: cleanUrl,
-        avatarPreset: null,
-        avatarShape,
-      });
-    }
-    setImageUrlPromptOpen(false);
-    setCustomImageUrl("");
   };
 
   const handleSaveAll = async (e?: React.FormEvent) => {
@@ -320,7 +150,6 @@ export default function SettingsPage({
           avatarUrl,
           avatarShape,
           avatarColor: selectedColor,
-          avatarPreset: selectedPreset || undefined,
           examTarget,
           targetExamDate: examDate,
           dailyStudyGoal: dailyGoal,
@@ -482,168 +311,15 @@ export default function SettingsPage({
                 </p>
               </div>
 
-              {/* Avatar Studio Card (Modeled after PolicyPulse style) */}
-              <div className="qb-settings-avatar-studio-card">
-                <div className="qb-settings-avatar-studio-top">
-                  <div
-                    className={`qb-settings-avatar-box shape-${avatarShape}`}
-                    style={
-                      avatarUrl
-                        ? undefined
-                        : {
-                            backgroundColor: "rgba(245, 166, 35, 0.18)",
-                            borderColor: "#f5a623",
-                            color: "#f5a623",
-                          }
-                    }
-                  >
-                    {avatarUrl ? (
-                      <img src={avatarUrl} alt="Avatar Preview" className="qb-settings-avatar-img" />
-                    ) : (
-                      <span className="qb-settings-avatar-initials">{initials}</span>
-                    )}
-                  </div>
-
-                  <div className="qb-settings-avatar-meta">
-                    <div className="qb-settings-avatar-name-row">
-                      <span className="qb-settings-avatar-name">{fullName.trim() || "Reviewer"}</span>
-                      {isQuestionAdmin ? (
-                        <span className="qb-settings-role-badge admin">ADMIN</span>
-                      ) : isAuthenticated ? (
-                        <span className="qb-settings-role-badge pro">EXAMINEE</span>
-                      ) : (
-                        <span className="qb-settings-role-badge guest">GUEST</span>
-                      )}
-                    </div>
-                    <span className="qb-settings-avatar-email">{email}</span>
-                    <span className="qb-settings-avatar-spec">
-                      {avatarShape === "circle" ? "Circle Avatar · 256×256px" : "Shield Badge · 256×256px"}
-                    </span>
-                  </div>
-
-                  {/* Circle vs Badge Shape Switcher with animated sliding glider */}
-                  <div className="qb-settings-shape-toggle-group" data-shape={avatarShape}>
-                    <div
-                      className={`qb-settings-shape-glider ${avatarShape === "circle" ? "is-circle" : "is-badge"}`}
-                      aria-hidden="true"
-                    />
-                    <button
-                      type="button"
-                      className={`qb-settings-shape-btn${avatarShape === "badge" ? " active" : ""}`}
-                      onClick={() => handleShapeChange("badge")}
-                      aria-pressed={avatarShape === "badge"}
-                    >
-                      <span className="shape-icon badge-shape" />
-                      <span>Badge</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={`qb-settings-shape-btn${avatarShape === "circle" ? " active" : ""}`}
-                      onClick={() => handleShapeChange("circle")}
-                      aria-pressed={avatarShape === "circle"}
-                    >
-                      <span className="shape-icon circle-shape" />
-                      <span>Circle</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Photo Actions Row */}
-                <div className="qb-settings-photo-btn-bar">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp,image/gif"
-                    onChange={handlePhotoSelect}
-                    style={{ display: "none" }}
-                  />
-                  <button
-                    type="button"
-                    className="qb-settings-media-btn primary"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Upload size={15} />
-                    <span>Upload Photo</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className="qb-settings-media-btn"
-                    onClick={() => setImageUrlPromptOpen(true)}
-                  >
-                    <LinkIcon size={15} />
-                    <span>Image URL</span>
-                  </button>
-
-                  {(avatarUrl || selectedPreset) && (
-                    <button
-                      type="button"
-                      className="qb-settings-trash-btn"
-                      onClick={handleRemoveAvatar}
-                      title="Remove profile picture / reset to default"
-                      aria-label="Remove profile picture"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  )}
-                </div>
-
-                {avatarError && (
-                  <div className="qb-settings-error-alert" role="alert">
-                    <AlertCircle size={15} />
-                    <span>{avatarError}</span>
-                  </div>
-                )}
-
-                {imageUrlPromptOpen && (
-                  <form onSubmit={handleApplyImageUrl} className="qb-settings-url-input-row">
-                    <input
-                      type="url"
-                      placeholder="Paste image URL (https://...)"
-                      className="qb-settings-url-input"
-                      value={customImageUrl}
-                      onChange={(e) => setCustomImageUrl(e.target.value)}
-                      autoFocus
-                    />
-                    <button type="submit" className="qb-settings-url-submit">
-                      Apply
-                    </button>
-                    <button
-                      type="button"
-                      className="qb-settings-url-cancel"
-                      onClick={() => setImageUrlPromptOpen(false)}
-                    >
-                      Cancel
-                    </button>
-                  </form>
-                )}
-
-                {/* Quick Avatar Badge Style Presets (thumbnail picker) */}
-                <div className="qb-settings-presets-block">
-                  <span className="qb-settings-presets-title">Or choose a quick badge style:</span>
-                  <div className="qb-settings-presets-grid" data-shape={avatarShape}>
-                    {AVATAR_PRESETS.map((preset) => (
-                      <button
-                        key={preset.id}
-                        type="button"
-                        className={`qb-settings-preset-chip${selectedPreset === preset.id ? " active" : ""}`}
-                        onClick={() => handleSelectPreset(preset.id)}
-                        aria-pressed={selectedPreset === preset.id}
-                        title={`${preset.label} — preview & apply`}
-                      >
-                        <img
-                          className="qb-settings-preset-thumb"
-                          src={presetThumbs[preset.id]}
-                          alt=""
-                          aria-hidden="true"
-                          draggable={false}
-                        />
-                        <span className="qb-settings-preset-name">{preset.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
+              {/* Avatar Studio (Modeled after PolicyPulse EditProfileModal) */}
+              <AvatarStudio
+                fullName={fullName}
+                email={email}
+                roleLabel={isQuestionAdmin ? "ADMIN" : isAuthenticated ? "EXAMINEE" : "GUEST"}
+                avatarUrl={avatarUrl}
+                avatarShape={avatarShape}
+                onStageAvatar={handleStageAvatar}
+              />
 
               {/* Form Input Fields: Display Name & Email */}
               <div className="qb-settings-form-grid">
@@ -1156,51 +832,6 @@ export default function SettingsPage({
           </footer>
         </main>
       </div>
-
-      {/* Apply Badge Confirmation Modal */}
-      {pendingPreset && pendingPresetMeta && (
-        <div className="qb-modal-backdrop" onClick={handleCancelPreset}>
-          <div
-            ref={presetConfirmCardRef}
-            className="qb-modal-card qb-avatar-confirm-card"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="avatar-confirm-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 id="avatar-confirm-title" className="qb-modal-title">
-              Apply this badge?
-            </h3>
-            <p className="qb-modal-text">
-              It will replace your current profile picture and sync across solutions, mock exam
-              reports, and bookmarks.
-            </p>
-            <div className="qb-avatar-confirm-preview" data-shape={avatarShape}>
-              <img src={pendingPresetMeta.url} alt={`${pendingPresetMeta.label} badge preview`} draggable={false} />
-            </div>
-            <span className="qb-avatar-confirm-label">
-              {pendingPresetMeta.label} · {avatarShape === "circle" ? "Circle" : "Badge"} · 256×256px
-            </span>
-            <div className="qb-modal-actions">
-              <button
-                type="button"
-                className="qb-modal-btn qb-modal-btn-cancel"
-                onClick={handleCancelPreset}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="qb-modal-btn qb-avatar-confirm-apply"
-                onClick={handleConfirmPreset}
-              >
-                <Check size={15} />
-                <span>Apply Badge</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
