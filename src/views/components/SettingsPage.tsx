@@ -25,6 +25,7 @@ import {
   Cpu,
 } from "lucide-react";
 import type { SettingsPageProps, TopicId } from "../../types";
+import { useOverlayDialogA11y } from "../../controllers/useOverlayDialogA11y";
 import AvatarStudio from "./AvatarStudio";
 
 export default function SettingsPage({
@@ -63,6 +64,8 @@ export default function SettingsPage({
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [clearCacheConfirm, setClearCacheConfirm] = useState(false);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const discardDialogRef = useRef<HTMLDivElement>(null);
 
   // Real-time hardware capabilities detection for Performance & Animation Optimizer
   const [hwStats, setHwStats] = useState({
@@ -101,6 +104,34 @@ export default function SettingsPage({
     }
   }, [initialTab]);
 
+  // ── Unsaved-changes guard (PolicyPulse flow) ────────────────────────────
+  // Snapshot of the last-known "saved" state; compared against the live form
+  // each render to decide whether Cancel should prompt for confirmation.
+  const buildProfileSnapshot = (p: SettingsPageProps["profile"]) =>
+    JSON.stringify({
+      fullName: (p?.fullName || "").trim() || "Reviewer",
+      avatarUrl: p?.avatarUrl || null,
+      avatarShape: p?.avatarShape || "circle",
+      avatarColor: p?.avatarColor || "amber",
+      examTarget: p?.examTarget || settings.examTarget || "professional",
+      examDate: p?.targetExamDate || settings.targetExamDate || "2026-08-09",
+      dailyGoal: p?.dailyStudyGoal || settings.dailyStudyGoal || 25,
+    });
+
+  const currentProfileSnapshot = JSON.stringify({
+    fullName: fullName.trim() || "Reviewer",
+    avatarUrl: avatarUrl ?? null,
+    avatarShape,
+    avatarColor: selectedColor,
+    examTarget,
+    examDate,
+    dailyGoal,
+  });
+
+  const [savedProfileSnapshot, setSavedProfileSnapshot] = useState(() =>
+    buildProfileSnapshot(profile)
+  );
+
   useEffect(() => {
     if (profile) {
       setFullName(profile.fullName || "");
@@ -110,8 +141,25 @@ export default function SettingsPage({
       if (profile.examTarget) setExamTarget(profile.examTarget);
       if (profile.targetExamDate) setExamDate(profile.targetExamDate);
       if (profile.dailyStudyGoal) setDailyGoal(profile.dailyStudyGoal);
+      setSavedProfileSnapshot(buildProfileSnapshot(profile));
     }
   }, [profile]);
+
+  const isProfileDirty = savedProfileSnapshot !== currentProfileSnapshot;
+
+  useOverlayDialogA11y(
+    showDiscardConfirm,
+    () => setShowDiscardConfirm(false),
+    discardDialogRef
+  );
+
+  const handleRequestExit = () => {
+    if (isProfileDirty && !saveSuccess) {
+      setShowDiscardConfirm(true);
+      return;
+    }
+    onBackToMain();
+  };
 
   const calculateDaysRemaining = (targetDateStr: string) => {
     try {
@@ -157,6 +205,7 @@ export default function SettingsPage({
       }
 
       setSaveSuccess(true);
+      setSavedProfileSnapshot(currentProfileSnapshot);
       setTimeout(() => setSaveSuccess(false), 2800);
     } catch (err) {
       console.error("Failed to save settings:", err);
@@ -205,7 +254,7 @@ export default function SettingsPage({
           <button
             type="button"
             className="qb-settings-page-back-btn"
-            onClick={onBackToMain}
+            onClick={handleRequestExit}
             title="Return to Question Bank"
           >
             <ArrowLeft size={16} />
@@ -815,7 +864,7 @@ export default function SettingsPage({
               <button
                 type="button"
                 className="qb-settings-footer-cancel-btn"
-                onClick={onBackToMain}
+                onClick={handleRequestExit}
               >
                 Cancel
               </button>
@@ -832,6 +881,52 @@ export default function SettingsPage({
           </footer>
         </main>
       </div>
+
+      {showDiscardConfirm && (
+        <div className="qb-modal-backdrop" onClick={() => setShowDiscardConfirm(false)}>
+          <div
+            ref={discardDialogRef}
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="discard-changes-title"
+            className="qb-modal-card"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="qb-discard-head">
+              <div className="qb-discard-icon">
+                <AlertTriangle size={18} />
+              </div>
+              <div className="qb-discard-copy">
+                <h3 id="discard-changes-title" className="qb-modal-title">
+                  Discard unsaved changes?
+                </h3>
+                <p className="qb-modal-text">
+                  Your profile edits have not been saved yet. Leaving now will lose them.
+                </p>
+              </div>
+            </div>
+            <div className="qb-modal-actions">
+              <button
+                type="button"
+                className="qb-modal-btn qb-modal-btn-cancel"
+                onClick={() => setShowDiscardConfirm(false)}
+              >
+                Keep Editing
+              </button>
+              <button
+                type="button"
+                className="qb-modal-btn qb-modal-btn-danger"
+                onClick={() => {
+                  setShowDiscardConfirm(false);
+                  onBackToMain();
+                }}
+              >
+                Discard Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
