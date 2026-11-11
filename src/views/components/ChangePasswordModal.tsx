@@ -11,6 +11,7 @@ import {
   ArrowRight,
   RefreshCw,
   Lock,
+  Check,
 } from "lucide-react";
 import { supabase } from "../../utils/supabaseClient";
 
@@ -590,11 +591,12 @@ export default function ChangePasswordModal({
             </p>
             <button
               type="button"
-              className="qb-fp-submit-btn"
+              className="qb-fp-done-btn"
               onClick={onClose}
-              style={{ marginTop: 14, width: "100%" }}
+              autoFocus
             >
-              Done & Return to Workspace
+              <Check size={17} strokeWidth={2.6} className="qb-fp-done-btn-icon" />
+              <span>Done & Return to Workspace</span>
             </button>
           </div>
         )}

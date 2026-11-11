@@ -8,7 +8,8 @@ import { uploadImageToSupabase, validateImageFile } from "../../utils/imageUploa
 import { 
   ChevronLeft, ChevronDown, Pencil, Image, Loader,
   Trash2, Maximize2, Minimize2, Sparkles, Layers, X, Check, PenTool, ArrowLeft,
-  Calculator, BookOpen, Globe, BrainCircuit, ClipboardList
+  Calculator, BookOpen, Globe, BrainCircuit, ClipboardList, AlertTriangle, RotateCcw,
+  Tag, Save, Plus, CheckCircle2, AlertCircle
 } from "lucide-react";
 
 const TOPIC_ICON_MAP: Record<string, typeof Calculator> = {
@@ -99,17 +100,96 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
     return null;
   }, [form.solutionDraw]);
 
+  const [initialDrawSnapshot, setInitialDrawSnapshot] = useState<any>(initialData?.solutionDraw || null);
+  const [isDrawDirty, setIsDrawDirty] = useState(false);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const cancelDiscardBtnRef = useRef<HTMLButtonElement | null>(null);
+
   const handleOpenDrawModal = () => {
     setTempDraw(form.solutionDraw);
+    setInitialDrawSnapshot(form.solutionDraw);
+    setIsDrawDirty(false);
+    setShowDiscardConfirm(false);
     setIsDrawModalOpen(true);
+  };
+
+  const handleDrawChange = (val: any) => {
+    setTempDraw(val);
+    setIsDrawDirty(true);
+  };
+
+  const hasDrawChanges = useMemo(() => {
+    if (!isDrawDirty) return false;
+
+    const initDataURL = typeof initialDrawSnapshot === "string"
+      ? initialDrawSnapshot
+      : initialDrawSnapshot?.dataURL || "";
+    const currDataURL = typeof tempDraw === "string"
+      ? tempDraw
+      : tempDraw?.dataURL || "";
+
+    const initObjects = Array.isArray(initialDrawSnapshot?.state?.objects)
+      ? initialDrawSnapshot.state.objects
+      : [];
+    const currObjects = Array.isArray(tempDraw?.state?.objects)
+      ? tempDraw.state.objects
+      : [];
+
+    if (initObjects.length === 0 && currObjects.length === 0 && !currDataURL && !initDataURL) {
+      return false;
+    }
+
+    if (initObjects.length !== currObjects.length) {
+      return true;
+    }
+
+    if (currDataURL && initDataURL && currDataURL !== initDataURL) {
+      return true;
+    }
+
+    try {
+      const initStr = JSON.stringify(initObjects);
+      const currStr = JSON.stringify(currObjects);
+      if (initStr !== currStr) return true;
+    } catch {
+      return true;
+    }
+
+    return false;
+  }, [isDrawDirty, initialDrawSnapshot, tempDraw]);
+
+  const unsavedObjectCount = useMemo(() => {
+    if (!tempDraw) return 0;
+    if (Array.isArray(tempDraw?.state?.objects)) return tempDraw.state.objects.length;
+    return 0;
+  }, [tempDraw]);
+
+  const handleDiscardClick = () => {
+    if (hasDrawChanges) {
+      setShowDiscardConfirm(true);
+    } else {
+      handleForceCloseDraw();
+    }
+  };
+
+  const handleForceCloseDraw = () => {
+    setTempDraw(form.solutionDraw);
+    setIsDrawDirty(false);
+    setShowDiscardConfirm(false);
+    setIsDrawModalOpen(false);
+  };
+
+  const handleConfirmDiscardDraw = () => {
+    setTempDraw(form.solutionDraw);
+    setIsDrawDirty(false);
+    setShowDiscardConfirm(false);
+    setIsDrawModalOpen(false);
   };
 
   const handleApplyDraw = () => {
     setForm(f => ({ ...f, solutionDraw: tempDraw }));
-    setIsDrawModalOpen(false);
-  };
-
-  const handleCancelDraw = () => {
+    setIsDrawDirty(false);
+    setShowDiscardConfirm(false);
     setIsDrawModalOpen(false);
   };
 
@@ -140,16 +220,26 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
   }, []);
 
   useEffect(() => {
+    if (showDiscardConfirm) {
+      cancelDiscardBtnRef.current?.focus();
+    }
+  }, [showDiscardConfirm]);
+
+  useEffect(() => {
     if (!isDrawModalOpen) return;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        setIsDrawModalOpen(false);
+        e.preventDefault();
+        if (showDiscardConfirm) {
+          setShowDiscardConfirm(false);
+        } else {
+          handleDiscardClick();
+        }
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
         e.preventDefault();
-        setForm(f => ({ ...f, solutionDraw: tempDraw }));
-        setIsDrawModalOpen(false);
+        handleApplyDraw();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -157,7 +247,7 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
       document.body.style.overflow = prevOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isDrawModalOpen, tempDraw]);
+  }, [isDrawModalOpen, tempDraw, showDiscardConfirm, hasDrawChanges]);
 
   const currentTopicObj = useMemo(() => TOPICS.find(t => t.id === form.topic) || TOPICS[0], [form.topic]);
   const topicLabel = currentTopicObj.label;
@@ -414,13 +504,14 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
                   <button
                     type="button"
                     className="qb-fcancel"
-                    style={{ marginTop: 8, padding: "6px 12px", fontSize: 12 }}
+                    style={{ marginTop: 8, padding: "6px 12px", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6 }}
                     onClick={() => {
                       setUseCustomLabel(false);
                       setForm(f => ({ ...f, label: "" }));
                     }}
                   >
-                    Use preset label
+                    <Tag size={13} className="qb-btn-icon" />
+                    <span>Use preset label</span>
                   </button>
                 </>
               )}
@@ -431,7 +522,14 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
 
       <div className="qb-editor-side-card">
         <div className="qb-editor-side-card-head">
-          <span className="qb-editor-side-kicker">Actions</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {valid ? (
+              <CheckCircle2 size={15} style={{ color: "#34d399", flexShrink: 0 }} />
+            ) : (
+              <AlertCircle size={15} style={{ color: "#f59e0b", flexShrink: 0 }} />
+            )}
+            <span className="qb-editor-side-kicker">Actions</span>
+          </div>
           <div className="qb-editor-side-title">{valid ? "Ready to save" : "Complete the required fields"}</div>
           <p className="qb-editor-side-copy">
             Save from here once the question prompt and first four choices are filled in (5th optional).
@@ -439,8 +537,23 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
         </div>
         {error && <p className="qb-editor-side-error">{error}</p>}
         <div className="qb-editor-side-actions">
-          <button className="qb-fcancel" onClick={onCancel}>Cancel</button>
-          <button className="qb-fsave" onClick={handleSave} disabled={!valid}>{initialData ? "Save Changes" : "Add Question"}</button>
+          <button type="button" className="qb-fcancel" onClick={onCancel}>
+            <X size={14} className="qb-btn-icon" />
+            <span>Cancel</span>
+          </button>
+          <button type="button" className="qb-fsave" onClick={handleSave} disabled={!valid}>
+            {initialData ? (
+              <>
+                <Save size={14} className="qb-btn-icon" />
+                <span>Save Changes</span>
+              </>
+            ) : (
+              <>
+                <Plus size={14} className="qb-btn-icon" />
+                <span>Add Question</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
     </div>
@@ -511,8 +624,15 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
           Choices <span className="qb-flabel-sub">— select radio for correct answer</span>
         </label>
         {form.choices.map((c,i) => (
-          <div key={i} className="qb-crow">
-            <input type="radio" className="qb-cradio" name="correct" checked={form.correct===i} onChange={() => setForm({...form, correct:i})} />
+          <div key={i} className={`qb-crow${form.correct===i ? " is-correct" : ""}`}>
+            <input
+              type="radio"
+              className="qb-cradio"
+              name="correct"
+              checked={form.correct===i}
+              onChange={() => setForm({...form, correct:i})}
+              aria-label={`Select Choice ${LETTERS[i]} as correct answer`}
+            />
             <span className="qb-cletter">{LETTERS[i]}.</span>
             <input ref={el => { choiceRefs.current[i] = el; }} className="qb-finput" placeholder={`Choice ${LETTERS[i]}${i === 4 ? " (optional)" : ""}`} value={c}
               onFocus={() => { setActiveChoice(i); activeChoiceRef.current = choiceRefs.current[i]; }}
@@ -782,7 +902,7 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
               <button
                 type="button"
                 className="qb-draw-studio-back-btn"
-                onClick={handleCancelDraw}
+                onClick={handleDiscardClick}
                 title="Return to Question Form (Esc)"
               >
                 <ArrowLeft size={16} />
@@ -836,10 +956,11 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
               <button
                 type="button"
                 className="qb-draw-studio-btn-discard"
-                onClick={handleCancelDraw}
+                onClick={handleDiscardClick}
                 title="Discard canvas changes (Esc)"
               >
-                Discard
+                <RotateCcw size={13} className="qb-btn-icon" />
+                <span>Discard</span>
               </button>
 
               <button
@@ -861,7 +982,7 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
             <div className="qb-draw-studio-canvas-area">
               <DrawCanvas
                 value={tempDraw}
-                onChange={setTempDraw}
+                onChange={handleDrawChange}
                 layersHost={showModalLayers ? modalLayersHostEl : null}
               />
             </div>
@@ -886,6 +1007,89 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
               </aside>
             )}
           </main>
+        </div>,
+        document.body
+      )}
+
+      {showDiscardConfirm && createPortal(
+        <div
+          className="qb-modal-backdrop qb-discard-modal-overlay"
+          role="presentation"
+          onClick={() => setShowDiscardConfirm(false)}
+        >
+          <div
+            className="qb-modal-card qb-discard-modal-card"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="qb-discard-modal-title"
+            aria-describedby="qb-discard-modal-desc"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="qb-discard-modal-header">
+              <div className="qb-discard-modal-icon-badge" aria-hidden="true">
+                <AlertTriangle size={24} strokeWidth={2.4} />
+              </div>
+              <div className="qb-discard-modal-headings">
+                <h3 id="qb-discard-modal-title" className="qb-discard-modal-title">
+                  Discard Whiteboard Changes?
+                </h3>
+                <p id="qb-discard-modal-desc" className="qb-discard-modal-desc">
+                  Are you sure you want to discard your changes? All unsaved shapes, math notations, and drawing steps made in this session will be permanently lost.
+                </p>
+              </div>
+            </div>
+
+            <div className="qb-discard-modal-preview">
+              <div className="qb-discard-modal-preview-meta">
+                <span className="qb-discard-modal-topic-pill">
+                  {topicLabel || "Whiteboard Studio"}
+                </span>
+                <span className="qb-discard-modal-count-pill">
+                  <Layers size={12} />
+                  <span>
+                    {unsavedObjectCount > 0
+                      ? `${unsavedObjectCount} active element${unsavedObjectCount === 1 ? "" : "s"}`
+                      : "Unsaved diagram edits"}
+                  </span>
+                </span>
+              </div>
+              <p className="qb-discard-modal-preview-text">
+                Your previously saved diagram will be preserved. This action only discards edits made during this session.
+              </p>
+            </div>
+
+            <div className="qb-discard-modal-actions">
+              <button
+                ref={cancelDiscardBtnRef}
+                type="button"
+                className="qb-discard-modal-btn qb-discard-modal-btn-cancel"
+                onClick={() => setShowDiscardConfirm(false)}
+              >
+                <ArrowLeft size={14} className="qb-btn-icon" />
+                <span>Keep Editing</span>
+              </button>
+
+              <div className="qb-discard-modal-actions-right">
+                <button
+                  type="button"
+                  className="qb-discard-modal-btn qb-discard-modal-btn-save"
+                  onClick={handleApplyDraw}
+                >
+                  <Check size={14} className="qb-btn-icon" />
+                  <span>Save & Return</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="qb-discard-modal-btn qb-discard-modal-btn-danger"
+                  onClick={handleConfirmDiscardDraw}
+                >
+                  <Trash2 size={14} className="qb-btn-icon" />
+                  <span>Discard</span>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>,
         document.body
       )}
@@ -933,8 +1137,23 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
       {!useSideRail && error && <p className="qb-ferr">{error}</p>}
       {!useSideRail && (
         <div className="qb-factions">
-          <button className="qb-fcancel" onClick={onCancel}>Cancel</button>
-          <button className="qb-fsave" onClick={handleSave} disabled={!valid}>{initialData ? "Save Changes" : "Add Question"}</button>
+          <button type="button" className="qb-fcancel" onClick={onCancel}>
+            <X size={14} className="qb-btn-icon" />
+            <span>Cancel</span>
+          </button>
+          <button type="button" className="qb-fsave" onClick={handleSave} disabled={!valid}>
+            {initialData ? (
+              <>
+                <Save size={14} className="qb-btn-icon" />
+                <span>Save Changes</span>
+              </>
+            ) : (
+              <>
+                <Plus size={14} className="qb-btn-icon" />
+                <span>Add Question</span>
+              </>
+            )}
+          </button>
         </div>
       )}
       {useSideRail && createPortal(settingsPanel, sideRailHost)}

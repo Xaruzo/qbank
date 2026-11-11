@@ -555,11 +555,11 @@ export default function ForgotPasswordModal({
             </p>
             <button
               type="button"
-              className="qb-fp-submit-btn"
+              className="qb-fp-done-btn"
               onClick={handleFinalSuccess}
               autoFocus
             >
-              <KeyRound size={16} />
+              <KeyRound size={16} className="qb-fp-done-btn-icon" />
               <span>Sign In with New Password</span>
             </button>
           </div>

@@ -211,7 +211,6 @@ function RailNavList({
           }}
           aria-hidden="true"
         >
-          <span className="qb-rail-glider-bar" />
           <span className="qb-rail-glider-pill" />
         </div>
       )}

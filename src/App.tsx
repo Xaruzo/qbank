@@ -1265,15 +1265,6 @@ export default function App() {
                 </div>
                 <div className="qb-editor-side">
                   <div ref={setEditorAsideHostEl} className="qb-editor-side-host" />
-                  <div className="qb-editor-side-card qb-editor-side-card-layers">
-                    <div className="qb-editor-side-card-head">
-                      <span className="qb-editor-side-kicker">Visual Solutions</span>
-                      <div className="qb-editor-side-title">Dedicated Whiteboard</div>
-                      <p className="qb-editor-side-copy">
-                        Draw math steps, fraction trees, and geometry figures in a focused, fullscreen canvas dialog without scrolling interference.
-                      </p>
-                    </div>
-                  </div>
                 </div>
               </div>
               </div>
