@@ -52,3 +52,6 @@ qbank database/
 # AI Studio local files
 .aistudio/
 public/assets/aistudio/
+
+# npm lockfile (project uses bun)
+package-lock.json
