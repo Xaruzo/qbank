@@ -97,6 +97,18 @@ export interface AppSettings {
   hapticFeedback: boolean;
 }
 
+export type UserRole = "superadmin" | "admin" | "moderator" | "reviewer";
+
+export interface UserRoleRecord {
+  id: string;
+  email: string;
+  fullName: string;
+  role: UserRole;
+  assignedAt: string;
+  assignedBy?: string;
+  notes?: string;
+}
+
 export interface UserProfile {
   fullName: string;
   email: string;
@@ -108,6 +120,7 @@ export interface UserProfile {
   examTarget?: "professional" | "subprofessional";
   targetExamDate?: string;
   dailyStudyGoal?: number;
+  userRole?: UserRole;
 }
 
 export interface HeaderProps {
@@ -135,6 +148,8 @@ export interface HeaderProps {
   settings?: AppSettings;
   onUpdateSettings?: (partial: Partial<AppSettings>) => void;
   isQuestionAdmin?: boolean;
+  isSuperAdmin?: boolean;
+  userRole?: UserRole;
 }
 
 export interface SideNavProps {
@@ -167,6 +182,8 @@ export interface SideNavProps {
   topicCounts?: Record<string, number>;
   settings?: AppSettings;
   isQuestionAdmin?: boolean;
+  isSuperAdmin?: boolean;
+  userRole?: UserRole;
 }
 
 export interface SettingsPageProps {
@@ -180,6 +197,8 @@ export interface SettingsPageProps {
   onToggleTheme: () => void;
   isAuthenticated: boolean;
   isQuestionAdmin?: boolean;
+  isSuperAdmin?: boolean;
+  userRole?: UserRole;
   totalQuestions?: number;
   mockAttemptsCount?: number;
   favoritesCount?: number;

@@ -21435,4 +21435,319 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   color: #ffffff !important;
 }
 
+/* ── User Roles & Access Control Styles ── */
+.qb-settings-role-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.qb-settings-role-notice.success {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #34d399;
+}
+
+.qb-settings-role-notice.error {
+  background: rgba(244, 63, 94, 0.12);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  color: #fb7185;
+}
+
+.qb-settings-role-grant-card {
+  background: var(--card-bg, #0f172a);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.qb-settings-role-grant-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.qb-settings-role-grant-form {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.qb-settings-role-select {
+  background: var(--surface, #1e293b);
+  border: 1px solid var(--border);
+  color: var(--text-color, #f8fafc);
+  border-radius: 9px;
+  padding: 9px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.qb-settings-role-select:focus {
+  border-color: #f5a623;
+}
+
+.qb-settings-role-grant-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #f5a623 0%, #d97706 100%);
+  color: #0f172a;
+  border: none;
+  border-radius: 9px;
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 2px 10px rgba(245, 166, 35, 0.25);
+}
+
+.qb-settings-role-grant-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(245, 166, 35, 0.35);
+}
+
+.qb-settings-users-roster-card {
+  background: var(--card-bg, #0f172a);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.qb-settings-roster-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.qb-settings-roster-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface, #1e293b);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 8px 12px;
+  flex: 1;
+  min-width: 240px;
+}
+
+.qb-settings-roster-search-input {
+  background: transparent;
+  border: none;
+  color: var(--text-color, #f8fafc);
+  font-size: 13px;
+  width: 100%;
+  outline: none;
+}
+
+.qb-settings-roster-filters {
+  display: flex;
+  gap: 6px;
+}
+
+.qb-settings-roster-filter-chip {
+  background: var(--surface, #1e293b);
+  border: 1px solid var(--border);
+  color: var(--text-muted, #94a3b8);
+  border-radius: 7px;
+  padding: 5px 11px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.qb-settings-roster-filter-chip:hover {
+  color: var(--text-color, #f8fafc);
+  border-color: #f5a623;
+}
+
+.qb-settings-roster-filter-chip.active {
+  background: rgba(245, 166, 35, 0.15);
+  border-color: #f5a623;
+  color: #f5a623;
+}
+
+.qb-settings-users-table-wrap {
+  overflow-x: auto;
+}
+
+.qb-settings-users-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.qb-settings-users-table th {
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted, #94a3b8);
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border);
+}
+
+.qb-settings-users-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  vertical-align: middle;
+}
+
+.qb-user-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.qb-user-cell-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  background: var(--surface, #1e293b);
+  border: 1px solid var(--border);
+  color: #f5a623;
+}
+
+.qb-user-cell-avatar.role-superadmin {
+  background: rgba(245, 166, 35, 0.2);
+  border-color: #f5a623;
+  color: #f5a623;
+}
+
+.qb-user-cell-avatar.role-admin {
+  background: rgba(167, 139, 250, 0.2);
+  border-color: #a78bfa;
+  color: #c084fc;
+}
+
+.qb-user-cell-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.qb-user-cell-name {
+  font-weight: 600;
+  color: var(--text-color, #f8fafc);
+}
+
+.qb-user-cell-email {
+  font-size: 11px;
+  color: var(--text-muted, #94a3b8);
+}
+
+.qb-role-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.qb-role-pill.role-superadmin {
+  background: rgba(245, 166, 35, 0.16);
+  border: 1px solid rgba(245, 166, 35, 0.4);
+  color: #f5a623;
+}
+
+.qb-role-pill.role-admin {
+  background: rgba(167, 139, 250, 0.16);
+  border: 1px solid rgba(167, 139, 250, 0.4);
+  color: #c084fc;
+}
+
+.qb-role-pill.role-reviewer,
+.qb-role-pill.role-user {
+  background: rgba(148, 163, 184, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  color: #94a3b8;
+}
+
+.qb-user-assigned-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.qb-user-role-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.qb-user-role-quick-select {
+  background: var(--surface, #1e293b);
+  border: 1px solid var(--border);
+  color: var(--text-color, #f8fafc);
+  border-radius: 7px;
+  padding: 5px 10px;
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+}
+
+.qb-settings-role-select-wrap {
+  flex: 1;
+  min-width: 260px;
+}
+
+.qb-table-role-select {
+  width: 140px;
+  min-width: 140px;
+}
+
+.qb-table-role-select .qb-select-btn {
+  padding: 5px 10px;
+  font-size: 12px;
+  border-radius: 7px;
+  min-height: 32px;
+}
+
+.qb-table-role-select .qb-select-btn-text {
+  font-size: 12px;
+}
+
+.qb-user-revoke-btn {
+  background: rgba(244, 63, 94, 0.12);
+  border: 1px solid rgba(244, 63, 94, 0.25);
+  color: #fb7185;
+  border-radius: 7px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.qb-user-revoke-btn:hover {
+  background: rgba(244, 63, 94, 0.22);
+  border-color: #f43f5e;
+}
+
+
 

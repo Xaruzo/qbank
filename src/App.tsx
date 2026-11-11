@@ -32,9 +32,10 @@ import { useViewRouter } from "./controllers/useViewRouter";
 import { storageModel } from "./models/storageModel";
 import { tipsModel } from "./models/tipsModel";
 import { favoritesModel } from "./models/favoritesModel";
+import { rolesModel } from "./models/rolesModel";
 import { buildMockExamAttempt, buildReviewExamFromAttempt, buildMistakeDrillExam } from "./utils/mockExamAnalytics";
 import { Home, ClipboardList, Lightbulb, PlayCircle, ArrowRight, BookOpen, Plus, ShieldCheck } from "lucide-react";
-import { QUESTION_ADMIN_UIDS, QUESTION_ADMIN_EMAILS, EXAM_PRESETS } from "./constants/appConstants";
+import { QUESTION_ADMIN_UIDS, QUESTION_ADMIN_EMAILS, SUPERADMIN_UIDS, SUPERADMIN_EMAILS, EXAM_PRESETS } from "./constants/appConstants";
 import type { TopicId } from "./types";
 
 const PageLoader = ({ view }) => {
@@ -202,8 +203,23 @@ export default function App() {
   const examRef = useRef(exam);
   const mockHistoryRef = useRef([]);
   const savedExamSessionsRef = useRef(new Set());
-  const qMap = useMemo(() => new Map(qs.map(q => [q.id, q])), [qs]);
+  const qMap = useMemo(() => new Map(qs.map((q) => [q.id, q])), [qs]);
+  const [roleTick, setRoleTick] = useState(0);
+  useEffect(() => {
+    const handleRolesUpdate = () => setRoleTick((t) => t + 1);
+    window.addEventListener("qbank-roles-updated", handleRolesUpdate);
+    return () => window.removeEventListener("qbank-roles-updated", handleRolesUpdate);
+  }, []);
+
+  const userRole = useMemo(() => {
+    void roleTick;
+    return rolesModel.getUserRole(user);
+  }, [user, roleTick]);
+
+  const isSuperAdmin = userRole === "superadmin";
   const isQuestionAdmin =
+    isSuperAdmin ||
+    userRole === "admin" ||
     !authAvailable ||
     (isAuthenticated &&
       ((user?.id && QUESTION_ADMIN_UIDS.includes(user.id)) ||
@@ -863,6 +879,8 @@ export default function App() {
             themeMode={themeMode}
             onSetThemeMode={setThemeMode}
             isQuestionAdmin={isQuestionAdmin}
+            isSuperAdmin={isSuperAdmin}
+            userRole={userRole}
           />
         )}
 
@@ -898,6 +916,8 @@ export default function App() {
               themeMode={themeMode}
               onSetThemeMode={setThemeMode}
               isQuestionAdmin={isQuestionAdmin}
+              isSuperAdmin={isSuperAdmin}
+              userRole={userRole}
             />
           )}
           <main ref={mainRef} className={`qb-main${view === "mockRun" ? " qb-main-exam" : view === "detail" ? " qb-main-detail" : ""}`}>
@@ -1220,6 +1240,8 @@ export default function App() {
                 onToggleTheme={toggleTheme}
                 isAuthenticated={isAuthenticated}
                 isQuestionAdmin={isQuestionAdmin}
+                isSuperAdmin={isSuperAdmin}
+                userRole={userRole}
                 totalQuestions={qs.length}
                 mockAttemptsCount={mockHistory.length}
                 favoritesCount={favoriteCount}

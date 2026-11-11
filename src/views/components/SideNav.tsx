@@ -276,6 +276,8 @@ export default function SideNav({
   themeMode,
   onSetThemeMode,
   isQuestionAdmin = false,
+  isSuperAdmin = false,
+  userRole = "reviewer",
 }: SideNavProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -315,8 +317,10 @@ export default function SideNav({
     }
   }, [seenTotal]);
 
-  const rolePillClass = isQuestionAdmin ? "admin" : isAuthenticated ? "pro" : "guest";
-  const rolePillLabel = isQuestionAdmin ? "ADMIN" : isAuthenticated ? "REVIEWER" : "GUEST";
+  const isSuper = isSuperAdmin || userRole === "superadmin";
+  const isAdmin = isQuestionAdmin || userRole === "admin";
+  const rolePillClass = isSuper ? "superadmin" : isAdmin ? "admin" : isAuthenticated ? "pro" : "guest";
+  const rolePillLabel = isSuper ? "SUPERADMIN" : isAdmin ? "ADMIN" : isAuthenticated ? "REVIEWER" : "GUEST";
   const activeThemeMode = themeMode ?? (isDark ? "dark" : "light");
 
   useOverlayDialogA11y(variant === "overlay" && open, onClose, cardRef);

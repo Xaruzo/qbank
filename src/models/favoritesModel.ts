@@ -131,6 +131,41 @@ const isMissingFavoritesTableError = (error) =>
   && typeof error.message === "string"
   && error.message.includes(`public.${USER_FAVORITES_TABLE}`);
 
+const isRlsOrPermissionError = (error: any) => {
+  if (!error) return false;
+  const code = String(error.code || "").toUpperCase();
+  const msg = (error.message || error.details || (typeof error === "string" ? error : "") || "").toLowerCase();
+  return (
+    code === "42501" ||
+    code === "PGRST301" ||
+    error.status === 401 ||
+    error.status === 403 ||
+    msg.includes("row-level security") ||
+    msg.includes("violates row-level security") ||
+    msg.includes("permission denied") ||
+    msg.includes("insufficient_privilege")
+  );
+};
+
+let hasLoggedRlsNotice = false;
+const maybeLogRlsNotice = () => {
+  if (hasLoggedRlsNotice) return;
+  hasLoggedRlsNotice = true;
+  console.warn(
+    `Supabase table '${USER_FAVORITES_TABLE}' row-level security policy prevented remote sync. Using persistent local storage fallback.`
+  );
+};
+
+const isSupabaseSessionActiveForUser = async (userId: string | null): Promise<boolean> => {
+  if (!supabase || !userId) return false;
+  try {
+    const { data } = await supabase.auth.getSession();
+    return !!data?.session?.user?.id && data.session.user.id === userId;
+  } catch {
+    return false;
+  }
+};
+
 const maybeLogMissingTable = () => {
   if (hasLoggedMissingFavoritesTable) return;
   hasLoggedMissingFavoritesTable = true;
@@ -140,6 +175,11 @@ const maybeLogMissingTable = () => {
 };
 
 const fetchRemoteFavoriteIds = async (userId) => {
+  const isSessionActive = await isSupabaseSessionActiveForUser(userId);
+  if (!isSessionActive) {
+    return [];
+  }
+
   const { data, error } = await supabase
     .from(USER_FAVORITES_TABLE)
     .select("question_id")
@@ -147,6 +187,10 @@ const fetchRemoteFavoriteIds = async (userId) => {
 
   if (isMissingFavoritesTableError(error)) {
     maybeLogMissingTable();
+    return [];
+  }
+  if (isRlsOrPermissionError(error)) {
+    maybeLogRlsNotice();
     return [];
   }
   if (error) throw error;
@@ -157,6 +201,11 @@ const fetchRemoteFavoriteIds = async (userId) => {
 };
 
 const addRemoteFavorite = async (questionId, userId) => {
+  const isSessionActive = await isSupabaseSessionActiveForUser(userId);
+  if (!isSessionActive) {
+    return;
+  }
+
   const { error } = await supabase
     .from(USER_FAVORITES_TABLE)
     .upsert(
@@ -172,10 +221,19 @@ const addRemoteFavorite = async (questionId, userId) => {
     maybeLogMissingTable();
     return;
   }
+  if (isRlsOrPermissionError(error)) {
+    maybeLogRlsNotice();
+    return;
+  }
   if (error) throw error;
 };
 
 const removeRemoteFavorite = async (questionId, userId) => {
+  const isSessionActive = await isSupabaseSessionActiveForUser(userId);
+  if (!isSessionActive) {
+    return;
+  }
+
   const { error } = await supabase
     .from(USER_FAVORITES_TABLE)
     .delete()
@@ -184,6 +242,10 @@ const removeRemoteFavorite = async (questionId, userId) => {
 
   if (isMissingFavoritesTableError(error)) {
     maybeLogMissingTable();
+    return;
+  }
+  if (isRlsOrPermissionError(error)) {
+    maybeLogRlsNotice();
     return;
   }
   if (error) throw error;
@@ -250,11 +312,11 @@ export const favoritesModel = {
       await writeFavoritesCache(mergedIds, userId);
       return mergedIds;
     } catch (error) {
-      if (!isMissingFavoritesTableError(error)) {
+      if (!isMissingFavoritesTableError(error) && !isRlsOrPermissionError(error)) {
         if (isNetworkOrFetchError(error)) {
           console.warn("Supabase favorites network offline/unreachable:", error.message || error);
         } else {
-          console.error("Failed to load favorites from Supabase:", error);
+          console.warn("Could not load favorites from Supabase:", error);
         }
       }
       return applyPendingToFavoriteIds(cachedIds, pendingMap);
@@ -284,14 +346,21 @@ export const favoritesModel = {
       await addRemoteFavorite(questionId, userId);
       await dequeuePendingOperation(questionId, userId);
     } catch (error) {
-      if (isNetworkOrFetchError(error)) {
+      if (isRlsOrPermissionError(error)) {
+        maybeLogRlsNotice();
+        await dequeuePendingOperation(questionId, userId);
+      } else if (isNetworkOrFetchError(error)) {
         console.warn("Network offline, favorite queued locally:", error.message || error);
+        const pending = await readPendingMap(userId);
+        if (!pending[questionId]) {
+          await enqueuePendingOperation(questionId, { added: true }, userId);
+        }
       } else {
-        console.error("Failed to add favorite to Supabase:", error);
-      }
-      const pending = await readPendingMap(userId);
-      if (!pending[questionId]) {
-        await enqueuePendingOperation(questionId, { added: true }, userId);
+        console.warn("Could not sync favorite to Supabase:", error);
+        const pending = await readPendingMap(userId);
+        if (!pending[questionId]) {
+          await enqueuePendingOperation(questionId, { added: true }, userId);
+        }
       }
     }
   },
@@ -319,14 +388,21 @@ export const favoritesModel = {
       await removeRemoteFavorite(questionId, userId);
       await dequeuePendingOperation(questionId, userId);
     } catch (error) {
-      if (isNetworkOrFetchError(error)) {
+      if (isRlsOrPermissionError(error)) {
+        maybeLogRlsNotice();
+        await dequeuePendingOperation(questionId, userId);
+      } else if (isNetworkOrFetchError(error)) {
         console.warn("Network offline, favorite removal queued locally:", error.message || error);
+        const pending = await readPendingMap(userId);
+        if (!pending[questionId]) {
+          await enqueuePendingOperation(questionId, { added: false }, userId);
+        }
       } else {
-        console.error("Failed to remove favorite from Supabase:", error);
-      }
-      const pending = await readPendingMap(userId);
-      if (!pending[questionId]) {
-        await enqueuePendingOperation(questionId, { added: false }, userId);
+        console.warn("Could not sync favorite removal to Supabase:", error);
+        const pending = await readPendingMap(userId);
+        if (!pending[questionId]) {
+          await enqueuePendingOperation(questionId, { added: false }, userId);
+        }
       }
     }
   },
@@ -342,6 +418,13 @@ export const favoritesModel = {
   async flushPending(userId) {
     if (!userId || !supabase) return false;
     if (typeof navigator !== "undefined" && navigator.onLine === false) return false;
+
+    const isSessionActive = await isSupabaseSessionActiveForUser(userId);
+    if (!isSessionActive) {
+      // Local/system account without an active Supabase session: purge stale pending queue
+      await writePendingMap({}, userId);
+      return false;
+    }
 
     const pending = Object.values(await readPendingMap(userId)).sort((a, b) =>
       String(a?.updatedAt || "").localeCompare(String(b?.updatedAt || ""))
@@ -361,12 +444,16 @@ export const favoritesModel = {
         }
         syncedAny = true;
       } catch (error) {
-        if (isNetworkOrFetchError(error)) {
+        if (isRlsOrPermissionError(error)) {
+          maybeLogRlsNotice();
+          // Discard from failed so it doesn't get stuck in an endless retry loop
+        } else if (isNetworkOrFetchError(error)) {
           console.warn("Network offline, pending favorite sync deferred:", error.message || error);
+          failed[operation.questionId] = operation;
         } else {
-          console.error("Failed to sync pending favorite:", error);
+          console.warn("Could not sync pending favorite to Supabase:", error);
+          failed[operation.questionId] = operation;
         }
-        failed[operation.questionId] = operation;
       }
     }
 

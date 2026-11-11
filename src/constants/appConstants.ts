@@ -32,6 +32,14 @@ export const PROBLEM_LABELS = [
   "Clerical Procedures",
 ];
 
+export const SUPERADMIN_EMAILS = [
+  "xaruzowarlord@gmail.com",
+];
+
+export const SUPERADMIN_UIDS = [
+  "c2125743-6423-4be5-8edd-891ca6c313e7",
+];
+
 export const QUESTION_ADMIN_UIDS = [
   "c2125743-6423-4be5-8edd-891ca6c313e7",
   "5bd1e1a1-4d54-409f-aa7b-a171133ccf8c",

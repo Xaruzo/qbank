@@ -655,7 +655,7 @@ export const tipsModel = {
         .from(QUESTION_TIPS_TABLE)
         .select("question_id, tip_text, canvas_data, tip_category, mastery_level, last_reviewed")
         .eq("user_id", userId)
-        .eq("linked_question_id", questionId);
+        .eq("question_id", questionId);
 
       if (isMissingQuestionTipsTableError(error)) {
         markRemoteTipsUnavailable();

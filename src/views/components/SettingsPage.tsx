@@ -23,10 +23,53 @@ import {
   AlertTriangle,
   Activity,
   Cpu,
+  Crown,
+  UserPlus,
+  Search,
+  KeyRound,
+  Users,
 } from "lucide-react";
-import type { SettingsPageProps, TopicId } from "../../types";
+import type { SettingsPageProps, TopicId, UserRole, UserRoleRecord, SelectOption } from "../../types";
 import { useOverlayDialogA11y } from "../../controllers/useOverlayDialogA11y";
 import AvatarStudio from "./AvatarStudio";
+import CustomSelect from "./CustomSelect";
+import { rolesModel } from "../../models/rolesModel";
+
+const ROLE_GRANT_OPTIONS: SelectOption[] = [
+  {
+    value: "admin",
+    label: "Admin (Manage Question Bank)",
+    icon: <ShieldCheck size={14} className="text-purple-400" />,
+  },
+  {
+    value: "superadmin",
+    label: "Superadmin (Full Control & Roles)",
+    icon: <Crown size={14} className="text-amber-400" />,
+  },
+  {
+    value: "reviewer",
+    label: "Reviewer (Standard Examinee)",
+    icon: <User size={14} className="text-slate-400" />,
+  },
+];
+
+const QUICK_ROLE_OPTIONS: SelectOption[] = [
+  {
+    value: "reviewer",
+    label: "Reviewer",
+    icon: <User size={13} className="text-slate-400" />,
+  },
+  {
+    value: "admin",
+    label: "Admin",
+    icon: <ShieldCheck size={13} className="text-purple-400" />,
+  },
+  {
+    value: "superadmin",
+    label: "Superadmin",
+    icon: <Crown size={13} className="text-amber-400" />,
+  },
+];
 
 export default function SettingsPage({
   initialTab = "identity",
@@ -39,6 +82,8 @@ export default function SettingsPage({
   onToggleTheme,
   isAuthenticated,
   isQuestionAdmin = false,
+  isSuperAdmin = false,
+  userRole = "reviewer",
   totalQuestions = 0,
   mockAttemptsCount = 0,
   favoritesCount = 0,
@@ -66,6 +111,63 @@ export default function SettingsPage({
   const [clearCacheConfirm, setClearCacheConfirm] = useState(false);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const discardDialogRef = useRef<HTMLDivElement>(null);
+
+  // User Roles Management State
+  const [usersList, setUsersList] = useState<UserRoleRecord[]>(() => rolesModel.getAllUsers());
+  const [roleSearch, setRoleSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<"all" | "superadmin" | "admin" | "reviewer">("all");
+  const [newRoleEmail, setNewRoleEmail] = useState("");
+  const [newRoleSelect, setNewRoleSelect] = useState<UserRole>("admin");
+  const [roleNotice, setRoleNotice] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  const refreshUsersList = () => {
+    setUsersList(rolesModel.getAllUsers());
+  };
+
+  const handleAssignRole = async (targetEmail: string, roleToAssign: UserRole, targetName?: string) => {
+    setRoleNotice(null);
+    const res = await rolesModel.assignRole(
+      targetEmail,
+      roleToAssign,
+      { email: profile?.email, fullName: profile?.fullName },
+      targetName
+    );
+    if (res.success) {
+      setRoleNotice({
+        type: "success",
+        message: `Role successfully updated to '${roleToAssign.toUpperCase()}' for ${targetEmail}.`,
+      });
+      refreshUsersList();
+      setNewRoleEmail("");
+      setTimeout(() => setRoleNotice(null), 4000);
+    } else {
+      setRoleNotice({ type: "error", message: res.error || "Failed to assign role." });
+    }
+  };
+
+  const handleRevokeRole = async (targetEmail: string) => {
+    setRoleNotice(null);
+    const res = await rolesModel.revokeRole(targetEmail);
+    if (res.success) {
+      setRoleNotice({
+        type: "success",
+        message: `Permissions revoked for ${targetEmail}. Reverted to standard Reviewer access.`,
+      });
+      refreshUsersList();
+      setTimeout(() => setRoleNotice(null), 4000);
+    } else {
+      setRoleNotice({ type: "error", message: res.error || "Failed to revoke role." });
+    }
+  };
+
+  const filteredUsers = usersList.filter((u) => {
+    if (roleFilter !== "all" && u.role !== roleFilter) return false;
+    if (roleSearch.trim()) {
+      const q = roleSearch.toLowerCase();
+      return u.email.toLowerCase().includes(q) || u.fullName.toLowerCase().includes(q) || u.role.toLowerCase().includes(q);
+    }
+    return true;
+  });
 
   // Real-time hardware capabilities detection for Performance & Animation Optimizer
   const [hwStats, setHwStats] = useState({
@@ -346,6 +448,22 @@ export default function SettingsPage({
               <span className="qb-settings-nav-item-sub">Offline cache & data export</span>
             </div>
           </button>
+
+          {(isSuperAdmin || isQuestionAdmin) && (
+            <button
+              type="button"
+              className={`qb-settings-nav-item${activeTab === "roles" ? " active" : ""}`}
+              onClick={() => setActiveTab("roles")}
+            >
+              <div className="qb-settings-nav-item-icon">
+                <Crown size={18} className="text-amber-400" />
+              </div>
+              <div className="qb-settings-nav-item-text">
+                <span className="qb-settings-nav-item-title">Roles & Access Control</span>
+                <span className="qb-settings-nav-item-sub">Superadmin user permissions</span>
+              </div>
+            </button>
+          )}
         </nav>
 
         {/* Right Active Content Panel */}
@@ -843,6 +961,182 @@ export default function SettingsPage({
                     Reset Settings to Default
                   </button>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5: ROLES & ACCESS CONTROL (SUPERADMIN / ADMIN) */}
+          {activeTab === "roles" && (
+            <div className="qb-settings-panel-section">
+              <div className="qb-settings-section-head">
+                <div className="flex items-center gap-2">
+                  <Crown size={22} className="text-amber-400" />
+                  <h2 className="qb-settings-section-title">User Roles & Access Control</h2>
+                </div>
+                <p className="qb-settings-section-desc">
+                  Manage platform administrative privileges, assign Superadmin or Question Admin roles, and control access rights across reviewer accounts.
+                </p>
+              </div>
+
+              {roleNotice && (
+                <div className={`qb-settings-role-notice ${roleNotice.type}`}>
+                  {roleNotice.type === "success" ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
+                  <span>{roleNotice.message}</span>
+                </div>
+              )}
+
+              {/* Quick Role Assignment Card */}
+              <div className="qb-settings-role-grant-card">
+                <div className="qb-settings-role-grant-head">
+                  <UserPlus size={18} className="text-amber-400" />
+                  <div>
+                    <h3 className="font-semibold text-sm text-heading">Grant or Assign User Role</h3>
+                    <p className="text-xs text-muted">
+                      Enter any examinee or staff email address to grant administrative permissions or assign roles.
+                    </p>
+                  </div>
+                </div>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (newRoleEmail.trim()) {
+                      handleAssignRole(newRoleEmail.trim(), newRoleSelect);
+                    }
+                  }}
+                  className="qb-settings-role-grant-form"
+                >
+                  <div className="qb-settings-input-wrap flex-1">
+                    <User size={16} className="qb-settings-input-icon" />
+                    <input
+                      type="email"
+                      className="qb-settings-text-input"
+                      placeholder="e.g. reviewer@domain.com"
+                      value={newRoleEmail}
+                      onChange={(e) => setNewRoleEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <CustomSelect
+                    value={newRoleSelect}
+                    onChange={(val) => setNewRoleSelect(val as UserRole)}
+                    options={ROLE_GRANT_OPTIONS}
+                    className="qb-settings-role-select-wrap"
+                    showCheckmark
+                  />
+                  <button type="submit" className="qb-settings-role-grant-btn">
+                    <UserPlus size={16} />
+                    <span>Assign Role</span>
+                  </button>
+                </form>
+              </div>
+
+              {/* Registered Users Roster Table */}
+              <div className="qb-settings-users-roster-card">
+                <div className="qb-settings-roster-toolbar">
+                  <div className="qb-settings-roster-search">
+                    <Search size={15} className="text-muted" />
+                    <input
+                      type="text"
+                      className="qb-settings-roster-search-input"
+                      placeholder="Search accounts by name, email, or role..."
+                      value={roleSearch}
+                      onChange={(e) => setRoleSearch(e.target.value)}
+                    />
+                  </div>
+                  <div className="qb-settings-roster-filters">
+                    {(["all", "superadmin", "admin", "reviewer"] as const).map((rFilter) => (
+                      <button
+                        key={rFilter}
+                        type="button"
+                        className={`qb-settings-roster-filter-chip${roleFilter === rFilter ? " active" : ""}`}
+                        onClick={() => setRoleFilter(rFilter)}
+                      >
+                        {rFilter === "all" ? "All Accounts" : rFilter.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="qb-settings-users-table-wrap">
+                  <table className="qb-settings-users-table">
+                    <thead>
+                      <tr>
+                        <th>USER ACCOUNT</th>
+                        <th>CURRENT ROLE</th>
+                        <th>ASSIGNED DATE</th>
+                        <th>ACTIONS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredUsers.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="text-center py-6 text-muted text-xs">
+                            No user accounts matched your search criteria.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredUsers.map((uRecord) => {
+                          const isRootSuper = uRecord.email.toLowerCase() === "xaruzowarlord@gmail.com";
+                          return (
+                            <tr key={uRecord.email}>
+                              <td>
+                                <div className="qb-user-cell">
+                                  <div className={`qb-user-cell-avatar role-${uRecord.role}`}>
+                                    {uRecord.fullName.slice(0, 2).toUpperCase()}
+                                  </div>
+                                  <div className="qb-user-cell-info">
+                                    <span className="qb-user-cell-name">{uRecord.fullName}</span>
+                                    <span className="qb-user-cell-email">{uRecord.email}</span>
+                                  </div>
+                                </div>
+                              </td>
+                              <td>
+                                <span className={`qb-role-pill role-${uRecord.role}`}>
+                                  {uRecord.role === "superadmin" && <Crown size={12} />}
+                                  {uRecord.role === "admin" && <ShieldCheck size={12} />}
+                                  <span>{uRecord.role.toUpperCase()}</span>
+                                </span>
+                              </td>
+                              <td>
+                                <div className="qb-user-assigned-cell">
+                                  <span>{new Date(uRecord.assignedAt).toLocaleDateString()}</span>
+                                  <span className="text-muted text-xs">by {uRecord.assignedBy || "System"}</span>
+                                </div>
+                              </td>
+                              <td>
+                                {isRootSuper ? (
+                                  <span className="text-xs text-amber-400 font-medium italic">Primary Root Superadmin</span>
+                                ) : (
+                                  <div className="qb-user-role-actions">
+                                    <CustomSelect
+                                      value={uRecord.role}
+                                      onChange={(val) =>
+                                        handleAssignRole(uRecord.email, val as UserRole, uRecord.fullName)
+                                      }
+                                      options={QUICK_ROLE_OPTIONS}
+                                      className="qb-table-role-select"
+                                      showCheckmark
+                                    />
+                                    {uRecord.role !== "reviewer" && (
+                                      <button
+                                        type="button"
+                                        className="qb-user-revoke-btn"
+                                        title="Revoke admin privileges"
+                                        onClick={() => handleRevokeRole(uRecord.email)}
+                                      >
+                                        Revoke
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
