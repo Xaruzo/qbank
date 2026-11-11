@@ -342,6 +342,9 @@ export default function SideNav({
     return () => window.clearTimeout(t);
   }, [overlayState]);
 
+  const expandedPopoverRef = useRef<HTMLDivElement>(null);
+  const [expandedCoords, setExpandedCoords] = useState<{ bottom: number; left: number; width: number } | null>(null);
+
   const updateRailCoords = () => {
     if (railBtnRef.current) {
       const rect = railBtnRef.current.getBoundingClientRect();
@@ -352,18 +355,31 @@ export default function SideNav({
     }
   };
 
+  const updateExpandedCoords = () => {
+    if (popoverRef.current) {
+      const rect = popoverRef.current.getBoundingClientRect();
+      setExpandedCoords({
+        bottom: Math.max(12, window.innerHeight - rect.top + 8),
+        left: Math.max(12, rect.left),
+        width: 320,
+      });
+    }
+  };
+
   useLayoutEffect(() => {
-    if (profileMenuOpen && !open) {
-      updateRailCoords();
+    if (profileMenuOpen) {
+      if (!open) updateRailCoords();
+      else updateExpandedCoords();
     }
   }, [profileMenuOpen, open]);
 
   useEffect(() => {
-    if (!profileMenuOpen || open) return;
-    // PolicyPulse auto-dismiss: the floating rail popover closes when the
-    // viewport resizes (covers entering tablet/mobile mid-menu).
+    if (!profileMenuOpen) return;
     const handleResize = () => setProfileMenuOpen(false);
-    const handleScroll = () => updateRailCoords();
+    const handleScroll = () => {
+      if (!open) updateRailCoords();
+      else updateExpandedCoords();
+    };
     window.addEventListener("resize", handleResize);
     window.addEventListener("scroll", handleScroll, true);
     return () => {
@@ -377,10 +393,11 @@ export default function SideNav({
     if (!profileMenuOpen) return undefined;
     const handlePointerDown = (e: MouseEvent) => {
       const target = e.target as Node;
-      const inExpanded = popoverRef.current && popoverRef.current.contains(target);
+      const inExpandedPopover = expandedPopoverRef.current && expandedPopoverRef.current.contains(target);
+      const inAnchor = popoverRef.current && popoverRef.current.contains(target);
       const inRail = railPopoverRef.current && railPopoverRef.current.contains(target);
       const inBtn = railBtnRef.current && railBtnRef.current.contains(target);
-      if (!inExpanded && !inRail && !inBtn) {
+      if (!inExpandedPopover && !inAnchor && !inRail && !inBtn) {
         setProfileMenuOpen(false);
       }
     };
@@ -679,7 +696,26 @@ export default function SideNav({
 
       {/* PolicyPulse Profile Trigger & Popover Anchor */}
       <div className="qb-profile-popover-anchor" ref={popoverRef}>
-        {renderProfilePopover(isOverlay)}
+        {isOverlay ? (
+          renderProfilePopover(true)
+        ) : (
+          profileMenuOpen && open && expandedCoords && createPortal(
+            <div
+              ref={expandedPopoverRef}
+              className={`qb-portal-popover-wrap${!isDark ? " light" : ""}`}
+              style={{
+                position: "fixed",
+                bottom: `${expandedCoords.bottom}px`,
+                left: `${expandedCoords.left}px`,
+                width: `${expandedCoords.width}px`,
+                zIndex: 999999,
+              }}
+            >
+              {renderProfilePopover(false)}
+            </div>,
+            document.body
+          )
+        )}
 
         <button
           type="button"
@@ -813,7 +849,7 @@ export default function SideNav({
                       position: "fixed",
                       top: `${railCoords.top}px`,
                       left: `${railCoords.left}px`,
-                      width: "295px",
+                      width: "320px",
                       zIndex: 999999,
                     }}
                   >
