@@ -29,6 +29,7 @@ import {
   KeyRound,
   Users,
   Lock,
+  Mail,
 } from "lucide-react";
 import type { SettingsPageProps, TopicId, UserRole, UserRoleRecord, SelectOption } from "../../types";
 import { useOverlayDialogA11y } from "../../controllers/useOverlayDialogA11y";
@@ -612,116 +613,133 @@ export default function SettingsPage({
                 onStageAvatar={handleStageAvatar}
               />
 
-              {/* Form Input Fields: Display Name, Account Email, and Account Password */}
-              <div className="qb-settings-form-grid">
-                <div className="qb-settings-field">
-                  <label htmlFor="settings-fullname" className="qb-settings-label">
-                    Display Name
-                  </label>
-                  <div className="qb-settings-input-wrap">
-                    <User size={16} className="qb-settings-input-icon" />
-                    <input
-                      id="settings-fullname"
-                      type="text"
-                      className="qb-settings-text-input"
-                      placeholder="Enter your name or examinee pseudonym"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      maxLength={40}
-                      required
-                    />
+              {/* Section 1: Reviewer Account Information */}
+              <div className="qb-settings-panel-card">
+                <div className="qb-settings-panel-card-head">
+                  <div className="qb-settings-panel-card-title">
+                    <User size={16} className="text-amber-400" />
+                    <span>Account Details</span>
                   </div>
+                  <span className="qb-settings-field-hint">Public reviewer identity</span>
                 </div>
 
-                <div className="qb-settings-field">
-                  <label htmlFor="settings-email" className="qb-settings-label">
-                    Account Email
-                  </label>
-                  <div className="qb-settings-input-wrap readonly">
-                    <input
-                      id="settings-email"
-                      type="email"
-                      readOnly
-                      className="qb-settings-text-input is-readonly"
-                      value={email}
-                      title="Email address associated with your QBANK session"
-                    />
-                    <CheckCircle2 size={16} className="qb-settings-verified-icon" />
-                  </div>
-                </div>
-
-                {/* Account Password input directly below Display Name & Account Email */}
-                <div className="qb-settings-field">
-                  <label htmlFor="settings-password" className="qb-settings-label">
-                    Account Password
-                  </label>
-                  <div className="qb-settings-input-wrap">
-                    <Lock size={16} className="qb-settings-input-icon" />
-                    <input
-                      id="settings-password"
-                      type="password"
-                      readOnly
-                      className="qb-settings-text-input is-readonly"
-                      value="••••••••••••"
-                      title="Password is encrypted. Click Change Password to update with Gmail 6-digit confirmation."
-                      style={{ letterSpacing: "2.5px", paddingRight: "140px" }}
-                    />
-                    <button
-                      type="button"
-                      className="qb-settings-field-btn"
-                      onClick={() => setShowChangePasswordModal(true)}
-                      title="Change account password"
-                    >
-                      <KeyRound size={13} />
-                      <span>Change Password</span>
-                    </button>
-                  </div>
-                  <span className="qb-settings-field-hint">
-                    Requires 6-digit verification code dispatched to your registered Gmail.
-                  </span>
-                </div>
-
-                {/* Security Status Box */}
-                <div className="qb-settings-field">
-                  <label className="qb-settings-label">
-                    Security & Verification
-                  </label>
-                  <div
-                    className="qb-settings-input-wrap readonly"
-                    style={{
-                      minHeight: 42,
-                      padding: "0 14px",
-                      borderRadius: 10,
-                      background: "var(--surface, #0f172a)",
-                      border: "1px solid var(--border)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 8,
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "13px", color: "var(--text)" }}>
-                      <ShieldCheck size={16} className="text-emerald-400" style={{ flexShrink: 0 }} />
-                      <span style={{ fontWeight: 600 }}>2FA Gmail Verification</span>
+                <div className="qb-settings-account-grid">
+                  <div className="qb-settings-field">
+                    <label htmlFor="settings-fullname" className="qb-settings-label">
+                      Display Name
+                    </label>
+                    <div className="qb-settings-input-wrap">
+                      <User size={16} className="qb-settings-input-icon" />
+                      <input
+                        id="settings-fullname"
+                        type="text"
+                        className="qb-settings-text-input"
+                        placeholder="Enter your name or examinee pseudonym"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        maxLength={40}
+                        required
+                      />
                     </div>
-                    <span
-                      style={{
-                        fontSize: "10.5px",
-                        fontWeight: 800,
-                        letterSpacing: "0.5px",
-                        color: "#10b981",
-                        background: "rgba(16, 185, 129, 0.12)",
-                        padding: "3px 8px",
-                        borderRadius: 6,
-                        border: "1px solid rgba(16, 185, 129, 0.25)",
-                      }}
-                    >
-                      ACTIVE
+                    <span className="qb-settings-field-hint">
+                      Shown across study notes, mock exam results, and practice history.
                     </span>
                   </div>
-                  <span className="qb-settings-field-hint">
-                    Protects your question bookmarks, mock attempts & solution notes.
+
+                  <div className="qb-settings-field">
+                    <label htmlFor="settings-email" className="qb-settings-label">
+                      Account Email
+                    </label>
+                    <div className="qb-settings-input-wrap readonly">
+                      <Mail size={16} className="qb-settings-input-icon" />
+                      <input
+                        id="settings-email"
+                        type="email"
+                        readOnly
+                        className="qb-settings-text-input is-readonly"
+                        value={email}
+                        title="Email address associated with your QBANK session"
+                      />
+                      <CheckCircle2 size={16} className="qb-settings-verified-icon" />
+                    </div>
+                    <span className="qb-settings-field-hint">
+                      Verified primary address for cloud sync and secure 6-digit confirmation codes.
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 2: Account Security & Password Management (Dedicated Security Card) */}
+              <div className="qb-settings-panel-card">
+                <div className="qb-settings-panel-card-head">
+                  <div className="qb-settings-panel-card-title">
+                    <ShieldCheck size={16} className="text-emerald-400" />
+                    <span>Account Security &amp; Credentials</span>
+                  </div>
+                  <span className="qb-settings-panel-card-badge">
+                    <ShieldCheck size={12} />
+                    <span>Protected</span>
                   </span>
+                </div>
+
+                <div className="qb-settings-security-list">
+                  {/* Row 1: Account Password */}
+                  <div className="qb-settings-security-row">
+                    <div className="qb-settings-security-left">
+                      <div className="qb-settings-security-icon-box amber">
+                        <KeyRound size={18} />
+                      </div>
+                      <div className="qb-settings-security-info">
+                        <div className="qb-settings-security-name-line">
+                          <span className="qb-settings-security-name">Account Password</span>
+                          <span className="qb-settings-security-mask">••••••••••••</span>
+                        </div>
+                        <p className="qb-settings-security-desc">
+                          Protected with salted SHA-256 encryption. Changing your password requires a 6-digit verification code sent to your registered Gmail.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="qb-settings-security-right">
+                      <button
+                        type="button"
+                        className="qb-settings-action-btn primary"
+                        onClick={() => setShowChangePasswordModal(true)}
+                        title="Change account password with Gmail verification"
+                      >
+                        <KeyRound size={14} />
+                        <span>Change Password</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Row 2: Two-Factor Verification */}
+                  <div className="qb-settings-security-row">
+                    <div className="qb-settings-security-left">
+                      <div className="qb-settings-security-icon-box emerald">
+                        <ShieldCheck size={18} />
+                      </div>
+                      <div className="qb-settings-security-info">
+                        <div className="qb-settings-security-name-line">
+                          <span className="qb-settings-security-name">2-Factor Gmail Verification (OTP)</span>
+                          <span className="qb-settings-security-pill success">
+                            <CheckCircle2 size={12} />
+                            <span>ACTIVE</span>
+                          </span>
+                        </div>
+                        <p className="qb-settings-security-desc">
+                          Enforced for password updates and sensitive reviewer actions to ensure account protection.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="qb-settings-security-right">
+                      <span className="qb-settings-security-pill success">
+                        <CheckCircle2 size={13} />
+                        <span>Verified Account</span>
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

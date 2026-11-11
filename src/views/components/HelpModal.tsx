@@ -196,7 +196,7 @@ export default function HelpModal({ isDark, onClose, onRestartTour }) {
             )}
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{
-                fontFamily: "'DM Sans', sans-serif",
+                fontFamily: "var(--font-sans)",
                 fontSize: isMobile ? "9px" : "10px",
                 fontWeight: "700",
                 letterSpacing: "0.08em",
@@ -207,7 +207,7 @@ export default function HelpModal({ isDark, onClose, onRestartTour }) {
                 {activeTab === "main" ? "Help Center" : activeTab === "shortcuts" ? "Keyboard Shortcuts" : "FAQ"}
               </div>
               <div style={{
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontFamily: "var(--font-heading)",
                 fontSize: isMobile ? "17px" : isTablet ? "20px" : "22px",
                 fontWeight: "700",
                 letterSpacing: "-0.02em",
@@ -307,7 +307,7 @@ export default function HelpModal({ isDark, onClose, onRestartTour }) {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{
-                    fontFamily: "'DM Sans', sans-serif",
+                    fontFamily: "var(--font-sans)",
                     fontSize: isMobile ? "14px" : "16px",
                     fontWeight: "700",
                     color: theme.cardTitleColor,
@@ -316,7 +316,7 @@ export default function HelpModal({ isDark, onClose, onRestartTour }) {
                     Restart Tutorial Guide
                   </div>
                   <div style={{
-                    fontFamily: "'DM Sans', sans-serif",
+                    fontFamily: "var(--font-sans)",
                     fontSize: isMobile ? "12px" : "13px",
                     lineHeight: "1.6",
                     color: theme.cardBodyColor
@@ -374,7 +374,7 @@ export default function HelpModal({ isDark, onClose, onRestartTour }) {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{
-                    fontFamily: "'DM Sans', sans-serif",
+                    fontFamily: "var(--font-sans)",
                     fontSize: isMobile ? "14px" : "16px",
                     fontWeight: "700",
                     color: theme.cardTitleColor,
@@ -383,7 +383,7 @@ export default function HelpModal({ isDark, onClose, onRestartTour }) {
                     Keyboard Shortcuts
                   </div>
                   <div style={{
-                    fontFamily: "'DM Sans', sans-serif",
+                    fontFamily: "var(--font-sans)",
                     fontSize: isMobile ? "12px" : "13px",
                     lineHeight: "1.6",
                     color: theme.cardBodyColor
@@ -441,7 +441,7 @@ export default function HelpModal({ isDark, onClose, onRestartTour }) {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{
-                    fontFamily: "'DM Sans', sans-serif",
+                    fontFamily: "var(--font-sans)",
                     fontSize: isMobile ? "14px" : "16px",
                     fontWeight: "700",
                     color: theme.cardTitleColor,
@@ -450,7 +450,7 @@ export default function HelpModal({ isDark, onClose, onRestartTour }) {
                     Frequently Asked Questions
                   </div>
                   <div style={{
-                    fontFamily: "'DM Sans', sans-serif",
+                    fontFamily: "var(--font-sans)",
                     fontSize: isMobile ? "12px" : "13px",
                     lineHeight: "1.6",
                     color: theme.cardBodyColor
@@ -477,7 +477,7 @@ export default function HelpModal({ isDark, onClose, onRestartTour }) {
                   }}
                 >
                   <div style={{
-                    fontFamily: "'DM Sans', sans-serif",
+                    fontFamily: "var(--font-sans)",
                     fontSize: isMobile ? "12px" : "14px",
                     color: theme.cardTitleColor,
                     flex: 1
@@ -516,7 +516,7 @@ export default function HelpModal({ isDark, onClose, onRestartTour }) {
                   }}
                 >
                   <div style={{
-                    fontFamily: "'DM Sans', sans-serif",
+                    fontFamily: "var(--font-sans)",
                     fontSize: isMobile ? "13px" : "15px",
                     fontWeight: "700",
                     color: theme.cardTitleColor,
@@ -525,7 +525,7 @@ export default function HelpModal({ isDark, onClose, onRestartTour }) {
                     {item.q}
                   </div>
                   <div style={{
-                    fontFamily: "'DM Sans', sans-serif",
+                    fontFamily: "var(--font-sans)",
                     fontSize: isMobile ? "12px" : "13px",
                     lineHeight: "1.7",
                     color: theme.cardBodyColor

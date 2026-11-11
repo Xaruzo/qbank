@@ -759,7 +759,7 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
                 borderRadius: "8px",
                 color: "#ef4444",
                 fontSize: "13px",
-                fontFamily: "'DM Sans', sans-serif"
+                fontFamily: "var(--font-sans)"
               }}>
                 {uploadError}
               </div>

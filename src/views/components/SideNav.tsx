@@ -13,18 +13,15 @@ import {
   UserCircle2,
   HelpCircle,
   ChevronsUpDown,
-  User,
   Moon,
   Sun,
   Monitor,
-  Sliders,
-  KeyRound,
+  Settings,
   Crown,
   ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 import brandLogo from "../../models/Image/logo.png";
-import ChangePasswordModal from "./ChangePasswordModal";
 import type { SideNavProps, TopicId } from "../../types";
 
 interface NavItemDef {
@@ -288,7 +285,6 @@ export default function SideNav({
   const railPopoverRef = useRef<HTMLDivElement>(null);
   const railBtnRef = useRef<HTMLButtonElement>(null);
   const [profileMenuOpen, setProfileMenuOpen] = useState<boolean>(false);
-  const [showChangePasswordModal, setShowChangePasswordModal] = useState<boolean>(false);
   const [railCoords, setRailCoords] = useState<{ top: number; left: number } | null>(null);
 
   // PolicyPulse unread logic: track how many questions were present at the
@@ -601,31 +597,20 @@ export default function SideNav({
 
         {/* Menu Actions */}
         <div className="qb-profile-popover-actions">
-          <button
-            type="button"
-            className="qb-profile-popover-item"
-            onClick={() => {
-              setProfileMenuOpen(false);
-              if (isOverlay && onClose) onClose();
-              if (onOpenSettings) onOpenSettings("identity");
-            }}
-          >
-            <User size={15} />
-            <span>Edit Profile & Picture</span>
-          </button>
-
-          <button
-            type="button"
-            className="qb-profile-popover-item"
-            onClick={() => {
-              setProfileMenuOpen(false);
-              if (isOverlay && onClose) onClose();
-              if (onOpenSettings) onOpenSettings("persona");
-            }}
-          >
-            <Sliders size={15} />
-            <span>Persona & Workspace Settings</span>
-          </button>
+          {onOpenSettings && (
+            <button
+              type="button"
+              className="qb-profile-popover-item"
+              onClick={() => {
+                setProfileMenuOpen(false);
+                if (isOverlay && onClose) onClose();
+                onOpenSettings("identity");
+              }}
+            >
+              <Settings size={15} />
+              <span>Settings & Preferences</span>
+            </button>
+          )}
 
           {onOpenHelp && (
             <button
@@ -639,21 +624,6 @@ export default function SideNav({
             >
               <HelpCircle size={15} />
               <span>Reviewer Guide & Shortcuts</span>
-            </button>
-          )}
-
-          {isAuthenticated && (
-            <button
-              type="button"
-              className="qb-profile-popover-item"
-              onClick={() => {
-                setProfileMenuOpen(false);
-                if (isOverlay && onClose) onClose();
-                setShowChangePasswordModal(true);
-              }}
-            >
-              <KeyRound size={15} />
-              <span>Change Account Password</span>
             </button>
           )}
 
@@ -857,14 +827,6 @@ export default function SideNav({
           </div>
         )}
       </div>
-
-      {/* Change Password Modal */}
-      <ChangePasswordModal
-        isOpen={showChangePasswordModal}
-        onClose={() => setShowChangePasswordModal(false)}
-        userEmail={profile?.email || ""}
-        isDark={isDark}
-      />
     </aside>
   );
 }

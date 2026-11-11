@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Mail,
   KeyRound,
@@ -21,6 +21,7 @@ import {
   Lightbulb,
   RefreshCw,
   Lock,
+  Compass,
 } from "lucide-react";
 import brandLogo from "../../models/Image/logo.png";
 import AppleHeroCanvas from "./AppleHeroCanvas";

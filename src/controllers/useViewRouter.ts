@@ -40,9 +40,7 @@ export function useViewRouter({
       if (page === "settings") return "settings";
       if (page) return "list";
 
-      const hasEntered =
-        typeof sessionStorage !== "undefined" &&
-        sessionStorage.getItem("qbank-session-active") === "true";
+      // If user has a stored authenticated account, go directly to list view
       const hasSystemUser =
         typeof localStorage !== "undefined" &&
         !!localStorage.getItem("cse-qbank-system-user-v1");
@@ -52,7 +50,8 @@ export function useViewRouter({
           (k) => k.startsWith("sb-") && k.includes("-auth-token")
         );
 
-      return hasEntered || hasSystemUser || hasSupabaseToken ? "list" : "landing";
+      // New visitors and unauthenticated users always see the landing page first
+      return hasSystemUser || hasSupabaseToken ? "list" : "landing";
     } catch {
       return "landing";
     }
@@ -241,7 +240,9 @@ export function useViewRouter({
         } catch (_) {}
       }
 
-      if (!isAuthenticated && !hasActiveSession && !hasStoredAuthToken && !isAuthLoading) {
+      if (page === "list" || page === "questions") {
+        setView("list");
+      } else if (!isAuthenticated && !hasStoredAuthToken && !isAuthLoading && !page) {
         setView("landing");
       } else {
         setView("list");
@@ -264,7 +265,7 @@ export function useViewRouter({
     try {
       sessionStorage.setItem("qbank-session-active", "true");
     } catch (_) {}
-    window.history.pushState({}, "", window.location.pathname);
+    window.history.pushState({}, "", `?page=list`);
     setView("list");
   }, []);
 

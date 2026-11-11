@@ -213,7 +213,7 @@ export default function TutorialGuide({ run, onFinish, isDark }) {
             fontWeight: "700",
             letterSpacing: "0.08em",
             textTransform: "uppercase",
-            fontFamily: "'DM Sans', sans-serif",
+            fontFamily: "var(--font-sans)",
             width: "fit-content",
           }}
         >
@@ -231,7 +231,7 @@ export default function TutorialGuide({ run, onFinish, isDark }) {
               color: theme.titleColor,
               lineHeight: "1.25",
               marginBottom: "10px",
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontFamily: "var(--font-heading)",
             }}
           >
             {currentStepData.title}
@@ -241,7 +241,7 @@ export default function TutorialGuide({ run, onFinish, isDark }) {
               fontSize: "14px",
               lineHeight: "1.6",
               color: theme.textColor,
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: "var(--font-sans)",
               margin: 0,
             }}
           >
@@ -296,7 +296,7 @@ export default function TutorialGuide({ run, onFinish, isDark }) {
               padding: "10px 18px",
               borderRadius: "10px",
               cursor: currentStep === 0 ? "not-allowed" : "pointer",
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: "var(--font-sans)",
               opacity: currentStep === 0 ? 0.35 : 1,
               display: "inline-flex",
               alignItems: "center",
@@ -320,7 +320,7 @@ export default function TutorialGuide({ run, onFinish, isDark }) {
               padding: "10px 24px",
               borderRadius: "10px",
               cursor: "pointer",
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: "var(--font-sans)",
               boxShadow: theme.primaryBtnShadow,
               display: "inline-flex",
               alignItems: "center",
