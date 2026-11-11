@@ -367,6 +367,8 @@ export default function SettingsPage({
                 roleLabel={isQuestionAdmin ? "ADMIN" : isAuthenticated ? "EXAMINEE" : "GUEST"}
                 avatarUrl={avatarUrl}
                 avatarShape={avatarShape}
+                savedAvatarUrl={profile?.avatarUrl || null}
+                savedAvatarShape={profile?.avatarShape || "circle"}
                 onStageAvatar={handleStageAvatar}
               />
 

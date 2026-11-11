@@ -30,6 +30,8 @@ interface AvatarStudioProps {
   roleLabel: string;
   avatarUrl: string | null;
   avatarShape: AvatarShape;
+  savedAvatarUrl: string | null;
+  savedAvatarShape: AvatarShape;
   onStageAvatar: (url: string | null, shape: AvatarShape) => void;
 }
 
@@ -66,6 +68,8 @@ export default function AvatarStudio({
   roleLabel,
   avatarUrl,
   avatarShape,
+  savedAvatarUrl,
+  savedAvatarShape,
   onStageAvatar,
 }: AvatarStudioProps) {
   const [studioMode, setStudioMode] = useState<StudioMode>("idle");
@@ -944,12 +948,12 @@ export default function AvatarStudio({
               <LinkIcon size={13} />
               <span>Image URL</span>
             </button>
-            {avatarUrl && avatarUrl.startsWith("https://api.dicebear.com") && (
+            {avatarUrl !== savedAvatarUrl && (
               <button
                 type="button"
                 className="qb-studio-tool-btn is-danger"
-                onClick={() => onStageAvatar(null, avatarShape)}
-                title="Reset to initials"
+                onClick={() => onStageAvatar(savedAvatarUrl, savedAvatarShape)}
+                title="Revert to your saved profile picture"
               >
                 <Trash2 size={13} />
                 <span>Remove Photo</span>
