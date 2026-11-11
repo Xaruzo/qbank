@@ -19,7 +19,8 @@ import {
   ClipboardList,
   BookOpen,
   Lightbulb,
-  Compass,
+  RefreshCw,
+  Lock,
 } from "lucide-react";
 import brandLogo from "../../models/Image/logo.png";
 import AppleHeroCanvas from "./AppleHeroCanvas";
@@ -40,6 +41,7 @@ export default function SignInPage({
   onGoNotes,
 }: SignInPageProps) {
   const [isRegisterMode, setIsRegisterMode] = useState<boolean>(false);
+  const [signupStep, setSignupStep] = useState<"form" | "verify">("form");
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
@@ -50,6 +52,9 @@ export default function SignInPage({
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [successMsg, setSuccessMsg] = useState<string>("");
   const [resendCooldown, setResendCooldown] = useState<number>(0);
+  const [signupCodeDigits, setSignupCodeDigits] = useState<string[]>(["", "", "", "", "", ""]);
+
+  const signupDigitRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Auto-open forgot password modal if landing on page with recovery token
   useEffect(() => {
@@ -60,7 +65,7 @@ export default function SignInPage({
     }
   }, []);
 
-  // 60-second cooldown timer for rate-limited instant login emails
+  // 60-second cooldown timer for rate-limited emails
   useEffect(() => {
     if (resendCooldown <= 0) return;
     const interval = setInterval(() => {
@@ -68,6 +73,128 @@ export default function SignInPage({
     }, 1000);
     return () => clearInterval(interval);
   }, [resendCooldown]);
+
+  const currentSignupCode = signupCodeDigits.join("");
+
+  const handleSignupDigitChange = (index: number, val: string) => {
+    const clean = val.replace(/\D/g, "");
+    if (!clean) {
+      const next = [...signupCodeDigits];
+      next[index] = "";
+      setSignupCodeDigits(next);
+      return;
+    }
+    const char = clean.slice(-1);
+    const next = [...signupCodeDigits];
+    next[index] = char;
+    setSignupCodeDigits(next);
+
+    if (index < 5 && char) {
+      signupDigitRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleSignupKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace" && !signupCodeDigits[index] && index > 0) {
+      signupDigitRefs.current[index - 1]?.focus();
+    } else if (e.key === "ArrowLeft" && index > 0) {
+      signupDigitRefs.current[index - 1]?.focus();
+    } else if (e.key === "ArrowRight" && index < 5) {
+      signupDigitRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleSignupPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (!pasted) return;
+    const next = ["", "", "", "", "", ""];
+    for (let i = 0; i < pasted.length; i++) {
+      next[i] = pasted[i];
+    }
+    setSignupCodeDigits(next);
+    const focusIdx = Math.min(pasted.length, 5);
+    signupDigitRefs.current[focusIdx]?.focus();
+  };
+
+  // Helper for signup code dispatch
+  const requestSignupCode = async (cleanEmail: string) => {
+    setLoading(true);
+    setErrorMsg("");
+    try {
+      const res = await fetch("/api/auth/send-signup-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: cleanEmail }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to send verification code.");
+      }
+      setSuccessMsg(`A 6-digit verification code has been dispatched to ${cleanEmail}. Please enter it below to complete registration.`);
+      setSignupStep("verify");
+      setResendCooldown(60);
+      setSignupCodeDigits(["", "", "", "", "", ""]);
+      setTimeout(() => {
+        signupDigitRefs.current[0]?.focus();
+      }, 150);
+    } catch (err: any) {
+      setErrorMsg(err?.message || "Failed to dispatch verification code.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Verification & final account creation
+  const handleVerifySignupAndCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg("");
+    setSuccessMsg("");
+
+    const cleanEmail = email.trim().toLowerCase();
+    if (currentSignupCode.length !== 6) {
+      setErrorMsg("Please enter the complete 6-digit verification code.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // 1. Verify code on server
+      const res = await fetch("/api/auth/verify-signup-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: cleanEmail,
+          code: currentSignupCode,
+          password,
+          fullName: cleanEmail.split("@")[0],
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || "Incorrect or expired verification code.");
+      }
+
+      // 2. Complete client registration and session sign-in
+      const signInRes = await onSignInWithEmail(cleanEmail, password, { mode: "signup" });
+      if (signInRes?.error && !signInRes?.user) {
+        // Fallback: try signing in with the newly confirmed credentials
+        const retryRes = await onSignInWithEmail(cleanEmail, password, { mode: "signin" });
+        if (retryRes?.error) {
+          throw new Error(retryRes.error.message || "Account created, but automatic sign in failed. Please sign in.");
+        }
+      }
+
+      setSuccessMsg("Email verified! Account created and logged in. Welcome to CSE QBANK!");
+      setTimeout(() => {
+        onSuccessLogin();
+      }, 700);
+    } catch (err: any) {
+      setErrorMsg(err?.message || "Verification failed. Please check the code.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,7 +212,8 @@ export default function SignInPage({
       return;
     }
 
-    if (isRegisterMode && usePassword) {
+    // When registering: require email verification code so no one can register an email they don't own!
+    if (isRegisterMode) {
       if (password.length < 6) {
         setErrorMsg("Password must be at least 6 characters.");
         return;
@@ -94,6 +222,10 @@ export default function SignInPage({
         setErrorMsg("Passwords do not match.");
         return;
       }
+
+      // Dispatch 6-digit ownership verification code to the email
+      await requestSignupCode(cleanEmail);
+      return;
     }
 
     if (!usePassword && resendCooldown > 0) {
@@ -104,7 +236,7 @@ export default function SignInPage({
     setLoading(true);
     try {
       const res = await onSignInWithEmail(cleanEmail, usePassword ? password : "", {
-        mode: isRegisterMode ? "signup" : "signin",
+        mode: "signin",
       });
       if (res?.error) {
         const errMsg = res.error.message || "Failed to authenticate. Please check your credentials.";
@@ -112,18 +244,11 @@ export default function SignInPage({
         if (errMsg.includes("Too many attempts") || errMsg.includes("60 seconds") || errMsg.includes("rate limit")) {
           setResendCooldown(60);
         }
-      } else if (res?.mode === "confirm_email") {
-        setSuccessMsg(
-          res.message || "Account created. Check your email to confirm it, then sign in."
-        );
-        setIsRegisterMode(false);
-        setPassword("");
-        setConfirmPassword("");
       } else {
         if (!usePassword) {
           setResendCooldown(60);
         }
-        const message = res?.message || (isRegisterMode ? "Account created and logged in!" : "Welcome back! Redirecting to reviewer...");
+        const message = res?.message || "Welcome back! Redirecting to reviewer...";
         setSuccessMsg(message);
         setTimeout(() => {
           onSuccessLogin();
@@ -257,6 +382,7 @@ export default function SignInPage({
                     className={`qb-signin-tab${!isRegisterMode ? " active" : ""}`}
                     onClick={() => {
                       setIsRegisterMode(false);
+                      setSignupStep("form");
                       setErrorMsg("");
                       setSuccessMsg("");
                     }}
@@ -268,6 +394,7 @@ export default function SignInPage({
                     className={`qb-signin-tab${isRegisterMode ? " active" : ""}`}
                     onClick={() => {
                       setIsRegisterMode(true);
+                      setSignupStep("form");
                       setErrorMsg("");
                       setSuccessMsg("");
                     }}
@@ -277,11 +404,17 @@ export default function SignInPage({
                 </div>
 
                 <h2 className="qb-signin-card-title">
-                  {isRegisterMode ? "Create your reviewer account" : "Welcome back to QBANK"}
+                  {isRegisterMode
+                    ? signupStep === "verify"
+                      ? "Verify Email Ownership"
+                      : "Create your reviewer account"
+                    : "Welcome back to QBANK"}
                 </h2>
                 <p className="qb-signin-card-sub">
                   {isRegisterMode
-                    ? "Enter your email to start saving your exam simulations."
+                    ? signupStep === "verify"
+                      ? `Confirm that you own ${email.trim()} to activate your reviewer account.`
+                      : "Enter your email to verify ownership and start saving your exam simulations."
                     : "Access your questions, mock exam attempts, and personalized study notes."}
                 </p>
               </div>
@@ -334,138 +467,210 @@ export default function SignInPage({
                 </div>
               )}
 
-              {/* Auth Form */}
-              <form onSubmit={handleSubmit} className="qb-signin-form">
-                <div className="qb-signin-field">
-                  <label htmlFor="signin-email" className="qb-signin-label">
-                    Email Address
-                  </label>
-                  <div className="qb-signin-input-wrap">
-                    <Mail size={16} className="qb-signin-input-icon" />
-                    <input
-                      id="signin-email"
-                      name="email"
-                      type="email"
-                      autoComplete="username email"
-                      spellCheck={false}
-                      required
-                      className="qb-signin-input"
-                      placeholder="e.g. examinee@gmail.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      disabled={loading}
-                      autoFocus
-                    />
-                    {email.trim().includes("@") && email.trim().includes(".") && (
-                      <CheckCircle2 size={16} className="qb-signin-input-valid-icon" />
-                    )}
+              {/* Auth Form / Verification Form */}
+              {isRegisterMode && signupStep === "verify" ? (
+                <form onSubmit={handleVerifySignupAndCreate} className="qb-signin-form">
+                  <div className="qb-fp-digits-wrap" onPaste={handleSignupPaste}>
+                    <label className="qb-fp-label center" style={{ color: "var(--text-heading)", fontWeight: 700 }}>
+                      Enter 6-Digit Email Verification Code
+                    </label>
+                    <p style={{ textAlign: "center", fontSize: "12.5px", color: "var(--text-muted)", margin: "0 0 10px 0", lineHeight: 1.5 }}>
+                      We dispatched a 6-digit confirmation code to <strong>{email.trim()}</strong>. Enter it below to prove ownership and activate your reviewer account.
+                    </p>
+                    <div className="qb-fp-digit-inputs">
+                      {signupCodeDigits.map((digit, idx) => (
+                        <input
+                          key={idx}
+                          ref={(el) => (signupDigitRefs.current[idx] = el)}
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={1}
+                          className={`qb-fp-digit-box${digit ? " filled" : ""}`}
+                          value={digit}
+                          onChange={(e) => handleSignupDigitChange(idx, e.target.value)}
+                          onKeyDown={(e) => handleSignupKeyDown(idx, e)}
+                          disabled={loading}
+                          aria-label={`Digit ${idx + 1}`}
+                        />
+                      ))}
+                    </div>
                   </div>
-                </div>
 
-                <div className="qb-signin-field">
-                  <label htmlFor="signin-password" className="qb-signin-label">
-                    Password
-                  </label>
-                  <div className="qb-signin-input-wrap">
-                    <KeyRound size={16} className="qb-signin-input-icon" />
-                    <input
-                      id="signin-password"
-                      name="password"
-                      type={showPassword ? "text" : "password"}
-                      autoComplete={isRegisterMode ? "new-password" : "current-password"}
-                      spellCheck={false}
-                      required
-                      className="qb-signin-input with-toggle"
-                      placeholder={isRegisterMode ? "Create a secure password (6+ chars)" : "Enter your password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      disabled={loading}
-                    />
+                  <div className="qb-fp-resend-row">
+                    <span className="qb-fp-resend-text">Didn't receive the email?</span>
                     <button
                       type="button"
-                      className="qb-signin-pwd-toggle"
-                      onClick={() => setShowPassword(!showPassword)}
-                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      className="qb-fp-resend-btn"
+                      disabled={loading || resendCooldown > 0}
+                      onClick={() => requestSignupCode(email.trim())}
                     >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      <RefreshCw size={12} className={loading ? "spin" : ""} />
+                      <span>{resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : "Resend code"}</span>
                     </button>
                   </div>
-                  {!isRegisterMode && (
-                    <div className="qb-signin-under-field-row">
-                      <button
-                        type="button"
-                        className="qb-signin-forgot-link"
-                        onClick={() => setShowForgotPassword(true)}
-                      >
-                        Forgot password?
-                      </button>
-                    </div>
-                  )}
-                  {isRegisterMode && (
-                    <div className="qb-signin-validation-list">
-                      <span className={`qb-signin-val-item${password.length >= 6 ? " met" : ""}`}>
-                        <CheckCircle2 size={12} />
-                        <span>At least 6 characters</span>
-                      </span>
-                    </div>
-                  )}
-                </div>
 
-                {isRegisterMode && (
+                  <div className="qb-fp-actions" style={{ marginTop: 14 }}>
+                    <button
+                      type="button"
+                      className="qb-fp-back-step-btn"
+                      onClick={() => {
+                        setSignupStep("form");
+                        setErrorMsg("");
+                      }}
+                      disabled={loading}
+                    >
+                      Change Details
+                    </button>
+
+                    <button
+                      type="submit"
+                      className="qb-fp-submit-btn"
+                      disabled={loading || currentSignupCode.length !== 6}
+                    >
+                      {loading ? (
+                        <span className="qb-signin-loading-text">Verifying...</span>
+                      ) : (
+                        <>
+                          <span>Verify & Complete Registration</span>
+                          <ArrowRight size={16} />
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <form onSubmit={handleSubmit} className="qb-signin-form">
                   <div className="qb-signin-field">
-                    <label htmlFor="signin-confirm-password" className="qb-signin-label">
-                      Confirm Password
+                    <label htmlFor="signin-email" className="qb-signin-label">
+                      Email Address
+                    </label>
+                    <div className="qb-signin-input-wrap">
+                      <Mail size={16} className="qb-signin-input-icon" />
+                      <input
+                        id="signin-email"
+                        name="email"
+                        type="email"
+                        autoComplete="username email"
+                        spellCheck={false}
+                        required
+                        className="qb-signin-input"
+                        placeholder="e.g. examinee@gmail.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={loading}
+                        autoFocus
+                      />
+                      {email.trim().includes("@") && email.trim().includes(".") && (
+                        <CheckCircle2 size={16} className="qb-signin-input-valid-icon" />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="qb-signin-field">
+                    <label htmlFor="signin-password" className="qb-signin-label">
+                      Password
                     </label>
                     <div className="qb-signin-input-wrap">
                       <KeyRound size={16} className="qb-signin-input-icon" />
                       <input
-                        id="signin-confirm-password"
-                        name="confirmPassword"
+                        id="signin-password"
+                        name="password"
                         type={showPassword ? "text" : "password"}
-                        autoComplete="new-password"
+                        autoComplete={isRegisterMode ? "new-password" : "current-password"}
                         spellCheck={false}
                         required
-                        className="qb-signin-input"
-                        placeholder="Re-enter your password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="qb-signin-input with-toggle"
+                        placeholder={isRegisterMode ? "Create a secure password (6+ chars)" : "Enter your password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
                         disabled={loading}
                       />
+                      <button
+                        type="button"
+                        className="qb-signin-pwd-toggle"
+                        onClick={() => setShowPassword(!showPassword)}
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                      >
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
                     </div>
-                    {confirmPassword.length > 0 && (
+                    {!isRegisterMode && (
+                      <div className="qb-signin-under-field-row">
+                        <button
+                          type="button"
+                          className="qb-signin-forgot-link"
+                          onClick={() => setShowForgotPassword(true)}
+                        >
+                          Forgot password?
+                        </button>
+                      </div>
+                    )}
+                    {isRegisterMode && (
                       <div className="qb-signin-validation-list">
-                        <span className={`qb-signin-val-item${password === confirmPassword ? " met" : ""}`}>
+                        <span className={`qb-signin-val-item${password.length >= 6 ? " met" : ""}`}>
                           <CheckCircle2 size={12} />
-                          <span>{password === confirmPassword ? "Passwords match" : "Passwords do not match"}</span>
+                          <span>At least 6 characters</span>
                         </span>
                       </div>
                     )}
                   </div>
-                )}
 
-                <button
-                  type="submit"
-                  className="qb-signin-submit-btn"
-                  disabled={loading || (!usePassword && resendCooldown > 0)}
-                >
-                  {loading ? (
-                    <span className="qb-signin-loading-text">Authenticating...</span>
-                  ) : (
-                    <>
-                      <span>
-                        {isRegisterMode
-                          ? "Create Free Account"
-                          : usePassword
-                          ? "Sign In to QBANK"
-                          : resendCooldown > 0
-                          ? `Resend Login Link (${resendCooldown}s)`
-                          : "Send Instant Login Link"}
-                      </span>
-                      <ArrowRight size={16} />
-                    </>
+                  {isRegisterMode && (
+                    <div className="qb-signin-field">
+                      <label htmlFor="signin-confirm-password" className="qb-signin-label">
+                        Confirm Password
+                      </label>
+                      <div className="qb-signin-input-wrap">
+                        <KeyRound size={16} className="qb-signin-input-icon" />
+                        <input
+                          id="signin-confirm-password"
+                          name="confirmPassword"
+                          type={showPassword ? "text" : "password"}
+                          autoComplete="new-password"
+                          spellCheck={false}
+                          required
+                          className="qb-signin-input"
+                          placeholder="Re-enter your password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          disabled={loading}
+                        />
+                      </div>
+                      {confirmPassword.length > 0 && (
+                        <div className="qb-signin-validation-list">
+                          <span className={`qb-signin-val-item${password === confirmPassword ? " met" : ""}`}>
+                            <CheckCircle2 size={12} />
+                            <span>{password === confirmPassword ? "Passwords match" : "Passwords do not match"}</span>
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   )}
-                </button>
-              </form>
+
+                  <button
+                    type="submit"
+                    className="qb-signin-submit-btn"
+                    disabled={loading || (!usePassword && resendCooldown > 0)}
+                  >
+                    {loading ? (
+                      <span className="qb-signin-loading-text">Authenticating...</span>
+                    ) : (
+                      <>
+                        <span>
+                          {isRegisterMode
+                            ? "Verify Email & Create Account"
+                            : usePassword
+                            ? "Sign In to QBANK"
+                            : resendCooldown > 0
+                            ? `Resend Login Link (${resendCooldown}s)`
+                            : "Send Instant Login Link"}
+                        </span>
+                        <ArrowRight size={16} />
+                      </>
+                    )}
+                  </button>
+                </form>
+              )}
 
               {/* OAuth Google option */}
               {onSignInWithGoogle && (

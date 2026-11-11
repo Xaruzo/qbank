@@ -18,9 +18,13 @@ import {
   Sun,
   Monitor,
   Sliders,
+  KeyRound,
+  Crown,
+  ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 import brandLogo from "../../models/Image/logo.png";
+import ChangePasswordModal from "./ChangePasswordModal";
 import type { SideNavProps, TopicId } from "../../types";
 
 interface NavItemDef {
@@ -284,6 +288,7 @@ export default function SideNav({
   const railPopoverRef = useRef<HTMLDivElement>(null);
   const railBtnRef = useRef<HTMLButtonElement>(null);
   const [profileMenuOpen, setProfileMenuOpen] = useState<boolean>(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState<boolean>(false);
   const [railCoords, setRailCoords] = useState<{ top: number; left: number } | null>(null);
 
   // PolicyPulse unread logic: track how many questions were present at the
@@ -637,6 +642,21 @@ export default function SideNav({
             </button>
           )}
 
+          {isAuthenticated && (
+            <button
+              type="button"
+              className="qb-profile-popover-item"
+              onClick={() => {
+                setProfileMenuOpen(false);
+                if (isOverlay && onClose) onClose();
+                setShowChangePasswordModal(true);
+              }}
+            >
+              <KeyRound size={15} />
+              <span>Change Account Password</span>
+            </button>
+          )}
+
           <div className="qb-profile-popover-divider" />
 
           {isAuthenticated ? (
@@ -783,15 +803,12 @@ export default function SideNav({
               />
 
               <div className="qb-rail-bottom">
-                <span className={`qb-popover-role-pill ${rolePillClass} qb-rail-role-pill`}>
-                  {rolePillLabel}
-                </span>
                 <button
                   ref={railBtnRef}
                   type="button"
                   className={`qb-rail-profile-btn${profileMenuOpen ? " is-active" : ""}`}
                   onClick={() => setProfileMenuOpen((prev) => !prev)}
-                  title={profile?.fullName || (isAuthenticated ? "Reviewer profile" : "Guest profile")}
+                  title={`${profile?.fullName || (isAuthenticated ? "Reviewer profile" : "Guest profile")} • ${rolePillLabel}`}
                   aria-label="Profile menu"
                   aria-expanded={profileMenuOpen}
                 >
@@ -805,6 +822,16 @@ export default function SideNav({
                         <UserCircle2 size={18} />
                       )}
                     </div>
+                    {/* Sleek, non-intrusive role emblem attached to avatar in collapsed rail */}
+                    {isSuper ? (
+                      <span className="qb-rail-role-badge superadmin" title="Superadmin">
+                        <Crown size={9} />
+                      </span>
+                    ) : isAdmin ? (
+                      <span className="qb-rail-role-badge admin" title="Question Admin">
+                        <ShieldCheck size={9} />
+                      </span>
+                    ) : null}
                     <span className={`qb-profile-online-dot${isAuthenticated ? " online" : " guest"}`} />
                   </div>
                 </button>
@@ -830,6 +857,14 @@ export default function SideNav({
           </div>
         )}
       </div>
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={showChangePasswordModal}
+        onClose={() => setShowChangePasswordModal(false)}
+        userEmail={profile?.email || ""}
+        isDark={isDark}
+      />
     </aside>
   );
 }

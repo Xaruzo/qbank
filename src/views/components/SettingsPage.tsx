@@ -28,11 +28,13 @@ import {
   Search,
   KeyRound,
   Users,
+  Lock,
 } from "lucide-react";
 import type { SettingsPageProps, TopicId, UserRole, UserRoleRecord, SelectOption } from "../../types";
 import { useOverlayDialogA11y } from "../../controllers/useOverlayDialogA11y";
 import AvatarStudio from "./AvatarStudio";
 import CustomSelect from "./CustomSelect";
+import ChangePasswordModal from "./ChangePasswordModal";
 import { rolesModel } from "../../models/rolesModel";
 
 const ROLE_GRANT_OPTIONS: SelectOption[] = [
@@ -100,6 +102,52 @@ export default function SettingsPage({
     onTabChange?.(tab);
   };
 
+  // Check whether LITE / Power Saver mode is active
+  const isLiteMode = Boolean(
+    settings?.liteMode ||
+    settings?.performanceTier === "lite" ||
+    settings?.animationsEnabled === false
+  );
+
+  // Animated sliding glider for settings menu navigation (disabled on LITE/Power Saver)
+  const navContainerRef = useRef<HTMLElement>(null);
+  const navItemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [indicatorStyle, setIndicatorStyle] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (isLiteMode) {
+      setIndicatorStyle(null);
+      return;
+    }
+
+    const updateIndicator = () => {
+      const currentItem = navItemRefs.current[activeTab];
+      if (currentItem && navContainerRef.current) {
+        const containerRect = navContainerRef.current.getBoundingClientRect();
+        const itemRect = currentItem.getBoundingClientRect();
+        setIndicatorStyle({
+          top: itemRect.top - containerRect.top,
+          left: itemRect.left - containerRect.left,
+          width: itemRect.width,
+          height: itemRect.height,
+        });
+      }
+    };
+
+    updateIndicator();
+    const rafId = requestAnimationFrame(updateIndicator);
+    window.addEventListener("resize", updateIndicator);
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener("resize", updateIndicator);
+    };
+  }, [activeTab, isLiteMode, isSuperAdmin, isQuestionAdmin]);
+
   // Form State
   const [fullName, setFullName] = useState(profile?.fullName || "");
   const [email] = useState(profile?.email || (isAuthenticated ? "examinee@gmail.com" : "guest@offline.local"));
@@ -116,6 +164,7 @@ export default function SettingsPage({
   const [isSaving, setIsSaving] = useState(false);
   const [clearCacheConfirm, setClearCacheConfirm] = useState(false);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const discardDialogRef = useRef<HTMLDivElement>(null);
 
   // User Roles Management State
@@ -417,14 +466,38 @@ export default function SettingsPage({
       {/* ── Settings Layout: Left Nav + Right Pane ── */}
       <div className="qb-settings-page-layout">
         {/* Left Vertical Menu */}
-        <nav className="qb-settings-page-nav" aria-label="Settings categories">
+        {/* Left Vertical Menu */}
+        <nav
+          className="qb-settings-page-nav"
+          ref={navContainerRef}
+          aria-label="Settings categories"
+        >
           <div className="qb-settings-page-nav-header">
             <span>SETTINGS MENU</span>
           </div>
 
+          {/* Animated sliding glider indicator (disabled on LITE / Power Saver mode) */}
+          {indicatorStyle && !isLiteMode && (
+            <div
+              className="qb-settings-nav-indicator"
+              style={{
+                top: `${indicatorStyle.top}px`,
+                left: `${indicatorStyle.left}px`,
+                width: `${indicatorStyle.width}px`,
+                height: `${indicatorStyle.height}px`,
+              }}
+              aria-hidden="true"
+            />
+          )}
+
           <button
+            ref={(el) => {
+              navItemRefs.current["identity"] = el;
+            }}
             type="button"
-            className={`qb-settings-nav-item${activeTab === "identity" ? " active" : ""}`}
+            className={`qb-settings-nav-item${activeTab === "identity" ? " active" : ""}${
+              indicatorStyle && !isLiteMode ? " has-indicator" : ""
+            }`}
             onClick={() => handleSelectTab("identity")}
           >
             <div className="qb-settings-nav-item-icon">
@@ -437,8 +510,13 @@ export default function SettingsPage({
           </button>
 
           <button
+            ref={(el) => {
+              navItemRefs.current["persona"] = el;
+            }}
             type="button"
-            className={`qb-settings-nav-item${activeTab === "persona" ? " active" : ""}`}
+            className={`qb-settings-nav-item${activeTab === "persona" ? " active" : ""}${
+              indicatorStyle && !isLiteMode ? " has-indicator" : ""
+            }`}
             onClick={() => handleSelectTab("persona")}
           >
             <div className="qb-settings-nav-item-icon">
@@ -451,8 +529,13 @@ export default function SettingsPage({
           </button>
 
           <button
+            ref={(el) => {
+              navItemRefs.current["appearance"] = el;
+            }}
             type="button"
-            className={`qb-settings-nav-item${activeTab === "appearance" ? " active" : ""}`}
+            className={`qb-settings-nav-item${activeTab === "appearance" ? " active" : ""}${
+              indicatorStyle && !isLiteMode ? " has-indicator" : ""
+            }`}
             onClick={() => handleSelectTab("appearance")}
           >
             <div className="qb-settings-nav-item-icon">
@@ -465,8 +548,13 @@ export default function SettingsPage({
           </button>
 
           <button
+            ref={(el) => {
+              navItemRefs.current["storage"] = el;
+            }}
             type="button"
-            className={`qb-settings-nav-item${activeTab === "storage" ? " active" : ""}`}
+            className={`qb-settings-nav-item${activeTab === "storage" ? " active" : ""}${
+              indicatorStyle && !isLiteMode ? " has-indicator" : ""
+            }`}
             onClick={() => handleSelectTab("storage")}
           >
             <div className="qb-settings-nav-item-icon">
@@ -480,8 +568,13 @@ export default function SettingsPage({
 
           {(isSuperAdmin || isQuestionAdmin) && (
             <button
+              ref={(el) => {
+                navItemRefs.current["roles"] = el;
+              }}
               type="button"
-              className={`qb-settings-nav-item${activeTab === "roles" ? " active" : ""}`}
+              className={`qb-settings-nav-item${activeTab === "roles" ? " active" : ""}${
+                indicatorStyle && !isLiteMode ? " has-indicator" : ""
+              }`}
               onClick={() => handleSelectTab("roles")}
             >
               <div className="qb-settings-nav-item-icon">
@@ -519,7 +612,7 @@ export default function SettingsPage({
                 onStageAvatar={handleStageAvatar}
               />
 
-              {/* Form Input Fields: Display Name & Email */}
+              {/* Form Input Fields: Display Name, Account Email, and Account Password */}
               <div className="qb-settings-form-grid">
                 <div className="qb-settings-field">
                   <label htmlFor="settings-fullname" className="qb-settings-label">
@@ -555,6 +648,80 @@ export default function SettingsPage({
                     />
                     <CheckCircle2 size={16} className="qb-settings-verified-icon" />
                   </div>
+                </div>
+
+                {/* Account Password input directly below Display Name & Account Email */}
+                <div className="qb-settings-field">
+                  <label htmlFor="settings-password" className="qb-settings-label">
+                    Account Password
+                  </label>
+                  <div className="qb-settings-input-wrap">
+                    <Lock size={16} className="qb-settings-input-icon" />
+                    <input
+                      id="settings-password"
+                      type="password"
+                      readOnly
+                      className="qb-settings-text-input is-readonly"
+                      value="••••••••••••"
+                      title="Password is encrypted. Click Change Password to update with Gmail 6-digit confirmation."
+                      style={{ letterSpacing: "2.5px", paddingRight: "140px" }}
+                    />
+                    <button
+                      type="button"
+                      className="qb-settings-field-btn"
+                      onClick={() => setShowChangePasswordModal(true)}
+                      title="Change account password"
+                    >
+                      <KeyRound size={13} />
+                      <span>Change Password</span>
+                    </button>
+                  </div>
+                  <span className="qb-settings-field-hint">
+                    Requires 6-digit verification code dispatched to your registered Gmail.
+                  </span>
+                </div>
+
+                {/* Security Status Box */}
+                <div className="qb-settings-field">
+                  <label className="qb-settings-label">
+                    Security & Verification
+                  </label>
+                  <div
+                    className="qb-settings-input-wrap readonly"
+                    style={{
+                      minHeight: 42,
+                      padding: "0 14px",
+                      borderRadius: 10,
+                      background: "var(--surface, #0f172a)",
+                      border: "1px solid var(--border)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 8,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "13px", color: "var(--text)" }}>
+                      <ShieldCheck size={16} className="text-emerald-400" style={{ flexShrink: 0 }} />
+                      <span style={{ fontWeight: 600 }}>2FA Gmail Verification</span>
+                    </div>
+                    <span
+                      style={{
+                        fontSize: "10.5px",
+                        fontWeight: 800,
+                        letterSpacing: "0.5px",
+                        color: "#10b981",
+                        background: "rgba(16, 185, 129, 0.12)",
+                        padding: "3px 8px",
+                        borderRadius: 6,
+                        border: "1px solid rgba(16, 185, 129, 0.25)",
+                      }}
+                    >
+                      ACTIVE
+                    </span>
+                  </div>
+                  <span className="qb-settings-field-hint">
+                    Protects your question bookmarks, mock attempts & solution notes.
+                  </span>
                 </div>
               </div>
             </div>
@@ -1270,6 +1437,14 @@ export default function SettingsPage({
           </div>
         </div>
       )}
+
+      {/* Change Password Modal with Gmail 6-digit confirmation code */}
+      <ChangePasswordModal
+        isOpen={showChangePasswordModal}
+        onClose={() => setShowChangePasswordModal(false)}
+        userEmail={email}
+        isDark={isDark}
+      />
     </div>
   );
 }

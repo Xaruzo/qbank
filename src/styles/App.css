@@ -16468,6 +16468,38 @@ body:has(.qb-landing-root) {
   background: #f5a623;
 }
 
+/* Sleek role emblem badge pinned to avatar corner in collapsed rail */
+.qb-rail-role-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.45);
+}
+
+.qb-rail-role-badge.superadmin {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #0b111e;
+  border: 1.5px solid var(--surface, #0b111e);
+}
+
+.qb-rail-role-badge.admin {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: #ffffff;
+  border: 1.5px solid var(--surface, #0b111e);
+}
+
+.light .qb-rail-role-badge.superadmin,
+.light .qb-rail-role-badge.admin {
+  border-color: #ffffff;
+}
+
 .qb-profile-trigger-meta {
   flex: 1;
   min-width: 0;
@@ -17112,7 +17144,9 @@ body:has(.qb-landing-root) {
 }
 
 /* Left Navigation Sidebar */
+/* Left Navigation Sidebar with Animated Glider */
 .qb-settings-page-nav {
+  position: relative;
   width: 260px;
   flex-shrink: 0;
   display: flex;
@@ -17126,7 +17160,6 @@ body:has(.qb-landing-root) {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
     gap: 8px;
-  
   }
 }
 
@@ -17142,11 +17175,33 @@ body:has(.qb-landing-root) {
 @media (max-width: 900px) {
   .qb-settings-page-nav-header {
     display: none;
-  
   }
 }
 
+/* Animated sliding glider indicator (like notification tooltip nav) */
+.qb-settings-nav-indicator {
+  position: absolute;
+  border-radius: 10px;
+  background: rgba(245, 166, 35, 0.12);
+  border: 1px solid rgba(245, 166, 35, 0.45);
+  box-shadow: 0 4px 14px rgba(245, 166, 35, 0.12);
+  transition: top 0.26s cubic-bezier(0.16, 1, 0.3, 1),
+              left 0.26s cubic-bezier(0.16, 1, 0.3, 1),
+              width 0.26s cubic-bezier(0.16, 1, 0.3, 1),
+              height 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.light .qb-settings-nav-indicator {
+  background: rgba(245, 166, 35, 0.14);
+  border-color: rgba(217, 119, 6, 0.45);
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.1);
+}
+
 .qb-settings-nav-item {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -17156,7 +17211,7 @@ body:has(.qb-landing-root) {
   border: 1px solid rgba(255, 255, 255, 0.05);
   color: var(--text-muted);
   cursor: pointer;
-  transition: all 0.16s ease;
+  transition: color 0.18s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background 0.18s ease, border-color 0.18s ease;
   text-align: left;
 }
 
@@ -17165,16 +17220,45 @@ body:has(.qb-landing-root) {
   border-color: #e2e8f0;
 }
 
-.qb-settings-nav-item:hover {
+.qb-settings-nav-item:not(.active):hover {
   background: rgba(255, 255, 255, 0.06);
   color: var(--text);
   border-color: rgba(255, 255, 255, 0.12);
+  transform: translateX(4px);
+}
+
+.light .qb-settings-nav-item:not(.active):hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #cbd5e1;
+  transform: translateX(4px);
+}
+
+.qb-settings-nav-item:not(.active):hover .qb-settings-nav-item-icon {
+  background: rgba(245, 166, 35, 0.14);
+  color: #f5a623;
+  transform: scale(1.08);
+}
+
+.light .qb-settings-nav-item:not(.active):hover .qb-settings-nav-item-icon {
+  background: rgba(245, 166, 35, 0.16);
+  color: #b45309;
 }
 
 .qb-settings-nav-item.active {
   background: rgba(245, 166, 35, 0.12);
   border-color: rgba(245, 166, 35, 0.45);
   color: #f5a623;
+}
+
+.light .qb-settings-nav-item.active {
+  color: #b45309;
+}
+
+/* Clear static border/bg when active indicator is smoothly gliding */
+.qb-settings-nav-item.active.has-indicator {
+  background: transparent;
+  border-color: transparent;
 }
 
 .qb-settings-nav-item-icon {
@@ -17186,11 +17270,17 @@ body:has(.qb-landing-root) {
   border-radius: 7px;
   background: rgba(255, 255, 255, 0.04);
   flex-shrink: 0;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background 0.18s ease, color 0.18s ease;
 }
 
 .qb-settings-nav-item.active .qb-settings-nav-item-icon {
   background: rgba(245, 166, 35, 0.2);
   color: #f5a623;
+}
+
+.light .qb-settings-nav-item.active .qb-settings-nav-item-icon {
+  background: rgba(245, 166, 35, 0.22);
+  color: #b45309;
 }
 
 .qb-settings-nav-item-text {
@@ -17213,8 +17303,32 @@ body:has(.qb-landing-root) {
 @media (max-width: 900px) {
   .qb-settings-nav-item-sub {
     display: none;
-  
   }
+}
+
+/* ── LITE / POWER SAVER OVERRIDES: Nav animation strictly disabled ── */
+.qb-lite-mode .qb-settings-nav-indicator,
+.qb-no-animations .qb-settings-nav-indicator {
+  display: none !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+.qb-lite-mode .qb-settings-nav-item,
+.qb-no-animations .qb-settings-nav-item,
+.qb-lite-mode .qb-settings-nav-item:hover,
+.qb-no-animations .qb-settings-nav-item:hover,
+.qb-lite-mode .qb-settings-nav-item-icon,
+.qb-no-animations .qb-settings-nav-item-icon {
+  transition: none !important;
+  animation: none !important;
+  transform: none !important;
+}
+
+.qb-lite-mode .qb-settings-nav-item.active,
+.qb-no-animations .qb-settings-nav-item.active {
+  background: rgba(245, 166, 35, 0.12) !important;
+  border-color: rgba(245, 166, 35, 0.45) !important;
 }
 
 /* Right Content Area */
@@ -18530,6 +18644,43 @@ body:has(.qb-landing-root) {
   color: #10b981;
 }
 
+.qb-settings-field-btn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  background: rgba(245, 166, 35, 0.14);
+  color: #f5a623;
+  border: 1px solid rgba(245, 166, 35, 0.32);
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.qb-settings-field-btn:hover {
+  background: rgba(245, 166, 35, 0.24);
+  border-color: #f5a623;
+  color: #fbbf24;
+}
+
+.light .qb-settings-field-btn {
+  background: rgba(245, 166, 35, 0.15);
+  color: #b45309;
+  border-color: rgba(217, 119, 6, 0.35);
+}
+
+.light .qb-settings-field-btn:hover {
+  background: rgba(245, 166, 35, 0.25);
+  color: #92400e;
+}
+
 .qb-settings-field-hint {
   font-size: 11.5px;
   color: var(--text-muted);
@@ -19299,8 +19450,11 @@ body:has(.qb-landing-root) {
 .qb-fp-input-icon {
   position: absolute;
   left: 14px;
-  color: #64748b;
+  color: #cbd5e1;
   pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .qb-fp-input {
@@ -19332,7 +19486,7 @@ body:has(.qb-landing-root) {
   right: 12px;
   background: none;
   border: none;
-  color: #64748b;
+  color: #cbd5e1;
   cursor: pointer;
   padding: 4px;
   display: flex;
@@ -19540,20 +19694,23 @@ body:has(.qb-landing-root) {
 .qb-fp-val-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 4px;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 6px;
 }
 
 .qb-fp-val-item {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-size: 11.5px;
-  color: #64748b;
+  gap: 6px;
+  font-size: 12px;
+  color: #94a3b8;
+  transition: color 0.15s ease;
 }
 
 .qb-fp-val-item.met {
-  color: #10b981;
+  color: #34d399;
+  font-weight: 600;
 }
 
 .qb-fp-success-wrap {
@@ -19590,6 +19747,151 @@ body:has(.qb-landing-root) {
   line-height: 1.55;
   color: #94a3b8;
   max-width: 380px;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   LIGHT MODE FOR PASSWORD RECOVERY & CHANGE PASSWORD MODALS
+   ────────────────────────────────────────────────────────────────────────── */
+.light .qb-fp-backdrop,
+.qb-fp-backdrop.light {
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.light .qb-fp-card,
+.qb-fp-card.light {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 24px 60px -12px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+.light .qb-fp-badge,
+.qb-fp-card.light .qb-fp-badge {
+  background: rgba(245, 166, 35, 0.14);
+  border: 1px solid rgba(217, 119, 6, 0.35);
+  color: #b45309;
+}
+
+.light .qb-fp-close-btn,
+.qb-fp-card.light .qb-fp-close-btn {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #1e293b;
+}
+
+.light .qb-fp-close-btn:hover,
+.qb-fp-card.light .qb-fp-close-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.light .qb-fp-title,
+.qb-fp-card.light .qb-fp-title {
+  color: #0f172a;
+}
+
+.light .qb-fp-desc,
+.qb-fp-card.light .qb-fp-desc {
+  color: #475569;
+}
+
+.light .qb-fp-label,
+.qb-fp-card.light .qb-fp-label {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.light .qb-fp-input,
+.qb-fp-card.light .qb-fp-input {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+}
+
+.light .qb-fp-input:focus,
+.qb-fp-card.light .qb-fp-input:focus {
+  background: #ffffff;
+  border-color: #f5a623;
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.22);
+}
+
+.light .qb-fp-input-icon,
+.qb-fp-card.light .qb-fp-input-icon {
+  color: #1e293b;
+}
+
+.light .qb-fp-pwd-toggle,
+.qb-fp-card.light .qb-fp-pwd-toggle {
+  color: #334155;
+}
+
+.light .qb-fp-pwd-toggle:hover,
+.qb-fp-card.light .qb-fp-pwd-toggle:hover {
+  color: #0f172a;
+}
+
+.light .qb-fp-val-item,
+.qb-fp-card.light .qb-fp-val-item {
+  color: #64748b;
+}
+
+.light .qb-fp-val-item.met,
+.qb-fp-card.light .qb-fp-val-item.met {
+  color: #059669;
+}
+
+.light .qb-fp-digit-box,
+.qb-fp-card.light .qb-fp-digit-box {
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  color: #0f172a;
+}
+
+.light .qb-fp-digit-box:focus,
+.qb-fp-card.light .qb-fp-digit-box:focus {
+  background: #ffffff;
+  border-color: #f5a623;
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.22);
+}
+
+.light .qb-fp-digit-box.filled,
+.qb-fp-card.light .qb-fp-digit-box.filled {
+  background: rgba(245, 166, 35, 0.06);
+  border-color: #f5a623;
+}
+
+.light .qb-fp-back-step-btn,
+.qb-fp-card.light .qb-fp-back-step-btn {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #1e293b;
+}
+
+.light .qb-fp-back-step-btn:hover:not(:disabled),
+.qb-fp-card.light .qb-fp-back-step-btn:hover:not(:disabled) {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.light .qb-fp-resend-text,
+.qb-fp-card.light .qb-fp-resend-text {
+  color: #475569;
+}
+
+.light .qb-fp-resend-btn,
+.qb-fp-card.light .qb-fp-resend-btn {
+  color: #b45309;
+}
+
+.light .qb-fp-success-title,
+.qb-fp-card.light .qb-fp-success-title {
+  color: #0f172a;
+}
+
+.light .qb-fp-success-desc,
+.qb-fp-card.light .qb-fp-success-desc {
+  color: #475569;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
