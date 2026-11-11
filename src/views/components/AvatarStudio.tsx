@@ -944,7 +944,7 @@ export default function AvatarStudio({
               <LinkIcon size={13} />
               <span>Image URL</span>
             </button>
-            {avatarUrl && (
+            {avatarUrl && avatarUrl.startsWith("https://api.dicebear.com") && (
               <button
                 type="button"
                 className="qb-studio-tool-btn is-danger"
