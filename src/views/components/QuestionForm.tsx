@@ -333,7 +333,7 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
                   {TopicIcon && <TopicIcon size={16} style={{ color: currentTopicObj.color, flexShrink: 0 }} />}
                   <span>{currentTopicObj.label}</span>
                 </span>
-                <ChevronDown size={16} className="qb-select-chevron" />
+                <ChevronDown size={16} className={`qb-select-chevron${topicOpen ? " is-open" : ""}`} />
               </button>
               <div className={`qb-select-menu${topicOpen ? " open" : ""}`}>
                 {TOPICS.map(t => {
@@ -374,7 +374,7 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
                     setLabelOpen(o => !o);
                   }} aria-expanded={labelOpen}>
                     <span>{form.label || "Select a label..."}</span>
-                    <ChevronDown size={16} />
+                    <ChevronDown size={16} className={`qb-select-chevron${labelOpen ? " is-open" : ""}`} />
                   </button>
                   <div className={`qb-select-menu${labelOpen ? " open" : ""}`}>
                     {PROBLEM_LABELS.map(label => (

@@ -165,7 +165,7 @@ export default function SearchAndFilter({
                       : labelOptions.find((o) => o.value === labelFilter)?.label || "All Labels"}
                   </span>
                 </span>
-                <ChevronDown size={15} className="qb-select-chevron" />
+                <ChevronDown size={15} className={`qb-select-chevron${labelFilterOpen ? " is-open" : ""}`} />
               </button>
               <div className={`qb-select-menu${labelFilterOpen ? " open" : ""}`}>
                 <button

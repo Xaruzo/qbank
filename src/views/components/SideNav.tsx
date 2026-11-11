@@ -18,7 +18,8 @@ import {
   Sun,
   Monitor,
   Sliders,
-  ShieldCheck,
+  PanelLeftClose,
+  PanelLeftOpen,
   type LucideIcon,
 } from "lucide-react";
 import brandLogo from "../../models/Image/logo.png";
@@ -437,7 +438,8 @@ export default function SideNav({
   };
 
   // Reusable Top Brand Row
-  const renderBrandHeader = () => (
+  // Reusable Top Brand Row
+  const renderBrandHeader = (isOverlay = false) => (
     <div className="qb-nav-brand-header">
       <div
         className="qb-nav-brand-lockup"
@@ -453,15 +455,29 @@ export default function SideNav({
         </div>
       </div>
 
-      <button
-        type="button"
-        className="qb-nav-close-btn"
-        onClick={onClose}
-        aria-label="Close menu"
-        title="Close navigation"
-      >
-        <X size={18} />
-      </button>
+      {isOverlay ? (
+        <button
+          type="button"
+          className="qb-nav-close-btn"
+          onClick={onClose}
+          aria-label="Close menu"
+          title="Close navigation"
+        >
+          <X size={18} />
+        </button>
+      ) : (
+        onToggleNav && (
+          <button
+            type="button"
+            className="qb-nav-collapse-btn"
+            onClick={onToggleNav}
+            aria-label="Collapse sidebar panel"
+            title="Collapse sidebar panel"
+          >
+            <PanelLeftClose size={18} />
+          </button>
+        )
+      )}
     </div>
   );
 
@@ -741,7 +757,7 @@ export default function SideNav({
           aria-hidden={isClosing}
           onClick={(e) => e.stopPropagation()}
         >
-          {renderBrandHeader()}
+          {renderBrandHeader(true)}
           <div className="qb-modern-drawer-scroll">
             {renderWorkspaceNav(true)}
           </div>
@@ -760,6 +776,7 @@ export default function SideNav({
       <div className="qb-side-inner qb-modern-sidebar-inner">
         {open ? (
           <div className="qb-side-expanded-content">
+            {renderBrandHeader(false)}
             <div className="qb-modern-sidebar-scroll">
               {renderWorkspaceNav(false)}
             </div>
@@ -768,6 +785,19 @@ export default function SideNav({
         ) : (
           <div className="qb-side-collapsed-content">
             <div className="qb-rail-wrap">
+              {onToggleNav && (
+                <button
+                  type="button"
+                  className="qb-rail-toggle-btn"
+                  onClick={onToggleNav}
+                  title="Expand sidebar"
+                  aria-label="Expand sidebar"
+                >
+                  <PanelLeftOpen size={18} />
+                </button>
+              )}
+              <div className="qb-rail-divider" />
+
               <RailNavList
                 navItems={navItems}
                 active={active}

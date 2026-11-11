@@ -102,8 +102,9 @@ export default function SymbolToolbar({ targetRef, value, onChange, disabled = f
             title="More fractions"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => setMoreOpen((o) => !o)}
+            aria-expanded={moreOpen}
           >
-            <ChevronDown size={14} />
+            <ChevronDown size={14} className={`sym-tb-chevron qb-select-chevron${moreOpen ? " is-open" : ""}`} />
           </button>
           {moreOpen && (
             <div className="sym-tb-menu">

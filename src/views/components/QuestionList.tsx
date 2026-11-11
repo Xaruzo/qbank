@@ -138,7 +138,7 @@ export default function QuestionList({
                     {SORT_OPTIONS.find((o: { value: string; label: string }) => o.value === sortBy)?.label || "Sort"}
                   </span>
                 </span>
-                <ChevronDown size={15} className="qb-select-chevron" />
+                <ChevronDown size={15} className={`qb-select-chevron${sortOpen ? " is-open" : ""}`} />
               </button>
               <div className={`qb-select-menu${sortOpen ? " open" : ""}`}>
                 {SORT_OPTIONS.map((option: { value: string; label: string }) => (

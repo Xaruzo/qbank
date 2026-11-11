@@ -4803,8 +4803,8 @@ body.qb-guide-active .qb {
   padding: 14px 18px;
   margin-bottom: 0;
   display: flex;
-  align-items: flex-start;
-  gap: 13px;
+  align-items: center;
+  gap: 14px;
   cursor: pointer;
   text-align: left;
   overflow: hidden;
@@ -4816,9 +4816,8 @@ body.qb-guide-active .qb {
   .qb-choice {
     padding: 11px 14px;
     font-size: 14px;
-    gap: 10px;
+    gap: 11px;
     border-radius: 12px;
-  
   }
 }
 
@@ -4829,7 +4828,6 @@ body.qb-guide-active .qb {
     color: var(--text-heading);
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.14);
-  
   }
 }
 
@@ -4861,18 +4859,20 @@ body.qb-guide-active .qb {
 
 .qb-choice-l {
   font-family: inherit;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
   min-width: 28px;
   height: 28px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  margin-top: 1px;
+  margin-top: 0;
+  align-self: center;
+  line-height: 1;
   color: var(--text-muted);
   transition: all 0.18s ease;
 }
@@ -4894,16 +4894,18 @@ body.qb-guide-active .qb {
   min-width: 0;
   overflow-wrap: anywhere;
   word-break: break-word;
-  line-height: 1.55;
+  line-height: 1.5;
+  align-self: center;
 }
 
 .qb-choice-indicator {
   margin-left: auto;
   flex-shrink: 0;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-top: 2px;
+  margin-top: 0;
+  align-self: center;
 }
 
 .qb-choice-indicator.ok {
@@ -20817,7 +20819,278 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   color: #0284c7;
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   LEFT-HAND SIDEBAR RAIL TOGGLE & COLLAPSE BUTTONS
+   ══════════════════════════════════════════════════════════════════════════ */
+.qb-rail-toggle-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: #cbd5e1 !important;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+}
 
+.qb-rail-toggle-btn:hover {
+  border-color: var(--border-h, #314564);
+  color: #ffffff !important;
+  background: var(--surface-h, #111d31);
+}
 
+.light .qb-rail-toggle-btn,
+.qb.light .qb-rail-toggle-btn {
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+  background: #ffffff !important;
+}
 
+.light .qb-rail-toggle-btn:hover,
+.qb.light .qb-rail-toggle-btn:hover {
+  color: #0284c7 !important;
+  border-color: #94a3b8 !important;
+  background: #f1f5f9 !important;
+}
+
+.qb-rail-divider {
+  width: 26px;
+  height: 1px;
+  background: var(--border);
+  margin: 2px 0 4px;
+  flex-shrink: 0;
+}
+
+.light .qb-rail-divider,
+.qb.light .qb-rail-divider {
+  background: #cbd5e1;
+}
+
+.qb-nav-collapse-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: #cbd5e1 !important;
+  cursor: pointer;
+  transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+}
+
+.qb-nav-collapse-btn:hover {
+  background: var(--surface-h);
+  color: #ffffff !important;
+  border-color: var(--border-h);
+}
+
+.light .qb-nav-collapse-btn,
+.qb.light .qb-nav-collapse-btn {
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+  background: #ffffff !important;
+}
+
+.light .qb-nav-collapse-btn:hover,
+.qb.light .qb-nav-collapse-btn:hover {
+  background: #f1f5f9 !important;
+  color: #0284c7 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DROPDOWN CHEVRON ROTATION ANIMATION (TURNS ON OPEN, TURNS BACK ON CLOSE)
+   ══════════════════════════════════════════════════════════════════════════ */
+.qb-select-chevron,
+.sym-tb-chevron {
+  flex-shrink: 0;
+  display: inline-block;
+  transform-origin: 50% 50%;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), color 0.15s ease !important;
+  transform: rotate(0deg);
+  will-change: transform;
+}
+
+/* When the parent dropdown is open or the button has aria-expanded="true" or is-open */
+.qb-select[data-open="true"] .qb-select-chevron,
+.qb-select.open .qb-select-chevron,
+.qb-select-btn[aria-expanded="true"] .qb-select-chevron,
+.qb-select-chevron.is-open,
+.sym-tb-more-btn[aria-expanded="true"] .sym-tb-chevron,
+.sym-tb-more-btn.on .sym-tb-chevron,
+.sym-tb-chevron.is-open {
+  transform: rotate(180deg) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   REVIEWER STUDY NOTES PAGE THEME CONTRAST ENHANCEMENTS
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* 1. Topic Pill Badge Counts */
+.qb:not(.light) .qb-notes-topic-count {
+  color: #f1f5f9 !important;
+  background: rgba(255, 255, 255, 0.14) !important;
+  opacity: 1 !important;
+  font-weight: 700 !important;
+}
+
+.light .qb-notes-topic-count,
+.qb.light .qb-notes-topic-count {
+  color: #0f172a !important;
+  background: rgba(15, 23, 42, 0.08) !important;
+  opacity: 1 !important;
+  font-weight: 700 !important;
+}
+
+.qb:not(.light) .qb-notes-topic-pill.is-active .qb-notes-topic-count {
+  background: rgba(56, 189, 248, 0.28) !important;
+  color: #ffffff !important;
+}
+
+.light .qb-notes-topic-pill.is-active .qb-notes-topic-count,
+.qb.light .qb-notes-topic-pill.is-active .qb-notes-topic-count {
+  background: rgba(2, 132, 199, 0.16) !important;
+  color: #0369a1 !important;
+}
+
+/* 2. Pinned Badge Count */
+.qb:not(.light) .qb-notes-pin-badge {
+  color: #f1f5f9 !important;
+  background: rgba(255, 255, 255, 0.14) !important;
+  opacity: 1 !important;
+  font-weight: 700 !important;
+}
+
+.light .qb-notes-pin-badge,
+.qb.light .qb-notes-pin-badge {
+  color: #0f172a !important;
+  background: rgba(15, 23, 42, 0.08) !important;
+  opacity: 1 !important;
+  font-weight: 700 !important;
+}
+
+.qb:not(.light) .qb-notes-filter-toggle {
+  color: #e2e8f0 !important;
+  border-color: var(--border) !important;
+}
+
+.light .qb-notes-filter-toggle,
+.qb.light .qb-notes-filter-toggle {
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+  background: #ffffff !important;
+}
+
+/* 3. Tags Section Header & Icon */
+.qb:not(.light) .qb-notes-tags-header {
+  color: #cbd5e1 !important;
+  opacity: 1 !important;
+  font-weight: 700 !important;
+}
+
+.qb:not(.light) .qb-notes-tag-icon {
+  color: #cbd5e1 !important;
+  opacity: 1 !important;
+}
+
+.light .qb-notes-tags-header,
+.qb.light .qb-notes-tags-header {
+  color: #0f172a !important;
+  opacity: 1 !important;
+  font-weight: 700 !important;
+}
+
+.light .qb-notes-tag-icon,
+.qb.light .qb-notes-tag-icon {
+  color: #0f172a !important;
+  opacity: 1 !important;
+}
+
+/* 4. Notes Sort Dropdown Button & Chevron */
+.qb:not(.light) .qb-notes-sort-dropdown .qb-select-btn {
+  color: #e2e8f0 !important;
+  background: var(--input-bg) !important;
+  border-color: var(--border) !important;
+}
+
+.qb:not(.light) .qb-notes-sort-dropdown .qb-select-chevron {
+  color: #cbd5e1 !important;
+}
+
+.light .qb-notes-sort-dropdown .qb-select-btn,
+.qb.light .qb-notes-sort-dropdown .qb-select-btn {
+  color: #0f172a !important;
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+}
+
+.light .qb-notes-sort-dropdown .qb-select-chevron,
+.qb.light .qb-notes-sort-dropdown .qb-select-chevron {
+  color: #0f172a !important;
+}
+
+/* 5. Note Card Date Timestamp */
+.qb:not(.light) .qb-note-date {
+  color: #cbd5e1 !important;
+  font-weight: 600 !important;
+}
+
+.qb:not(.light) .qb-note-date svg {
+  color: #cbd5e1 !important;
+}
+
+.light .qb-note-date,
+.qb.light .qb-note-date {
+  color: #475569 !important;
+  font-weight: 600 !important;
+}
+
+.light .qb-note-date svg,
+.qb.light .qb-note-date svg {
+  color: #475569 !important;
+}
+
+/* 6. Note Card Snippet / Preview Text */
+.qb:not(.light) .qb-note-card-snippet {
+  color: #cbd5e1 !important;
+  line-height: 1.5 !important;
+}
+
+.light .qb-note-card-snippet,
+.qb.light .qb-note-card-snippet {
+  color: #334155 !important;
+  line-height: 1.5 !important;
+}
+
+/* 7. Note Card Mini Tag Pills */
+.qb:not(.light) .qb-note-mini-tag {
+  color: #93c5fd !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  font-weight: 600 !important;
+}
+
+.light .qb-note-mini-tag,
+.qb.light .qb-note-mini-tag {
+  color: #0369a1 !important;
+  background: rgba(15, 23, 42, 0.06) !important;
+  border: 1px solid rgba(15, 23, 42, 0.1) !important;
+  font-weight: 600 !important;
+}
+
+/* Tag filter pills */
+.qb:not(.light) .qb-notes-tag-pill:not(.is-active) {
+  color: #cbd5e1 !important;
+}
+
+.light .qb-notes-tag-pill:not(.is-active),
+.qb.light .qb-notes-tag-pill:not(.is-active) {
+  color: #0f172a !important;
+}
 

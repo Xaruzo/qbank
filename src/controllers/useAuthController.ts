@@ -18,8 +18,11 @@ export const emailToDeterministicUuid = (email) => {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
 };
 
-const GUEST_PROFILE_STORAGE_KEY = "cse-qbank-profile-custom-v1";
+const GUEST_PROFILE_STORAGE_KEY = "cse-qbank-profile-guest-v2";
+const LEGACY_PROFILE_STORAGE_KEY = "cse-qbank-profile-custom-v1";
 const LOCAL_CREDENTIALS_STORAGE_KEY = "cse-qbank-local-credentials-v1";
+
+const getUserProfileStorageKey = (userId: string) => `cse-qbank-profile-user-${userId}`;
 
 const readLocalCredentials = () => {
   try {
@@ -112,42 +115,80 @@ const toAuthError = (error, fallback) => {
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const getStoredCustomProfile = () => {
+const getStoredGuestProfile = () => {
   try {
-    const raw = localStorage.getItem(GUEST_PROFILE_STORAGE_KEY);
+    const raw =
+      localStorage.getItem(GUEST_PROFILE_STORAGE_KEY) ||
+      localStorage.getItem(LEGACY_PROFILE_STORAGE_KEY);
     if (raw) return JSON.parse(raw);
   } catch {}
   return null;
 };
 
-const getProfileDetails = (user, customProfile) => {
-  const fallbackName = customProfile?.fullName || user?.email?.split("@")[0] || "Reviewer";
-  const fullName =
-    customProfile?.fullName ||
-    user?.user_metadata?.full_name ||
-    user?.user_metadata?.name ||
-    fallbackName;
-  const avatarUrl =
-    customProfile && "avatarUrl" in customProfile
-      ? customProfile.avatarUrl
-      : (user?.user_metadata?.avatar_url ?? null);
-  const initials = fullName
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() || "")
-    .join("") || "R";
+const getStoredUserProfile = (userId: string) => {
+  if (!userId) return null;
+  try {
+    const raw = localStorage.getItem(getUserProfileStorageKey(userId));
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return null;
+};
+
+const getGuestProfileDetails = (guestProfile: any) => {
+  const fullName = guestProfile?.fullName || "Practice as Guest";
+  const avatarUrl = guestProfile?.avatarUrl ?? null;
+  const initials =
+    fullName
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part: string) => part[0]?.toUpperCase() || "")
+      .join("") || "PG";
 
   return {
     fullName,
     avatarUrl,
     initials,
-    avatarColor: customProfile?.avatarColor || "amber",
-    avatarShape: customProfile?.avatarShape || user?.user_metadata?.avatar_shape || "badge",
-    avatarPreset: customProfile?.avatarPreset || user?.user_metadata?.avatar_preset || null,
-    examTarget: customProfile?.examTarget || user?.user_metadata?.exam_target || "professional",
-    targetExamDate: customProfile?.targetExamDate || "2026-08-09",
-    dailyStudyGoal: customProfile?.dailyStudyGoal || 25,
+    avatarColor: guestProfile?.avatarColor || "amber",
+    avatarShape: guestProfile?.avatarShape || "badge",
+    avatarPreset: guestProfile?.avatarPreset || null,
+    examTarget: guestProfile?.examTarget || "professional",
+    targetExamDate: guestProfile?.targetExamDate || "2026-08-09",
+    dailyStudyGoal: guestProfile?.dailyStudyGoal || 25,
+    email: "",
+  };
+};
+
+const getUserProfileDetails = (user: any, userCustom: any) => {
+  const meta = user?.user_metadata || {};
+  const fallbackName = user?.email?.split("@")[0] || "Reviewer";
+  const fullName =
+    userCustom?.fullName ||
+    meta.full_name ||
+    meta.name ||
+    fallbackName;
+  const avatarUrl =
+    userCustom && "avatarUrl" in userCustom
+      ? userCustom.avatarUrl
+      : (meta.avatar_url ?? null);
+  const initials =
+    fullName
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part: string) => part[0]?.toUpperCase() || "")
+      .join("") || "R";
+
+  return {
+    fullName,
+    avatarUrl,
+    initials,
+    avatarColor: userCustom?.avatarColor || meta.avatar_color || "amber",
+    avatarShape: userCustom?.avatarShape || meta.avatar_shape || "circle",
+    avatarPreset: userCustom?.avatarPreset || meta.avatar_preset || null,
+    examTarget: userCustom?.examTarget || meta.exam_target || "professional",
+    targetExamDate: userCustom?.targetExamDate || meta.target_exam_date || "2026-08-09",
+    dailyStudyGoal: userCustom?.dailyStudyGoal || meta.daily_study_goal || 25,
     email: user?.email || "",
   };
 };
@@ -175,8 +216,60 @@ const getStoredSystemUser = () => {
 export function useAuthController() {
   const [session, setSession] = useState(null);
   const [systemUser, setSystemUser] = useState(() => getStoredSystemUser());
-  const [customProfile, setCustomProfile] = useState(() => getStoredCustomProfile());
+  const [guestProfile, setGuestProfile] = useState(() => getStoredGuestProfile());
+  const [userProfile, setUserProfile] = useState<any>(() => {
+    const initialUser = getStoredSystemUser();
+    return initialUser?.id ? getStoredUserProfile(initialUser.id) : null;
+  });
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+
+  // Active user identity
+  const user = session?.user || systemUser || null;
+  const currentUserId = user?.id || null;
+
+  // Whenever active user changes (e.g. login, logout, account switch), load that user's profile
+  useEffect(() => {
+    if (currentUserId) {
+      setUserProfile(getStoredUserProfile(currentUserId));
+    } else {
+      setUserProfile(null);
+    }
+  }, [currentUserId]);
+
+  // Sync from remote Supabase public.profiles if session exists
+  useEffect(() => {
+    if (!supabase || !session?.user?.id) return;
+    let active = true;
+
+    supabase
+      .from("profiles")
+      .select("full_name, avatar_url, avatar_color, avatar_shape, exam_target, target_exam_date, daily_study_goal")
+      .eq("id", session.user.id)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (!active || error || !data) return;
+        setUserProfile((prev: any) => {
+          const merged = {
+            ...(prev || {}),
+            fullName: data.full_name || prev?.fullName,
+            avatarUrl: data.avatar_url !== undefined ? data.avatar_url : prev?.avatarUrl,
+            avatarColor: data.avatar_color || prev?.avatarColor,
+            avatarShape: data.avatar_shape || prev?.avatarShape,
+            examTarget: data.exam_target || prev?.examTarget,
+            targetExamDate: data.target_exam_date || prev?.targetExamDate,
+            dailyStudyGoal: data.daily_study_goal || prev?.dailyStudyGoal,
+          };
+          try {
+            localStorage.setItem(getUserProfileStorageKey(session.user.id), JSON.stringify(merged));
+          } catch {}
+          return merged;
+        });
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [session?.user?.id]);
 
   useEffect(() => {
     let active = true;
@@ -206,9 +299,12 @@ export function useAuthController() {
     };
   }, []);
 
-  // Prefer remote Supabase user if present, otherwise fallback to system direct email user
-  const user = session?.user || systemUser || null;
-  const profile = useMemo(() => getProfileDetails(user, customProfile), [user, customProfile]);
+  const profile = useMemo(() => {
+    if (!user) {
+      return getGuestProfileDetails(guestProfile);
+    }
+    return getUserProfileDetails(user, userProfile);
+  }, [user, guestProfile, userProfile]);
 
   const signInWithGoogle = async () => {
     if (!supabase) return { error: new Error("Supabase auth is not configured.") };
@@ -378,13 +474,27 @@ export function useAuthController() {
     };
   };
 
-  const updateProfile = async (partial) => {
-    const nextCustom = { ...(customProfile || {}), ...partial };
-    setCustomProfile(nextCustom);
+  const updateProfile = async (partial: any) => {
+    if (!user) {
+      // In Guest mode: update ONLY the guest profile
+      const nextGuest = { ...(guestProfile || {}), ...partial };
+      setGuestProfile(nextGuest);
+      try {
+        localStorage.setItem(GUEST_PROFILE_STORAGE_KEY, JSON.stringify(nextGuest));
+      } catch (e) {
+        console.warn("Failed saving guest profile:", e);
+      }
+      return { success: true };
+    }
+
+    // In Authenticated mode: update strictly the user's isolated account profile
+    const nextUser = { ...(userProfile || {}), ...partial };
+    setUserProfile(nextUser);
+    const userStorageKey = getUserProfileStorageKey(user.id);
     try {
-      localStorage.setItem(GUEST_PROFILE_STORAGE_KEY, JSON.stringify(nextCustom));
+      localStorage.setItem(userStorageKey, JSON.stringify(nextUser));
     } catch (e) {
-      console.warn("Failed saving custom profile:", e);
+      console.warn("Failed saving user profile cache:", e);
     }
 
     if (systemUser) {
@@ -392,12 +502,12 @@ export function useAuthController() {
         ...systemUser,
         user_metadata: {
           ...(systemUser.user_metadata || {}),
-          full_name: nextCustom.fullName,
-          avatar_url: nextCustom.avatarUrl,
-          avatar_color: nextCustom.avatarColor,
-          avatar_shape: nextCustom.avatarShape,
-          avatar_preset: nextCustom.avatarPreset,
-          exam_target: nextCustom.examTarget,
+          full_name: nextUser.fullName,
+          avatar_url: nextUser.avatarUrl,
+          avatar_color: nextUser.avatarColor,
+          avatar_shape: nextUser.avatarShape,
+          avatar_preset: nextUser.avatarPreset,
+          exam_target: nextUser.examTarget,
         },
       };
       setSystemUser(updatedSystem);
@@ -406,19 +516,19 @@ export function useAuthController() {
       } catch {}
     }
 
-    let remoteAvatarUrl = nextCustom.avatarUrl;
-    if (supabase && session?.user && nextCustom.avatarUrl?.startsWith("data:image/")) {
+    let remoteAvatarUrl = nextUser.avatarUrl;
+    if (supabase && session?.user && nextUser.avatarUrl?.startsWith("data:image/")) {
       try {
-        const res = await fetch(nextCustom.avatarUrl);
+        const res = await fetch(nextUser.avatarUrl);
         const blob = await res.blob();
         const { uploadAvatarToSupabase } = await import("../utils/imageUpload");
         const publicUrl = await uploadAvatarToSupabase(blob, session.user.id);
         if (publicUrl) {
           remoteAvatarUrl = publicUrl;
-          nextCustom.avatarUrl = publicUrl;
-          setCustomProfile({ ...nextCustom });
+          nextUser.avatarUrl = publicUrl;
+          setUserProfile({ ...nextUser });
           try {
-            localStorage.setItem(GUEST_PROFILE_STORAGE_KEY, JSON.stringify(nextCustom));
+            localStorage.setItem(userStorageKey, JSON.stringify(nextUser));
           } catch {}
         }
       } catch (uploadErr) {
@@ -430,11 +540,12 @@ export function useAuthController() {
       try {
         await supabase.auth.updateUser({
           data: {
-            full_name: nextCustom.fullName,
+            full_name: nextUser.fullName,
             avatar_url: remoteAvatarUrl,
-            avatar_color: nextCustom.avatarColor,
-            avatar_shape: nextCustom.avatarShape,
-            exam_target: nextCustom.examTarget,
+            avatar_color: nextUser.avatarColor,
+            avatar_shape: nextUser.avatarShape,
+            avatar_preset: nextUser.avatarPreset,
+            exam_target: nextUser.examTarget,
           },
         });
 
@@ -445,11 +556,11 @@ export function useAuthController() {
             .upsert({
               id: session.user.id,
               email: session.user.email,
-              full_name: nextCustom.fullName,
+              full_name: nextUser.fullName,
               avatar_url: remoteAvatarUrl,
-              avatar_color: nextCustom.avatarColor,
-              avatar_shape: nextCustom.avatarShape,
-              exam_target: nextCustom.examTarget,
+              avatar_color: nextUser.avatarColor,
+              avatar_shape: nextUser.avatarShape,
+              exam_target: nextUser.examTarget,
               updated_at: new Date().toISOString(),
             }, { onConflict: "id" });
         } catch {}
@@ -468,6 +579,8 @@ export function useAuthController() {
     } catch (e) {
       console.warn("Failed clearing system user storage:", e);
     }
+
+    setUserProfile(null);
 
     if (supabase) {
       const { error } = await supabase.auth.signOut();
