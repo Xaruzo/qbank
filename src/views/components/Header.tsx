@@ -8,7 +8,6 @@ import {
   Sun,
   UserCircle2,
   X,
-  HelpCircle,
   CheckCircle2,
   Sparkles,
   Bell,
@@ -37,7 +36,6 @@ export default function Header({
   profile = null,
   onSignIn,
   onSignOut,
-  onOpenHelp,
   onOpenSettings,
   onMockExam,
   onTips,
@@ -88,13 +86,6 @@ export default function Header({
     setMenuOpen(false);
     if (onSignOut) {
       await onSignOut();
-    }
-  };
-
-  const handleOpenHelp = () => {
-    setMenuOpen(false);
-    if (onOpenHelp) {
-      onOpenHelp();
     }
   };
 
@@ -201,19 +192,6 @@ export default function Header({
               onUnreadCountChange={setUnreadCount}
             />
           </div>
-
-          {/* Quick Help Guide */}
-          {onOpenHelp && (
-            <button
-              type="button"
-              className="qb-hdr-action-btn"
-              onClick={handleOpenHelp}
-              title="Open reviewer guide & help"
-              aria-label="Open reviewer guide & help"
-            >
-              <HelpCircle size={17} />
-            </button>
-          )}
 
           {/* User Account / Auth */}
           {!authAvailable ? (
