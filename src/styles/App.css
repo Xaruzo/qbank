@@ -17544,22 +17544,23 @@ body:has(.qb-landing-root) {
 
 .qb-settings-presets-grid {
   display: flex;
-  align-items: center;
-  gap: 6px;
+  align-items: flex-start;
+  gap: 8px;
+  row-gap: 10px;
   flex-wrap: wrap;
 }
 
 .qb-settings-preset-chip {
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
   gap: 6px;
-  padding: 5px 11px;
-  border-radius: 20px;
+  width: 68px;
+  padding: 7px 6px 6px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
   color: var(--text);
-  font-size: 12px;
-  font-weight: 600;
   cursor: pointer;
   transition: all 0.14s ease;
 }
@@ -17572,20 +17573,103 @@ body:has(.qb-landing-root) {
 .qb-settings-preset-chip:hover {
   background: rgba(255, 255, 255, 0.09);
   border-color: rgba(245, 166, 35, 0.4);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
 }
 
 .qb-settings-preset-chip.active {
   background: rgba(245, 158, 11, 0.14) !important;
   border-color: #f59e0b !important;
-  color: #f59e0b !important;
   box-shadow: 0 0 12px rgba(245, 158, 11, 0.28);
 }
 
 .light .qb-settings-preset-chip.active {
   background: rgba(217, 119, 6, 0.1) !important;
   border-color: #d97706 !important;
-  color: #b45309 !important;
+}
+
+.qb-settings-preset-thumb {
+  width: 46px;
+  height: 46px;
+  object-fit: cover;
+  display: block;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  pointer-events: none;
+}
+
+.qb-settings-presets-grid[data-shape="circle"] .qb-settings-preset-thumb {
+  border-radius: 50%;
+}
+
+.qb-settings-presets-grid[data-shape="badge"] .qb-settings-preset-thumb {
+  border-radius: 10px;
+}
+
+.qb-settings-preset-name {
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.1;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Apply Badge Confirmation Modal */
+.qb-avatar-confirm-card {
+  max-width: 330px;
+  width: calc(100vw - 48px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  padding: 22px 20px 18px;
+}
+
+.qb-avatar-confirm-preview {
+  width: 112px;
+  height: 112px;
+  overflow: hidden;
+  border: 2px solid rgba(245, 166, 35, 0.55);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+.qb-avatar-confirm-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.qb-avatar-confirm-preview[data-shape="circle"] {
+  border-radius: 50%;
+}
+
+.qb-avatar-confirm-preview[data-shape="badge"] {
+  border-radius: 22px;
+}
+
+.qb-avatar-confirm-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.qb-avatar-confirm-apply {
+  background: linear-gradient(135deg, #fbbf24, #d97706);
+  border: 1px solid transparent;
+  color: #1c1917;
+}
+
+.qb-avatar-confirm-apply:hover {
+  background: linear-gradient(135deg, #fcd34d, #f59e0b);
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+}
+
+.light .qb-avatar-confirm-preview {
+  border-color: rgba(217, 119, 6, 0.45);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
 }
 
 /* Standalone Red Trash Button (PolicyPulse Style) */
@@ -17622,12 +17706,6 @@ body:has(.qb-landing-root) {
   background: #fee2e2;
   border-color: #f87171;
   color: #b91c1c !important;
-}
-
-.preset-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
 }
 
 /* Display Name & Email fields */

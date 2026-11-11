@@ -3,31 +3,6 @@
  * Generates lightweight, crisp vector SVG data URIs for all avatar presets.
  */
 
-export interface AvatarPresetOption {
-  id: string;
-  label: string;
-  category: "role" | "creative" | "color";
-  iconName?: string;
-  color?: string;
-}
-
-export const AVATAR_PRESETS_LIST: AvatarPresetOption[] = [
-  { id: "initials", label: "Initials", category: "role" },
-  { id: "scholar", label: "Scholar", category: "role" },
-  { id: "servant", label: "Civil Officer", category: "role" },
-  { id: "topnotcher", label: "Top Ranker", category: "role" },
-  { id: "creative", label: "Creative", category: "creative" },
-  { id: "robot", label: "Smart Bot", category: "creative" },
-  { id: "anime", label: "Anime", category: "creative" },
-  { id: "pixel", label: "Pixel Art", category: "creative" },
-  { id: "notion", label: "Notionist", category: "creative" },
-  { id: "shapes", label: "Shapes", category: "creative" },
-  { id: "indigo", label: "Indigo", category: "color", color: "#6366f1" },
-  { id: "emerald", label: "Emerald", category: "color", color: "#10b981" },
-  { id: "rose", label: "Rose", category: "color", color: "#f43f5e" },
-  { id: "amber", label: "Amber", category: "color", color: "#f5a623" },
-];
-
 export function generatePresetSvgUrl(
   presetId: string,
   displayName: string = "Reviewer",

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   ShieldCheck,
   User,
@@ -25,40 +25,32 @@ import {
   FileSpreadsheet,
   CheckCircle2,
   BookOpen,
-  GraduationCap,
-  Landmark,
-  Award,
-  Bot,
-  Gamepad2,
-  FileText,
-  Type,
   AlertTriangle,
   Activity,
   Cpu,
 } from "lucide-react";
 import type { SettingsPageProps, TopicId } from "../../types";
 import { generatePresetSvgUrl } from "../../utils/avatarPresets";
+import { useOverlayDialogA11y } from "../../controllers/useOverlayDialogA11y";
 
 const AVATAR_PRESETS: Array<{
   id: string;
   label: string;
-  icon?: React.ReactNode;
-  color?: string;
 }> = [
-  { id: "initials", label: "Initials", icon: <Type size={14} /> },
-  { id: "scholar", label: "Scholar", icon: <GraduationCap size={14} /> },
-  { id: "servant", label: "Civil Officer", icon: <Landmark size={14} /> },
-  { id: "topnotcher", label: "Top Ranker", icon: <Award size={14} /> },
-  { id: "creative", label: "Creative", icon: <Palette size={14} /> },
-  { id: "robot", label: "Smart Bot", icon: <Bot size={14} /> },
-  { id: "anime", label: "Anime", icon: <Sparkles size={14} /> },
-  { id: "pixel", label: "Pixel Art", icon: <Gamepad2 size={14} /> },
-  { id: "notion", label: "Notionist", icon: <FileText size={14} /> },
-  { id: "shapes", label: "Shapes", icon: <Layers size={14} /> },
-  { id: "indigo", label: "Indigo", color: "#6366f1" },
-  { id: "emerald", label: "Emerald", color: "#10b981" },
-  { id: "rose", label: "Rose", color: "#f43f5e" },
-  { id: "amber", label: "Amber", color: "#f5a623" },
+  { id: "initials", label: "Initials" },
+  { id: "scholar", label: "Scholar" },
+  { id: "servant", label: "Civil Officer" },
+  { id: "topnotcher", label: "Top Ranker" },
+  { id: "creative", label: "Creative" },
+  { id: "robot", label: "Smart Bot" },
+  { id: "anime", label: "Anime" },
+  { id: "pixel", label: "Pixel Art" },
+  { id: "notion", label: "Notionist" },
+  { id: "shapes", label: "Shapes" },
+  { id: "indigo", label: "Indigo" },
+  { id: "emerald", label: "Emerald" },
+  { id: "rose", label: "Rose" },
+  { id: "amber", label: "Amber" },
 ];
 
 export default function SettingsPage({
@@ -102,6 +94,11 @@ export default function SettingsPage({
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [clearCacheConfirm, setClearCacheConfirm] = useState(false);
+
+  // Pending badge confirmation (preview before applying, industry-standard flow)
+  const [pendingPreset, setPendingPreset] = useState<string | null>(null);
+  const presetConfirmCardRef = useRef<HTMLDivElement>(null);
+  useOverlayDialogA11y(!!pendingPreset, () => setPendingPreset(null), presetConfirmCardRef);
 
   // Real-time hardware capabilities detection for Performance & Animation Optimizer
   const [hwStats, setHwStats] = useState({
@@ -187,6 +184,14 @@ export default function SettingsPage({
   };
 
   const handleSelectPreset = (presetId: string) => {
+    // Only stage the selection — applying requires explicit confirmation
+    setPendingPreset(presetId);
+  };
+
+  const handleConfirmPreset = () => {
+    if (!pendingPreset) return;
+    const presetId = pendingPreset;
+    setPendingPreset(null);
     setSelectedPreset(presetId);
     const svgDataUrl = generatePresetSvgUrl(presetId, fullName || "Reviewer", avatarShape);
     setAvatarUrl(svgDataUrl);
@@ -198,6 +203,28 @@ export default function SettingsPage({
       });
     }
   };
+
+  const handleCancelPreset = () => {
+    setPendingPreset(null);
+  };
+
+  // Live thumbnail previews for the preset picker (regenerate with name & shape)
+  const presetThumbs = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const preset of AVATAR_PRESETS) {
+      map[preset.id] = generatePresetSvgUrl(preset.id, fullName.trim() || "Reviewer", avatarShape);
+    }
+    return map;
+  }, [fullName, avatarShape]);
+
+  const pendingPresetMeta = useMemo(() => {
+    if (!pendingPreset) return null;
+    const preset = AVATAR_PRESETS.find((p) => p.id === pendingPreset);
+    return {
+      label: preset?.label || pendingPreset,
+      url: generatePresetSvgUrl(pendingPreset, fullName.trim() || "Reviewer", avatarShape),
+    };
+  }, [pendingPreset, fullName, avatarShape]);
 
   const handleRemoveAvatar = () => {
     setAvatarUrl(null);
@@ -591,25 +618,27 @@ export default function SettingsPage({
                   </form>
                 )}
 
-                {/* Quick Avatar Badge Style Presets */}
+                {/* Quick Avatar Badge Style Presets (thumbnail picker) */}
                 <div className="qb-settings-presets-block">
                   <span className="qb-settings-presets-title">Or choose a quick badge style:</span>
-                  <div className="qb-settings-presets-grid">
+                  <div className="qb-settings-presets-grid" data-shape={avatarShape}>
                     {AVATAR_PRESETS.map((preset) => (
                       <button
                         key={preset.id}
                         type="button"
                         className={`qb-settings-preset-chip${selectedPreset === preset.id ? " active" : ""}`}
                         onClick={() => handleSelectPreset(preset.id)}
+                        aria-pressed={selectedPreset === preset.id}
+                        title={`${preset.label} — preview & apply`}
                       >
-                        {preset.icon && <span className="preset-icon">{preset.icon}</span>}
-                        {preset.color && (
-                          <span
-                            className="preset-dot"
-                            style={{ backgroundColor: preset.color }}
-                          />
-                        )}
-                        <span>{preset.label}</span>
+                        <img
+                          className="qb-settings-preset-thumb"
+                          src={presetThumbs[preset.id]}
+                          alt=""
+                          aria-hidden="true"
+                          draggable={false}
+                        />
+                        <span className="qb-settings-preset-name">{preset.label}</span>
                       </button>
                     ))}
                   </div>
@@ -1127,6 +1156,51 @@ export default function SettingsPage({
           </footer>
         </main>
       </div>
+
+      {/* Apply Badge Confirmation Modal */}
+      {pendingPreset && pendingPresetMeta && (
+        <div className="qb-modal-backdrop" onClick={handleCancelPreset}>
+          <div
+            ref={presetConfirmCardRef}
+            className="qb-modal-card qb-avatar-confirm-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="avatar-confirm-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="avatar-confirm-title" className="qb-modal-title">
+              Apply this badge?
+            </h3>
+            <p className="qb-modal-text">
+              It will replace your current profile picture and sync across solutions, mock exam
+              reports, and bookmarks.
+            </p>
+            <div className="qb-avatar-confirm-preview" data-shape={avatarShape}>
+              <img src={pendingPresetMeta.url} alt={`${pendingPresetMeta.label} badge preview`} draggable={false} />
+            </div>
+            <span className="qb-avatar-confirm-label">
+              {pendingPresetMeta.label} · {avatarShape === "circle" ? "Circle" : "Badge"} · 256×256px
+            </span>
+            <div className="qb-modal-actions">
+              <button
+                type="button"
+                className="qb-modal-btn qb-modal-btn-cancel"
+                onClick={handleCancelPreset}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="qb-modal-btn qb-avatar-confirm-apply"
+                onClick={handleConfirmPreset}
+              >
+                <Check size={15} />
+                <span>Apply Badge</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
