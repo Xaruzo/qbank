@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { X, Keyboard, HelpCircle, ArrowLeft, Play } from "lucide-react";
 
 export default function HelpModal({ isDark, onClose, onRestartTour }) {
@@ -111,20 +112,21 @@ export default function HelpModal({ isDark, onClose, onRestartTour }) {
         restartCardHoverBorder: "1px solid rgba(217, 119, 6, 0.55)",
       };
 
-  return (
+  return createPortal(
     <div 
       className="qb-settings-ov" 
       onClick={onClose}
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 99999,
+        zIndex: 999999,
         background: theme.overlayBg,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         padding: "20px",
-        backdropFilter: "blur(8px)",
+        backdropFilter: "blur(12px) saturate(140%)",
+        WebkitBackdropFilter: "blur(12px) saturate(140%)",
         WebkitTapHighlightColor: "transparent",
         touchAction: "manipulation"
       }}
@@ -538,6 +540,7 @@ export default function HelpModal({ isDark, onClose, onRestartTour }) {
           ) : null}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

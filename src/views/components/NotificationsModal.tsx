@@ -111,7 +111,7 @@ export default function NotificationsModal({
     return DEFAULT_NOTIFICATIONS;
   });
 
-  const [activeTab, setActiveTab] = useState<"all" | "unread" | "exam" | "study">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "unread" | "exam" | "study" | "system">("all");
   const [indicatorStyle, setIndicatorStyle] = useState<{ left: number; width: number }>({ left: 0, width: 0 });
   const modalRef = useRef<HTMLDivElement>(null);
   const tabContainerRef = useRef<HTMLDivElement>(null);
@@ -120,15 +120,25 @@ export default function NotificationsModal({
   // Sync animated tab pill position
   useEffect(() => {
     if (!isOpen) return;
-    const currentTabEl = tabRefs.current[activeTab];
-    if (currentTabEl && tabContainerRef.current) {
-      const containerRect = tabContainerRef.current.getBoundingClientRect();
-      const tabRect = currentTabEl.getBoundingClientRect();
-      setIndicatorStyle({
-        left: tabRect.left - containerRect.left,
-        width: tabRect.width,
-      });
-    }
+    const updateIndicator = () => {
+      const currentTabEl = tabRefs.current[activeTab];
+      if (currentTabEl && tabContainerRef.current) {
+        const containerRect = tabContainerRef.current.getBoundingClientRect();
+        const tabRect = currentTabEl.getBoundingClientRect();
+        setIndicatorStyle({
+          left: tabRect.left - containerRect.left,
+          width: tabRect.width,
+        });
+      }
+    };
+
+    updateIndicator();
+    const timer = setTimeout(updateIndicator, 50);
+    window.addEventListener("resize", updateIndicator);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("resize", updateIndicator);
+    };
   }, [activeTab, notifications, isOpen]);
 
   // Sync unread count to parent
@@ -214,6 +224,7 @@ export default function NotificationsModal({
     if (activeTab === "unread") return !n.read;
     if (activeTab === "exam") return n.category === "exam";
     if (activeTab === "study") return n.category === "study";
+    if (activeTab === "system") return n.category === "system" || n.category === "feature";
     return true;
   });
 
@@ -333,6 +344,16 @@ export default function NotificationsModal({
             onClick={() => setActiveTab("study")}
           >
             Study Notes
+          </button>
+          <button
+            type="button"
+            role="tab"
+            ref={(el) => { tabRefs.current["system"] = el; }}
+            aria-selected={activeTab === "system"}
+            className={`qb-notif-tab${activeTab === "system" ? " is-active" : ""}`}
+            onClick={() => setActiveTab("system")}
+          >
+            System
           </button>
         </div>
       </div>

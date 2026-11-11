@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   X,
   KeyRound,
@@ -311,7 +312,7 @@ export default function ChangePasswordModal({
     }
   };
 
-  return (
+  return createPortal(
     <div
       className={`qb-fp-backdrop${isDark ? "" : " light"}`}
       onClick={onClose}
@@ -598,6 +599,7 @@ export default function ChangePasswordModal({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

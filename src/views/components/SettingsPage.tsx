@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   ShieldCheck,
   User,
@@ -1410,51 +1411,53 @@ export default function SettingsPage({
         </main>
       </div>
 
-      {showDiscardConfirm && (
-        <div className="qb-modal-backdrop" onClick={() => setShowDiscardConfirm(false)}>
-          <div
-            ref={discardDialogRef}
-            role="alertdialog"
-            aria-modal="true"
-            aria-labelledby="discard-changes-title"
-            className="qb-modal-card"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="qb-discard-head">
-              <div className="qb-discard-icon">
-                <AlertTriangle size={18} />
+      {showDiscardConfirm &&
+        createPortal(
+          <div className="qb-modal-backdrop" onClick={() => setShowDiscardConfirm(false)}>
+            <div
+              ref={discardDialogRef}
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="discard-changes-title"
+              className="qb-modal-card"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="qb-discard-head">
+                <div className="qb-discard-icon">
+                  <AlertTriangle size={18} />
+                </div>
+                <div className="qb-discard-copy">
+                  <h3 id="discard-changes-title" className="qb-modal-title">
+                    Discard unsaved changes?
+                  </h3>
+                  <p className="qb-modal-text">
+                    Your profile edits have not been saved yet. Leaving now will lose them.
+                  </p>
+                </div>
               </div>
-              <div className="qb-discard-copy">
-                <h3 id="discard-changes-title" className="qb-modal-title">
-                  Discard unsaved changes?
-                </h3>
-                <p className="qb-modal-text">
-                  Your profile edits have not been saved yet. Leaving now will lose them.
-                </p>
+              <div className="qb-modal-actions">
+                <button
+                  type="button"
+                  className="qb-modal-btn qb-modal-btn-cancel"
+                  onClick={() => setShowDiscardConfirm(false)}
+                >
+                  Keep Editing
+                </button>
+                <button
+                  type="button"
+                  className="qb-modal-btn qb-modal-btn-danger"
+                  onClick={() => {
+                    setShowDiscardConfirm(false);
+                    onBackToMain();
+                  }}
+                >
+                  Discard Changes
+                </button>
               </div>
             </div>
-            <div className="qb-modal-actions">
-              <button
-                type="button"
-                className="qb-modal-btn qb-modal-btn-cancel"
-                onClick={() => setShowDiscardConfirm(false)}
-              >
-                Keep Editing
-              </button>
-              <button
-                type="button"
-                className="qb-modal-btn qb-modal-btn-danger"
-                onClick={() => {
-                  setShowDiscardConfirm(false);
-                  onBackToMain();
-                }}
-              >
-                Discard Changes
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
 
       {/* Change Password Modal with Gmail 6-digit confirmation code */}
       <ChangePasswordModal

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   Mail,
   KeyRound,
@@ -293,7 +294,9 @@ export default function ForgotPasswordModal({
     onClose();
   };
 
-  return (
+  if (!isOpen) return null;
+
+  return createPortal(
     <div className="qb-fp-backdrop" role="dialog" aria-modal="true" aria-labelledby="qb-fp-title">
       <div className="qb-fp-card">
         {/* Header */}
@@ -562,6 +565,7 @@ export default function ForgotPasswordModal({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

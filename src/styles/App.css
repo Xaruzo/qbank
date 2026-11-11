@@ -7687,23 +7687,42 @@ body.qb-guide-active .qb {
 }
 
 .qb-settings-ov,
-.qb-modal-ov {
-  background:rgba(15, 23, 42, .58);
-  backdrop-filter:none;
+.qb-modal-ov,
+.qb-modal-backdrop,
+.qb-fp-backdrop,
+.qb-auth-modal-overlay,
+.qb-guide-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 999999 !important;
+  background: rgba(4, 8, 18, 0.78) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
 }
 
 .qb-mnav-ov {
-  background:rgba(17, 18, 20, .72);
-  backdrop-filter:none;
+  z-index: 999998 !important;
+  background: rgba(17, 18, 20, 0.72) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
 }
 
 .light .qb-settings-ov,
-.light .qb-modal-ov {
-  background:rgba(15, 23, 42, .18);
+.light .qb-modal-ov,
+.light .qb-modal-backdrop,
+.light .qb-fp-backdrop,
+.light .qb-auth-modal-overlay,
+.light .qb-guide-overlay,
+.qb-fp-backdrop.light {
+  background: rgba(15, 23, 42, 0.45) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
 }
 
 .light .qb-mnav-ov {
-  background:rgba(17, 18, 20, .22);
+  background: rgba(17, 18, 20, 0.35) !important;
 }
 
 @media (max-width:900px) {
@@ -14553,12 +14572,15 @@ body:has(.qb-landing-root) {
 .qb-notif-tabs {
   position: relative;
   display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 4px;
   overflow-x: auto;
   padding: 3px;
   background: rgba(0, 0, 0, 0.22);
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.08);
+  width: 100%;
 }
 
 .qb-notif-tab-indicator {
@@ -14577,7 +14599,12 @@ body:has(.qb-landing-root) {
 .qb-notif-tab {
   position: relative;
   z-index: 1;
-  padding: 4px 10px;
+  flex: 1 1 0%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 6px 8px;
   border-radius: 7px;
   border: none;
   background: transparent;

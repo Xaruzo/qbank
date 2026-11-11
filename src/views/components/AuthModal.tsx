@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { X, Mail, KeyRound, AlertCircle, CheckCircle2, ShieldCheck } from "lucide-react";
 
 interface AuthModalProps {
@@ -69,7 +70,7 @@ export default function AuthModal({
     }
   };
 
-  return (
+  return createPortal(
     <div className="qb-auth-modal-overlay" onClick={onClose} role="presentation">
       <div
         className="qb-auth-modal-card"
@@ -217,6 +218,7 @@ export default function AuthModal({
           <span>Local offline caching & secure cloud sync enabled.</span>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

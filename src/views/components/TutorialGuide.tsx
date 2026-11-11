@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, ChevronRight, ChevronLeft, Sparkles } from "lucide-react";
 
 export default function TutorialGuide({ run, onFinish, isDark }) {
@@ -133,20 +134,21 @@ export default function TutorialGuide({ run, onFinish, isDark }) {
         primaryBtnShadow: "0 4px 16px rgba(245, 166, 35, 0.25)",
       };
 
-  return (
+  return createPortal(
     <div
       className="qb-guide-overlay"
       onClick={handleOverlayClick}
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 99999,
+        zIndex: 999999,
         background: theme.overlayBg,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         padding: "20px",
-        backdropFilter: "blur(8px)",
+        backdropFilter: "blur(12px) saturate(140%)",
+        WebkitBackdropFilter: "blur(12px) saturate(140%)",
       }}
     >
       <div
@@ -339,6 +341,7 @@ export default function TutorialGuide({ run, onFinish, isDark }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
