@@ -882,6 +882,34 @@ body {
   }
 }
 
+/* Exit transition (plays while drawer stays mounted via is-closing) */
+.qb-mnav-ov.is-closing {
+  animation: qb-fade-out 0.2s ease forwards;
+}
+
+.qb-side-drawer.is-closing {
+  animation: qb-drawer-slide-out 0.22s cubic-bezier(0.5, 0, 0.75, 0.6) forwards;
+  pointer-events: none;
+}
+
+@keyframes qb-drawer-slide-out {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes qb-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
 @keyframes qb-dropdown-in {
   from {
     opacity: 0;

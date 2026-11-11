@@ -322,6 +322,23 @@ export default function SideNav({
 
   useOverlayDialogA11y(variant === "overlay" && open, onClose, cardRef);
 
+  // Overlay drawer mount state: stays mounted briefly while the close
+  // transition plays, then unmounts (enter/exit animation parity).
+  const [overlayState, setOverlayState] = useState<"closed" | "open" | "closing">("closed");
+
+  useEffect(() => {
+    setOverlayState((prev) => {
+      if (open) return "open";
+      return prev === "open" ? "closing" : prev;
+    });
+  }, [open]);
+
+  useEffect(() => {
+    if (overlayState !== "closing") return undefined;
+    const t = window.setTimeout(() => setOverlayState("closed"), 240);
+    return () => window.clearTimeout(t);
+  }, [overlayState]);
+
   const updateRailCoords = () => {
     if (railBtnRef.current) {
       const rect = railBtnRef.current.getBoundingClientRect();
@@ -707,16 +724,21 @@ export default function SideNav({
 
   // Overlay variant (Mobile & Tablet Drawer)
   if (variant === "overlay") {
-    if (!open) return null;
+    if (overlayState === "closed") return null;
+    const isClosing = overlayState === "closing";
 
     return (
-      <div className="qb-mnav-ov" onClick={onClose}>
+      <div
+        className={`qb-mnav-ov${isClosing ? " is-closing" : ""}`}
+        onClick={isClosing ? undefined : onClose}
+      >
         <aside
           ref={cardRef}
-          className="qb-side-drawer qb-modern-drawer"
+          className={`qb-side-drawer qb-modern-drawer${isClosing ? " is-closing" : ""}`}
           role="dialog"
           aria-modal="true"
           aria-label="Navigation drawer"
+          aria-hidden={isClosing}
           onClick={(e) => e.stopPropagation()}
         >
           {renderBrandHeader()}
