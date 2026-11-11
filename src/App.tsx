@@ -1231,6 +1231,7 @@ export default function App() {
             ) : view === "settings" ? (
               <SettingsPage
                 initialTab={settingsTab}
+                onTabChange={navigateSettings}
                 settings={settings}
                 onUpdateSettings={updateSettings}
                 onResetSettings={resetSettings}

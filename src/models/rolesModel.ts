@@ -4,7 +4,18 @@ import type { UserRole, UserRoleRecord } from "../types";
 
 export const USER_ROLES_STORAGE_KEY = "cse-qbank-user-roles-v1";
 const USER_ROLES_TABLE = "user_roles";
+const PROFILES_TABLE = "profiles";
 const LOCAL_CREDENTIALS_STORAGE_KEY = "cse-qbank-local-credentials-v1";
+
+const roleWeight = (role: UserRole) =>
+  role === "superadmin" ? 3 : role === "admin" ? 2 : role === "moderator" ? 1 : 0;
+
+const sortUserRecords = (records: UserRoleRecord[]) =>
+  records.sort((a, b) => {
+    const diff = roleWeight(b.role) - roleWeight(a.role);
+    if (diff !== 0) return diff;
+    return a.email.localeCompare(b.email);
+  });
 
 const DEFAULT_SUPERADMINS: Record<string, UserRoleRecord> = {
   "xaruzowarlord@gmail.com": {
@@ -174,7 +185,7 @@ export const rolesModel = {
     const usersMap = new Map<string, UserRoleRecord>();
 
     // 1. Seed from stored roles
-    Object.values(roles).forEach((r) => {
+    (Object.values(roles) as UserRoleRecord[]).forEach((r) => {
       if (r?.email) {
         usersMap.set(r.email.toLowerCase(), { ...r });
       }
@@ -234,12 +245,92 @@ export const rolesModel = {
       usersMap.set("xaruzowarlord@gmail.com", DEFAULT_SUPERADMINS["xaruzowarlord@gmail.com"]);
     }
 
-    return Array.from(usersMap.values()).sort((a, b) => {
-      // Superadmins first, then admins, then by name/email
-      const weight = (r: UserRole) => (r === "superadmin" ? 3 : r === "admin" ? 2 : r === "moderator" ? 1 : 0);
-      const diff = weight(b.role) - weight(a.role);
-      if (diff !== 0) return diff;
-      return a.email.localeCompare(b.email);
+    return sortUserRecords(Array.from(usersMap.values()));
+  },
+
+  /**
+   * Loads the full account roster from Supabase (profiles + user_roles)
+   * and merges it with anything cached locally. Falls back gracefully to
+   * local data when Supabase is unavailable or the request is blocked.
+   */
+  async loadAllUsers(): Promise<UserRoleRecord[]> {
+    const usersMap = new Map<string, UserRoleRecord>();
+    this.getAllUsers().forEach((record) => {
+      if (record?.email) usersMap.set(record.email.toLowerCase(), { ...record });
     });
+
+    if (!supabase) return sortUserRecords(Array.from(usersMap.values()));
+
+    try {
+      const [profilesRes, rolesRes] = await Promise.all([
+        supabase.from(PROFILES_TABLE).select("id,email,full_name,avatar_url"),
+        supabase
+          .from(USER_ROLES_TABLE)
+          .select("email,role,full_name,assigned_at,assigned_by"),
+      ]);
+
+      const stored = this.getStoredRoles();
+      let rolesChanged = false;
+
+      const remoteRoles = Array.isArray(rolesRes.data) ? rolesRes.data : [];
+      remoteRoles.forEach((row: any) => {
+        const email = (row?.email || "").trim().toLowerCase();
+        if (!email) return;
+
+        const record: UserRoleRecord = {
+          id: stored[email]?.id || `role-${email}`,
+          email,
+          fullName: row.full_name || stored[email]?.fullName || email.split("@")[0],
+          role: (row.role as UserRole) || "reviewer",
+          assignedAt: row.assigned_at || stored[email]?.assignedAt || new Date().toISOString(),
+          assignedBy: row.assigned_by || stored[email]?.assignedBy || "Supabase",
+          notes: stored[email]?.notes,
+        };
+
+        if (
+          !stored[email] ||
+          stored[email].role !== record.role ||
+          stored[email].fullName !== record.fullName
+        ) {
+          stored[email] = record;
+          rolesChanged = true;
+        }
+
+        usersMap.set(email, { ...(usersMap.get(email) || record), ...record });
+      });
+
+      if (rolesChanged) this.saveStoredRoles(stored);
+
+      const profiles = Array.isArray(profilesRes.data) ? profilesRes.data : [];
+      profiles.forEach((row: any) => {
+        const email = (row?.email || "").trim().toLowerCase();
+        if (!email) return;
+
+        const existing = usersMap.get(email);
+        if (existing) {
+          if (row.full_name) existing.fullName = existing.fullName || row.full_name;
+          if (row.id) existing.id = row.id;
+          if (row.avatar_url) existing.avatarUrl = row.avatar_url;
+          return;
+        }
+
+        usersMap.set(email, {
+          id: row.id || `user-${email}`,
+          email,
+          fullName: row.full_name || email.split("@")[0],
+          role: stored[email]?.role || this.getUserRole({ email }),
+          assignedAt: stored[email]?.assignedAt || new Date().toISOString(),
+          assignedBy: stored[email]?.assignedBy || "Registration",
+          notes: stored[email]?.notes,
+          avatarUrl: row.avatar_url || null,
+        });
+      });
+    } catch (error) {
+      if (!isNetworkOrFetchError(error)) {
+        console.warn("Could not load remote user roster:", error);
+      }
+    }
+
+    return sortUserRecords(Array.from(usersMap.values()));
   },
 };

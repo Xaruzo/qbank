@@ -125,6 +125,12 @@ const getStoredGuestProfile = () => {
   return null;
 };
 
+const getAvatarTimestamp = (url: unknown) => {
+  if (typeof url !== "string") return 0;
+  const match = url.match(/avatar-(\d+)\./);
+  return match ? Number(match[1]) : 0;
+};
+
 const getStoredUserProfile = (userId: string) => {
   if (!userId) return null;
   try {
@@ -167,10 +173,9 @@ const getUserProfileDetails = (user: any, userCustom: any) => {
     meta.full_name ||
     meta.name ||
     fallbackName;
-  const avatarUrl =
-    userCustom && "avatarUrl" in userCustom
-      ? userCustom.avatarUrl
-      : (meta.avatar_url ?? null);
+  const customAvatar =
+    userCustom && "avatarUrl" in userCustom ? userCustom.avatarUrl : null;
+  const avatarUrl = customAvatar || meta.avatar_url || meta.picture || null;
   const initials =
     fullName
       .split(" ")
@@ -236,35 +241,105 @@ export function useAuthController() {
     }
   }, [currentUserId]);
 
-  // Sync from remote Supabase public.profiles if session exists
+  // Sync the local profile cache with public.profiles. Pending local-only
+  // avatars (data URLs) are uploaded to Storage so the photo reaches the cloud.
   useEffect(() => {
     if (!supabase || !session?.user?.id) return;
+    const client = supabase;
+    const userId = session.user.id;
+    const userEmail = session.user.email;
+    const metadata = session.user.user_metadata || {};
     let active = true;
 
-    supabase
-      .from("profiles")
-      .select("full_name, avatar_url, avatar_color, avatar_shape, exam_target, target_exam_date, daily_study_goal")
-      .eq("id", session.user.id)
-      .maybeSingle()
-      .then(({ data, error }) => {
-        if (!active || error || !data) return;
-        setUserProfile((prev: any) => {
-          const merged = {
-            ...(prev || {}),
-            fullName: data.full_name || prev?.fullName,
-            avatarUrl: data.avatar_url !== undefined ? data.avatar_url : prev?.avatarUrl,
-            avatarColor: data.avatar_color || prev?.avatarColor,
-            avatarShape: data.avatar_shape || prev?.avatarShape,
-            examTarget: data.exam_target || prev?.examTarget,
-            targetExamDate: data.target_exam_date || prev?.targetExamDate,
-            dailyStudyGoal: data.daily_study_goal || prev?.dailyStudyGoal,
-          };
-          try {
-            localStorage.setItem(getUserProfileStorageKey(session.user.id), JSON.stringify(merged));
-          } catch {}
-          return merged;
-        });
-      });
+    const syncProfile = async () => {
+      const localProfile: any = getStoredUserProfile(userId) || {};
+      let localAvatarUrl: string | null = localProfile.avatarUrl || null;
+      let uploadedAvatarUrl: string | null = null;
+
+      if (typeof localAvatarUrl === "string" && localAvatarUrl.startsWith("data:image/")) {
+        try {
+          const response = await fetch(localAvatarUrl);
+          const blob = await response.blob();
+          const { uploadAvatarToSupabase } = await import("../utils/imageUpload");
+          uploadedAvatarUrl = await uploadAvatarToSupabase(blob, userId);
+          if (uploadedAvatarUrl) localAvatarUrl = uploadedAvatarUrl;
+        } catch (uploadError) {
+          console.warn("Could not upload pending avatar to Supabase:", uploadError);
+        }
+      }
+
+      const { data, error } = await client
+        .from("profiles")
+        .select("full_name, avatar_url, avatar_color, exam_target")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (!active) return;
+
+      if (error && !isNetworkOrFetchError(error)) {
+        console.warn("Could not load remote profile:", error.message);
+      }
+
+      const metadataAvatar = metadata.avatar_url || metadata.picture || null;
+      const pendingLocalAvatar =
+        !uploadedAvatarUrl && typeof localAvatarUrl === "string" && localAvatarUrl.startsWith("data:")
+          ? localAvatarUrl
+          : null;
+      const preferLocalAvatar =
+        getAvatarTimestamp(localAvatarUrl) > getAvatarTimestamp(data?.avatar_url);
+      const remoteAvatar =
+        uploadedAvatarUrl ||
+        (preferLocalAvatar ? localAvatarUrl : null) ||
+        data?.avatar_url ||
+        metadataAvatar ||
+        (localAvatarUrl && !localAvatarUrl.startsWith("data:") ? localAvatarUrl : null);
+      const effectiveAvatar = pendingLocalAvatar || remoteAvatar;
+      const fullName =
+        data?.full_name ||
+        localProfile.fullName ||
+        metadata.full_name ||
+        metadata.name ||
+        userEmail?.split("@")[0] ||
+        "Reviewer";
+
+      const merged = {
+        ...(localProfile || {}),
+        fullName,
+        avatarUrl: effectiveAvatar,
+        avatarColor: data?.avatar_color || localProfile.avatarColor || metadata.avatar_color || "amber",
+        examTarget: data?.exam_target || localProfile.examTarget || metadata.exam_target,
+      };
+
+      setUserProfile(merged);
+      try {
+        localStorage.setItem(getUserProfileStorageKey(userId), JSON.stringify(merged));
+      } catch {}
+
+      if (error) return;
+
+      const profileRow: Record<string, any> = {
+        id: userId,
+        email: userEmail,
+        full_name: fullName,
+        updated_at: new Date().toISOString(),
+      };
+      if (remoteAvatar) profileRow.avatar_url = remoteAvatar;
+      if (merged.avatarColor) profileRow.avatar_color = merged.avatarColor;
+
+      const { error: upsertError } = await client
+        .from("profiles")
+        .upsert(profileRow, { onConflict: "id" });
+
+      if (upsertError && !isNetworkOrFetchError(upsertError)) {
+        console.warn("Could not sync remote profile row:", upsertError.message);
+      }
+
+      if (uploadedAvatarUrl) {
+        await client.auth.updateUser({ data: { avatar_url: uploadedAvatarUrl } });
+      }
+    };
+
+    syncProfile();
 
     return () => {
       active = false;
@@ -538,31 +613,43 @@ export function useAuthController() {
 
     if (supabase && session?.user) {
       try {
-        await supabase.auth.updateUser({
-          data: {
-            full_name: nextUser.fullName,
-            avatar_url: remoteAvatarUrl,
-            avatar_color: nextUser.avatarColor,
-            avatar_shape: nextUser.avatarShape,
-            avatar_preset: nextUser.avatarPreset,
-            exam_target: nextUser.examTarget,
-          },
-        });
+        const isUnsyncedDataUrl =
+          typeof remoteAvatarUrl === "string" && remoteAvatarUrl.startsWith("data:");
+        const avatarRemoved = partial?.avatarUrl === null;
+        const metadataPayload: Record<string, any> = {
+          full_name: nextUser.fullName,
+          avatar_color: nextUser.avatarColor,
+          avatar_shape: nextUser.avatarShape,
+          avatar_preset: nextUser.avatarPreset,
+          exam_target: nextUser.examTarget,
+        };
+        if (!isUnsyncedDataUrl && remoteAvatarUrl) {
+          metadataPayload.avatar_url = remoteAvatarUrl;
+        } else if (avatarRemoved) {
+          metadataPayload.avatar_url = null;
+        }
+
+        await supabase.auth.updateUser({ data: metadataPayload });
 
         // Sync to public.profiles if the table is created
         try {
+          const profileRow: Record<string, any> = {
+            id: session.user.id,
+            email: session.user.email,
+            full_name: nextUser.fullName,
+            avatar_color: nextUser.avatarColor,
+            exam_target: nextUser.examTarget,
+            updated_at: new Date().toISOString(),
+          };
+          if (!isUnsyncedDataUrl && remoteAvatarUrl) {
+            profileRow.avatar_url = remoteAvatarUrl;
+          } else if (avatarRemoved) {
+            profileRow.avatar_url = null;
+          }
+
           await supabase
             .from("profiles")
-            .upsert({
-              id: session.user.id,
-              email: session.user.email,
-              full_name: nextUser.fullName,
-              avatar_url: remoteAvatarUrl,
-              avatar_color: nextUser.avatarColor,
-              avatar_shape: nextUser.avatarShape,
-              exam_target: nextUser.examTarget,
-              updated_at: new Date().toISOString(),
-            }, { onConflict: "id" });
+            .upsert(profileRow, { onConflict: "id" });
         } catch {}
       } catch (err) {
         console.warn("Could not sync profile to remote auth:", err);

@@ -107,6 +107,7 @@ export interface UserRoleRecord {
   assignedAt: string;
   assignedBy?: string;
   notes?: string;
+  avatarUrl?: string | null;
 }
 
 export interface UserProfile {
@@ -188,6 +189,7 @@ export interface SideNavProps {
 
 export interface SettingsPageProps {
   initialTab?: string;
+  onTabChange?: (tab: string) => void;
   settings: AppSettings;
   onUpdateSettings: (partial: Partial<AppSettings>) => void;
   onResetSettings?: () => void;

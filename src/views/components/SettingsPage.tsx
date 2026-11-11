@@ -43,7 +43,7 @@ const ROLE_GRANT_OPTIONS: SelectOption[] = [
   },
   {
     value: "superadmin",
-    label: "Superadmin (Full Control & Roles)",
+    label: "Superadmin (Full Control)",
     icon: <Crown size={14} className="text-amber-400" />,
   },
   {
@@ -73,6 +73,7 @@ const QUICK_ROLE_OPTIONS: SelectOption[] = [
 
 export default function SettingsPage({
   initialTab = "identity",
+  onTabChange,
   settings,
   onUpdateSettings,
   onResetSettings,
@@ -93,6 +94,11 @@ export default function SettingsPage({
   onSignOut,
 }: SettingsPageProps) {
   const [activeTab, setActiveTab] = useState<string>(initialTab);
+
+  const handleSelectTab = (tab: string) => {
+    setActiveTab(tab);
+    onTabChange?.(tab);
+  };
 
   // Form State
   const [fullName, setFullName] = useState(profile?.fullName || "");
@@ -119,10 +125,33 @@ export default function SettingsPage({
   const [newRoleEmail, setNewRoleEmail] = useState("");
   const [newRoleSelect, setNewRoleSelect] = useState<UserRole>("admin");
   const [roleNotice, setRoleNotice] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [isUsersLoading, setIsUsersLoading] = useState(false);
 
-  const refreshUsersList = () => {
-    setUsersList(rolesModel.getAllUsers());
+  const refreshUsersList = async () => {
+    setIsUsersLoading(true);
+    try {
+      setUsersList(await rolesModel.loadAllUsers());
+    } finally {
+      setIsUsersLoading(false);
+    }
   };
+
+  useEffect(() => {
+    if (activeTab !== "roles") return;
+    let active = true;
+    setIsUsersLoading(true);
+    rolesModel
+      .loadAllUsers()
+      .then((list) => {
+        if (active) setUsersList(list);
+      })
+      .finally(() => {
+        if (active) setIsUsersLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [activeTab]);
 
   const handleAssignRole = async (targetEmail: string, roleToAssign: UserRole, targetName?: string) => {
     setRoleNotice(null);
@@ -137,7 +166,7 @@ export default function SettingsPage({
         type: "success",
         message: `Role successfully updated to '${roleToAssign.toUpperCase()}' for ${targetEmail}.`,
       });
-      refreshUsersList();
+      await refreshUsersList();
       setNewRoleEmail("");
       setTimeout(() => setRoleNotice(null), 4000);
     } else {
@@ -153,7 +182,7 @@ export default function SettingsPage({
         type: "success",
         message: `Permissions revoked for ${targetEmail}. Reverted to standard Reviewer access.`,
       });
-      refreshUsersList();
+      await refreshUsersList();
       setTimeout(() => setRoleNotice(null), 4000);
     } else {
       setRoleNotice({ type: "error", message: res.error || "Failed to revoke role." });
@@ -396,7 +425,7 @@ export default function SettingsPage({
           <button
             type="button"
             className={`qb-settings-nav-item${activeTab === "identity" ? " active" : ""}`}
-            onClick={() => setActiveTab("identity")}
+            onClick={() => handleSelectTab("identity")}
           >
             <div className="qb-settings-nav-item-icon">
               <User size={18} />
@@ -410,7 +439,7 @@ export default function SettingsPage({
           <button
             type="button"
             className={`qb-settings-nav-item${activeTab === "persona" ? " active" : ""}`}
-            onClick={() => setActiveTab("persona")}
+            onClick={() => handleSelectTab("persona")}
           >
             <div className="qb-settings-nav-item-icon">
               <Sliders size={18} />
@@ -424,7 +453,7 @@ export default function SettingsPage({
           <button
             type="button"
             className={`qb-settings-nav-item${activeTab === "appearance" ? " active" : ""}`}
-            onClick={() => setActiveTab("appearance")}
+            onClick={() => handleSelectTab("appearance")}
           >
             <div className="qb-settings-nav-item-icon">
               <Palette size={18} />
@@ -438,7 +467,7 @@ export default function SettingsPage({
           <button
             type="button"
             className={`qb-settings-nav-item${activeTab === "storage" ? " active" : ""}`}
-            onClick={() => setActiveTab("storage")}
+            onClick={() => handleSelectTab("storage")}
           >
             <div className="qb-settings-nav-item-icon">
               <Database size={18} />
@@ -453,7 +482,7 @@ export default function SettingsPage({
             <button
               type="button"
               className={`qb-settings-nav-item${activeTab === "roles" ? " active" : ""}`}
-              onClick={() => setActiveTab("roles")}
+              onClick={() => handleSelectTab("roles")}
             >
               <div className="qb-settings-nav-item-icon">
                 <Crown size={18} className="text-amber-400" />
@@ -1068,7 +1097,13 @@ export default function SettingsPage({
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredUsers.length === 0 ? (
+                      {isUsersLoading ? (
+                        <tr>
+                          <td colSpan={4} className="text-center py-6 text-muted text-xs">
+                            Syncing registered accounts...
+                          </td>
+                        </tr>
+                      ) : filteredUsers.length === 0 ? (
                         <tr>
                           <td colSpan={4} className="text-center py-6 text-muted text-xs">
                             No user accounts matched your search criteria.
@@ -1082,7 +1117,19 @@ export default function SettingsPage({
                               <td>
                                 <div className="qb-user-cell">
                                   <div className={`qb-user-cell-avatar role-${uRecord.role}`}>
-                                    {uRecord.fullName.slice(0, 2).toUpperCase()}
+                                    <span>{uRecord.fullName.slice(0, 2).toUpperCase()}</span>
+                                    {uRecord.avatarUrl && (
+                                      <img
+                                        src={uRecord.avatarUrl}
+                                        alt=""
+                                        className="qb-user-cell-avatar-img"
+                                        referrerPolicy="no-referrer"
+                                        loading="lazy"
+                                        onError={(e) => {
+                                          e.currentTarget.style.display = "none";
+                                        }}
+                                      />
+                                    )}
                                   </div>
                                   <div className="qb-user-cell-info">
                                     <span className="qb-user-cell-name">{uRecord.fullName}</span>

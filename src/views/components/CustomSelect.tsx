@@ -58,6 +58,7 @@ export default function CustomSelect({
           setIsOpen((prev) => !prev);
         }}
         aria-expanded={isOpen}
+        title={displayText}
       >
         <span className="qb-select-btn-lead">
           {leadIcon ? (
@@ -78,6 +79,7 @@ export default function CustomSelect({
                 key={option.value}
                 type="button"
                 className={`qb-select-item${isSelected ? " on" : ""}`}
+                title={option.label}
                 onClick={() => {
                   onChange(option.value);
                   setIsOpen(false);

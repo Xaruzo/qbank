@@ -62,7 +62,15 @@ export function useViewRouter({
   const [editId, setEditId] = useState<string | null>(null);
   const [selectedMockAttemptId, setSelectedMockAttemptId] = useState<string | null>(null);
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
-  const [settingsTab, setSettingsTab] = useState<string>("identity");
+  const [settingsTab, setSettingsTab] = useState<string>(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("page") === "settings") {
+        return params.get("tab") || "identity";
+      }
+    } catch {}
+    return "identity";
+  });
   const [deepLinkShowSol, setDeepLinkShowSol] = useState<boolean>(false);
   const [exam, setExam] = useState<any | null>(null);
 
