@@ -435,16 +435,43 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
               <span>Topic</span>
             </label>
             <div className="qb-select" ref={topicRef} data-dir={topicDir} data-open={topicOpen}>
-              <button className="qb-select-btn" type="button" onClick={() => {
-                if (!topicOpen && topicRef.current) {
-                  const rect = topicRef.current.getBoundingClientRect();
-                  setTopicDir(window.innerHeight - rect.bottom < 220 ? "up" : "down");
-                }
-                setTopicOpen(o => !o);
-              }} aria-expanded={topicOpen}>
+              <button
+                className="qb-select-btn qb-topic-select-btn"
+                type="button"
+                onClick={() => {
+                  if (!topicOpen && topicRef.current) {
+                    const rect = topicRef.current.getBoundingClientRect();
+                    setTopicDir(window.innerHeight - rect.bottom < 220 ? "up" : "down");
+                  }
+                  setTopicOpen(o => !o);
+                }}
+                aria-expanded={topicOpen}
+                style={{
+                  borderColor: `${currentTopicObj.color}45`,
+                  backgroundColor: `${currentTopicObj.color}14`,
+                }}
+              >
                 <span className="qb-select-btn-lead" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  {TopicIcon && <TopicIcon size={16} style={{ color: currentTopicObj.color, flexShrink: 0 }} />}
-                  <span>{currentTopicObj.label}</span>
+                  <span
+                    className="qb-topic-lead-icon"
+                    style={{ color: currentTopicObj.color, display: "inline-flex", alignItems: "center" }}
+                    aria-hidden="true"
+                  >
+                    {TopicIcon && (
+                      <TopicIcon
+                        size={16}
+                        className="qb-topic-icon"
+                        style={{ color: currentTopicObj.color, flexShrink: 0 }}
+                        data-colored="true"
+                      />
+                    )}
+                  </span>
+                  <span
+                    className="qb-topic-btn-text"
+                    style={{ color: currentTopicObj.color, fontWeight: 600 }}
+                  >
+                    {currentTopicObj.label}
+                  </span>
                 </span>
                 <ChevronDown size={16} className={`qb-select-chevron${topicOpen ? " is-open" : ""}`} />
               </button>
@@ -456,15 +483,47 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
                     <button
                       key={t.id}
                       type="button"
-                      className={`qb-select-item${isSelected ? " on" : ""}`}
+                      className={`qb-select-item qb-topic-select-item${isSelected ? " on" : ""}`}
+                      style={
+                        isSelected
+                          ? {
+                              color: t.color,
+                              backgroundColor: `${t.color}1c`,
+                              borderColor: `${t.color}40`,
+                            }
+                          : undefined
+                      }
                       onClick={() => {
                         setForm(f => ({ ...f, topic: t.id }));
                         setTopicOpen(false);
                       }}
                     >
-                      {Icon && <Icon size={15} style={{ color: t.color, flexShrink: 0 }} />}
-                      <span className="qb-select-item-label">{t.label}</span>
-                      {isSelected && <Check size={14} className="qb-select-item-check" />}
+                      {Icon && (
+                        <span
+                          className="qb-topic-icon-wrap"
+                          style={{ color: t.color, display: "inline-flex", alignItems: "center" }}
+                        >
+                          <Icon
+                            size={15}
+                            className="qb-topic-icon"
+                            style={{ color: t.color, flexShrink: 0 }}
+                            data-colored="true"
+                          />
+                        </span>
+                      )}
+                      <span
+                        className="qb-select-item-label"
+                        style={isSelected ? { color: t.color, fontWeight: 700 } : undefined}
+                      >
+                        {t.label}
+                      </span>
+                      {isSelected && (
+                        <Check
+                          size={14}
+                          className="qb-select-item-check"
+                          style={{ color: t.color }}
+                        />
+                      )}
                     </button>
                   );
                 })}

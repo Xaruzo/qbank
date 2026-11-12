@@ -20,24 +20,80 @@ import MarkdownText from "./MarkdownText";
 import usePlainTextCopy from "../../utils/usePlainTextCopy";
 import type { QuestionListProps, TopicDef } from "../../types";
 
-const renderSortIcon = (val: string, size = 13) => {
+export const SORT_CONFIG: Record<
+  string,
+  { label: string; color: string; bg: string; iconClass: string }
+> = {
+  favorites: {
+    label: "Favorites First",
+    color: "#f59e0b",
+    bg: "rgba(245, 158, 11, 0.15)",
+    iconClass: "qb-sort-icon-favorites",
+  },
+  newest: {
+    label: "Newest First",
+    color: "#38bdf8",
+    bg: "rgba(56, 189, 248, 0.15)",
+    iconClass: "qb-sort-icon-newest",
+  },
+  oldest: {
+    label: "Oldest First",
+    color: "#a78bfa",
+    bg: "rgba(167, 139, 250, 0.15)",
+    iconClass: "qb-sort-icon-oldest",
+  },
+  "label-a-z": {
+    label: "Problem Label A-Z",
+    color: "#34d399",
+    bg: "rgba(52, 211, 153, 0.15)",
+    iconClass: "qb-sort-icon-label-a-z",
+  },
+  "label-z-a": {
+    label: "Problem Label Z-A",
+    color: "#2dd4bf",
+    bg: "rgba(45, 212, 191, 0.15)",
+    iconClass: "qb-sort-icon-label-z-a",
+  },
+  "a-z": {
+    label: "Question A-Z",
+    color: "#fb923c",
+    bg: "rgba(251, 146, 60, 0.15)",
+    iconClass: "qb-sort-icon-a-z",
+  },
+  "z-a": {
+    label: "Question Z-A",
+    color: "#f43f5e",
+    bg: "rgba(244, 63, 94, 0.15)",
+    iconClass: "qb-sort-icon-z-a",
+  },
+};
+
+const renderSortIcon = (val: string, size = 14) => {
+  const meta = SORT_CONFIG[val] || { color: "#38bdf8", iconClass: "qb-sort-icon-newest" };
+  const commonProps = {
+    size,
+    className: `qb-sort-icon ${meta.iconClass}`,
+    style: { color: meta.color },
+    "data-colored": "true",
+  };
+
   switch (val) {
     case "favorites":
-      return <Star size={size} className="qb-sort-star-icon" fill="currentColor" />;
+      return <Star {...commonProps} fill="currentColor" />;
     case "newest":
-      return <Clock size={size} />;
+      return <Clock {...commonProps} />;
     case "oldest":
-      return <History size={size} />;
+      return <History {...commonProps} />;
     case "label-a-z":
-      return <ArrowDownAZ size={size} />;
+      return <ArrowDownAZ {...commonProps} />;
     case "label-z-a":
-      return <ArrowUpZA size={size} />;
+      return <ArrowUpZA {...commonProps} />;
     case "a-z":
-      return <SortAsc size={size} />;
+      return <SortAsc {...commonProps} />;
     case "z-a":
-      return <SortDesc size={size} />;
+      return <SortDesc {...commonProps} />;
     default:
-      return <ArrowUpDown size={size} />;
+      return <ArrowUpDown {...commonProps} />;
   }
 };
 
@@ -123,7 +179,7 @@ export default function QuestionList({
             </span>
             <div className="qb-select" ref={sortRef} data-dir={sortDir} data-open={sortOpen}>
               <button
-                className="qb-select-btn"
+                className="qb-select-btn qb-sort-select-btn"
                 type="button"
                 onClick={() => {
                   if (!sortOpen && sortRef.current) {
@@ -133,32 +189,64 @@ export default function QuestionList({
                   setSortOpen((o) => !o);
                 }}
                 aria-expanded={sortOpen}
+                style={
+                  sortBy === "favorites"
+                    ? { borderColor: "rgba(245, 158, 11, 0.35)", backgroundColor: "rgba(245, 158, 11, 0.08)" }
+                    : undefined
+                }
               >
                 <span className="qb-select-btn-lead">
-                  {renderSortIcon(sortBy, 14)}
-                  <span className="qb-select-btn-text">
-                    {SORT_OPTIONS.find((o: { value: string; label: string }) => o.value === sortBy)?.label || "Sort"}
+                  <span
+                    className="qb-select-lead-icon qb-sort-item-icon-wrap"
+                    style={{ color: (SORT_CONFIG[sortBy] || { color: "#f59e0b" }).color }}
+                    aria-hidden="true"
+                  >
+                    {renderSortIcon(sortBy, 14)}
+                  </span>
+                  <span
+                    className="qb-select-btn-text"
+                    style={sortBy === "favorites" ? { color: "#f59e0b", fontWeight: 600 } : undefined}
+                  >
+                    {SORT_CONFIG[sortBy]?.label || SORT_OPTIONS.find((o: { value: string; label: string }) => o.value === sortBy)?.label || "Sort"}
                   </span>
                 </span>
                 <ChevronDown size={15} className={`qb-select-chevron${sortOpen ? " is-open" : ""}`} />
               </button>
               <div className={`qb-select-menu${sortOpen ? " open" : ""}`}>
-                {SORT_OPTIONS.map((option: { value: string; label: string }) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    className={`qb-select-item${sortBy === option.value ? " on" : ""}`}
-                    onClick={() => {
-                      onSortChange(option.value);
-                      setSortOpen(false);
-                    }}
-                  >
-                    <span className="qb-select-item-icon-wrap" aria-hidden="true">
-                      {renderSortIcon(option.value, 13)}
-                    </span>
-                    <span className="qb-select-item-label">{option.label}</span>
-                  </button>
-                ))}
+                {SORT_OPTIONS.map((option: { value: string; label: string }) => {
+                  const meta = SORT_CONFIG[option.value] || { color: "var(--text-muted)", bg: "transparent" };
+                  const isSelected = sortBy === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={`qb-select-item qb-sort-select-item${isSelected ? " on" : ""}`}
+                      style={
+                        isSelected
+                          ? { color: meta.color, backgroundColor: meta.bg }
+                          : undefined
+                      }
+                      onClick={() => {
+                        onSortChange(option.value);
+                        setSortOpen(false);
+                      }}
+                    >
+                      <span
+                        className="qb-select-item-icon-wrap qb-sort-item-icon-wrap"
+                        style={{ color: meta.color }}
+                        aria-hidden="true"
+                      >
+                        {renderSortIcon(option.value, 14)}
+                      </span>
+                      <span
+                        className="qb-select-item-label"
+                        style={isSelected ? { color: meta.color, fontWeight: 600 } : undefined}
+                      >
+                        {option.label}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>

@@ -43,22 +43,50 @@ const SORT_OPTIONS: SelectOption[] = [
   {
     value: "newest",
     label: "Recently Updated",
-    icon: <Clock size={13} className="qb-notes-sort-icon" />,
+    icon: (
+      <Clock
+        size={13}
+        className="qb-sort-icon qb-sort-icon-newest"
+        style={{ color: "#38bdf8" }}
+        data-colored="true"
+      />
+    ),
   },
   {
     value: "oldest",
     label: "Oldest First",
-    icon: <History size={13} className="qb-notes-sort-icon" />,
+    icon: (
+      <History
+        size={13}
+        className="qb-sort-icon qb-sort-icon-oldest"
+        style={{ color: "#a78bfa" }}
+        data-colored="true"
+      />
+    ),
   },
   {
     value: "title-az",
     label: "Title (A - Z)",
-    icon: <ArrowDownAZ size={13} className="qb-notes-sort-icon" />,
+    icon: (
+      <ArrowDownAZ
+        size={13}
+        className="qb-sort-icon qb-sort-icon-label-a-z"
+        style={{ color: "#34d399" }}
+        data-colored="true"
+      />
+    ),
   },
   {
     value: "title-za",
     label: "Title (Z - A)",
-    icon: <ArrowUpZA size={13} className="qb-notes-sort-icon" />,
+    icon: (
+      <ArrowUpZA
+        size={13}
+        className="qb-sort-icon qb-sort-icon-label-z-a"
+        style={{ color: "#2dd4bf" }}
+        data-colored="true"
+      />
+    ),
   },
 ];
 
