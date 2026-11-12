@@ -4,6 +4,26 @@ import react from '@vitejs/plugin-react'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    dedupe: ['react', 'react-dom'],
+  },
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'react-dom/client',
+      'fabric',
+      'katex',
+      'lucide-react',
+      '@supabase/supabase-js',
+      'react-markdown',
+      'remark-gfm',
+      'remark-math',
+      'remark-breaks',
+      'rehype-katex',
+      'three',
+    ],
+  },
   test: {
     environment: 'node',
     include: ['tests/**/*.test.{js,ts}'],

@@ -9,7 +9,8 @@ import {
   ChevronLeft, ChevronDown, Pencil, Image, Loader,
   Trash2, Maximize2, Minimize2, Sparkles, Layers, X, Check, PenTool, ArrowLeft,
   Calculator, BookOpen, Globe, BrainCircuit, ClipboardList, AlertTriangle, RotateCcw,
-  Tag, Save, Plus, CheckCircle2, AlertCircle
+  Tag, Save, Plus, CheckCircle2, AlertCircle,
+  ListOrdered, Lightbulb, HelpCircle, SlidersHorizontal, BarChart2
 } from "lucide-react";
 
 const TOPIC_ICON_MAP: Record<string, typeof Calculator> = {
@@ -25,28 +26,41 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
   const [tempDraw, setTempDraw] = useState(initialData?.solutionDraw || null);
   const [modalLayersHostEl, setModalLayersHostEl] = useState<HTMLDivElement | null>(null);
   const [showModalLayers, setShowModalLayers] = useState(true);
-  const [form, setForm] = useState(initialData ? {
-    ...initialData,
-    label: typeof initialData.label === "string" ? initialData.label : "",
-    solutionUpload: (initialData.solutionDraw && typeof initialData.solutionDraw === "string" && initialData.solutionDraw.startsWith("data:image"))
-      ? initialData.solutionDraw
-      : initialData.solutionUpload || null,
-  } : {
-    question: "",
-    choices: ["", "", "", ""],
-    correct: 0,
-    solution: "",
-    solutionDraw: null,
-    solutionUpload: null,
-    topic: "numerical",
-    label: "",
+  const [form, setForm] = useState(() => {
+    if (!initialData) {
+      return {
+        question: "",
+        choices: ["", "", "", ""],
+        correct: 0,
+        solution: "",
+        solutionDraw: null,
+        solutionUpload: null,
+        topic: "numerical",
+        label: "",
+      };
+    }
+    const rawChoices = Array.isArray(initialData.choices) ? initialData.choices : [];
+    const choices = rawChoices.map((c: any) => typeof c === "string" ? c : String(c ?? ""));
+    while (choices.length < 4) choices.push("");
+    const isDataUrl = typeof initialData.solutionDraw === "string" && initialData.solutionDraw.startsWith("data:image");
+    return {
+      ...initialData,
+      question: typeof initialData.question === "string" ? initialData.question : "",
+      choices,
+      correct: typeof initialData.correct === "number" ? initialData.correct : 0,
+      solution: typeof initialData.solution === "string" ? initialData.solution : "",
+      topic: initialData.topic || "numerical",
+      label: typeof initialData.label === "string" ? initialData.label : "",
+      solutionDraw: initialData.solutionDraw || null,
+      solutionUpload: isDataUrl ? initialData.solutionDraw : (initialData.solutionUpload || null),
+    };
   });
-  const [visualMode, setVisualMode] = useState(
-    form.solutionUpload ? "upload"
-    : form.solutionDraw && typeof form.solutionDraw === "string" && form.solutionDraw.startsWith("data:image") ? "upload"
-    : form.solutionDraw ? "draw"
-    : null
-  );
+  const [visualMode, setVisualMode] = useState(() => {
+    if (initialData?.solutionUpload) return "upload";
+    if (initialData?.solutionDraw && typeof initialData.solutionDraw === "string" && initialData.solutionDraw.startsWith("data:image")) return "upload";
+    if (initialData?.solutionDraw) return "draw";
+    return null;
+  });
   const [confirmRemoveDraw, setConfirmRemoveDraw] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadError, setUploadError] = useState("");
@@ -362,7 +376,10 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
     <div className="qb-editor-rail">
       <div className="qb-editor-side-card qb-editor-side-card-summary">
         <div className="qb-editor-side-card-head">
-          <span className="qb-editor-side-kicker">Editor Summary</span>
+          <span className="qb-editor-side-kicker">
+            <BarChart2 size={13} className="qb-kicker-icon" />
+            <span>Editor Summary</span>
+          </span>
           <div className="qb-editor-side-title">{initialData ? "Refine this question" : "Build this question"}</div>
           <p className="qb-editor-side-copy">
             Keep the main column focused on writing, then use this rail for settings, progress, and final actions.
@@ -402,7 +419,10 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
 
       <div className="qb-editor-side-card">
         <div className="qb-editor-side-card-head">
-          <span className="qb-editor-side-kicker">Question Settings</span>
+          <span className="qb-editor-side-kicker">
+            <SlidersHorizontal size={13} className="qb-kicker-icon" />
+            <span>Question Settings</span>
+          </span>
           <div className="qb-editor-side-title">Topic and label</div>
           <p className="qb-editor-side-copy">
             Keep these supporting controls on the side so the main editing flow stays cleaner.
@@ -410,7 +430,10 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
         </div>
         <div className="qb-editor-side-stack">
           <div>
-            <label className="qb-flabel">Topic</label>
+            <label className="qb-flabel">
+              <Layers size={13} className="qb-flabel-icon" />
+              <span>Topic</span>
+            </label>
             <div className="qb-select" ref={topicRef} data-dir={topicDir} data-open={topicOpen}>
               <button className="qb-select-btn" type="button" onClick={() => {
                 if (!topicOpen && topicRef.current) {
@@ -451,7 +474,8 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
 
           <div>
             <label className="qb-flabel">
-              Label <span className="qb-flabel-sub">(optional)</span>
+              <Tag size={13} className="qb-flabel-icon" />
+              <span>Label</span> <span className="qb-flabel-sub">(optional)</span>
             </label>
             <div>
               {!useCustomLabel ? (
@@ -538,18 +562,18 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
         {error && <p className="qb-editor-side-error">{error}</p>}
         <div className="qb-editor-side-actions">
           <button type="button" className="qb-fcancel" onClick={onCancel}>
-            <X size={14} className="qb-btn-icon" />
+            <X size={19} strokeWidth={2.25} className="qb-btn-icon" />
             <span>Cancel</span>
           </button>
           <button type="button" className="qb-fsave" onClick={handleSave} disabled={!valid}>
             {initialData ? (
               <>
-                <Save size={14} className="qb-btn-icon" />
+                <Save size={19} strokeWidth={2.25} className="qb-btn-icon" />
                 <span>Save Changes</span>
               </>
             ) : (
               <>
-                <Plus size={14} className="qb-btn-icon" />
+                <Plus size={19} strokeWidth={2.25} className="qb-btn-icon" />
                 <span>Add Question</span>
               </>
             )}
@@ -602,7 +626,10 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
       </div>
 
       <div className="qb-fsec">
-        <label className="qb-flabel">Question</label>
+        <label className="qb-flabel">
+          <HelpCircle size={14} className="qb-flabel-icon" />
+          <span>Question</span>
+        </label>
         <textarea ref={questionRef} className="qb-fta" placeholder="Type the question here..." value={form.question}
           onKeyDown={undoKeyHandler("question", null)}
           onDoubleClick={() => trimWordSelection(questionRef.current)}
@@ -621,7 +648,8 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
 
       <div className="qb-fsec">
         <label className="qb-flabel">
-          Choices <span className="qb-flabel-sub">— select radio for correct answer</span>
+          <ListOrdered size={14} className="qb-flabel-icon" />
+          <span>Choices</span> <span className="qb-flabel-sub">— select radio for correct answer</span>
         </label>
         {form.choices.map((c,i) => (
           <div key={i} className={`qb-crow${form.correct===i ? " is-correct" : ""}`}>
@@ -691,7 +719,8 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
 
       <div className="qb-fsec">
         <label className="qb-flabel">
-          Solution / Explanation <span className="qb-flabel-sub">(optional)</span>
+          <Lightbulb size={14} className="qb-flabel-icon" />
+          <span>Solution / Explanation</span> <span className="qb-flabel-sub">(optional)</span>
         </label>
 
         <textarea ref={solutionRef} className="qb-fta" placeholder="Write the step-by-step solution here..." value={form.solution}
@@ -1138,18 +1167,18 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
       {!useSideRail && (
         <div className="qb-factions">
           <button type="button" className="qb-fcancel" onClick={onCancel}>
-            <X size={14} className="qb-btn-icon" />
+            <X size={19} strokeWidth={2.25} className="qb-btn-icon" />
             <span>Cancel</span>
           </button>
           <button type="button" className="qb-fsave" onClick={handleSave} disabled={!valid}>
             {initialData ? (
               <>
-                <Save size={14} className="qb-btn-icon" />
+                <Save size={19} strokeWidth={2.25} className="qb-btn-icon" />
                 <span>Save Changes</span>
               </>
             ) : (
               <>
-                <Plus size={14} className="qb-btn-icon" />
+                <Plus size={19} strokeWidth={2.25} className="qb-btn-icon" />
                 <span>Add Question</span>
               </>
             )}

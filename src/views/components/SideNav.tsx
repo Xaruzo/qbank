@@ -15,7 +15,6 @@ import {
   ChevronsUpDown,
   Moon,
   Sun,
-  Monitor,
   Settings,
   Crown,
   ShieldCheck,
@@ -349,8 +348,10 @@ export default function SideNav({
     if (railBtnRef.current) {
       const rect = railBtnRef.current.getBoundingClientRect();
       const popoverHeight = 350;
+      const popoverWidth = Math.min(320, window.innerWidth - 24);
       const top = Math.max(12, Math.min(window.innerHeight - popoverHeight - 12, rect.bottom - popoverHeight));
-      const left = rect.right + 12;
+      const maxLeft = Math.max(12, window.innerWidth - popoverWidth - 12);
+      const left = Math.min(rect.right + 12, maxLeft);
       setRailCoords({ top, left });
     }
   };
@@ -358,10 +359,14 @@ export default function SideNav({
   const updateExpandedCoords = () => {
     if (popoverRef.current) {
       const rect = popoverRef.current.getBoundingClientRect();
+      const targetWidth = Math.min(320, Math.max(rect.width, 275));
+      const popoverWidth = Math.min(targetWidth, window.innerWidth - 24);
+      const maxLeft = Math.max(12, window.innerWidth - popoverWidth - 12);
+      const left = Math.max(12, Math.min(rect.left, maxLeft));
       setExpandedCoords({
         bottom: Math.max(12, window.innerHeight - rect.top + 8),
-        left: Math.max(12, rect.left),
-        width: 320,
+        left,
+        width: popoverWidth,
       });
     }
   };
@@ -554,58 +559,44 @@ export default function SideNav({
 
         <div className="qb-profile-popover-divider" />
 
-        {/* APPEARANCE Segmented Toggle (Smooth sliding glider animation) */}
+        {/* APPEARANCE Segmented Toggle (Clean 2-way Dark / Light control) */}
         <div className="qb-profile-popover-section">
           <span className="qb-profile-popover-section-label">APPEARANCE</span>
           <div
             className="qb-profile-segmented-appearance"
-            data-theme={activeThemeMode}
-            data-mode={onSetThemeMode ? "ternary" : "binary"}
+            data-theme={isDark ? "dark" : "light"}
+            data-mode="binary"
           >
             <div
-              className={`qb-seg-theme-glider is-${activeThemeMode}`}
+              className={`qb-seg-theme-glider ${isDark ? "is-dark" : "is-light"}`}
               aria-hidden="true"
             />
             <button
               type="button"
-              className={`qb-seg-theme-btn${activeThemeMode === "dark" ? " is-active" : ""}`}
+              className={`qb-seg-theme-btn${isDark ? " is-active" : ""}`}
               onClick={() => {
-                if (activeThemeMode === "dark") return;
+                if (isDark) return;
                 if (onSetThemeMode) onSetThemeMode("dark");
-                else if (!isDark && onToggleTheme) onToggleTheme();
+                else if (onToggleTheme) onToggleTheme();
               }}
-              aria-pressed={activeThemeMode === "dark"}
+              aria-pressed={isDark}
             >
               <Moon size={14} className="qb-seg-theme-icon" />
               <span>Dark</span>
             </button>
             <button
               type="button"
-              className={`qb-seg-theme-btn${activeThemeMode === "light" ? " is-active" : ""}`}
+              className={`qb-seg-theme-btn${!isDark ? " is-active" : ""}`}
               onClick={() => {
-                if (activeThemeMode === "light") return;
+                if (!isDark) return;
                 if (onSetThemeMode) onSetThemeMode("light");
-                else if (isDark && onToggleTheme) onToggleTheme();
+                else if (onToggleTheme) onToggleTheme();
               }}
-              aria-pressed={activeThemeMode === "light"}
+              aria-pressed={!isDark}
             >
               <Sun size={14} className="qb-seg-theme-icon" />
               <span>Light</span>
             </button>
-            {onSetThemeMode && (
-              <button
-                type="button"
-                className={`qb-seg-theme-btn${activeThemeMode === "system" ? " is-active" : ""}`}
-                onClick={() => {
-                  if (activeThemeMode !== "system") onSetThemeMode("system");
-                }}
-                aria-pressed={activeThemeMode === "system"}
-                title="Follow the device appearance"
-              >
-                <Monitor size={14} className="qb-seg-theme-icon" />
-                <span>System</span>
-              </button>
-            )}
           </div>
         </div>
 
@@ -708,6 +699,8 @@ export default function SideNav({
                 bottom: `${expandedCoords.bottom}px`,
                 left: `${expandedCoords.left}px`,
                 width: `${expandedCoords.width}px`,
+                maxWidth: "calc(100vw - 24px)",
+                boxSizing: "border-box",
                 zIndex: 999999,
               }}
             >
@@ -849,7 +842,9 @@ export default function SideNav({
                       position: "fixed",
                       top: `${railCoords.top}px`,
                       left: `${railCoords.left}px`,
-                      width: "320px",
+                      width: `${Math.min(320, typeof window !== "undefined" ? window.innerWidth - 24 : 320)}px`,
+                      maxWidth: "calc(100vw - 24px)",
+                      boxSizing: "border-box",
                       zIndex: 999999,
                     }}
                   >

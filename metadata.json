@@ -1,0 +1,8 @@
+{
+  "name": "CSE QBANK - Civil Service Exam Reviewer",
+  "description": "Free Civil Service Exam reviewer: practice questions with solutions, timed 170-item mock exams, study tips with drawing tools, and progress tracking. Works offline and installs as an app.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

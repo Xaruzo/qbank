@@ -6,9 +6,9 @@ import QuestionList from "./views/components/QuestionList";
 import QuestionDetail from "./views/components/QuestionDetail";
 import SideNav from "./views/components/SideNav";
 
-// Route-level code splitting: heavy screens (drawing editor, mock exam runner,
+import QuestionForm from "./views/components/QuestionForm";
+// Route-level code splitting: heavy screens (mock exam runner,
 // tips with canvas) are fetched on demand so the question bank paints fast.
-const QuestionForm = lazy(() => import("./views/components/QuestionForm"));
 const MockExam = lazy(() => import("./views/components/MockExam"));
 const MockAttemptDetail = lazy(() => import("./views/components/MockAttemptDetail"));
 const MockExamRunner = lazy(() => import("./views/components/MockExamRunner"));
