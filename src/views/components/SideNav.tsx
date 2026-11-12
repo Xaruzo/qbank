@@ -318,8 +318,8 @@ export default function SideNav({
 
   const isSuper = isSuperAdmin || userRole === "superadmin";
   const isAdmin = isQuestionAdmin || userRole === "admin";
-  const rolePillClass = isSuper ? "superadmin" : isAdmin ? "admin" : isAuthenticated ? "pro" : "guest";
-  const rolePillLabel = isSuper ? "SUPERADMIN" : isAdmin ? "ADMIN" : isAuthenticated ? "REVIEWER" : "GUEST";
+  const rolePillClass = isSuper ? "superadmin" : isAdmin ? "admin" : "pro";
+  const rolePillLabel = isSuper ? "SUPERADMIN" : isAdmin ? "ADMIN" : "REVIEWER";
   const activeThemeMode = themeMode ?? (isDark ? "dark" : "light");
 
   useOverlayDialogA11y(variant === "overlay" && open, onClose, cardRef);
@@ -535,18 +535,16 @@ export default function SideNav({
           <div className="qb-profile-popover-user-meta">
             <div className="qb-profile-popover-name-row">
               <span className="qb-profile-popover-name">
-                {profile?.fullName || (isAuthenticated ? "Reviewer" : "Practice as Guest")}
+                {profile?.fullName || "Reviewer"}
               </span>
               {isQuestionAdmin ? (
                 <span className="qb-popover-role-pill admin">ADMIN</span>
-              ) : isAuthenticated ? (
-                <span className="qb-popover-role-pill pro">REVIEWER</span>
               ) : (
-                <span className="qb-popover-role-pill guest">GUEST</span>
+                <span className="qb-popover-role-pill pro">REVIEWER</span>
               )}
             </div>
             <span className="qb-profile-popover-email">
-              {profile?.email || (isAuthenticated ? "Online Account" : "Offline local")}
+              {profile?.email || (isAuthenticated ? "Online Account" : "Local Workspace")}
             </span>
             <div className="qb-profile-popover-persona-line">
               <span className="persona-label">Persona:</span>
@@ -728,15 +726,15 @@ export default function SideNav({
                 <UserCircle2 size={20} />
               )}
             </div>
-            <span className={`qb-profile-online-dot${isAuthenticated ? " online" : " guest"}`} />
+            <span className={`qb-profile-online-dot${isAuthenticated ? " online" : ""}`} />
           </div>
 
           <div className="qb-profile-trigger-meta">
             <span className="qb-profile-trigger-name">
-              {profile?.fullName || (isAuthenticated ? "Reviewer" : "Practice as Guest")}
+              {profile?.fullName || "Reviewer"}
             </span>
             <span className="qb-profile-trigger-email">
-              {profile?.email || (isAuthenticated ? "Online Account" : "Offline mode")}
+              {profile?.email || (isAuthenticated ? "Online Account" : "Local Workspace")}
             </span>
           </div>
 
@@ -806,7 +804,7 @@ export default function SideNav({
                   type="button"
                   className={`qb-rail-profile-btn${profileMenuOpen ? " is-active" : ""}`}
                   onClick={() => setProfileMenuOpen((prev) => !prev)}
-                  title={`${profile?.fullName || (isAuthenticated ? "Reviewer profile" : "Guest profile")} • ${rolePillLabel}`}
+                  title={`${profile?.fullName || "Reviewer profile"} • ${rolePillLabel}`}
                   aria-label="Profile menu"
                   aria-expanded={profileMenuOpen}
                 >
@@ -830,7 +828,7 @@ export default function SideNav({
                         <ShieldCheck size={9} />
                       </span>
                     ) : null}
-                    <span className={`qb-profile-online-dot${isAuthenticated ? " online" : " guest"}`} />
+                    <span className={`qb-profile-online-dot${isAuthenticated ? " online" : ""}`} />
                   </div>
                 </button>
 

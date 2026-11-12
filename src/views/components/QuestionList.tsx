@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import MarkdownText from "./MarkdownText";
 import usePlainTextCopy from "../../utils/usePlainTextCopy";
+import ModernAddIcon from "./ModernAddIcon";
 import type { QuestionListProps, TopicDef } from "../../types";
 
 export const SORT_CONFIG: Record<
@@ -119,6 +120,23 @@ export default function QuestionList({
   const copyAreaRef = useRef<HTMLElement>(null);
   usePlainTextCopy(copyAreaRef);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const metaBarRef = useRef<HTMLDivElement>(null);
+  const [showFloatingAdd, setShowFloatingAdd] = useState(false);
+
+  // Monitor when meta bar scrolls out of view to gracefully reveal floating docked action
+  useEffect(() => {
+    if (!canManageQuestions || !onAddQuestion) return;
+    const target = metaBarRef.current;
+    if (!target) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setShowFloatingAdd(!entry.isIntersecting && entry.boundingClientRect.top < 0);
+      },
+      { threshold: 0 }
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [canManageQuestions, onAddQuestion]);
 
   // Reset pagination on filter/sort/search intent (resetKey change)
   useEffect(() => {
@@ -150,7 +168,7 @@ export default function QuestionList({
 
   return (
     <section className="qb-question-section" ref={copyAreaRef} id="qb-question-feed">
-      <div className="qb-list-meta">
+      <div className="qb-list-meta" ref={metaBarRef}>
         <div className="qb-list-meta-header-row">
           <div className="qb-list-meta-left">
             <span className="qb-list-label">Question Feed</span>
@@ -163,10 +181,11 @@ export default function QuestionList({
           {canManageQuestions && onAddQuestion && (
             <button
               type="button"
-              className="qb-add-btn qb-list-add-btn"
+              className="qb-add-btn qb-list-add-btn qb-docked-add-btn"
               onClick={onAddQuestion}
+              title="Add Question to Reviewer Bank"
             >
-              <Plus size={15} className="qb-add-btn-icon" />
+              <ModernAddIcon size={16} className="qb-add-btn-icon" />
               <span className="qb-add-btn-text">Add Question</span>
             </button>
           )}
@@ -356,6 +375,19 @@ export default function QuestionList({
             Show more (<span className="tabular-nums">{questions.length - visibleCount}</span> remaining)
           </button>
         </div>
+      )}
+
+      {canManageQuestions && onAddQuestion && (
+        <button
+          type="button"
+          className={`qb-floating-docked-add-btn${showFloatingAdd ? " is-visible" : ""}`}
+          onClick={onAddQuestion}
+          title="Add Question (docked action)"
+          aria-label="Add Question to Reviewer Bank"
+        >
+          <ModernAddIcon size={18} className="qb-floating-add-icon" />
+          <span className="qb-floating-add-text">Add Question</span>
+        </button>
       )}
     </section>
   );

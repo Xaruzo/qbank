@@ -141,7 +141,8 @@ const getStoredUserProfile = (userId: string) => {
 };
 
 const getGuestProfileDetails = (guestProfile: any) => {
-  const fullName = guestProfile?.fullName || "Practice as Guest";
+  const rawName = guestProfile?.fullName;
+  const fullName = (!rawName || rawName === "Practice as Guest") ? "Reviewer" : rawName;
   const avatarUrl = guestProfile?.avatarUrl ?? null;
   const initials =
     fullName
@@ -149,7 +150,7 @@ const getGuestProfileDetails = (guestProfile: any) => {
       .filter(Boolean)
       .slice(0, 2)
       .map((part: string) => part[0]?.toUpperCase() || "")
-      .join("") || "PG";
+      .join("") || "RV";
 
   return {
     fullName,

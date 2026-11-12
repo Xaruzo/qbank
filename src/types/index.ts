@@ -278,7 +278,7 @@ export interface LandingPageProps {
   onToggleTheme: () => void;
   onStartReview: () => void;
   onSignIn: () => void;
-  onExploreGuest: () => void;
+  onExploreGuest?: () => void;
   onStartMock?: (presetId?: "professional" | "subprofessional") => void;
   onNavigateToTips?: () => void;
   totalQuestions?: number;
@@ -291,7 +291,7 @@ export interface SignInPageProps {
   onToggleTheme: () => void;
   onBackToLanding: () => void;
   onSuccessLogin: () => void;
-  onContinueAsGuest: () => void;
+  onContinueAsGuest?: () => void;
   onSignInWithEmail: (
     email: string,
     password?: string,

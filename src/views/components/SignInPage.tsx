@@ -14,7 +14,6 @@ import {
   Sparkles,
   Award,
   Zap,
-  UserCheck,
   Home,
   ClipboardList,
   BookOpen,
@@ -709,17 +708,8 @@ export default function SignInPage({
                 </>
               )}
 
-              {/* Guest & Security footnote */}
+              {/* Security footnote */}
               <div className="qb-signin-footer-box">
-                <button
-                  type="button"
-                  className="qb-signin-footer-guest"
-                  onClick={onContinueAsGuest}
-                >
-                  <UserCheck size={15} />
-                  <span>Practice as Guest (No login required)</span>
-                </button>
-
                 <div className="qb-signin-security-note">
                   <ShieldCheck size={14} />
                   <span>Direct browser local storage with secure cloud sync enabled.</span>
@@ -761,19 +751,19 @@ export default function SignInPage({
                 <Compass size={14} />
                 <span>Exam Overview</span>
               </button>
-              <button type="button" className="qb-signin-pfooter-link" onClick={onGoHome || onContinueAsGuest}>
+              <button type="button" className="qb-signin-pfooter-link" onClick={onGoHome || onBackToLanding}>
                 <Home size={14} />
                 <span>Question Bank</span>
               </button>
-              <button type="button" className="qb-signin-pfooter-link" onClick={onGoMockExam || onContinueAsGuest}>
+              <button type="button" className="qb-signin-pfooter-link" onClick={onGoMockExam || onBackToLanding}>
                 <ClipboardList size={14} />
                 <span>Timed Mock Exam (170/165 Items)</span>
               </button>
-              <button type="button" className="qb-signin-pfooter-link" onClick={onGoNotes || onContinueAsGuest}>
+              <button type="button" className="qb-signin-pfooter-link" onClick={onGoNotes || onBackToLanding}>
                 <BookOpen size={14} />
                 <span>Study Notes & Scratchpad</span>
               </button>
-              <button type="button" className="qb-signin-pfooter-link" onClick={onGoTips || onContinueAsGuest}>
+              <button type="button" className="qb-signin-pfooter-link" onClick={onGoTips || onBackToLanding}>
                 <Lightbulb size={14} />
                 <span>Tips & Tricks</span>
               </button>

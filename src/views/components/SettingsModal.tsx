@@ -472,7 +472,7 @@ export default function SettingsModal({
                     </div>
                   </div>
                   <span className="qb-settings-preview-sub">
-                    {isAuthenticated ? profile?.email || "Signed In" : "Local Reviewer Profile (Guest)"}
+                    {isAuthenticated ? profile?.email || "Signed In" : "Local Reviewer Profile"}
                   </span>
 
                   {/* Photo Actions Row */}

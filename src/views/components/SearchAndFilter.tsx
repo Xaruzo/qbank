@@ -43,7 +43,10 @@ export default function SearchAndFilter({
   onFavoriteOnlyChange,
   onResetFilters,
 }: SearchAndFilterProps) {
-  const getTopicColor = (id: string) => TOPICS.find((t: TopicDef) => t.id === id)?.color || "inherit";
+  const getTopicColor = (id: string) => {
+    if (id === "all") return "#f5a623";
+    return TOPICS.find((t: TopicDef) => t.id === id)?.color || "#f5a623";
+  };
   const hasActiveFilters = Boolean(search.trim() || topicFilter !== "all" || labelFilter !== "all" || favoriteOnly);
   const activeFiltersCount = [
     search.trim(),
@@ -218,17 +221,23 @@ export default function SearchAndFilter({
                 key={p.id}
                 role="tab"
                 aria-selected={isSelected}
-                className={`qb-pill${isSelected ? " on" : ""}`}
-                style={isSelected && p.id !== "all" ? { borderColor: `${topicCol}66`, color: topicCol } : {}}
+                className={`qb-pill qb-topic-pill topic-${p.id}${isSelected ? " on" : ""}`}
+                style={{
+                  "--topic-color": topicCol,
+                  "--topic-color-subtle": `${topicCol}16`,
+                  "--topic-color-border": `${topicCol}45`,
+                  "--topic-color-hover-bg": `${topicCol}2c`,
+                  "--topic-color-hover-border": `${topicCol}a0`,
+                  "--topic-color-glow": `${topicCol}55`,
+                } as React.CSSProperties}
                 onClick={() => onTopicChange(p.id as TopicId | "all")}
               >
                 <Icon
                   size={14}
                   className="qb-topic-pill-icon"
-                  style={{ color: p.id === "all" ? (isSelected ? "inherit" : "var(--text-muted)") : topicCol }}
                   aria-hidden="true"
                 />
-                <span>{p.label}</span>
+                <span className="qb-topic-pill-label">{p.label}</span>
                 <span className="qb-pill-count tabular-nums">{p.count}</span>
               </button>
             );

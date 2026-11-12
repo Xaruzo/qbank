@@ -152,7 +152,7 @@ export default function SettingsPage({
 
   // Form State
   const [fullName, setFullName] = useState(profile?.fullName || "");
-  const [email] = useState(profile?.email || (isAuthenticated ? "examinee@gmail.com" : "guest@offline.local"));
+  const [email] = useState(profile?.email || (isAuthenticated ? "examinee@gmail.com" : "reviewer@offline.local"));
   const [avatarUrl, setAvatarUrl] = useState<string | null>(profile?.avatarUrl || null);
   const [avatarShape, setAvatarShape] = useState<"circle" | "badge">(profile?.avatarShape || "circle");
   const [selectedColor, setSelectedColor] = useState<string>(profile?.avatarColor || "amber");
@@ -606,7 +606,7 @@ export default function SettingsPage({
               <AvatarStudio
                 fullName={fullName}
                 email={email}
-                roleLabel={isQuestionAdmin ? "ADMIN" : isAuthenticated ? "EXAMINEE" : "GUEST"}
+                roleLabel={isQuestionAdmin ? "ADMIN" : isAuthenticated ? "EXAMINEE" : "REVIEWER"}
                 avatarUrl={avatarUrl}
                 avatarShape={avatarShape}
                 savedAvatarUrl={profile?.avatarUrl || null}

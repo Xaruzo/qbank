@@ -108,7 +108,7 @@ export default function Header({
           <UserCircle2 size={18} strokeWidth={1.8} />
         )}
       </div>
-      <span className={`qb-profile-online-dot${isAuthenticated ? " online" : " guest"}`} />
+      <span className={`qb-profile-online-dot${isAuthenticated ? " online" : ""}`} />
     </div>
   );
 
@@ -201,7 +201,7 @@ export default function Header({
               title="Auth is not configured. Click to configure settings."
             >
               <UserCircle2 size={16} />
-              <span>Guest Mode</span>
+              <span>Local Profile</span>
             </button>
           ) : isAuthenticated ? (
             <div className="qb-account-wrap" ref={menuRef}>
