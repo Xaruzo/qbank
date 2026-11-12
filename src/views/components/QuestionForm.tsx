@@ -1029,7 +1029,7 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
 
               <button
                 type="button"
-                className={`qb-draw-studio-tool-btn${isBrowserFs ? " is-active" : ""}`}
+                className={`qb-draw-studio-tool-btn qb-draw-studio-tool-fs${isBrowserFs ? " is-active" : ""}`}
                 onClick={toggleBrowserFullscreen}
                 title={isBrowserFs ? "Exit Window Fullscreen" : "Window Fullscreen"}
               >
@@ -1072,6 +1072,15 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
                 value={tempDraw}
                 onChange={handleDrawChange}
                 layersHost={showModalLayers ? modalLayersHostEl : null}
+                questionContext={{
+                  question: form.question,
+                  solution: form.solution,
+                  choices: form.choices,
+                  correct: form.correct,
+                  topic: form.topic,
+                  topicLabel: topicLabel,
+                  label: form.label,
+                }}
               />
             </div>
 

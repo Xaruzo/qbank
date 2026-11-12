@@ -57,8 +57,10 @@ import {
   Triangle,
   GitBranch,
   RotateCw,
-  Play
+  Play,
+  ScanEye,
 } from "lucide-react";
+import SolutionSizeEstimatorModal from "./SolutionSizeEstimatorModal";
 
 import {
   CANVA_FONTS,
@@ -277,7 +279,7 @@ const isObjectHitByEraser = (obj, px, py, r) => {
   return false;
 };
 
-export default function DrawCanvas({ value, onChange, layersHost }) {
+export default function DrawCanvas({ value, onChange, layersHost, questionContext }) {
   const containerRef = useRef(null);
   const boardRef = useRef(null);
   const menuHostRef = useRef(null);
@@ -336,6 +338,32 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
   const [toastMsg, setToastMsg] = useState("");
   const toastTimer = useRef(null);
   const stickyNoteMenuRef = useRef(null);
+  const [showSolEstimator, setShowSolEstimator] = useState(false);
+  const [estimatorSnapshot, setEstimatorSnapshot] = useState(null);
+  const [showSafeBounds, setShowSafeBounds] = useState(false);
+
+  const openSolutionEstimator = useCallback(() => {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    try {
+      const prevBg = canvas.backgroundColor;
+      const prevActive = canvas.getActiveObject();
+      if (prevActive) canvas.discardActiveObject();
+      canvas.backgroundColor = "#ffffff";
+      canvas.renderAll();
+      const currentWidth = typeof canvas.getWidth === "function" ? canvas.getWidth() : BASE_W;
+      const multiplier = Math.min(2.5, Math.max(2, (BASE_W / (currentWidth || BASE_W)) * 2));
+      const url = canvas.toDataURL({ format: "png", quality: 0.85, multiplier });
+      canvas.backgroundColor = prevBg;
+      if (prevActive) canvas.setActiveObject(prevActive);
+      canvas.renderAll();
+      setEstimatorSnapshot(url);
+      setShowSolEstimator(true);
+    } catch (err) {
+      console.warn("Could not capture snapshot for solution estimator:", err);
+      setShowSolEstimator(true);
+    }
+  }, []);
 
   const closeAllToolbarMenus = useCallback(() => {
     setStickyNoteMenuOpen(false);
@@ -6351,6 +6379,17 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
             >
               - Height
             </button>
+            <div className="draw-bar-subdivider" />
+            <button
+              type="button"
+              className={`draw-tb draw-sol-est-btn${showSolEstimator ? " draw-on" : ""}`}
+              onClick={openSolutionEstimator}
+              title="Estimate Solution Display Size & Resolution (Simulates how this diagram renders on the question)"
+              style={{ gap: 5, padding: "0 8px", fontSize: 11, fontWeight: 700, color: "#f59e0b" }}
+            >
+              <ScanEye size={14} />
+              <span style={{ whiteSpace: "nowrap" }}>Solution Preview</span>
+            </button>
             {(!isMobile && narrow) && (
               <>
                 <div className="qb-draw-layers-divider draw-bar-subdivider" />
@@ -7110,8 +7149,42 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
           display: "flex", justifyContent: "center", alignItems: "flex-start",
           touchAction: "none"
         }} className={`draw-board-shell ${gridMode !== "none" ? `draw-grid-${gridMode}` : ""}`} ref={boardRef}>
-          <div style={{ boxShadow: "0 18px 38px rgba(15,23,42,0.12)", width: "fit-content", margin: 0, borderRadius: 16, overflow: "hidden" }}>
+          <div style={{ boxShadow: "0 18px 38px rgba(15,23,42,0.12)", width: "fit-content", margin: 0, borderRadius: 16, overflow: "hidden", position: "relative" }}>
             <div className={`draw-canvas-host ${gridMode !== "none" ? `draw-grid-${gridMode}` : ""}`} ref={canvasHostRef} />
+            {showSafeBounds && (
+              <div
+                className="draw-safe-bounds-overlay"
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: Math.min(580, height),
+                  border: "2px dashed rgba(245, 158, 11, 0.65)",
+                  pointerEvents: "none",
+                  zIndex: 2,
+                  boxSizing: "border-box",
+                }}
+              >
+                <span
+                  style={{
+                    position: "absolute",
+                    bottom: 8,
+                    right: 8,
+                    background: "rgba(15, 23, 42, 0.85)",
+                    color: "#fde68a",
+                    fontSize: 10,
+                    fontWeight: 700,
+                    padding: "3px 8px",
+                    borderRadius: 6,
+                    border: "1px solid rgba(245, 158, 11, 0.4)",
+                    pointerEvents: "none",
+                  }}
+                >
+                  Standard Solution Viewport (Fold: 820 × 580px)
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -7125,9 +7198,43 @@ export default function DrawCanvas({ value, onChange, layersHost }) {
         )}
       </div>
 
-      <p style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 8, textAlign: "right", fontStyle: "italic" }}>
+      <div className="draw-canvas-footer-bar">
+        <div className="draw-status-pill">
+          <span className="draw-status-dot" />
+          <span>Canvas: <strong className="tabular-nums">{BASE_W}×{height}px</strong></span>
+          <span className="draw-status-divider">·</span>
+          <span>Retina 2×: <strong className="tabular-nums">{BASE_W * 2}×{height * 2}px</strong></span>
+          <span className="draw-status-divider">·</span>
+          <span>Solution Card: <strong>~680px width</strong></span>
+        </div>
+
+        <button
+          type="button"
+          className="draw-status-preview-trigger"
+          onClick={openSolutionEstimator}
+          title="Estimate display size and view simulation on question card"
+        >
+          <ScanEye size={13} />
+          <span>Estimate Size on Solution</span>
+        </button>
+      </div>
+
+      <p style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 6, textAlign: "right", fontStyle: "italic" }}>
         Canva Mode: [Del] deletes, Arrow keys nudge (Alt+Arrows align), [M] toggles magnet snap, [G] toggles grid, [Ctrl+D] duplicates, Double-click text to edit.
       </p>
+
+      <SolutionSizeEstimatorModal
+        isOpen={showSolEstimator}
+        onClose={() => setShowSolEstimator(false)}
+        imageSrc={estimatorSnapshot}
+        canvasWidth={BASE_W}
+        canvasHeight={height}
+        exportMultiplier={2}
+        questionContext={questionContext}
+        showSafeBounds={showSafeBounds}
+        onToggleSafeBounds={setShowSafeBounds}
+        onAdjustHeight={bumpBoardHeight}
+      />
     </div>
   );
 }
