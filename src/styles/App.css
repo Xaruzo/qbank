@@ -7351,24 +7351,18 @@ body.light .qb-cradio:hover:not(:checked) {
   }
   .qb-pills {
     display: flex !important;
-    flex-wrap: nowrap !important;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    padding-bottom: 4px !important;
+    flex-wrap: wrap !important;
+    overflow: visible !important;
     margin-bottom: 0 !important;
-    gap: 8px !important;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-  .qb-pills::-webkit-scrollbar {
-    display: none;
+    gap: 8px 10px !important;
+    align-items: center !important;
+    width: 100% !important;
   }
   .qb-pill.qb-topic-pill {
-    flex-shrink: 0 !important;
+    flex: 0 0 auto !important;
     white-space: nowrap !important;
-    font-size: 11.5px !important;
-    padding: 6px 12px !important;
+    font-size: 12px !important;
+    padding: 6.5px 13px !important;
   }
   .qb-list-meta-tips {
     grid-template-columns:minmax(0, 1fr);
