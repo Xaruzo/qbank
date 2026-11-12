@@ -279,7 +279,7 @@ const isObjectHitByEraser = (obj, px, py, r) => {
   return false;
 };
 
-export default function DrawCanvas({ value, onChange, layersHost, questionContext }) {
+export default function DrawCanvas({ value, onChange, layersHost, isStudioModal = false, questionContext }) {
   const containerRef = useRef(null);
   const boardRef = useRef(null);
   const menuHostRef = useRef(null);
@@ -5500,7 +5500,8 @@ export default function DrawCanvas({ value, onChange, layersHost, questionContex
   const activeTextAlign = (activeObj?.textAlign || "left");
   const boardHeight = Math.max(MIN_H, Math.min(height, MAX_H));
   const useExternalLayers = !!layersHost;
-  const narrow = useExternalLayers ? false : isNarrow;
+  const hideInternalLayersBtn = isStudioModal || useExternalLayers;
+  const narrow = hideInternalLayersBtn ? false : isNarrow;
   const activeCanvasObj = fabricRef.current?.getActiveObject?.() || null;
   const selectionCount = (fabricRef.current?.getActiveObjects?.() || []).filter(o => o && !o.isGuide).length;
   const canAlign = selectionCount > 0;
@@ -6142,7 +6143,7 @@ export default function DrawCanvas({ value, onChange, layersHost, questionContex
         {/* Row 2: Styling, Alignment, View & History */}
         <div className="draw-bar-row">
           {/* Color & Stroke */}
-          <div className="draw-bar-group draw-popover-anchor" ref={colorPickerRef}>
+          <div className="draw-bar-group draw-bar-group-color draw-popover-anchor" ref={colorPickerRef}>
             {COLORS.map((c, idx) => (
               <div
                 key={c}
@@ -6232,7 +6233,7 @@ export default function DrawCanvas({ value, onChange, layersHost, questionContex
           </div>
 
           {/* Arrange & Align */}
-          <div className="draw-bar-group">
+          <div className="draw-bar-group draw-bar-group-arrange">
             <button className="draw-tb" onClick={moveForward} title="Bring Forward">
               <ChevronUp size={15} />
             </button>
@@ -6321,7 +6322,7 @@ export default function DrawCanvas({ value, onChange, layersHost, questionContex
           </div>
 
           {/* Canvas Aids & Zoom View */}
-          <div className="draw-bar-group">
+          <div className="draw-bar-group draw-bar-group-canvas">
             <button className={`draw-tb${snapping ? " draw-on" : ""}`} onClick={() => setSnapping(s => !s)} title={snapping ? "Smart Snapping Enabled (M)" : "Smart Snapping Disabled (M)"}>
               <Magnet size={15} />
             </button>
@@ -6341,7 +6342,7 @@ export default function DrawCanvas({ value, onChange, layersHost, questionContex
           </div>
 
           {/* Clipboard, History & Destructive Actions */}
-          <div className="draw-bar-group">
+          <div className="draw-bar-group draw-bar-group-history">
             <button className="draw-tb" onClick={undo} title="Undo (Ctrl+Z)">
               <Undo2 size={15} />
             </button>
@@ -6390,7 +6391,7 @@ export default function DrawCanvas({ value, onChange, layersHost, questionContex
               <ScanEye size={14} />
               <span style={{ whiteSpace: "nowrap" }}>Solution Preview</span>
             </button>
-            {(!isMobile && narrow) && (
+            {(!isMobile && narrow && !hideInternalLayersBtn) && (
               <>
                 <div className="qb-draw-layers-divider draw-bar-subdivider" />
                 <button className="draw-tb qb-draw-layers-btn" onClick={() => setLayersOpen(o => !o)} title={layersOpen ? "Hide Layers" : "Show Layers"}>
@@ -7052,65 +7053,65 @@ export default function DrawCanvas({ value, onChange, layersHost, questionContex
               border: "1px solid var(--border)",
               borderRadius: 10,
               boxShadow: "0 14px 40px rgba(0,0,0,0.35)",
-              width: 140,
+              width: 148,
               minWidth: 0,
               padding: 6
             }}
           >
             <button
-              className="draw-tb"
-              style={{ width: "100%", textAlign: "left", marginBottom: 3, padding: "5px 8px", fontSize: 12, display: "flex", alignItems: "center", gap: 7 }}
+              className="draw-tb draw-ctx-menu-item"
+              style={{ width: "100%", justifyContent: "flex-start", textAlign: "left", marginBottom: 3, padding: "5px 10px", fontSize: 12, display: "flex", alignItems: "center", gap: 9 }}
               disabled={!canCopy}
               onClick={() => { fabricRef.current?.copySelection?.(); setCtxMenu(null); }}
             >
-              <Copy size={14} />
-              Copy
+              <Copy size={14} style={{ flexShrink: 0 }} />
+              <span>Copy</span>
             </button>
             <button
-              className="draw-tb"
-              style={{ width: "100%", textAlign: "left", marginBottom: 3, padding: "5px 8px", fontSize: 12, display: "flex", alignItems: "center", gap: 7 }}
+              className="draw-tb draw-ctx-menu-item"
+              style={{ width: "100%", justifyContent: "flex-start", textAlign: "left", marginBottom: 3, padding: "5px 10px", fontSize: 12, display: "flex", alignItems: "center", gap: 9 }}
               disabled={!canPaste}
               onClick={() => { fabricRef.current?.pasteSelection?.(); setCtxMenu(null); }}
             >
-              <ClipboardPaste size={14} />
-              Paste
+              <ClipboardPaste size={14} style={{ flexShrink: 0 }} />
+              <span>Paste</span>
             </button>
             <button
-              className="draw-tb"
-              style={{ width: "100%", textAlign: "left", marginBottom: 3, padding: "5px 8px", fontSize: 12, display: "flex", alignItems: "center", gap: 7 }}
+              className="draw-tb draw-ctx-menu-item"
+              style={{ width: "100%", justifyContent: "flex-start", textAlign: "left", marginBottom: 3, padding: "5px 10px", fontSize: 12, display: "flex", alignItems: "center", gap: 9 }}
               disabled={!canCopy}
               onClick={() => { fabricRef.current?.duplicateSelection?.(); setCtxMenu(null); }}
             >
-              <CopyPlus size={14} />
-              Duplicate
+              <CopyPlus size={14} style={{ flexShrink: 0 }} />
+              <span>Duplicate</span>
             </button>
             <button
-              className="draw-tb"
-              style={{ width: "100%", textAlign: "left", marginBottom: 3, padding: "5px 8px", fontSize: 12, display: "flex", alignItems: "center", gap: 7 }}
+              className="draw-tb draw-ctx-menu-item"
+              style={{ width: "100%", justifyContent: "flex-start", textAlign: "left", marginBottom: 3, padding: "5px 10px", fontSize: 12, display: "flex", alignItems: "center", gap: 9, color: "#e0365a" }}
               disabled={!canCopy}
               onClick={() => { fabricRef.current?.deleteSelection?.(); setCtxMenu(null); }}
             >
-              <Trash2 size={14} />
-              Delete
+              <Trash2 size={14} style={{ flexShrink: 0 }} />
+              <span>Delete</span>
             </button>
             <div style={{ height: 1, background: "var(--border)", margin: "4px 0" }} />
             <button
-              className="draw-tb"
-              style={{ width: "100%", textAlign: "left", marginBottom: 3, padding: "5px 8px", fontSize: 12, display: "flex", alignItems: "center", gap: 7 }}
+              className="draw-tb draw-ctx-menu-item"
+              style={{ width: "100%", justifyContent: "flex-start", textAlign: "left", marginBottom: 3, padding: "5px 10px", fontSize: 12, display: "flex", alignItems: "center", gap: 9 }}
               disabled={!canGroup}
               onClick={() => { fabricRef.current?.groupSelection?.(); setCtxMenu(null); }}
             >
-              <Layers size={14} />
-              Group
+              <Layers size={14} style={{ flexShrink: 0 }} />
+              <span>Group</span>
             </button>
             <button
-              className="draw-tb"
-              style={{ width: "100%", textAlign: "left", marginBottom: 3, padding: "5px 8px", fontSize: 12, display: "flex", alignItems: "center", gap: 7 }}
+              className="draw-tb draw-ctx-menu-item"
+              style={{ width: "100%", justifyContent: "flex-start", textAlign: "left", marginBottom: 3, padding: "5px 10px", fontSize: 12, display: "flex", alignItems: "center", gap: 9 }}
               disabled={!canUngroup}
               onClick={() => { fabricRef.current?.ungroupSelection?.(); setCtxMenu(null); }}
             >
-              <Ungroup size={14} />
-              Ungroup
+              <Ungroup size={14} style={{ flexShrink: 0 }} />
+              <span>Ungroup</span>
             </button>
             {canAlign && (
               <>
@@ -7202,10 +7203,10 @@ export default function DrawCanvas({ value, onChange, layersHost, questionContex
         <div className="draw-status-pill">
           <span className="draw-status-dot" />
           <span>Canvas: <strong className="tabular-nums">{BASE_W}×{height}px</strong></span>
-          <span className="draw-status-divider">·</span>
-          <span>Retina 2×: <strong className="tabular-nums">{BASE_W * 2}×{height * 2}px</strong></span>
-          <span className="draw-status-divider">·</span>
-          <span>Solution Card: <strong>~680px width</strong></span>
+          <span className="draw-status-divider draw-status-extra">·</span>
+          <span className="draw-status-extra">Retina 2×: <strong className="tabular-nums">{BASE_W * 2}×{height * 2}px</strong></span>
+          <span className="draw-status-divider draw-status-extra">·</span>
+          <span className="draw-status-extra">Solution Card: <strong>~680px width</strong></span>
         </div>
 
         <button
@@ -7219,7 +7220,7 @@ export default function DrawCanvas({ value, onChange, layersHost, questionContex
         </button>
       </div>
 
-      <p style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 6, textAlign: "right", fontStyle: "italic" }}>
+      <p className="draw-keyboard-hints" style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 6, textAlign: "right", fontStyle: "italic" }}>
         Canva Mode: [Del] deletes, Arrow keys nudge (Alt+Arrows align), [M] toggles magnet snap, [G] toggles grid, [Ctrl+D] duplicates, Double-click text to edit.
       </p>
 

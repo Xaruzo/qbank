@@ -25,7 +25,9 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
   const [isDrawModalOpen, setIsDrawModalOpen] = useState(false);
   const [tempDraw, setTempDraw] = useState(initialData?.solutionDraw || null);
   const [modalLayersHostEl, setModalLayersHostEl] = useState<HTMLDivElement | null>(null);
-  const [showModalLayers, setShowModalLayers] = useState(true);
+  const [showModalLayers, setShowModalLayers] = useState<boolean>(() => {
+    return typeof window !== "undefined" ? window.innerWidth >= 860 : true;
+  });
   const [form, setForm] = useState(() => {
     if (!initialData) {
       return {
@@ -124,6 +126,10 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
     setInitialDrawSnapshot(form.solutionDraw);
     setIsDrawDirty(false);
     setShowDiscardConfirm(false);
+    // Default Visual Layers to closed on mobile view (< 860px) to maximize canvas space,
+    // and default to open on desktop and tablet (>= 860px).
+    const isDesktopOrTablet = typeof window !== "undefined" && window.innerWidth >= 860;
+    setShowModalLayers(isDesktopOrTablet);
     setIsDrawModalOpen(true);
   };
 
@@ -1003,7 +1009,10 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
 
               <div className="qb-draw-studio-info">
                 <div className="qb-draw-studio-title-line">
-                  <h2 className="qb-draw-studio-title">Solution Whiteboard Studio</h2>
+                  <h2 className="qb-draw-studio-title">
+                    <span className="qb-draw-studio-title-full">Solution Whiteboard Studio</span>
+                    <span className="qb-draw-studio-title-short">Whiteboard</span>
+                  </h2>
                   {topicLabel && (
                     <span className="qb-draw-studio-topic-label" title={`Exam Subject: ${topicLabel}`}>
                       · {topicLabel}
@@ -1071,6 +1080,7 @@ export default function QuestionForm({ initialData, onSave, onCancel, layersHost
               <DrawCanvas
                 value={tempDraw}
                 onChange={handleDrawChange}
+                isStudioModal={true}
                 layersHost={showModalLayers ? modalLayersHostEl : null}
                 questionContext={{
                   question: form.question,
