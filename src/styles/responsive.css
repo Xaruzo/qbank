@@ -1,0 +1,166 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   MOBILE & TABLET RESPONSIVE ENHANCEMENTS (Industry Standard Touch Layout)
+   Addresses cramped screens, squished buttons, small touch targets, and contrast
+   ══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .qb-sol-estimator-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .qb-sol-estimator-container {
+    max-height: 100dvh;
+    height: 100dvh;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+  }
+
+  .qb-sol-estimator-header {
+    padding: 14px 16px;
+    gap: 12px;
+  }
+
+  .qb-sol-estimator-header-top {
+    gap: 12px;
+  }
+
+  .qb-sol-estimator-icon-wrap {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+  }
+
+  .qb-sol-estimator-title {
+    font-size: 15px;
+  }
+
+  .qb-sol-estimator-sub {
+    display: none;
+  }
+
+  /* Compact Horizontal Metric Strip on Mobile to save vertical screen space */
+  .qb-sol-estimator-metrics-strip {
+    display: flex;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    gap: 8px;
+    padding: 8px 12px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    grid-template-columns: none;
+  }
+
+  .qb-sol-estimator-metrics-strip::-webkit-scrollbar {
+    display: none;
+  }
+
+  .qb-sol-metric-card {
+    padding: 8px 11px;
+    flex-shrink: 0;
+    min-width: 150px;
+    border-radius: 10px;
+  }
+
+  .qb-sol-metric-val {
+    font-size: 14.5px;
+    margin: 2px 0;
+  }
+
+  .qb-sol-metric-sub {
+    font-size: 10.5px;
+    line-height: 1.25;
+  }
+
+  .qb-sol-estimator-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    width: 100%;
+    padding: 12px;
+    box-sizing: border-box;
+  }
+
+  .qb-sol-estimator-body-intro {
+    font-size: 11.5px;
+    margin-bottom: 10px;
+  }
+
+  .qb-sol-mockup-card {
+    padding: 16px 14px;
+    border-radius: 14px;
+  }
+
+  .qb-sol-mockup-question-text {
+    font-size: 15px;
+  }
+
+  /* Mobile-first Touch Footer */
+  .qb-sol-estimator-footer {
+    padding: 12px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .qb-sol-estimator-footer-left {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .qb-sol-estimator-toggle-label {
+    width: 100%;
+    min-height: 44px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 8px 12px;
+    box-sizing: border-box;
+  }
+
+  html.light .qb-sol-estimator-toggle-label,
+  body.light .qb-sol-estimator-toggle-label {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+  }
+
+  .qb-sol-estimator-height-group {
+    width: 100%;
+    justify-content: space-between;
+    min-height: 44px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 6px 12px;
+    box-sizing: border-box;
+  }
+
+  html.light .qb-sol-estimator-height-group,
+  body.light .qb-sol-estimator-height-group {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+  }
+
+  .qb-sol-estimator-height-stepper {
+    flex: 1;
+    justify-content: flex-end;
+  }
+
+  .qb-sol-estimator-h-btn {
+    min-height: 40px;
+    padding: 8px 14px;
+  }
+
+  .qb-sol-estimator-footer-right {
+    width: 100%;
+  }
+
+  .qb-sol-estimator-back-btn {
+    width: 100%;
+    min-height: 48px;
+    font-size: 15px;
+  }
+}

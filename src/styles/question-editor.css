@@ -1,0 +1,167 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   MOBILE & TABLET QUESTION EDITOR (Industry-Standard Single-Column Layout)
+   Removes redundant nested shell ("section within section"), maximizes width,
+   hides bulky promo chips, and streamlines input padding & tap targets.
+   ══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  /* 1. Main outer layout container: minimal clean gutters, no wasted margins */
+  .qb-main-inner.qb-main-inner-editor {
+    padding: 10px 10px calc(80px + env(safe-area-inset-bottom, 0px)) !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+
+  /* 2. Dissolve outer shell card - no box-in-a-box / section-within-section */
+  .qb-editor-shell {
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+
+  .qb-editor {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    width: 100% !important;
+  }
+
+  .qb-editor-main {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .qb-editor-side {
+    position: static !important;
+    height: auto !important;
+    overflow: visible !important;
+    order: 2 !important;
+    margin-top: 4px !important;
+    gap: 12px !important;
+    width: 100% !important;
+  }
+
+  /* 3. Streamlined editor header: remove card frame, promo chips, and verbose copy */
+  .qb-form-hero {
+    display: flex !important;
+    flex-direction: column !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 4px 2px 10px !important;
+    margin-bottom: 8px !important;
+    gap: 6px !important;
+  }
+
+  .qb-form-hero::after,
+  .qb-form-hero-meta,
+  .qb-form-subtitle {
+    display: none !important;
+  }
+
+  .qb-form-title {
+    font-size: 19px !important;
+    line-height: 1.25 !important;
+  }
+
+  .qb-form-hdr {
+    gap: 8px !important;
+    margin-bottom: 2px !important;
+  }
+
+  /* 4. Single-layer primary cards for sections: edge-to-edge with clean 12px inner padding */
+  .qb-fsec {
+    padding: 14px 12px !important;
+    border-radius: 14px !important;
+    margin-bottom: 12px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .qb-editor-side-card {
+    padding: 14px 12px !important;
+    border-radius: 14px !important;
+    margin-bottom: 12px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* 5. Inputs & Textareas take 100% width cleanly */
+  .qb-fta {
+    font-size: 15px !important;
+    padding: 10px 11px !important;
+    min-height: 100px !important;
+    border-radius: 10px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .qb-finput {
+    font-size: 15px !important;
+    padding: 8px 10px !important;
+    border-radius: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* 6. Symbol toolbar: wraps cleanly without cramped gutters */
+  .sym-tb {
+    gap: 4px !important;
+    margin-top: 8px !important;
+    width: 100% !important;
+  }
+
+  .sym-tb-btn {
+    min-width: 32px !important;
+    height: 32px !important;
+    font-size: 15px !important;
+    padding: 0 4px !important;
+  }
+
+  .sym-tb-group {
+    gap: 3px !important;
+  }
+
+  .sym-tb-sep {
+    height: 22px !important;
+    margin: 0 2px !important;
+  }
+
+  /* 7. Choice rows: full-width, clean padding */
+  .qb-crow {
+    padding: 8px 10px !important;
+    gap: 8px !important;
+    margin-bottom: 8px !important;
+    border-radius: 10px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .qb-cradio {
+    width: 19px !important;
+    height: 19px !important;
+    min-width: 19px !important;
+  }
+
+  .qb-cletter {
+    font-size: 13px !important;
+    min-width: 18px !important;
+  }
+
+  /* 8. Full-width touch-friendly actions */
+  .qb-editor-side-actions {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    width: 100% !important;
+  }
+
+  .qb-fcancel,
+  .qb-fsave {
+    flex: 1 !important;
+    min-height: 46px !important;
+  }
+}

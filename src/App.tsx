@@ -35,8 +35,7 @@ import { favoritesModel } from "./models/favoritesModel";
 import { rolesModel } from "./models/rolesModel";
 import { buildMockExamAttempt, buildReviewExamFromAttempt, buildMistakeDrillExam } from "./utils/mockExamAnalytics";
 import { Home, ClipboardList, Lightbulb, PlayCircle, ArrowRight, BookOpen, Plus, ShieldCheck } from "lucide-react";
-import { QUESTION_ADMIN_UIDS, QUESTION_ADMIN_EMAILS, SUPERADMIN_UIDS, SUPERADMIN_EMAILS, EXAM_PRESETS } from "./constants/appConstants";
-import type { TopicId } from "./types";
+import { QUESTION_ADMIN_UIDS, QUESTION_ADMIN_EMAILS, EXAM_PRESETS } from "./constants/appConstants";
 
 const PageLoader = ({ view }) => {
   if (view === "tips" || view === "tipDetail" || view === "notes") return <TipsSkeletonLoader />;
@@ -49,10 +48,7 @@ const PageLoader = ({ view }) => {
 // The target item count and time limits are fixed to the official specifications.
 // A smaller bank temporarily yields a shorter paper — the target and time limit must never change,
 // because this simulates the real civil service exam.
-const PRO_EXAM_DURATION_MS = EXAM_PRESETS.professional.durationMs;
 const PRO_EXAM_TOTAL = EXAM_PRESETS.professional.totalItems;
-const SUBPRO_EXAM_DURATION_MS = EXAM_PRESETS.subprofessional.durationMs;
-const SUBPRO_EXAM_TOTAL = EXAM_PRESETS.subprofessional.totalItems;
 
 const shuffleIds = (ids) => {
   const a = [...ids];
@@ -87,17 +83,11 @@ export default function App() {
     signOut,
   } = useAuthController();
   
-  const { isDark, themeMode, setThemeMode, toggleTheme } = useThemeController();
-  const {
-    settings,
-    updateSettings,
-    toggleLiteMode,
-    toggleAnimations,
-    resetSettings,
-  } = useSettingsController();
+  const { isDark, setThemeMode, toggleTheme } = useThemeController();
+  const { settings, updateSettings, resetSettings } = useSettingsController();
   
   const { 
-    qs, loading, refreshing, favoritesLoading, search, setSearch, topicFilter, setTopicFilter, labelFilter, setLabelFilter,
+    qs, loading, refreshing, search, setSearch, topicFilter, setTopicFilter, labelFilter, setLabelFilter,
     favoriteOnly, setFavoriteOnly,
     sortBy, setSortBy, saveQuestion, deleteQuestion, ensureSolutionDraw, toggleFavorite, counts, labelOptions, filteredQuestions 
   } = useQuestionsController(user?.id, isAuthLoading);
@@ -112,9 +102,7 @@ export default function App() {
     selectedMockAttemptId,
     setSelectedMockAttemptId,
     selectedNoteId,
-    setSelectedNoteId,
     settingsTab,
-    setSettingsTab,
     deepLinkShowSol,
     setDeepLinkShowSol,
     exam,
@@ -131,7 +119,6 @@ export default function App() {
     navigateEditQuestion,
     navigateTipDetail: handleOpenTipDetail,
     navigateMockAttempt: handleOpenMockAttempt,
-    navigateMockRun,
   } = useViewRouter({
     qs,
     authAvailable,
@@ -155,7 +142,6 @@ export default function App() {
 
   const handleSelectQuestion = goToQuestionDetail;
 
-  const [layersHostEl, setLayersHostEl] = useState<HTMLElement | null>(null);
   const [editorAsideHostEl, setEditorAsideHostEl] = useState<HTMLElement | null>(null);
 
   // PolicyPulse sidebar logic: the collapsed rail width persists across
@@ -226,7 +212,6 @@ export default function App() {
         (user?.email && QUESTION_ADMIN_EMAILS.includes(user.email.toLowerCase()))));
   const canManageQuestions = isQuestionAdmin;
   const favoriteCount = useMemo(() => qs.filter((q) => q.favorite).length, [qs]);
-  const labeledCount = useMemo(() => qs.filter((q) => `${q.label || ""}`.trim().length > 0).length, [qs]);
   const proQuestionsCount = useMemo(() => qs.filter((q) => q.topic !== "clerical").length, [qs]);
   const subProQuestionsCount = useMemo(() => qs.filter((q) => q.topic !== "analytical").length, [qs]);
   const activeTopicCount = useMemo(
@@ -747,11 +732,6 @@ export default function App() {
       },
     },
   ];
-  const activeMobileTabIndex = Math.max(
-    0,
-    mobileNavItems.findIndex((item) => item.id === primaryView)
-  );
-
   useEffect(() => {
     const el = mainRef.current;
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -774,10 +754,6 @@ export default function App() {
           handleGoHome();
         }}
         onSignIn={handleSignIn}
-        onExploreGuest={() => {
-          try { sessionStorage.setItem("qbank-session-active", "true"); } catch (_) {}
-          handleGoHome();
-        }}
         onStartMock={(presetId) => {
           try { sessionStorage.setItem("qbank-session-active", "true"); } catch (_) {}
           handleStartExam(presetId || "professional");
@@ -800,10 +776,6 @@ export default function App() {
         onToggleTheme={toggleTheme}
         onBackToLanding={handleGoLanding}
         onSuccessLogin={() => {
-          try { sessionStorage.setItem("qbank-session-active", "true"); } catch (_) {}
-          handleGoHome();
-        }}
-        onContinueAsGuest={() => {
           try { sessionStorage.setItem("qbank-session-active", "true"); } catch (_) {}
           handleGoHome();
         }}
@@ -841,10 +813,6 @@ export default function App() {
           onMockExam={handleGoMockExam}
           onTips={handleGoTips}
           onNotes={handleGoNotes}
-          settings={settings}
-          onUpdateSettings={updateSettings}
-          onResetSettings={resetSettings}
-          onUpdateProfile={updateProfile}
         />
 
         {/* Unified Overlay Navigation Drawer for Mobile & Tablet/Compact */}
@@ -867,16 +835,8 @@ export default function App() {
             profile={profile}
             onSignIn={handleSignIn}
             onSignOut={handleSignOut}
-            activeTopic={topicFilter as TopicId | "all"}
-            onSelectTopic={(t) => {
-              setTopicFilter(t);
-              handleGoHome();
-            }}
-            topicCounts={counts}
-            settings={settings}
             isDark={isDark}
             onToggleTheme={toggleTheme}
-            themeMode={themeMode}
             onSetThemeMode={setThemeMode}
             isQuestionAdmin={isQuestionAdmin}
             isSuperAdmin={isSuperAdmin}
@@ -895,7 +855,6 @@ export default function App() {
               onMockExam={handleGoMockExam}
               onTips={handleGoTips}
               onNotes={handleGoNotes}
-              onToggleNav={toggleNav}
               totalQuestions={qs.length}
               starredCount={favoriteCount}
               onOpenHelp={handleOpenHelp}
@@ -904,16 +863,8 @@ export default function App() {
               profile={profile}
               onSignIn={handleSignIn}
               onSignOut={handleSignOut}
-              activeTopic={topicFilter as TopicId | "all"}
-              onSelectTopic={(t) => {
-                setTopicFilter(t);
-                handleGoHome();
-              }}
-              topicCounts={counts}
-              settings={settings}
               isDark={isDark}
               onToggleTheme={toggleTheme}
-              themeMode={themeMode}
               onSetThemeMode={setThemeMode}
               isQuestionAdmin={isQuestionAdmin}
               isSuperAdmin={isSuperAdmin}
@@ -1163,7 +1114,6 @@ export default function App() {
                   onResumeActiveExam={handleResumeActiveMockExam}
                   history={mockHistory}
                   isHistoryLoading={isMockHistoryLoading}
-                  onReviewAttempt={handleReviewAttempt}
                   onOpenAttempt={handleOpenMockAttempt}
                   isAuthenticated={isAuthenticated}
                   authAvailable={authAvailable}
@@ -1193,7 +1143,6 @@ export default function App() {
                   onResumeActiveExam={handleResumeActiveMockExam}
                   history={mockHistory}
                   isHistoryLoading={isMockHistoryLoading}
-                  onReviewAttempt={handleReviewAttempt}
                   onOpenAttempt={handleOpenMockAttempt}
                   isAuthenticated={isAuthenticated}
                   authAvailable={authAvailable}
@@ -1221,7 +1170,6 @@ export default function App() {
                   onResumeActiveExam={handleResumeActiveMockExam}
                   history={mockHistory}
                   isHistoryLoading={isMockHistoryLoading}
-                  onReviewAttempt={handleReviewAttempt}
                   onOpenAttempt={handleOpenMockAttempt}
                   isAuthenticated={isAuthenticated}
                   authAvailable={authAvailable}
@@ -1242,14 +1190,11 @@ export default function App() {
                 isAuthenticated={isAuthenticated}
                 isQuestionAdmin={isQuestionAdmin}
                 isSuperAdmin={isSuperAdmin}
-                userRole={userRole}
                 totalQuestions={qs.length}
                 mockAttemptsCount={mockHistory.length}
                 favoritesCount={favoriteCount}
                 notesCount={0}
                 onBackToMain={handleGoHome}
-                onSignIn={handleSignIn}
-                onSignOut={handleSignOut}
               />
             ) : view === "add" ? (
               <div className="qb-editor-shell">
@@ -1259,7 +1204,6 @@ export default function App() {
                     initialData={editId ? qs.find(q => q.id === editId) : null} 
                     onSave={handleSave} 
                     onCancel={handleCancelEdit} 
-                    layersHost={layersHostEl}
                     sideRailHost={editorAsideHostEl}
                   />
                 </div>

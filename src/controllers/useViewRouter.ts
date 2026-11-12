@@ -224,9 +224,6 @@ export function useViewRouter({
       setSelectedMockAttemptId(null);
       setSelectedId(null);
       setDeepLinkShowSol(false);
-      const hasActiveSession =
-        typeof sessionStorage !== "undefined" &&
-        sessionStorage.getItem("qbank-session-active") === "true";
       const hasStoredAuthToken =
         typeof localStorage !== "undefined" &&
         (!!localStorage.getItem("cse-qbank-system-user-v1") ||
@@ -295,7 +292,7 @@ export function useViewRouter({
     setView("mock");
   }, []);
 
-  const navigateTips = useCallback((questionId?: string | null) => {
+  const navigateTips = useCallback(() => {
     setEditId(null);
     setSelectedMockAttemptId(null);
     setDeepLinkShowSol(false);
@@ -380,12 +377,6 @@ export function useViewRouter({
     setView("mockAttempt");
   }, []);
 
-  const navigateMockRun = useCallback((newExamState?: any) => {
-    if (newExamState) setExam(newExamState);
-    window.history.pushState({}, "", `?page=mock-run`);
-    setView("mockRun");
-  }, []);
-
   return {
     view,
     setView,
@@ -396,9 +387,7 @@ export function useViewRouter({
     selectedMockAttemptId,
     setSelectedMockAttemptId,
     selectedNoteId,
-    setSelectedNoteId,
     settingsTab,
-    setSettingsTab,
     deepLinkShowSol,
     setDeepLinkShowSol,
     exam,
@@ -415,6 +404,5 @@ export function useViewRouter({
     navigateEditQuestion,
     navigateTipDetail,
     navigateMockAttempt,
-    navigateMockRun,
   };
 }

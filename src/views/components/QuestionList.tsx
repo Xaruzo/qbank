@@ -3,7 +3,6 @@ import { TOPICS, SORT_OPTIONS } from "../../constants/appConstants";
 import {
   ClipboardList,
   ChevronRight,
-  Plus,
   Star,
   ChevronDown,
   Lightbulb,

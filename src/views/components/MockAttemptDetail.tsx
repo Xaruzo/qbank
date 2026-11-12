@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { AlertTriangle, ArrowUpRight, ChevronLeft, Clock3, Search, Trophy, TrendingUp, Target, CheckCircle2 } from "lucide-react";
+import { useState } from "react";
+import { AlertTriangle, ArrowUpRight, ChevronLeft, Clock3, Search, Trophy, TrendingUp, Target } from "lucide-react";
 import { LETTERS, TOPICS } from "../../constants/appConstants";
 import { buildQuestionLookup, formatAttemptDate, formatExamDuration, calculatePacingStats } from "../../utils/mockExamAnalytics";
 

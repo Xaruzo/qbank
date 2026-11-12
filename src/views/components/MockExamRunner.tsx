@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Flag, X, Check, Search, AlertTriangle, CheckCircle2, Clock3, Target, Lightbulb } from "lucide-react";
 import MarkdownText from "./MarkdownText";
 import { LETTERS, TOPICS } from "../../constants/appConstants";
@@ -18,7 +18,7 @@ export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit, onBac
   const [showSol, setShowSol] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [reviewFilter, setReviewFilter] = useState("all");
-  const [autoRevealSol, setAutoRevealSol] = useState(true);
+  const [autoRevealSol] = useState(true);
   const questionScrollRef = useRef(null);
   const expandedScrollRef = useRef(null);
   const expandedImgRef = useRef(null);

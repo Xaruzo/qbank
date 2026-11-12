@@ -1,0 +1,446 @@
+*,
+*::before,
+*::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html,
+body { height: 100%; }
+
+html.qb-theme-switching,
+html.qb-theme-switching *,
+html.qb-theme-switching *::before,
+html.qb-theme-switching *::after {
+  transition: none !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+}
+
+button,
+a,
+[role="button"],
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+:root {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-heading: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --bg:#050914; --surface:#0d1524; --surface-h:#111d31;
+  --border:#17253b; --border-h:#314564;
+  --text:#fff;   --text-heading:#fff;
+  --text-mid:#fff; --text-mid2:#fff; --text-low:#fff;
+  --text-muted:#fff; --text-faint:#fff;
+   --hdr-bg:rgba(7,11,20,.82); --input-bg:#09101d;
+  --scroll-track:transparent; --scroll-thumb:rgba(196,212,236,.22); --scroll-thumb-h:rgba(234,88,12,.45);
+  --glow1:rgba(245,166,35,.10); --glow2:rgba(139,92,246,.08);
+  --skeleton-bg:rgba(148,163,184,.14); --skeleton-shine:rgba(148,163,184,.22);
+  --font-input:'Noto Sans','Segoe UI Symbol','Cambria Math','Inter',-apple-system,sans-serif;
+  --font-symbols:'Noto Sans','Segoe UI Symbol','Cambria Math','Apple Symbols',sans-serif;
+  --hdr-height:58px;
+  --mobile-nav-height:72px;
+  --shadow-soft:0 20px 45px rgba(0,0,0,.28);
+  --shadow-card:0 16px 34px rgba(0,0,0,.18);
+  --surface-grad:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.015));
+}
+
+.light {
+  --bg:#edf2fb; --surface:#ffffff; --surface-h:#f4f7ff;
+  --border:#d8e2f1; --border-h:#b4c8e4;
+  --text:#1a2540;   --text-heading:#0d1a35;
+  --text-mid:#3a5272; --text-mid2:#4a6280; --text-low:#6a80a0;
+  --text-muted:#3a4b66; --text-faint:#647794;
+   --hdr-bg:rgba(237,242,251,.82); --input-bg:#f5f8ff;
+  --scroll-track:transparent; --scroll-thumb:rgba(26,37,64,.22); --scroll-thumb-h:rgba(234,88,12,.35);
+  --glow1:rgba(245,166,35,.06); --glow2:rgba(139,92,246,.04);
+  --skeleton-bg:rgba(26,37,64,.10); --skeleton-shine:rgba(26,37,64,.18);
+  --surface-grad:linear-gradient(180deg, rgba(255,255,255,.98), rgba(244,247,255,.92));
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   GLOBAL SCROLLBARS - CLEAN WEB-KIT SPEC (NO ARROW BUTTONS)
+   ══════════════════════════════════════════════════════════════════════════ */
+/* Eliminate scrollbar arrow buttons across all webkit elements completely */
+*::-webkit-scrollbar-button,
+::-webkit-scrollbar-button,
+*::-webkit-scrollbar-button:single-button,
+*::-webkit-scrollbar-button:double-button,
+*::-webkit-scrollbar-button:vertical:decrement,
+*::-webkit-scrollbar-button:vertical:increment,
+*::-webkit-scrollbar-button:horizontal:decrement,
+*::-webkit-scrollbar-button:horizontal:increment,
+*::-webkit-scrollbar-button:start:decrement,
+*::-webkit-scrollbar-button:end:increment,
+*::-webkit-scrollbar-button:start:increment,
+*::-webkit-scrollbar-button:end:decrement {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+*::-webkit-scrollbar-corner {
+  display: none !important;
+  background: transparent !important;
+}
+
+/* Global scrollbars for standard containers */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--scroll-track);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+@media (hover: hover) {
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--scroll-thumb-h);
+    background-clip: padding-box;
+  
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   HOVER-REVEAL SCROLLBARS (SIDEBAR / HAMBURGER MENU & QUESTION BLOCKS)
+   ══════════════════════════════════════════════════════════════════════════ */
+.qb-side-inner::-webkit-scrollbar,
+.qb-side-drawer::-webkit-scrollbar,
+.qb-det-card-scroll::-webkit-scrollbar,
+.qb-exam-card-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.qb-side-inner::-webkit-scrollbar-track,
+.qb-side-drawer::-webkit-scrollbar-track,
+.qb-det-card-scroll::-webkit-scrollbar-track,
+.qb-exam-card-scroll::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.qb-side-inner::-webkit-scrollbar-button,
+.qb-side-drawer::-webkit-scrollbar-button,
+.qb-det-card-scroll::-webkit-scrollbar-button,
+.qb-exam-card-scroll::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Hidden by default: thumb is completely invisible when mouse is NOT hovering */
+.qb-side-inner::-webkit-scrollbar-thumb,
+.qb-side-drawer::-webkit-scrollbar-thumb,
+.qb-det-card-scroll::-webkit-scrollbar-thumb,
+.qb-exam-card-scroll::-webkit-scrollbar-thumb {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 1px solid transparent !important;
+  border-radius: 999px;
+  background-clip: padding-box !important;
+  transition: background-color 0.2s ease;
+}
+
+/* Reveal thumb ONLY when mouse hovers over the sidebar or question block */
+@media (hover: hover) {
+  .qb-side:hover .qb-side-inner::-webkit-scrollbar-thumb,
+.qb-side-inner:hover::-webkit-scrollbar-thumb,
+.qb-side-drawer:hover::-webkit-scrollbar-thumb,
+.qb-det-card:hover .qb-det-card-scroll::-webkit-scrollbar-thumb,
+.qb-det-card-scroll:hover::-webkit-scrollbar-thumb,
+.qb-exam-main:hover .qb-exam-card-scroll::-webkit-scrollbar-thumb,
+.qb-exam-card-scroll:hover::-webkit-scrollbar-thumb {
+    background: var(--scroll-thumb) !important;
+    background-color: var(--scroll-thumb) !important;
+  
+  }
+  .qb-side-inner::-webkit-scrollbar-thumb:hover,
+.qb-side-drawer::-webkit-scrollbar-thumb:hover,
+.qb-det-card-scroll::-webkit-scrollbar-thumb:hover,
+.qb-exam-card-scroll::-webkit-scrollbar-thumb:hover {
+    background: var(--scroll-thumb-h) !important;
+    background-color: var(--scroll-thumb-h) !important;
+  
+  }
+}
+
+/* Firefox standard scrollbars (Firefox never renders arrow buttons on thin scrollbars) */
+@supports (-moz-appearance: none) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scroll-thumb) transparent;
+  
+  }
+  .qb-side-inner,
+.qb-side-drawer,
+.qb-det-card-scroll,
+.qb-exam-card-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  
+  }
+  .qb-side:hover .qb-side-inner,
+.qb-side-inner:hover,
+.qb-side-drawer:hover,
+.qb-det-card:hover .qb-det-card-scroll,
+.qb-det-card-scroll:hover,
+.qb-exam-main:hover .qb-exam-card-scroll,
+.qb-exam-card-scroll:hover {
+    scrollbar-color: var(--scroll-thumb) transparent;
+  
+  }
+}
+
+.qb { font-family:var(--font-sans); background:var(--bg); color:var(--text); height:100vh; height:100dvh; overflow:hidden; position:relative; }
+
+.qb::before { content:''; position:fixed; inset:0; pointer-events:none; z-index:0; background:radial-gradient(ellipse at 15% 15%,var(--glow1) 0%,transparent 55%),radial-gradient(ellipse at 85% 80%,var(--glow2) 0%,transparent 55%),linear-gradient(180deg, rgba(255,255,255,.015), transparent 28%); }
+
+.qb-wrap { position:relative; z-index:1; height:100%; display:flex; flex-direction:column; }
+
+.qb-shell { flex:1; display:flex; min-height:0; overflow:hidden; }
+
+.qb-hdr {
+  position: sticky;
+  top: 0;
+  z-index: 400;
+  background: var(--hdr-bg);
+  backdrop-filter: blur(20px) saturate(160%);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  height: var(--hdr-height);
+  padding: 0 24px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.qb-hdr-left {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  padding-left: 0;
+}
+
+.qb-hdr-menu-slot {
+  width: 60px;
+  min-width: 60px;
+  max-width: 60px;
+  height: var(--hdr-height);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.qb-hdr-menu-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--text);
+  box-shadow: var(--shadow-card);
+  margin: 0 auto;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+@media (hover: hover) {
+  .qb-hdr-menu-btn:hover {
+    background: var(--surface-h);
+    border-color: var(--border-h);
+    color: var(--text-heading);
+    transform: scale(1.02);
+  }
+}
+
+.qb-hdr-menu-btn.is-active {
+  background: rgba(245, 166, 35, 0.12);
+  border-color: rgba(245, 166, 35, 0.32);
+  color: #f5a623;
+}
+
+.qb-add-btn {
+  background: #f5a623;
+  border: 1px solid #d9911e;
+  color: #070c18;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 13px;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(245, 166, 35, 0.28);
+  transition: none;
+}
+
+@media (hover: hover) {
+  .qb-add-btn:hover {
+    background: #f8be57;
+    transform: translateY(-1px);
+  
+  }
+}
+
+.qb-add-btn svg,
+.qb-add-btn-icon,
+.qb-list-add-btn svg,
+.qb-hero-ghost svg,
+.qb-hero-ghost .qb-add-btn-icon {
+  flex-shrink: 0;
+  display: block;
+  margin: 0;
+}
+
+.qb-add-btn-text {
+  display: inline-block;
+  line-height: 1;
+}
+
+.qb-logo-block {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  padding-left: 10px;
+}
+
+.qb-hdr-left > .qb-logo-block:first-child {
+  padding-left: 20px;
+}
+
+.qb-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  max-width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  text-align: left;
+}
+
+@media (hover: hover) {
+  .qb-logo:hover {
+    opacity: 0.92;
+  
+  }
+}
+
+.qb-logo:focus-visible {
+  outline: 2px solid rgba(245, 166, 35, 0.4);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.qb-logo-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  flex-shrink: 0;
+  border-radius: 8px;
+  filter: drop-shadow(0 2px 6px rgba(245, 166, 35, 0.25));
+}
+
+.qb-logo-text-group {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.qb-logo-title {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 19px;
+  color: #f5a623;
+  letter-spacing: -0.4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.qb-logo-sub {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-faint);
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.qb-hdr-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.qb-hdr-action-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: none;
+  box-shadow: var(--shadow-card);
+}
+
+@media (hover: hover) {
+  .qb-hdr-action-btn:hover {
+    color: var(--text-heading);
+    border-color: var(--border-h);
+    background: var(--surface-h);
+  
+  }
+}

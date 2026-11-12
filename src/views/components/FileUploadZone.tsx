@@ -1,12 +1,10 @@
-import React, { useState, useRef } from "react";
+import { useState, useRef } from "react";
 import { Upload, Link2, File, X, FileText, Image, FileSpreadsheet } from "lucide-react";
 import { 
   uploadAttachmentToSupabase, 
   validateAttachmentFile,
   isImageFile,
   getFileTypeLabel,
-  getFileIcon,
-  formatFileSize,
 } from "../../utils/fileUpload";
 
 /**
@@ -18,7 +16,6 @@ export default function FileUploadZone({
   currentFile,
   onRemoveFile,
   userId,
-  isDark = false,
 }) {
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);

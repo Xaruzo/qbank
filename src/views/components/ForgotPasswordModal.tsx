@@ -11,7 +11,6 @@ import {
   ArrowRight,
   ShieldCheck,
   RefreshCw,
-  ExternalLink,
   Lock,
 } from "lucide-react";
 import { updateLocalAccountPassword } from "../../controllers/useAuthController";

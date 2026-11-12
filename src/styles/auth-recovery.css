@@ -1,0 +1,761 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   FULL-PAGE LIVING ANIMATION & GLASSMORPHIC SCROLL ENVIRONMENT
+   ══════════════════════════════════════════════════════════════════════════ */
+.qb-apple-hero-container {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+}
+
+.qb-landing-scroll {
+  position: relative;
+  z-index: 2;
+  background: transparent !important;
+}
+
+.qb-landing-hero {
+  background: transparent !important;
+}
+
+.qb-landing-section {
+  position: relative;
+  z-index: 2;
+  background: transparent !important;
+}
+
+.qb-landing-section.alt-bg {
+  background: rgba(13, 21, 36, 0.45) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+}
+
+.qb-landing-root.light .qb-landing-section.alt-bg {
+  background: rgba(241, 245, 249, 0.65) !important;
+}
+
+.qb-landing-preset-card,
+.qb-curriculum-card,
+.qb-doctrine-step,
+.qb-landing-faq-item,
+.qb-landing-desk-card {
+  background: rgba(13, 21, 36, 0.78) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.32) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.qb-landing-root.light .qb-landing-preset-card,
+.qb-landing-root.light .qb-curriculum-card,
+.qb-landing-root.light .qb-doctrine-step,
+.qb-landing-root.light .qb-landing-faq-item,
+.qb-landing-root.light .qb-landing-desk-card {
+  background: rgba(255, 255, 255, 0.86) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.06) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+.qb-landing-banner {
+  background: rgba(13, 21, 36, 0.65) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+}
+
+.qb-landing-root.light .qb-landing-banner {
+  background: rgba(255, 255, 255, 0.82) !important;
+}
+
+.qb-landing-footer {
+  position: relative;
+  z-index: 2;
+  background: rgba(5, 9, 20, 0.9) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+
+.qb-landing-root.light .qb-landing-footer {
+  background: rgba(237, 242, 251, 0.92) !important;
+}
+
+.qb-signin-under-field-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.qb-signin-forgot-link {
+  background: none;
+  border: none;
+  color: #f5a623;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 0;
+  text-align: right;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  line-height: 1;
+}
+
+.qb-signin-forgot-link:hover {
+  text-decoration: underline;
+  opacity: 0.9;
+  transform: translateY(-0.5px);
+}
+
+.qb-fp-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(4, 8, 18, 0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: qb-fade-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.qb-fp-card {
+  width: 100%;
+  max-width: 480px;
+  background: linear-gradient(180deg, #0e172c 0%, #091020 100%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 20px;
+  padding: 28px 26px;
+  box-shadow: 0 24px 55px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(245, 166, 35, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  position: relative;
+  overflow: hidden;
+  animation: qb-dropdown-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.qb-fp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.qb-fp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(245, 166, 35, 0.12);
+  border: 1px solid rgba(245, 166, 35, 0.3);
+  color: #f5a623;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.qb-fp-close-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.qb-fp-close-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.qb-fp-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.qb-fp-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.3px;
+}
+
+.qb-fp-desc {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: #94a3b8;
+}
+
+.qb-fp-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.qb-fp-alert.danger {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+}
+
+.qb-fp-alert.success {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #6ee7b7;
+}
+
+.qb-fp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.qb-fp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.qb-fp-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #cbd5e1;
+  letter-spacing: 0.2px;
+}
+
+.qb-fp-label.center {
+  text-align: center;
+  display: block;
+}
+
+.qb-fp-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.qb-fp-input-icon {
+  position: absolute;
+  left: 14px;
+  color: #cbd5e1;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qb-fp-input {
+  width: 100%;
+  height: 46px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  color: #ffffff;
+  padding: 0 14px 0 42px;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.qb-fp-input:focus {
+  border-color: #f5a623;
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.18);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.qb-fp-input.with-toggle {
+  padding-right: 42px;
+}
+
+.qb-fp-pwd-toggle {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  color: #cbd5e1;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease;
+}
+
+.qb-fp-pwd-toggle:hover {
+  color: #ffffff;
+}
+
+/* 6-Digit Verification Inputs */
+.qb-fp-digits-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+.qb-fp-digit-inputs {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.qb-fp-digit-box {
+  width: 48px;
+  height: 56px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1.5px solid rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  font-family: 'SF Mono', Menlo, Consolas, Monaco, monospace;
+  font-size: 26px;
+  font-weight: 800;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  caret-color: #f5a623;
+}
+
+.qb-fp-digit-box:focus {
+  border-color: #f5a623;
+  background: rgba(245, 166, 35, 0.08);
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.22);
+}
+
+.qb-fp-digit-box.filled {
+  border-color: rgba(245, 166, 35, 0.6);
+  background: rgba(245, 166, 35, 0.05);
+}
+
+.qb-fp-dev-code-box {
+  background: rgba(245, 166, 35, 0.08);
+  border: 1px dashed rgba(245, 166, 35, 0.4);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.qb-fp-dev-code-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #f5a623;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.qb-fp-dev-code-desc {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #cbd5e1;
+}
+
+.qb-fp-ext-link {
+  color: #38bdf8;
+  text-decoration: underline;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.qb-fp-dev-code-badge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #080f1e;
+  border: 1px solid rgba(245, 166, 35, 0.45);
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.qb-fp-dev-code-badge:hover {
+  background: #111e38;
+}
+
+.qb-fp-dev-code-badge code {
+  font-family: 'SF Mono', Menlo, Consolas, Monaco, monospace;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 5px;
+  color: #f5a623;
+}
+
+.qb-fp-click-hint {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.qb-fp-resend-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.qb-fp-resend-text {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.qb-fp-resend-btn {
+  background: none;
+  border: none;
+  color: #f5a623;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: opacity 0.15s ease;
+}
+
+.qb-fp-resend-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.qb-fp-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.qb-fp-submit-btn {
+  flex: 1;
+  height: 46px;
+  background: #f5a623;
+  color: #070c18;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.18s ease, transform 0.15s ease;
+}
+
+.qb-fp-submit-btn:hover:not(:disabled) {
+  background: #fbbf24;
+  transform: translateY(-1px);
+}
+
+.qb-fp-submit-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.qb-fp-back-step-btn {
+  height: 46px;
+  padding: 0 16px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.qb-fp-back-step-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.qb-fp-val-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.qb-fp-val-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #94a3b8;
+  transition: color 0.15s ease;
+}
+
+.qb-fp-val-item.met {
+  color: #34d399;
+  font-weight: 600;
+}
+
+.qb-fp-success-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  padding: 10px 0;
+}
+
+.qb-fp-success-icon-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #10b981;
+}
+
+.qb-fp-success-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.qb-fp-success-desc {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: #94a3b8;
+  max-width: 380px;
+}
+
+/* Done & Return to Workspace / Success Action Button */
+.qb-fp-done-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  max-width: 320px;
+  height: 48px;
+  padding: 0 24px;
+  margin: 18px auto 4px auto;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #ffffff !important;
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  border-radius: 12px;
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: 0.015em;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.16s cubic-bezier(0.16, 1, 0.3, 1),
+              background 0.16s ease,
+              filter 0.16s ease;
+}
+
+.qb-fp-done-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 24px rgba(245, 158, 11, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.qb-fp-done-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.3);
+}
+
+.qb-fp-done-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.4), 0 4px 18px rgba(245, 158, 11, 0.35);
+}
+
+.qb-fp-done-btn-icon {
+  flex-shrink: 0;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   LIGHT MODE FOR PASSWORD RECOVERY & CHANGE PASSWORD MODALS
+   ────────────────────────────────────────────────────────────────────────── */
+.light .qb-fp-backdrop,
+.qb-fp-backdrop.light {
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.light .qb-fp-card,
+.qb-fp-card.light {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 24px 60px -12px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+.light .qb-fp-badge,
+.qb-fp-card.light .qb-fp-badge {
+  background: rgba(245, 166, 35, 0.14);
+  border: 1px solid rgba(217, 119, 6, 0.35);
+  color: #b45309;
+}
+
+.light .qb-fp-close-btn,
+.qb-fp-card.light .qb-fp-close-btn {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #1e293b;
+}
+
+.light .qb-fp-close-btn:hover,
+.qb-fp-card.light .qb-fp-close-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.light .qb-fp-title,
+.qb-fp-card.light .qb-fp-title {
+  color: #0f172a;
+}
+
+.light .qb-fp-desc,
+.qb-fp-card.light .qb-fp-desc {
+  color: #475569;
+}
+
+.light .qb-fp-label,
+.qb-fp-card.light .qb-fp-label {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.light .qb-fp-input,
+.qb-fp-card.light .qb-fp-input {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+}
+
+.light .qb-fp-input:focus,
+.qb-fp-card.light .qb-fp-input:focus {
+  background: #ffffff;
+  border-color: #f5a623;
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.22);
+}
+
+.light .qb-fp-input-icon,
+.qb-fp-card.light .qb-fp-input-icon {
+  color: #1e293b;
+}
+
+.light .qb-fp-pwd-toggle,
+.qb-fp-card.light .qb-fp-pwd-toggle {
+  color: #334155;
+}
+
+.light .qb-fp-pwd-toggle:hover,
+.qb-fp-card.light .qb-fp-pwd-toggle:hover {
+  color: #0f172a;
+}
+
+.light .qb-fp-val-item,
+.qb-fp-card.light .qb-fp-val-item {
+  color: #64748b;
+}
+
+.light .qb-fp-val-item.met,
+.qb-fp-card.light .qb-fp-val-item.met {
+  color: #059669;
+}
+
+.light .qb-fp-digit-box,
+.qb-fp-card.light .qb-fp-digit-box {
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  color: #0f172a;
+}
+
+.light .qb-fp-digit-box:focus,
+.qb-fp-card.light .qb-fp-digit-box:focus {
+  background: #ffffff;
+  border-color: #f5a623;
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.22);
+}
+
+.light .qb-fp-digit-box.filled,
+.qb-fp-card.light .qb-fp-digit-box.filled {
+  background: rgba(245, 166, 35, 0.06);
+  border-color: #f5a623;
+}
+
+.light .qb-fp-back-step-btn,
+.qb-fp-card.light .qb-fp-back-step-btn {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #1e293b;
+}
+
+.light .qb-fp-back-step-btn:hover:not(:disabled),
+.qb-fp-card.light .qb-fp-back-step-btn:hover:not(:disabled) {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.light .qb-fp-resend-text,
+.qb-fp-card.light .qb-fp-resend-text {
+  color: #475569;
+}
+
+.light .qb-fp-resend-btn,
+.qb-fp-card.light .qb-fp-resend-btn {
+  color: #b45309;
+}
+
+.light .qb-fp-success-title,
+.qb-fp-card.light .qb-fp-success-title {
+  color: #0f172a;
+}
+
+.light .qb-fp-success-desc,
+.qb-fp-card.light .qb-fp-success-desc {
+  color: #475569;
+}
+
+.light .qb-fp-done-btn,
+.qb-fp-card.light .qb-fp-done-btn {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #ffffff !important;
+  border: 1px solid rgba(217, 119, 6, 0.45);
+  box-shadow: 0 4px 16px rgba(217, 119, 6, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.light .qb-fp-done-btn:hover:not(:disabled),
+.qb-fp-card.light .qb-fp-done-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  box-shadow: 0 6px 22px rgba(217, 119, 6, 0.42);
+}

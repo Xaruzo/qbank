@@ -71,7 +71,6 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
   const [qs, setQs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [favoritesLoading, setFavoritesLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [topicFilter, setTopicFilter] = useState("all");
   const [labelFilter, setLabelFilter] = useState("all");
@@ -138,7 +137,7 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "questions" },
-        async (payload) => {
+        async () => {
           // Refresh questions from Supabase
           await init();
         }
@@ -194,9 +193,6 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
       renderedInitialState = true;
     }
 
-    if (userId) setFavoritesLoading(true);
-    else setFavoritesLoading(false);
-
     const canReachNetwork =
       !!supabase && (typeof navigator === "undefined" || navigator.onLine !== false);
     const shouldFetchFreshQuestions = canReachNetwork;
@@ -246,7 +242,6 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
         }
       } finally {
         if (initRequestRef.current === requestId) {
-          setFavoritesLoading(false);
           setRefreshing(false);
         }
       }
@@ -392,26 +387,6 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
     await persist(nextQs);
   };
 
-  async function refreshFavorites() {
-    if (!userId) {
-      setQs((current) => current.map((q) => ({ ...q, favorite: false })));
-      return;
-    }
-    setFavoritesLoading(true);
-    try {
-      const favoriteIds = new Set(await favoritesModel.getAll(userId));
-      setQs((current) => current.map((q) => normalizeQuestion(q, favoriteIds)));
-    } catch (e) {
-      if (isNetworkOrFetchError(e)) {
-        console.warn("Could not refresh favorites (offline or network unreachable):", e?.message || e);
-      } else {
-        console.warn("Failed to refresh favorites:", e?.message || e);
-      }
-    } finally {
-      setFavoritesLoading(false);
-    }
-  }
-
   const counts = TOPICS.reduce((a, t) => ({
     ...a,
     [t.id]: qs.filter(q => q.topic === t.id).length
@@ -452,7 +427,6 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
     qs,
     loading,
     refreshing,
-    favoritesLoading,
     search,
     setSearch,
     topicFilter,

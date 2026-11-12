@@ -1,0 +1,146 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   COLORFUL SORT DROPDOWN ICONS & ACTIVE STATES
+   ══════════════════════════════════════════════════════════════════════════ */
+.qb-sort-icon,
+svg.qb-sort-icon,
+.qb-sort-item-icon-wrap svg,
+[data-colored="true"] {
+  opacity: 1 !important;
+  flex-shrink: 0;
+}
+
+.qb-sort-icon-favorites,
+svg.qb-sort-icon-favorites,
+.qb-sort-item-icon-wrap .qb-sort-icon-favorites {
+  color: #f59e0b !important;
+  fill: #f59e0b !important;
+}
+
+.qb-sort-icon-newest,
+svg.qb-sort-icon-newest,
+.qb-sort-item-icon-wrap .qb-sort-icon-newest {
+  color: #38bdf8 !important;
+}
+
+.qb-sort-icon-oldest,
+svg.qb-sort-icon-oldest,
+.qb-sort-item-icon-wrap .qb-sort-icon-oldest {
+  color: #a78bfa !important;
+}
+
+.qb-sort-icon-label-a-z,
+svg.qb-sort-icon-label-a-z,
+.qb-sort-item-icon-wrap .qb-sort-icon-label-a-z {
+  color: #34d399 !important;
+}
+
+.qb-sort-icon-label-z-a,
+svg.qb-sort-icon-label-z-a,
+.qb-sort-item-icon-wrap .qb-sort-icon-label-z-a {
+  color: #2dd4bf !important;
+}
+
+.qb-sort-icon-a-z,
+svg.qb-sort-icon-a-z,
+.qb-sort-item-icon-wrap .qb-sort-icon-a-z {
+  color: #fb923c !important;
+}
+
+.qb-sort-icon-z-a,
+svg.qb-sort-icon-z-a,
+.qb-sort-item-icon-wrap .qb-sort-icon-z-a {
+  color: #f43f5e !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   COLORFUL TOPIC DROPDOWN & TRIGGER BUTTON COLOR SYNC
+   ══════════════════════════════════════════════════════════════════════════ */
+.qb-topic-icon,
+svg.qb-topic-icon,
+.qb-topic-lead-icon svg,
+.qb-topic-icon-wrap svg {
+  opacity: 1 !important;
+  flex-shrink: 0;
+}
+
+.qb-topic-btn-text {
+  font-size: 13.5px;
+  letter-spacing: -0.01em;
+}
+
+.qb-topic-select-btn {
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.qb-topic-select-item {
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.qb-topic-select-item:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.light .qb-topic-select-item:hover,
+.qb.light .qb-topic-select-item:hover {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+.qb-topic-select-item.on {
+  font-weight: 700 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MOCK EXAM PRESET METRIC BADGES & TAGS CONTRAST
+   Lighter text for dark mode, darker text for light mode
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* DARK MODE: Lighter text for tags and badges */
+:root:not(.light) .qb-mock-mini-tag,
+html:not(.light) .qb-mock-mini-tag,
+body:not(.light) .qb-mock-mini-tag,
+.qb:not(.light) .qb-mock-mini-tag,
+.dark .qb-mock-mini-tag {
+  color: #f1f5f9 !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+:root:not(.light) .qb-mock-mini-badge,
+html:not(.light) .qb-mock-mini-badge,
+body:not(.light) .qb-mock-mini-badge,
+.qb:not(.light) .qb-mock-mini-badge,
+.dark .qb-mock-mini-badge {
+  color: #e2e8f0 !important;
+}
+
+:root:not(.light) .qb-mock-mini-badge.pass,
+html:not(.light) .qb-mock-mini-badge.pass,
+body:not(.light) .qb-mock-mini-badge.pass,
+.qb:not(.light) .qb-mock-mini-badge.pass,
+.dark .qb-mock-mini-badge.pass {
+  color: #34d399 !important;
+}
+
+/* LIGHT MODE: Darker text for tags and badges */
+.light .qb-mock-mini-tag,
+.qb.light .qb-mock-mini-tag,
+html.light .qb-mock-mini-tag,
+body.light .qb-mock-mini-tag {
+  color: #0f172a !important;
+  background: rgba(15, 23, 42, 0.06) !important;
+  border-color: rgba(15, 23, 42, 0.18) !important;
+}
+
+.light .qb-mock-mini-badge,
+.qb.light .qb-mock-mini-badge,
+html.light .qb-mock-mini-badge,
+body.light .qb-mock-mini-badge {
+  color: #0f172a !important;
+}
+
+.light .qb-mock-mini-badge.pass,
+.qb.light .qb-mock-mini-badge.pass,
+html.light .qb-mock-mini-badge.pass,
+body.light .qb-mock-mini-badge.pass {
+  color: #047857 !important;
+}

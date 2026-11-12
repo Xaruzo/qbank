@@ -19,10 +19,9 @@ import {
   BookOpen,
   Lightbulb,
   RefreshCw,
-  Lock,
   Compass,
 } from "lucide-react";
-import brandLogo from "../../models/Image/logo.png";
+import brandLogo from "../../assets/logo.png";
 import AppleHeroCanvas from "./AppleHeroCanvas";
 import ForgotPasswordModal from "./ForgotPasswordModal";
 import type { SignInPageProps } from "../../types";
@@ -32,7 +31,6 @@ export default function SignInPage({
   onToggleTheme,
   onBackToLanding,
   onSuccessLogin,
-  onContinueAsGuest,
   onSignInWithEmail,
   onSignInWithGoogle,
   onGoHome,

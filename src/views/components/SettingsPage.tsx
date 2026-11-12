@@ -18,9 +18,7 @@ import {
   Clock,
   RotateCcw,
   Download,
-  FileSpreadsheet,
   CheckCircle2,
-  BookOpen,
   AlertTriangle,
   Activity,
   Cpu,
@@ -28,11 +26,9 @@ import {
   UserPlus,
   Search,
   KeyRound,
-  Users,
-  Lock,
   Mail,
 } from "lucide-react";
-import type { SettingsPageProps, TopicId, UserRole, UserRoleRecord, SelectOption } from "../../types";
+import type { SettingsPageProps, UserRole, UserRoleRecord, SelectOption } from "../../types";
 import { useOverlayDialogA11y } from "../../controllers/useOverlayDialogA11y";
 import AvatarStudio from "./AvatarStudio";
 import CustomSelect from "./CustomSelect";
@@ -88,14 +84,11 @@ export default function SettingsPage({
   isAuthenticated,
   isQuestionAdmin = false,
   isSuperAdmin = false,
-  userRole = "reviewer",
   totalQuestions = 0,
   mockAttemptsCount = 0,
   favoritesCount = 0,
   notesCount = 0,
   onBackToMain,
-  onSignIn,
-  onSignOut,
 }: SettingsPageProps) {
   const [activeTab, setActiveTab] = useState<string>(initialTab);
 

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   ArrowUpRight,
   PlayCircle,
@@ -34,7 +34,6 @@ export default function MockExam({
   onResumeActiveExam,
   history = [],
   isHistoryLoading = false,
-  onReviewAttempt,
   onOpenAttempt,
   isAuthenticated,
   authAvailable,

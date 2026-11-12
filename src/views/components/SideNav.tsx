@@ -20,8 +20,8 @@ import {
   ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
-import brandLogo from "../../models/Image/logo.png";
-import type { SideNavProps, TopicId } from "../../types";
+import brandLogo from "../../assets/logo.png";
+import type { SideNavProps } from "../../types";
 
 interface NavItemDef {
   id: "home" | "mock" | "tips" | "notes";
@@ -257,7 +257,6 @@ export default function SideNav({
   onTips,
   onNotes,
   onClose,
-  onToggleNav,
   totalQuestions = 0,
   starredCount = 0,
   isDark = true,
@@ -268,11 +267,6 @@ export default function SideNav({
   profile = null,
   onSignIn,
   onSignOut,
-  activeTopic = "all",
-  onSelectTopic,
-  topicCounts = {},
-  settings,
-  themeMode,
   onSetThemeMode,
   isQuestionAdmin = false,
   isSuperAdmin = false,
@@ -320,7 +314,6 @@ export default function SideNav({
   const isAdmin = isQuestionAdmin || userRole === "admin";
   const rolePillClass = isSuper ? "superadmin" : isAdmin ? "admin" : "pro";
   const rolePillLabel = isSuper ? "SUPERADMIN" : isAdmin ? "ADMIN" : "REVIEWER";
-  const activeThemeMode = themeMode ?? (isDark ? "dark" : "light");
 
   useOverlayDialogA11y(variant === "overlay" && open, onClose, cardRef);
 

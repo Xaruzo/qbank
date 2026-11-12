@@ -1,0 +1,425 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   FILE UPLOAD ZONE
+   ══════════════════════════════════════════════════════════════════════════ */
+.qb-upload-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.qb-upload-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 20px;
+  border: 2px dashed var(--border);
+  border-radius: 16px;
+  background: var(--input-bg);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 200px;
+}
+
+.qb-upload-dropzone:hover {
+  border-color: rgba(245, 166, 35, 0.4);
+  background: rgba(245, 166, 35, 0.03);
+}
+
+.qb-upload-dropzone-active {
+  border-color: rgba(245, 166, 35, 0.6);
+  background: rgba(245, 166, 35, 0.08);
+  transform: scale(1.02);
+}
+
+.qb-upload-dropzone-uploading {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.qb-upload-icon {
+  color: var(--text-faint);
+  opacity: 0.6;
+}
+
+.qb-upload-dropzone:hover .qb-upload-icon {
+  color: #f5a623;
+  opacity: 1;
+}
+
+.qb-upload-text {
+  font-size: 15px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.qb-upload-text strong {
+  color: #f5a623;
+  font-weight: 700;
+}
+
+.qb-upload-hint {
+  font-size: 12px;
+  color: var(--text-faint);
+  text-align: center;
+}
+
+.qb-upload-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(245, 166, 35, 0.2);
+  border-top-color: #f5a623;
+  border-radius: 50%;
+  animation: qb-spin 0.8s linear infinite;
+}
+
+.qb-upload-url-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+@media (hover: hover) {
+  .qb-upload-url-btn:hover {
+    border-color: var(--border-h);
+    background: var(--surface-h);
+    color: var(--text);
+  
+  }
+}
+
+.qb-upload-error {
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(251, 113, 133, 0.1);
+  border: 1px solid rgba(251, 113, 133, 0.25);
+  color: #fb7185;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* URL Input Form */
+.qb-url-input-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.qb-url-input-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-heading);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.qb-url-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--input-bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.qb-url-input:focus {
+  border-color: rgba(245, 166, 35, 0.5);
+}
+
+.qb-url-input-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.qb-url-cancel {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .qb-url-cancel:hover {
+    border-color: var(--border-h);
+    color: var(--text);
+  
+  }
+}
+
+.qb-url-submit {
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  background: #f5a623;
+  color: #070c18;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .qb-url-submit:hover {
+    background: #f8be57;
+  
+  }
+}
+
+/* File Preview */
+.qb-file-preview {
+  position: relative;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.qb-file-preview-content {
+  padding: 16px;
+}
+
+.qb-file-preview-image {
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--input-bg);
+}
+
+.qb-file-preview-image img {
+  width: 100%;
+  height: auto;
+  display: block;
+  max-height: 400px;
+  object-fit: contain;
+}
+
+.qb-file-preview-doc {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--input-bg);
+}
+
+.qb-file-preview-icon {
+  font-size: 42px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.qb-file-preview-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.qb-file-preview-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-heading);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.qb-file-preview-type {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.qb-file-preview-remove {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+@media (hover: hover) {
+  .qb-file-preview-remove:hover {
+    background: rgba(251, 113, 133, 0.1);
+    border-color: rgba(251, 113, 133, 0.3);
+    color: #fb7185;
+  
+  }
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .qb-tips-overview {
+    grid-template-columns:1fr 1fr;
+  
+  }
+  .qb-tips-grid {
+    grid-template-columns:1fr;
+  
+  }
+  .qb-upload-dropzone {
+    padding: 32px 16px;
+    min-height: 180px;
+  
+  }
+  .qb-upload-icon {
+    width: 28px;
+    height: 28px;
+  
+  }
+  .qb-upload-text {
+    font-size: 14px;
+  
+  }
+  .qb-upload-hint {
+    font-size: 11px;
+  
+  }
+  .qb-url-input-form {
+    padding: 16px;
+  
+  }
+  .qb-file-preview-doc {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  
+  }
+  .qb-file-preview-icon {
+    font-size: 36px;
+  
+  }
+}
+
+@media (max-width: 960px), ((orientation: landscape) and (max-height: 560px)) {
+  .qb-list-hero,
+.qb-tips-hero,
+.qb-tip-config-grid,
+.qb-tip-notes-layout,
+.qb-control-grid,
+.qb-preset-switcher,
+.qb-mock-subjects-grid,
+.qb-form-hero,
+.qb-editor,
+.qb-exam-shell {
+    grid-template-columns: 1fr;
+  
+  }
+  .qb-tips-hero-actions {
+    justify-content: flex-start;
+  
+  }
+  .qb-exam-shell {
+    grid-template-rows: auto auto auto;
+    grid-template-areas:
+      "top"
+      "main"
+      "side";
+    height: auto;
+    overflow: visible;
+  
+  }
+  .qb-list-hero-side,
+.qb-form-hero-meta,
+.qb-mock-insights,
+.qb-mock-strength-grid,
+.qb-mock-question-list {
+    grid-template-columns: minmax(0,1fr);
+  
+  }
+  .qb-list-hero-side {
+    grid-template-columns: repeat(2, minmax(0,1fr));
+  
+  }
+  .qb-mock-insights {
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap: 10px;
+  
+  }
+  .qb-editor-side,
+.qb-exam-side {
+    position: static;
+    top: auto;
+    height: auto;
+    overflow: visible;
+  
+  }
+  .qb-exam-side-inner {
+    max-height: none;
+    height: auto;
+  
+  }
+  .qb-main.qb-main-exam {
+    overflow: auto;
+  
+  }
+  .qb-main-inner.qb-main-inner-exam {
+    height: auto;
+    overflow: visible;
+    padding-right: 18px;
+  
+  }
+}
+
+@media (max-width: 360px) {
+  .qb-mock-insights {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  
+  }
+}
+
+/* ── Reduced motion: honor the OS accessibility setting ──
+   Kills spinners, shimmer, pulses, and fade-ins for users who ask for
+   less animation. Deliberately does NOT disable transitions on hover
+   feedback (which is also how focus states read here) but makes them
+   effectively instant. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+*::before,
+*::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  
+  }
+}

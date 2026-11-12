@@ -1,0 +1,855 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   SIGN IN PAGE STYLES (WITH GUARANTEED SMOOTH SCROLLING)
+   ══════════════════════════════════════════════════════════════════════════ */
+.qb-signin-root {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--bg, #050914);
+  color: var(--text, #ffffff);
+  color-scheme: dark;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb, rgba(196, 212, 236, 0.22)) transparent;
+  -webkit-overflow-scrolling: touch;
+  font-family: var(--font-sans);
+  position: relative;
+}
+
+.qb-signin-root.light {
+  color-scheme: light;
+  scrollbar-color: var(--scroll-thumb, rgba(26, 37, 64, 0.22)) transparent;
+}
+
+/* Transparent floating scrollbar for Sign In page */
+.qb-signin-root::-webkit-scrollbar {
+  width: 8px;
+  background: transparent;
+}
+
+.qb-signin-root::-webkit-scrollbar-track {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.qb-signin-root::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb, rgba(196, 212, 236, 0.22));
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+.qb-signin-root.light::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb, rgba(26, 37, 64, 0.22));
+}
+
+.qb-signin-root::-webkit-scrollbar-thumb:hover {
+  background: var(--scroll-thumb-h, rgba(234, 88, 12, 0.45));
+  background-clip: padding-box;
+}
+
+.qb-signin-root::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.qb-signin-root::-webkit-scrollbar-corner {
+  display: none !important;
+  background: transparent !important;
+}
+
+.qb-signin-scrim {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  background: radial-gradient(circle at 60% 40%, rgba(5, 9, 20, 0.6) 0%, rgba(5, 9, 20, 0.92) 75%, #050914 100%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.qb-signin-root.light .qb-signin-scrim {
+  background: radial-gradient(circle at 60% 40%, rgba(237, 242, 251, 0.6) 0%, rgba(237, 242, 251, 0.94) 75%, #edf2fb 100%);
+}
+
+.qb-signin-nav {
+  height: 64px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border, #17253b);
+  background: rgba(13, 21, 36, 0.9);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 100;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.qb-signin-root.light .qb-signin-nav {
+  background: rgba(237, 242, 251, 0.92);
+  border-bottom-color: var(--border, #d8e2f1);
+}
+
+.qb-signin-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border, #17253b);
+  background: var(--surface-h, #111d31);
+  color: var(--text, #ffffff);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.qb-signin-back-btn:hover {
+  border-color: var(--border-h, #314564);
+  transform: translateX(-2px);
+}
+
+.qb-signin-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.qb-signin-theme-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border, #17253b);
+  background: var(--surface-h, #111d31);
+  color: var(--text, #ffffff);
+  cursor: pointer;
+}
+
+.qb-signin-main {
+  flex: 1 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px 44px;
+  position: relative;
+  z-index: 10;
+}
+
+.qb-signin-layout {
+  width: 100%;
+  max-width: 980px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 36px;
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .qb-signin-layout {
+    grid-template-columns: 1fr;
+    max-width: 480px;
+  
+  }
+  .qb-signin-aside {
+    display: none;
+  
+  }
+}
+
+.qb-signin-aside {
+  display: flex;
+  flex-direction: column;
+}
+
+.qb-signin-aside-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.qb-signin-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  background: rgba(245, 166, 35, 0.12);
+  border: 1px solid rgba(245, 166, 35, 0.3);
+  color: #f5a623;
+  font-size: 12px;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.qb-signin-brand-lockup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.qb-signin-brand-img {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  object-fit: contain;
+}
+
+.qb-signin-aside-title {
+  font-family: var(--font-heading);
+  font-size: 28px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.qb-signin-root.light .qb-signin-aside-title {
+  color: #0b1528;
+}
+
+.qb-signin-aside-desc {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-mid, #cbd5e1);
+}
+
+.qb-signin-benefits-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 10px 0;
+}
+
+.qb-signin-benefit-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.qb-signin-benefit-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.qb-signin-benefit-icon.amber {
+  background: rgba(245, 166, 35, 0.15);
+  color: #f5a623;
+}
+
+.qb-signin-benefit-icon.cyan {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+}
+
+.qb-signin-benefit-icon.purple {
+  background: rgba(167, 139, 250, 0.15);
+  color: #a78bfa;
+}
+
+.qb-signin-benefit-text h5 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 2px;
+}
+
+.qb-signin-root.light .qb-signin-benefit-text h5 {
+  color: #0f172a;
+}
+
+.qb-signin-benefit-text p {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-mid, #94a3b8);
+}
+
+.qb-signin-aside-quote {
+  padding: 16px;
+  border-radius: 10px;
+  background: rgba(17, 29, 49, 0.6);
+  border: 1px solid var(--border, #17253b);
+  border-left: 3px solid #f5a623;
+}
+
+.qb-signin-aside-quote p {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #cbd5e1;
+  font-style: italic;
+  margin-bottom: 6px;
+}
+
+.qb-signin-aside-quote span {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #f5a623;
+}
+
+/* Card Wrap */
+.qb-signin-card-wrap {
+  width: 100%;
+}
+
+.qb-signin-card {
+  background: var(--surface, #0d1524);
+  border: 1px solid var(--border-h, #314564);
+  border-radius: 16px;
+  padding: 36px 32px;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(12px);
+  min-height: 640px;
+  display: flex;
+  flex-direction: column;
+}
+
+.qb-signin-root.light .qb-signin-card {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+.qb-signin-tabs {
+  display: flex;
+  background: var(--surface-h, #111d31);
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 24px;
+}
+
+.qb-signin-tab {
+  flex: 1;
+  padding: 9px;
+  border: none;
+  background: transparent;
+  color: var(--text-mid, #94a3b8);
+  font-size: 13.5px;
+  font-weight: 600;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.qb-signin-tab.active {
+  background: #f5a623;
+  color: #050914;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.qb-signin-card-title {
+  font-family: var(--font-heading);
+  font-size: 21px;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 6px;
+}
+
+.qb-signin-root.light .qb-signin-card-title {
+  color: #0b1528;
+}
+
+.qb-signin-card-sub {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text-mid, #94a3b8);
+  margin-bottom: 22px;
+  min-height: 42px;
+}
+
+.qb-signin-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 18px;
+}
+
+.qb-signin-alert.danger {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+}
+
+.qb-signin-alert.success {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #6ee7b7;
+}
+
+.qb-signin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.qb-signin-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.qb-signin-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text, #ffffff);
+}
+
+.qb-signin-root.light .qb-signin-label {
+  color: #1e293b;
+}
+
+.qb-signin-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.qb-signin-input-icon {
+  position: absolute;
+  left: 14px;
+  color: var(--text-faint, #64748b);
+  pointer-events: none;
+}
+
+.qb-signin-input {
+  width: 100%;
+  height: 46px;
+  padding: 0 14px 0 42px;
+  border-radius: 12px;
+  border: 1px solid var(--border, #17253b);
+  background: var(--input-bg, #09101d);
+  color: var(--text, #ffffff);
+  font-size: 14px;
+  color-scheme: dark;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.qb-signin-root.light .qb-signin-input {
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #cbd5e1;
+  color-scheme: light;
+}
+
+.qb-signin-input.with-toggle {
+  padding-right: 44px;
+}
+
+.qb-signin-input:focus {
+  outline: none;
+  border-color: #f5a623;
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.22);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Chrome / Brave / Edge / WebKit Autofill Color Fix
+   Prevents browser from turning input background white on credential selection
+   ══════════════════════════════════════════════════════════════════════════ */
+.qb-signin-root:not(.light) .qb-signin-input:-webkit-autofill,
+.qb-signin-root:not(.light) .qb-signin-input:-webkit-autofill:hover,
+.qb-signin-root:not(.light) .qb-signin-input:-webkit-autofill:focus,
+.qb-signin-root:not(.light) .qb-signin-input:-webkit-autofill:active,
+.qb-signin-root:not(.light) .qb-signin-input:autofill {
+  -webkit-box-shadow: 0 0 0 1000px #09101d inset !important;
+  box-shadow: 0 0 0 1000px #09101d inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  color: #ffffff !important;
+  caret-color: #f5a623 !important;
+  border-color: #f5a623 !important;
+  background-color: #09101d !important;
+  transition: background-color 99999s ease-in-out 0s, color 99999s ease-in-out 0s;
+}
+
+.qb-signin-root.light .qb-signin-input:-webkit-autofill,
+.qb-signin-root.light .qb-signin-input:-webkit-autofill:hover,
+.qb-signin-root.light .qb-signin-input:-webkit-autofill:focus,
+.qb-signin-root.light .qb-signin-input:-webkit-autofill:active,
+.qb-signin-root.light .qb-signin-input:autofill {
+  -webkit-box-shadow: 0 0 0 1000px #f8fafc inset !important;
+  box-shadow: 0 0 0 1000px #f8fafc inset !important;
+  -webkit-text-fill-color: #0f172a !important;
+  color: #0f172a !important;
+  caret-color: #0f172a !important;
+  border-color: #f5a623 !important;
+  background-color: #f8fafc !important;
+  transition: background-color 99999s ease-in-out 0s, color 99999s ease-in-out 0s;
+}
+
+/* Global autofill support across QBANK forms & modals */
+.qb:not(.light) input:-webkit-autofill,
+.qb:not(.light) input:-webkit-autofill:hover,
+.qb:not(.light) input:-webkit-autofill:focus,
+.qb:not(.light) input:-webkit-autofill:active,
+.qb:not(.light) textarea:-webkit-autofill,
+.qb:not(.light) select:-webkit-autofill,
+.qb-auth-modal-card input:-webkit-autofill,
+.qb-auth-modal-card input:-webkit-autofill:hover,
+.qb-auth-modal-card input:-webkit-autofill:focus,
+.qb-auth-modal-card input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #09101d inset !important;
+  box-shadow: 0 0 0 1000px #09101d inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  color: #ffffff !important;
+  caret-color: #f5a623 !important;
+  background-color: #09101d !important;
+  transition: background-color 99999s ease-in-out 0s, color 99999s ease-in-out 0s;
+}
+
+.qb.light input:-webkit-autofill,
+.qb.light input:-webkit-autofill:hover,
+.qb.light input:-webkit-autofill:focus,
+.qb.light input:-webkit-autofill:active,
+.qb.light textarea:-webkit-autofill,
+.qb.light select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+  box-shadow: 0 0 0 1000px #ffffff inset !important;
+  -webkit-text-fill-color: #111827 !important;
+  color: #111827 !important;
+  caret-color: #111827 !important;
+  background-color: #ffffff !important;
+  transition: background-color 99999s ease-in-out 0s, color 99999s ease-in-out 0s;
+}
+
+.qb-signin-input-valid-icon {
+  position: absolute;
+  right: 14px;
+  color: #10b981;
+  pointer-events: none;
+  animation: qb-pop-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.qb-signin-validation-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.qb-signin-val-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-faint, #64748b);
+  transition: color 0.15s ease;
+}
+
+.qb-signin-val-item.met {
+  color: #10b981;
+  font-weight: 600;
+}
+
+.qb-signin-pwd-toggle {
+  position: absolute;
+  right: 12px;
+  background: transparent;
+  border: none;
+  color: var(--text-faint, #64748b);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.qb-signin-pwd-toggle:hover {
+  color: var(--text, #ffffff);
+}
+
+.qb-signin-submit-btn {
+  height: 46px;
+  margin-top: 6px;
+  border-radius: 10px;
+  border: none;
+  background: #f5a623;
+  color: #050914;
+  font-size: 14.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 4px 14px rgba(245, 166, 35, 0.3);
+}
+
+.qb-signin-submit-btn:hover:not(:disabled) {
+  background: #ffb83d;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(245, 166, 35, 0.4);
+}
+
+.qb-signin-submit-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.qb-signin-divider {
+  display: flex;
+  align-items: center;
+  margin: 20px 0;
+  text-align: center;
+  color: var(--text-faint, #64748b);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.qb-signin-divider::before,
+.qb-signin-divider::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid var(--border, #17253b);
+}
+
+.qb-signin-divider span {
+  padding: 0 12px;
+}
+
+.qb-signin-google-btn {
+  width: 100%;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border, #17253b);
+  background: var(--surface-h, #111d31);
+  color: var(--text, #ffffff);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.qb-signin-root.light .qb-signin-google-btn {
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+.qb-signin-google-btn:hover:not(:disabled) {
+  border-color: var(--border-h, #314564);
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-1px);
+}
+
+.qb-signin-footer-box {
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border, #17253b);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+.qb-signin-security-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-faint, #64748b);
+  text-align: center;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SIGN IN PAGE LEVEL FOOTER (PREVENTS EMPTY BOTTOM VOID & ANCHORS VIEWPORT)
+   ══════════════════════════════════════════════════════════════════════════ */
+.qb-signin-page-footer {
+  position: relative;
+  z-index: 15;
+  width: 100%;
+  background: rgba(8, 14, 26, 0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border, #17253b);
+  padding: 36px 24px 28px;
+  margin-top: auto;
+}
+
+.qb-signin-root.light .qb-signin-page-footer {
+  background: rgba(248, 250, 252, 0.96);
+  border-top-color: #cbd5e1;
+}
+
+.qb-signin-page-footer-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.4fr 1.1fr 1.2fr;
+  gap: 32px;
+  padding-bottom: 24px;
+}
+
+@media (max-width: 860px) {
+  .qb-signin-page-footer-inner {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  
+  }
+}
+
+.qb-signin-pfooter-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.qb-signin-pfooter-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.qb-signin-pfooter-logo-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  width: fit-content;
+}
+
+.qb-signin-pfooter-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.qb-signin-pfooter-title {
+  display: block;
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+
+.qb-signin-root.light .qb-signin-pfooter-title {
+  color: #0b1528;
+}
+
+.qb-signin-pfooter-sub {
+  display: block;
+  font-size: 11px;
+  color: var(--text-faint, #64748b);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.qb-signin-pfooter-desc {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-mid, #94a3b8);
+  margin: 0;
+  max-width: 380px;
+}
+
+.qb-signin-pfooter-head {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #ffffff;
+  margin: 0 0 4px 0;
+}
+
+.qb-signin-root.light .qb-signin-pfooter-head {
+  color: #0f172a;
+}
+
+.qb-signin-pfooter-links {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.qb-signin-pfooter-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  color: var(--text-mid, #94a3b8);
+  cursor: pointer;
+  transition: color 0.15s ease, transform 0.15s ease;
+  text-align: left;
+}
+
+.qb-signin-pfooter-link:hover {
+  color: #f5a623;
+  transform: translateX(2px);
+}
+
+.qb-signin-pfooter-highlights {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.qb-signin-pfooter-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text, #ffffff);
+}
+
+.qb-signin-root.light .qb-signin-pfooter-badge {
+  color: #1e293b;
+}
+
+.qb-badge-icon {
+  flex-shrink: 0;
+}
+
+.qb-badge-icon.amber { color: #f5a623; }
+
+.qb-badge-icon.cyan { color: #38bdf8; }
+
+.qb-badge-icon.emerald { color: #10b981; }
+
+.qb-signin-pfooter-legal {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding-top: 18px;
+  border-top: 1px solid var(--border, #17253b);
+  font-size: 11.5px;
+  color: var(--text-faint, #64748b);
+  line-height: 1.6;
+  text-align: center;
+}
+
+.qb-signin-root.light .qb-signin-pfooter-legal {
+  border-top-color: #e2e8f0;
+  color: #64748b;
+}

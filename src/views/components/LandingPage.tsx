@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
-  ShieldCheck,
   ArrowRight,
   Clock,
   Award,
@@ -9,16 +8,13 @@ import {
   Moon,
   Sun,
   LogIn,
-  CheckCircle2,
   FileCheck2,
   Sparkles,
   Zap,
   Edit3,
-  Bookmark,
   Check,
-  RotateCcw,
 } from "lucide-react";
-import brandLogo from "../../models/Image/logo.png";
+import brandLogo from "../../assets/logo.png";
 import AppleHeroCanvas from "./AppleHeroCanvas";
 import type { LandingPageProps, TopicId } from "../../types";
 import { TOPICS } from "../../constants/appConstants";
@@ -29,7 +25,6 @@ export default function LandingPage({
   onToggleTheme,
   onStartReview,
   onSignIn,
-  onExploreGuest,
   onStartMock,
   onNavigateToTips,
   totalQuestions = 0,

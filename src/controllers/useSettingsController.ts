@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import type { AppSettings } from "../types";
 
-export const SETTINGS_STORAGE_KEY = "cse-qbank-app-settings-v1";
+const SETTINGS_STORAGE_KEY = "cse-qbank-app-settings-v1";
 
-export const DEFAULT_SETTINGS: AppSettings = {
+const DEFAULT_SETTINGS: AppSettings = {
   liteMode: false,
   animationsEnabled: true,
   performanceTier: "high",
@@ -92,14 +92,6 @@ export function useSettingsController() {
     });
   };
 
-  const toggleLiteMode = () => {
-    updateSettings({ liteMode: !settings.liteMode });
-  };
-
-  const toggleAnimations = () => {
-    updateSettings({ animationsEnabled: !settings.animationsEnabled });
-  };
-
   const resetSettings = () => {
     setSettings(DEFAULT_SETTINGS);
     try {
@@ -107,11 +99,5 @@ export function useSettingsController() {
     } catch {}
   };
 
-  return {
-    settings,
-    updateSettings,
-    toggleLiteMode,
-    toggleAnimations,
-    resetSettings,
-  };
+  return { settings, updateSettings, resetSettings };
 }

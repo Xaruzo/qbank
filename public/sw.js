@@ -8,7 +8,7 @@ const RUNTIME_CACHE = `${CACHE_VERSION}:runtime`;
 // least-recently-added entries.
 const MAX_RUNTIME_ENTRIES = 100;
 
-const APP_SHELL_URLS = ["/", "/index.html", "/manifest.webmanifest", "/icon.svg"];
+const APP_SHELL_URLS = ["/", "/index.html", "/manifest.webmanifest", "/icon-192.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

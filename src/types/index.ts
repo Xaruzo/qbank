@@ -138,7 +138,7 @@ export interface HeaderProps {
   isAuthenticated?: boolean;
   profile?: UserProfile | null;
   onSignIn?: () => void;
-  onSignInWithEmail?: (email: string, password?: string) => Promise<{ error: any; mode?: string; message?: string }>;
+  onSignInWithEmail?: (email: string, password?: string) => Promise<{ error: any; mode?: string; message?: string; user?: any }>;
   onSignInWithGoogle?: () => Promise<{ error: any }>;
   onSignOut?: () => Promise<void> | void;
   onOpenHelp?: () => void;
@@ -146,8 +146,6 @@ export interface HeaderProps {
   onMockExam?: () => void;
   onTips?: () => void;
   onNotes?: () => void;
-  settings?: AppSettings;
-  onUpdateSettings?: (partial: Partial<AppSettings>) => void;
   isQuestionAdmin?: boolean;
   isSuperAdmin?: boolean;
   userRole?: UserRole;
@@ -168,20 +166,14 @@ export interface SideNavProps {
   starredCount?: number;
   isDark?: boolean;
   onToggleTheme?: () => void;
-  themeMode?: "dark" | "light" | "system";
   onSetThemeMode?: (mode: "dark" | "light" | "system") => void;
   onOpenHelp?: () => void;
   onOpenSettings?: (tab?: string) => void;
   isAuthenticated?: boolean;
   profile?: UserProfile | null;
   onSignIn?: () => void;
-  onSignInWithEmail?: (email: string, password?: string) => Promise<{ error: any; mode?: string; message?: string }>;
+  onSignInWithEmail?: (email: string, password?: string) => Promise<{ error: any; mode?: string; message?: string; user?: any }>;
   onSignOut?: () => Promise<void> | void;
-  onToggleNav?: () => void;
-  activeTopic?: TopicId | "all";
-  onSelectTopic?: (topicId: TopicId | "all") => void;
-  topicCounts?: Record<string, number>;
-  settings?: AppSettings;
   isQuestionAdmin?: boolean;
   isSuperAdmin?: boolean;
   userRole?: UserRole;
@@ -200,14 +192,11 @@ export interface SettingsPageProps {
   isAuthenticated: boolean;
   isQuestionAdmin?: boolean;
   isSuperAdmin?: boolean;
-  userRole?: UserRole;
   totalQuestions?: number;
   mockAttemptsCount?: number;
   favoritesCount?: number;
   notesCount?: number;
   onBackToMain: () => void;
-  onSignIn?: () => void;
-  onSignOut?: () => void;
 }
 
 export interface StatsProps {
@@ -278,7 +267,6 @@ export interface LandingPageProps {
   onToggleTheme: () => void;
   onStartReview: () => void;
   onSignIn: () => void;
-  onExploreGuest?: () => void;
   onStartMock?: (presetId?: "professional" | "subprofessional") => void;
   onNavigateToTips?: () => void;
   totalQuestions?: number;
@@ -291,12 +279,11 @@ export interface SignInPageProps {
   onToggleTheme: () => void;
   onBackToLanding: () => void;
   onSuccessLogin: () => void;
-  onContinueAsGuest?: () => void;
   onSignInWithEmail: (
     email: string,
     password?: string,
     options?: { mode?: "signin" | "signup" }
-  ) => Promise<{ error: any; mode?: string; message?: string }>;
+  ) => Promise<{ error: any; mode?: string; message?: string; user?: any }>;
   onSignInWithGoogle?: () => Promise<{ error: any }>;
   onGoHome?: () => void;
   onGoMockExam?: () => void;

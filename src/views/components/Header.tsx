@@ -12,14 +12,9 @@ import {
   Sparkles,
   Bell,
 } from "lucide-react";
-import brandLogo from "../../models/Image/logo.png";
+import brandLogo from "../../assets/logo.png";
 import NotificationsModal from "./NotificationsModal";
-import type { HeaderProps, AppSettings, UserProfile } from "../../types";
-
-interface ExtendedHeaderProps extends HeaderProps {
-  onResetSettings?: () => void;
-  onUpdateProfile?: (partial: Partial<UserProfile>) => Promise<{ success: boolean }>;
-}
+import type { HeaderProps } from "../../types";
 
 export default function Header({
   isDark,
@@ -40,11 +35,7 @@ export default function Header({
   onTips,
   onNotes,
   currentView = "home",
-  settings,
-  onUpdateSettings,
-  onResetSettings,
-  onUpdateProfile,
-}: ExtendedHeaderProps) {
+}: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
   const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
   const [notificationsOpen, setNotificationsOpen] = useState<boolean>(false);

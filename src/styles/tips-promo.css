@@ -1,0 +1,166 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   TIPS PROMO BANNER
+   ══════════════════════════════════════════════════════════════════════════ */
+.qb-tips-promo-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px 24px;
+  margin-bottom: 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(245, 166, 35, 0.25);
+  background: linear-gradient(135deg, rgba(245, 166, 35, 0.08), rgba(139, 92, 246, 0.06));
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+  position: relative;
+  overflow: hidden;
+}
+
+.qb-tips-promo-banner::after {
+  content: "";
+  position: absolute;
+  inset: auto -60px -100px auto;
+  width: 200px;
+  height: 200px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(245, 166, 35, 0.15), transparent 60%);
+  pointer-events: none;
+}
+
+.light .qb-tips-promo-banner {
+  border-color: rgba(245, 166, 35, 0.2);
+  background: linear-gradient(135deg, rgba(245, 166, 35, 0.06), rgba(255, 255, 255, 0.95));
+}
+
+.qb-tips-promo-content {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.qb-tips-promo-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: rgba(245, 166, 35, 0.15);
+  border: 1px solid rgba(245, 166, 35, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f5a623;
+  flex-shrink: 0;
+}
+
+.light .qb-tips-promo-icon {
+  background: rgba(245, 166, 35, 0.12);
+  border-color: rgba(245, 166, 35, 0.25);
+}
+
+.qb-tips-promo-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.qb-tips-promo-title {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-heading);
+  line-height: 1.2;
+  margin: 0;
+}
+
+.qb-tips-promo-desc {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.qb-tips-promo-btn {
+  background: #f5a623;
+  border: none;
+  color: #070c18;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 12px 20px;
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 4px 12px rgba(245, 166, 35, 0.25);
+  transition: all 0.2s ease;
+}
+
+@media (hover: hover) {
+  .qb-tips-promo-btn:hover {
+    background: #f8be57;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(245, 166, 35, 0.35);
+  
+  }
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .qb-tips-promo-banner {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 18px;
+    gap: 16px;
+  
+  }
+  .qb-tips-promo-content {
+    gap: 14px;
+  
+  }
+  .qb-tips-promo-icon {
+    width: 48px;
+    height: 48px;
+  
+  }
+  .qb-tips-promo-icon svg {
+    width: 24px;
+    height: 24px;
+  
+  }
+  .qb-tips-promo-title {
+    font-size: 16px;
+  
+  }
+  .qb-tips-promo-desc {
+    font-size: 13px;
+  
+  }
+  .qb-tips-promo-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 14px;
+  
+  }
+}
+
+@media (max-width: 420px) {
+  .qb-tips-promo-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  
+  }
+  .qb-tips-promo-icon {
+    width: 44px;
+    height: 44px;
+  
+  }
+}

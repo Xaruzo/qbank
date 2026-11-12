@@ -6,7 +6,6 @@ import {
   X,
   Timer,
   BookOpen,
-  Lightbulb,
   ShieldCheck,
   Sparkles,
   ArrowRight,

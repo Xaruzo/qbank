@@ -279,7 +279,7 @@ const isObjectHitByEraser = (obj, px, py, r) => {
   return false;
 };
 
-export default function DrawCanvas({ value, onChange, layersHost, isStudioModal = false, questionContext }) {
+export default function DrawCanvas({ value, onChange, layersHost, isStudioModal = false, questionContext = null }) {
   const containerRef = useRef(null);
   const boardRef = useRef(null);
   const menuHostRef = useRef(null);

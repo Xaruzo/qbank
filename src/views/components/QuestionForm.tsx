@@ -21,7 +21,7 @@ const TOPIC_ICON_MAP: Record<string, typeof Calculator> = {
   clerical: ClipboardList,
 };
 
-export default function QuestionForm({ initialData, onSave, onCancel, layersHost, sideRailHost }) {
+export default function QuestionForm({ initialData, onSave, onCancel, sideRailHost }) {
   const [isDrawModalOpen, setIsDrawModalOpen] = useState(false);
   const [tempDraw, setTempDraw] = useState(initialData?.solutionDraw || null);
   const [modalLayersHostEl, setModalLayersHostEl] = useState<HTMLDivElement | null>(null);

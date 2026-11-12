@@ -1,0 +1,188 @@
+/* ── New Loading Spinner Styles ── */
+.qb-loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 20px;
+}
+
+.qb-loading-centered {
+  min-height: 300px;
+}
+
+.qb-loading-fullscreen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  z-index: 100;
+}
+
+.qb-spinner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qb-spinner-sm {
+  width: 32px;
+  height: 32px;
+}
+
+.qb-spinner-md {
+  width: 48px;
+  height: 48px;
+}
+
+.qb-spinner-lg {
+  width: 64px;
+  height: 64px;
+}
+
+.qb-spinner-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: var(--accent);
+  animation: qb-spinner-rotate 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+}
+
+.qb-spinner-sm .qb-spinner-ring {
+  width: 32px;
+  height: 32px;
+  border-width: 2px;
+}
+
+.qb-spinner-md .qb-spinner-ring {
+  width: 48px;
+  height: 48px;
+  border-width: 3px;
+}
+
+.qb-spinner-lg .qb-spinner-ring {
+  width: 64px;
+  height: 64px;
+  border-width: 4px;
+}
+
+.qb-spinner-ring:nth-child(1) {
+  animation-delay: -0.45s;
+  border-top-color: var(--accent);
+}
+
+.qb-spinner-ring:nth-child(2) {
+  animation-delay: -0.3s;
+  border-top-color: var(--accent-strong);
+  opacity: 0.7;
+}
+
+.qb-spinner-ring:nth-child(3) {
+  animation-delay: -0.15s;
+  border-top-color: var(--accent);
+  opacity: 0.4;
+}
+
+@keyframes qb-spinner-rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Skeleton Screen Styles ── */
+.qb-skeleton { gap:24px; }
+
+.qb-skel-bar {
+  border-radius: 8px;
+  background: var(--skeleton-bg);
+  position: relative;
+  overflow: hidden;
+}
+
+.qb-skel-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, var(--skeleton-shine), transparent);
+  animation: qb-skeleton-shimmer 1.6s ease-in-out infinite;
+}
+
+.qb-skel-hero .qb-skel-bar { background:rgba(9,16,29,.35); }
+
+.qb-skel-hero .qb-skel-bar::after { background:linear-gradient(90deg, transparent, rgba(255,255,255,.10), transparent); }
+
+.light .qb-skel-hero .qb-skel-bar { background:rgba(26,37,64,.10); }
+
+.light .qb-skel-hero .qb-skel-bar::after { background:linear-gradient(90deg, transparent, rgba(255,255,255,.65), transparent); }
+
+.qb-skel-chips { display:flex; gap:10px; flex-wrap:wrap; }
+
+.qb-skel-chip {
+  display:inline-block;
+  width: 130px;
+  height: 34px;
+  border-radius: 999px;
+  background: var(--skeleton-bg);
+  position: relative;
+  overflow: hidden;
+}
+
+.qb-skel-chip::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, var(--skeleton-shine), transparent);
+  animation: qb-skeleton-shimmer 1.6s ease-in-out infinite;
+}
+
+.qb-skel-panel { pointer-events:none; }
+
+.qb-skel-stats { display:grid; grid-template-columns:repeat(6, minmax(0,1fr)); gap:12px; }
+
+.qb-skel-stat { pointer-events:none; }
+
+.qb-skel-stat .qb-skel-bar:nth-child(2) { margin-top:2px; }
+
+.qb-skel-stat-n { margin-top:auto; display:flex; }
+
+.qb-skel-control {
+  padding: 20px;
+  border-radius: 24px;
+  border: 1px solid var(--border);
+  background: var(--surface-grad);
+  box-shadow: var(--shadow-card);
+}
+
+.qb-skel-control-row { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+
+.qb-skel-card { pointer-events:none; }
+
+.qb-skel-card .qb-qcard-top { display:flex; align-items:center; gap:10px; }
+
+.qb-skel-card .qb-qcard-body { display:flex; flex-direction:column; gap:10px; }
+
+@keyframes qb-skeleton-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@media (max-width: 900px) {
+  .qb-skel-stats { grid-template-columns:repeat(3, minmax(0,1fr)); 
+  }
+}
+
+@media (max-width: 600px) {
+  .qb-skel-stats { grid-template-columns:repeat(2, 1fr); 
+  }
+  .qb-skel-hero .qb-list-hero-side { grid-template-columns:repeat(2, minmax(0,1fr)); 
+  }
+}

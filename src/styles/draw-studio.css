@@ -1,0 +1,704 @@
+/* ═══════════════════════════════════════════════════════════════
+   SOLUTION WHITEBOARD & MODAL WORKSPACE ARCHITECTURE
+   ═══════════════════════════════════════════════════════════════ */
+.qb-draw-visual-section {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Empty State Card (Prompt to Launch Canvas) */
+.qb-draw-empty-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  background: var(--surface-2, rgba(255, 255, 255, 0.025));
+  border: 1px dashed var(--border-h, rgba(255, 255, 255, 0.16));
+  border-radius: 14px;
+  transition: border-color 0.18s ease, background-color 0.18s ease;
+}
+
+.qb-draw-empty-card:hover {
+  border-color: rgba(245, 166, 35, 0.45);
+  background: rgba(245, 166, 35, 0.03);
+}
+
+.qb-draw-empty-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(245, 166, 35, 0.12);
+  color: #f5a623;
+  border: 1px solid rgba(245, 166, 35, 0.22);
+}
+
+.qb-draw-empty-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.qb-draw-empty-title {
+  margin: 0 0 3px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.qb-draw-empty-desc {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.qb-draw-launch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: #e8960e;
+  color: #121316;
+  border: none;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(232, 150, 14, 0.22);
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.qb-draw-launch-btn:hover {
+  background: #f5a623;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(245, 166, 35, 0.32);
+}
+
+.qb-draw-launch-btn:active {
+  transform: translateY(0);
+}
+
+/* Drawing Attached: Compact High-Fidelity Preview Card */
+.qb-draw-preview-card {
+  display: flex;
+  gap: 16px;
+  padding: 14px;
+  background: var(--surface-card, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  align-items: center;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.qb-draw-preview-card:hover {
+  border-color: var(--border-h);
+}
+
+.qb-draw-preview-media {
+  position: relative;
+  width: 140px;
+  height: 96px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qb-draw-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #ffffff;
+}
+
+.qb-draw-preview-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #e8960e;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  padding: 6px;
+}
+
+.qb-draw-preview-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(18, 19, 22, 0.65);
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: #ffffff;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  transition: opacity 0.18s ease;
+}
+
+.qb-draw-preview-media:hover .qb-draw-preview-overlay {
+  opacity: 1;
+}
+
+.qb-draw-preview-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.qb-draw-preview-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.qb-draw-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.qb-draw-pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+}
+
+.qb-draw-preview-hint {
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  color: #cbd5e1;
+}
+
+.light .qb-draw-preview-hint {
+  color: #334155;
+  font-weight: 500;
+}
+
+.qb-draw-preview-title {
+  margin: 2px 0 0;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.light .qb-draw-preview-title {
+  color: #0f172a;
+}
+
+.qb-draw-preview-copy {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: #cbd5e1;
+  line-height: 1.45;
+}
+
+.light .qb-draw-preview-copy {
+  color: #1e293b;
+}
+
+.qb-draw-preview-actions {
+  margin-top: 6px;
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.qb-draw-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.qb-draw-action-btn-edit {
+  background: rgba(245, 166, 35, 0.12);
+  color: #f5a623;
+  border: 1px solid rgba(245, 166, 35, 0.28);
+  align-self: stretch;
+}
+
+.qb-draw-action-btn-edit:hover {
+  background: rgba(245, 166, 35, 0.2);
+  border-color: rgba(245, 166, 35, 0.45);
+  color: #ffb84d;
+}
+
+.qb-draw-action-btn-remove {
+  background: rgba(239, 68, 68, 0.08);
+  color: #fca5a5;
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  align-self: stretch;
+  white-space: nowrap;
+}
+
+.qb-draw-action-btn-remove:hover {
+  background: #dc2626;
+  color: #ffffff;
+  border-color: #dc2626;
+}
+
+.light .qb-draw-action-btn-remove {
+  background: rgba(239, 68, 68, 0.05);
+  color: #b91c1c;
+  border: 1px solid rgba(185, 28, 28, 0.35);
+}
+
+.light .qb-draw-action-btn-remove:hover {
+  background: #dc2626;
+  color: #ffffff;
+  border-color: #dc2626;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FULL VIEW / DEDICATED FULLSCREEN WHITEBOARD STUDIO
+   ═══════════════════════════════════════════════════════════════ */
+.qb-draw-studio-view {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+  box-sizing: border-box;
+  animation: qbFadeIn 0.15s ease-out;
+}
+
+.qb-draw-studio-title-short {
+  display: none;
+}
+
+/* Studio Top Navigation Bar */
+.qb-draw-studio-nav {
+  height: 58px;
+  min-height: 58px;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.qb-draw-studio-nav-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.qb-draw-studio-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 9px;
+  background: var(--surface-2, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.qb-draw-studio-back-btn:hover {
+  background: var(--surface-h, rgba(255, 255, 255, 0.1));
+  border-color: var(--border-h);
+  transform: translateX(-1px);
+}
+
+.qb-draw-studio-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+.qb-draw-studio-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.qb-draw-studio-title-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.qb-draw-studio-title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.qb-draw-studio-topic-label {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: #f5a623;
+  white-space: nowrap;
+}
+
+.qb-draw-studio-sub {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: var(--text-mid2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.qb-draw-studio-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.qb-draw-studio-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 9px;
+  background: var(--surface-2, transparent);
+  border: 1px solid var(--border);
+  color: var(--text-mid);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.qb-draw-studio-tool-btn:hover {
+  color: var(--text);
+  border-color: var(--border-h);
+}
+
+.qb-draw-studio-tool-btn.is-active {
+  background: rgba(245, 166, 35, 0.12);
+  color: #f5a623;
+  border-color: rgba(245, 166, 35, 0.35);
+}
+
+.qb-draw-studio-btn-discard {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #e2e8f0;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.qb-draw-studio-btn-discard:hover {
+  background: rgba(244, 63, 94, 0.14);
+  color: #fca5a5;
+  border-color: rgba(244, 63, 94, 0.4);
+}
+
+.light .qb-draw-studio-btn-discard,
+body.light .qb-draw-studio-btn-discard {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+}
+
+.light .qb-draw-studio-btn-discard:hover,
+body.light .qb-draw-studio-btn-discard:hover {
+  background: #fff1f2;
+  color: #be123c;
+  border-color: #fecdd3;
+}
+
+.qb-draw-studio-btn-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 18px;
+  border-radius: 9px;
+  background: #e8960e;
+  border: 1px solid #d9820c;
+  color: #121316;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(232, 150, 14, 0.28);
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.qb-draw-studio-btn-save:hover {
+  background: #f5a623;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(245, 166, 35, 0.4);
+}
+
+.qb-draw-studio-btn-save:active {
+  transform: translateY(0);
+}
+
+/* Studio Body */
+.qb-draw-studio-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+  background: var(--bg);
+}
+
+.qb-draw-studio-canvas-area {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Studio Sidebar for Layers */
+.qb-draw-studio-sidebar {
+  width: 310px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.qb-draw-studio-sidebar-header {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-card, rgba(255, 255, 255, 0.02));
+}
+
+.qb-draw-studio-sidebar-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.qb-draw-studio-sidebar-close {
+  background: none;
+  border: none;
+  color: var(--text-mid);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qb-draw-studio-sidebar-close:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.qb-studio-layers-slot {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding: 8px;
+  color: var(--text);
+}
+
+@media (max-width: 1100px) {
+  .qb-draw-studio-sub {
+    display: none !important;
+  }
+}
+
+@media (max-width: 860px) {
+  .qb-draw-studio-title-full {
+    display: none !important;
+  }
+  .qb-draw-studio-title-short {
+    display: inline !important;
+  }
+  .qb-draw-studio-nav {
+    height: 52px;
+    min-height: 52px;
+    padding: 0 12px;
+    gap: 8px;
+    justify-content: space-between;
+  }
+  .qb-draw-studio-nav-left {
+    gap: 8px;
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+  }
+  .qb-draw-studio-nav-right {
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .qb-draw-studio-btn-text-full,
+  .qb-draw-studio-tool-label,
+  .qb-draw-studio-divider,
+  .qb-draw-studio-topic-label,
+  .qb-draw-studio-btn-discard,
+  .qb-draw-studio-tool-fs {
+    display: none !important;
+  }
+  .qb-draw-studio-title {
+    font-size: 14.5px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: -0.01em;
+  }
+  .qb-draw-studio-back-btn {
+    padding: 0 10px;
+    font-size: 12px;
+    height: 36px;
+    border-radius: 8px;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .qb-draw-studio-tool-btn {
+    padding: 0 11px;
+    font-size: 12px;
+    height: 36px;
+    border-radius: 8px;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .qb-draw-studio-btn-save {
+    padding: 0 14px;
+    font-size: 13px;
+    font-weight: 700;
+    height: 36px;
+    border-radius: 8px;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .qb-draw-studio-canvas-area {
+    padding: 6px;
+  }
+  .qb-draw-studio-sidebar {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 50;
+    box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+  }
+  .qb-draw-empty-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .qb-draw-launch-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .qb-draw-preview-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .qb-draw-preview-media {
+    width: 100%;
+    height: 140px;
+  }
+  .qb-draw-preview-actions {
+    width: 100%;
+    align-items: stretch;
+  }
+  .qb-draw-action-btn-edit {
+    flex: 1;
+    justify-content: center;
+    align-self: stretch;
+  }
+  .qb-draw-action-btn-remove {
+    align-self: stretch;
+    justify-content: center;
+  }
+}

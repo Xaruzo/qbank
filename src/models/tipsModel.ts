@@ -349,7 +349,7 @@ const fetchRemoteTipsMap = async (userId) => {
           category: row?.tip_category || 'general',
           masteryLevel: row?.mastery_level || 'learning',
           lastReviewed: row?.last_reviewed || null,
-          linkedQuestionId: row?.linked_question_id || null,
+          linkedQuestionId: (row as any)?.linked_question_id || null,
           attachmentUrl: "",
           attachmentType: "",
           attachmentName: "",
