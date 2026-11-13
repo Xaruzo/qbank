@@ -27,6 +27,8 @@ import {
   Search,
   KeyRound,
   Mail,
+  Users,
+  Loader2,
 } from "lucide-react";
 import type { SettingsPageProps, UserRole, UserRoleRecord, SelectOption } from "../../types";
 import { useOverlayDialogA11y } from "../../controllers/useOverlayDialogA11y";
@@ -1251,11 +1253,17 @@ export default function SettingsPage({
                       onChange={(e) => setRoleSearch(e.target.value)}
                     />
                   </div>
-                  <div className="qb-settings-roster-filters">
+                  <div
+                    className="qb-settings-roster-filters"
+                    role="tablist"
+                    aria-label="Filter accounts by role"
+                  >
                     {(["all", "superadmin", "admin", "reviewer"] as const).map((rFilter) => (
                       <button
                         key={rFilter}
                         type="button"
+                        role="tab"
+                        aria-selected={roleFilter === rFilter}
                         className={`qb-settings-roster-filter-chip${roleFilter === rFilter ? " active" : ""}`}
                         onClick={() => setRoleFilter(rFilter)}
                       >
@@ -1276,19 +1284,7 @@ export default function SettingsPage({
                       </tr>
                     </thead>
                     <tbody>
-                      {isUsersLoading ? (
-                        <tr>
-                          <td colSpan={4} className="text-center py-6 text-muted text-xs">
-                            Syncing registered accounts...
-                          </td>
-                        </tr>
-                      ) : filteredUsers.length === 0 ? (
-                        <tr>
-                          <td colSpan={4} className="text-center py-6 text-muted text-xs">
-                            No user accounts matched your search criteria.
-                          </td>
-                        </tr>
-                      ) : (
+                      {!isUsersLoading &&
                         filteredUsers.map((uRecord) => {
                           const isRootSuper = uRecord.email.toLowerCase() === "xaruzowarlord@gmail.com";
                           return (
@@ -1342,6 +1338,7 @@ export default function SettingsPage({
                                       options={QUICK_ROLE_OPTIONS}
                                       className="qb-table-role-select"
                                       showCheckmark
+                                      portal
                                     />
                                     {uRecord.role !== "reviewer" && (
                                       <button
@@ -1358,10 +1355,65 @@ export default function SettingsPage({
                               </td>
                             </tr>
                           );
-                        })
-                      )}
+                        })}
                     </tbody>
                   </table>
+
+                  {isUsersLoading && (
+                    <div className="qb-roster-state-box">
+                      <Loader2 size={22} className="qb-roster-spinner" />
+                      <p className="qb-roster-state-title">Syncing registered accounts...</p>
+                    </div>
+                  )}
+
+                  {!isUsersLoading && filteredUsers.length === 0 && (
+                    <div className="qb-roster-state-box">
+                      <div className="qb-roster-state-icon">
+                        <Users size={22} />
+                      </div>
+                      <p className="qb-roster-state-title">
+                        {roleFilter !== "all" && !roleSearch.trim()
+                          ? `No ${roleFilter.toUpperCase()} accounts found`
+                          : "No matching accounts"}
+                      </p>
+                      <p className="qb-roster-state-desc">
+                        {roleFilter !== "all" || roleSearch.trim()
+                          ? "Try adjusting your role filter or search query to see other registered accounts."
+                          : "Registered user accounts will appear here once signed in."}
+                      </p>
+                      {(roleFilter !== "all" || roleSearch.trim()) && (
+                        <button
+                          type="button"
+                          className="qb-roster-reset-btn"
+                          onClick={() => {
+                            setRoleFilter("all");
+                            setRoleSearch("");
+                          }}
+                        >
+                          Reset filters
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="qb-settings-roster-footer">
+                  <span className="qb-settings-roster-count">
+                    Showing {filteredUsers.length} of {usersList.length}{" "}
+                    {usersList.length === 1 ? "account" : "accounts"}
+                  </span>
+                  {(roleFilter !== "all" || roleSearch.trim()) && (
+                    <button
+                      type="button"
+                      className="qb-roster-clear-link"
+                      onClick={() => {
+                        setRoleFilter("all");
+                        setRoleSearch("");
+                      }}
+                    >
+                      Clear filters
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

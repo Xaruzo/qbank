@@ -260,6 +260,7 @@ export interface CustomSelectProps {
   style?: React.CSSProperties;
   leadIcon?: React.ReactNode;
   showCheckmark?: boolean;
+  portal?: boolean;
 }
 
 export interface LandingPageProps {
