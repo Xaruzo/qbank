@@ -330,15 +330,15 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-.draw-board-shell.draw-grid-dots {
-  background-image: radial-gradient(circle, rgba(148, 163, 184, 0.3) 1.2px, transparent 1.2px) !important;
+.draw-canvas-host.draw-grid-dots {
+  background-image: radial-gradient(circle, rgba(100, 116, 139, 0.32) 1.25px, transparent 1.25px) !important;
   background-size: 20px 20px !important;
 }
 
-.draw-board-shell.draw-grid-grid {
+.draw-canvas-host.draw-grid-grid {
   background-image: 
-    linear-gradient(to right, rgba(148, 163, 184, 0.16) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(148, 163, 184, 0.16) 1px, transparent 1px) !important;
+    linear-gradient(to right, rgba(100, 116, 139, 0.16) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(100, 116, 139, 0.16) 1px, transparent 1px) !important;
   background-size: 20px 20px !important;
 }
 
@@ -411,6 +411,11 @@
   padding: 10px;
   z-index: 35;
   animation: drawFadeIn 0.12s ease-out;
+}
+
+.draw-floating-popover.is-upward {
+  top: auto;
+  bottom: calc(100% + 6px);
 }
 
 .draw-canva-toast {

@@ -251,12 +251,19 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
     document.body.style.overflow = "hidden";
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        e.preventDefault();
         if (showDiscardConfirm) {
+          e.preventDefault();
           setShowDiscardConfirm(false);
-        } else {
-          handleDiscardClick();
+          return;
         }
+        const hasCanvasOverlay = !!document.querySelector(
+          ".draw-popover-menu, .draw-floating-popover, .draw-shortcuts-popover, .draw-ctx-menu-wrap, .sol-est-overlay, .draw-artboard-frame textarea"
+        );
+        if (e.defaultPrevented || hasCanvasOverlay) {
+          return;
+        }
+        e.preventDefault();
+        handleDiscardClick();
       } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
         e.preventDefault();
         handleApplyDraw();
@@ -1030,6 +1037,8 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
                 type="button"
                 className={`qb-draw-studio-tool-btn${showModalLayers ? " is-active" : ""}`}
                 onClick={() => setShowModalLayers(prev => !prev)}
+                aria-pressed={showModalLayers}
+                aria-label={showModalLayers ? "Hide Layers Panel" : "Show Layers Panel"}
                 title={showModalLayers ? "Hide Layers Panel" : "Show Layers Panel"}
               >
                 <Layers size={14} />
@@ -1040,6 +1049,8 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
                 type="button"
                 className={`qb-draw-studio-tool-btn qb-draw-studio-tool-fs${isBrowserFs ? " is-active" : ""}`}
                 onClick={toggleBrowserFullscreen}
+                aria-pressed={isBrowserFs}
+                aria-label={isBrowserFs ? "Exit Window Fullscreen" : "Window Fullscreen"}
                 title={isBrowserFs ? "Exit Window Fullscreen" : "Window Fullscreen"}
               >
                 {isBrowserFs ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
@@ -1052,23 +1063,13 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
 
               <button
                 type="button"
-                className="qb-draw-studio-btn-discard"
-                onClick={handleDiscardClick}
-                title="Discard canvas changes (Esc)"
-              >
-                <RotateCcw size={13} className="qb-btn-icon" />
-                <span>Discard</span>
-              </button>
-
-              <button
-                type="button"
                 className="qb-draw-studio-btn-save"
                 onClick={handleApplyDraw}
                 title="Save drawing and return to question (Ctrl+S)"
               >
                 <Check size={16} />
                 <span>
-                  Save<span className="qb-draw-studio-btn-text-full"> & Return</span>
+                  Save<span className="qb-draw-studio-btn-text-full"> &amp; Return</span>
                 </span>
               </button>
             </div>

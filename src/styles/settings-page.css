@@ -150,8 +150,7 @@
 
 @media (max-width: 768px) {
   .qb-settings-page-root {
-    padding: 16px 12px 80px 12px;
-  
+    padding: 16px 12px 88px 12px;
   }
 }
 
@@ -246,41 +245,93 @@
   color: #6ee7b7;
   font-size: 12px;
   font-weight: 600;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .qb-settings-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding-bottom: 16px;
+    margin-bottom: 18px;
+  }
+
+  .qb-settings-page-main-title {
+    font-size: 20px;
+  }
 }
 
 /* Two-column layout */
 .qb-settings-page-layout {
   display: flex;
-  gap: 28px;
+  gap: 24px;
   flex: 1;
   min-height: 0;
+  align-items: flex-start;
 }
 
-@media (max-width: 900px) {
-  .qb-settings-page-layout {
-    flex-direction: column;
-    gap: 18px;
-  
-  }
-}
-
-/* Left Navigation Sidebar */
 /* Left Navigation Sidebar with Animated Glider */
 .qb-settings-page-nav {
-  position: relative;
-  width: 260px;
+  position: sticky;
+  top: 20px;
+  width: 240px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1180px) {
+  .qb-settings-page-layout {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 18px;
+  }
+
   .qb-settings-page-nav {
+    position: relative;
+    top: auto;
     width: 100%;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
     gap: 8px;
+  }
+
+  .qb-settings-page-nav-header {
+    display: none;
+  }
+
+  .qb-settings-nav-item-sub {
+    display: none;
+  }
+
+  .qb-settings-nav-item:not(.active):hover {
+    transform: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .qb-settings-page-nav {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 8px;
+    padding: 2px 0 6px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .qb-settings-page-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .qb-settings-nav-item {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    padding: 9px 12px;
+    min-height: 42px;
+    gap: 9px;
   }
 }
 
@@ -291,12 +342,6 @@
   color: var(--text-muted);
   padding: 4px 10px;
   margin-bottom: 4px;
-}
-
-@media (max-width: 900px) {
-  .qb-settings-page-nav-header {
-    display: none;
-  }
 }
 
 /* Animated sliding glider indicator (like notification tooltip nav) */
@@ -419,12 +464,6 @@
   font-size: 11px;
   color: var(--text-muted);
   line-height: 1.2;
-}
-
-@media (max-width: 900px) {
-  .qb-settings-nav-item-sub {
-    display: none;
-  }
 }
 
 /* ── LITE / POWER SAVER OVERRIDES: Nav animation strictly disabled ── */

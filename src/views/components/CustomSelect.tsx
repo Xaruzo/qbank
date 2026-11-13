@@ -30,7 +30,7 @@ export default function CustomSelect({
   const computePlacement = useCallback(() => {
     if (!selectRef.current) return;
     const rect = selectRef.current.getBoundingClientRect();
-    const scrollParent = selectRef.current.closest(".qb-settings-users-table-wrap");
+    const scrollParent = selectRef.current.closest(".qb-roster-list-scroll, .qb-settings-users-table-wrap");
     const containerBottom = scrollParent
       ? Math.min(window.innerHeight, scrollParent.getBoundingClientRect().bottom)
       : window.innerHeight;

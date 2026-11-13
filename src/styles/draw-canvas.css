@@ -1,14 +1,14 @@
 /* ── Drawing canvas ── */
-.draw-bar { 
+.draw-bar {
   position: relative;
-  display: flex; 
-  flex-direction: column; 
-  gap: 7px; 
-  margin-bottom: 12px; 
-  padding: 8px 10px; 
-  border: 1px solid var(--border); 
-  border-radius: 12px; 
-  background: var(--surface); 
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   user-select: none;
   -webkit-user-select: none;
@@ -20,11 +20,12 @@
   -webkit-user-select: text;
 }
 
-.draw-bar-row { 
-  display: flex; 
-  gap: 5px; 
-  align-items: center; 
-  flex-wrap: wrap; 
+.draw-bar-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
   width: 100%;
 }
 
@@ -35,8 +36,13 @@
   background: var(--surface-h);
   padding: 3px 5px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   flex-shrink: 0;
+}
+
+html.light .draw-bar-group,
+body.light .draw-bar-group {
+  border-color: rgba(15, 23, 42, 0.06);
 }
 
 .draw-bar-subdivider {
@@ -91,19 +97,19 @@
   font-weight: 600 !important;
 }
 
-.draw-tb { 
-  background: var(--input-bg); 
-  border: 1px solid var(--border); 
-  color: var(--text-mid); 
-  font-family: var(--font-sans); 
-  font-size: 11px; 
+.draw-tb {
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  color: var(--text-mid);
+  font-family: var(--font-sans);
+  font-size: 11px;
   font-weight: 500;
   height: 30px;
   min-width: 30px;
-  padding: 0 6px; 
-  border-radius: 6px; 
-  cursor: pointer; 
-  white-space: nowrap; 
+  padding: 0 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -113,7 +119,7 @@
 }
 
 .draw-tb-pill {
-  padding: 0 7px;
+  padding: 0 8px;
   gap: 4px;
 }
 
@@ -145,12 +151,184 @@
   display: none;
 }
 
+/* Studio Root & Stage Layout */
+.draw-studio-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.draw-stage-wrap {
+  position: relative;
+}
+
+.draw-studio-root .draw-stage-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Board Shell & Artboard */
+.draw-board-shell {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(226, 232, 240, 0.22), rgba(148, 163, 184, 0.14));
+  padding: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow: hidden;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.draw-studio-root .draw-board-shell {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+html.light .draw-board-shell,
+body.light .draw-board-shell {
+  background: linear-gradient(180deg, #edf1f7, #e2e8f0);
+}
+
+.draw-artboard-frame {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.16);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  touch-action: none;
+  flex-shrink: 0;
+}
+
+.draw-canvas-host {
+  display: block;
+  line-height: 0;
+}
+
+/* Layers Stack Rows */
+.draw-layers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  min-height: 0;
+  padding: 2px;
+}
+
+.draw-layer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-h);
+  transition: border-color 0.15s ease, background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.draw-layer-row.is-active {
+  border-color: rgba(245, 166, 35, 0.75);
+  background: rgba(245, 166, 35, 0.1);
+}
+
+.draw-layer-row.is-over {
+  outline: 2px solid #f5a623;
+  outline-offset: -1px;
+  background: rgba(245, 166, 35, 0.16);
+}
+
+.draw-layer-row.is-hidden {
+  opacity: 0.52;
+}
+
+.draw-layer-select-btn {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 3px 2px;
+  text-align: left;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  touch-action: pan-y;
+}
+
+.draw-layer-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  display: inline-flex;
+}
+
+.draw-layer-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.draw-layer-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.draw-layer-action-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.draw-layer-action-btn:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.draw-layer-action-btn.is-danger:hover {
+  background: rgba(239, 68, 68, 0.14);
+  color: #ef4444;
+}
+
+@media (max-width: 900px) {
+  .draw-bar-row {
+    justify-content: flex-start;
+  }
+}
+
 @media (max-width: 768px) {
   .qb-draw-layers-btn,
   .qb-draw-layers-divider,
-  .draw-color-swatch-extra,
-  .draw-keyboard-hints,
-  .draw-status-extra {
+  .draw-color-swatch-extra {
     display: none !important;
   }
   .draw-mobile-only-swatch {
@@ -168,6 +346,7 @@
   .draw-bar-row {
     display: flex !important;
     align-items: center !important;
+    justify-content: flex-start !important;
     gap: 6px !important;
     width: 100% !important;
     flex-wrap: nowrap !important;
@@ -176,7 +355,7 @@
     scrollbar-width: none !important;
     -webkit-overflow-scrolling: touch !important;
     touch-action: pan-x !important;
-    padding: 2px 2px 4px 2px !important;
+    padding: 2px 2px 3px 2px !important;
   }
   .draw-bar-row::-webkit-scrollbar {
     display: none !important;
@@ -193,18 +372,14 @@
     flex-shrink: 0 !important;
     min-width: max-content !important;
   }
-  /* Row 2 mobile logical order: Color -> History (Undo/Redo/Trash) -> Canvas aids -> Arrange */
   .draw-bar-row .draw-bar-group-color {
     order: 1 !important;
   }
   .draw-bar-row .draw-bar-group-history {
     order: 2 !important;
   }
-  .draw-bar-row .draw-bar-group-canvas {
-    order: 3 !important;
-  }
   .draw-bar-row .draw-bar-group-arrange {
-    order: 4 !important;
+    order: 3 !important;
   }
   .draw-tb {
     height: 36px !important;
@@ -230,7 +405,7 @@
     flex-shrink: 0 !important;
   }
   .draw-stroke-slider {
-    width: 36px !important;
+    width: 46px !important;
   }
   .draw-popover-anchor {
     position: static !important;
@@ -242,24 +417,14 @@
     left: 8px !important;
     right: 8px !important;
     width: auto !important;
-    max-width: 320px !important;
+    max-width: 336px !important;
     margin: 0 auto !important;
     z-index: 100 !important;
     box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4) !important;
   }
-  .draw-canvas-footer-bar {
-    margin-top: 6px;
-    gap: 6px;
-    padding: 2px 2px 0;
-  }
-  .draw-status-pill {
-    font-size: 11px;
-    padding: 4px 10px;
-  }
-  .draw-status-preview-trigger {
-    min-height: 34px;
-    padding: 5px 10px;
-    font-size: 11px;
+  .draw-board-shell {
+    padding: 6px;
+    border-radius: 12px;
   }
 }
 
@@ -300,39 +465,30 @@
 }
 
 @media (hover: hover) {
-  .draw-tb:hover:not(:disabled) { 
-    border-color: var(--border-h); 
-    color: var(--text); 
-    background: var(--surface); 
-  
+  .draw-tb:hover:not(:disabled) {
+    border-color: var(--border-h);
+    color: var(--text);
+    background: var(--surface);
   }
 }
 
-.draw-tb.draw-on { 
-  border-color: rgba(245, 166, 35, 0.6); 
-  color: #f5a623; 
-  background: rgba(245, 166, 35, 0.12); 
+.draw-tb.draw-on {
+  border-color: rgba(245, 166, 35, 0.6);
+  color: #f5a623;
+  background: rgba(245, 166, 35, 0.12);
   font-weight: 600;
 }
 
-.draw-tb:disabled { 
-  opacity: 0.35; 
-  cursor: not-allowed; 
+.draw-tb:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
-.draw-tb.draw-tb-symbol { 
-  font-size: 14px; 
-  font-weight: 600; 
+.draw-tb.draw-tb-symbol {
+  font-size: 14px;
+  font-weight: 600;
   width: 30px;
   min-width: 30px;
   padding: 0;
-  font-family: 'Fira Code', monospace, sans-serif;
-}
-
-.draw-board-shell {
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
-  -webkit-user-drag: none;
-  -webkit-tap-highlight-color: transparent;
+  font-family: "Fira Code", monospace, sans-serif;
 }

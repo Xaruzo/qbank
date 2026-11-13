@@ -86,13 +86,14 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+  min-width: 0;
 }
 
 .qb-settings-roster-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   flex-wrap: wrap;
   flex-shrink: 0;
 }
@@ -105,8 +106,8 @@
   border: 1px solid var(--border);
   border-radius: 9px;
   padding: 8px 12px;
-  flex: 1;
-  min-width: 240px;
+  flex: 1 1 240px;
+  min-width: 0;
 }
 
 .qb-settings-roster-search:focus-within {
@@ -119,6 +120,7 @@
   color: var(--text);
   font-size: 13px;
   width: 100%;
+  min-width: 0;
   outline: none;
 }
 
@@ -137,9 +139,10 @@
   border: 1px solid var(--border);
   color: var(--text-muted);
   border-radius: 7px;
-  padding: 5px 11px;
+  padding: 6px 11px;
   font-size: 11px;
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
   transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
@@ -155,87 +158,95 @@
   color: var(--accent);
 }
 
+/* Split Header + Scrollable List Container */
 .qb-settings-users-table-wrap {
+  --qb-roster-cols: minmax(200px, 1.85fr) minmax(114px, 0.9fr) minmax(145px, 1.1fr) minmax(205px, 1.45fr);
   display: flex;
   flex-direction: column;
-  height: 430px;
-  min-height: 430px;
-  max-height: 430px;
-  overflow: auto;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--input-bg);
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-h) transparent;
+  overflow: hidden;
+  min-width: 0;
 }
 
-.qb-settings-users-table-wrap::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.qb-settings-users-table-wrap::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.qb-settings-users-table-wrap::-webkit-scrollbar-thumb {
-  background: var(--border-h);
-  border-radius: 999px;
-}
-
-.qb-settings-users-table {
-  width: 100%;
-  min-width: 680px;
-  table-layout: fixed;
-  border-collapse: separate;
-  border-spacing: 0;
-  font-size: 13px;
-}
-
-.qb-settings-users-table thead th {
-  position: sticky;
-  top: 0;
-  z-index: 2;
+.qb-roster-head {
+  flex-shrink: 0;
   background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding-right: 6px; /* Aligns header columns with list scrollbar gutter */
+}
+
+.qb-roster-head-row {
+  display: grid;
+  grid-template-columns: var(--qb-roster-cols);
+  align-items: center;
+}
+
+.qb-roster-th {
   text-align: left;
   padding: 11px 14px;
   font-size: 11px;
   font-weight: 700;
   color: var(--text-muted);
   letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.qb-roster-list-scroll {
+  flex: 1;
+  min-height: 220px;
+  max-height: 386px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-h) transparent;
+}
+
+.qb-roster-list-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.qb-roster-list-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.qb-roster-list-scroll::-webkit-scrollbar-thumb {
+  background: var(--border-h);
+  border-radius: 999px;
+}
+
+.qb-roster-row {
+  display: grid;
+  grid-template-columns: var(--qb-roster-cols);
+  align-items: center;
   border-bottom: 1px solid var(--border);
-}
-
-.qb-settings-users-table thead th:nth-child(1) {
-  width: 35%;
-}
-
-.qb-settings-users-table thead th:nth-child(2) {
-  width: 17%;
-}
-
-.qb-settings-users-table thead th:nth-child(3) {
-  width: 20%;
-}
-
-.qb-settings-users-table thead th:nth-child(4) {
-  width: 28%;
-}
-
-.qb-settings-users-table tbody td {
-  padding: 11px 14px;
-  border-bottom: 1px solid var(--border);
-  vertical-align: middle;
+  font-size: 13px;
   color: var(--text);
+  transition: background 0.14s ease;
 }
 
-.qb-settings-users-table tbody tr:last-child td {
+.qb-roster-row:hover {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.light .qb-roster-row:hover {
+  background: rgba(15, 23, 42, 0.025);
+}
+
+.qb-roster-row:last-child {
   border-bottom: none;
 }
 
+.qb-roster-cell {
+  padding: 11px 14px;
+  min-width: 0;
+}
+
 .qb-roster-state-box {
-  flex: 1;
-  min-height: 0;
+  min-height: 220px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -419,6 +430,7 @@
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.03em;
+  white-space: nowrap;
 }
 
 .qb-role-pill.role-superadmin {
@@ -451,40 +463,52 @@
 .qb-user-assigned-cell {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   color: var(--text);
+}
+
+.qb-user-assigned-date {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.qb-user-assigned-by {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qb-root-superadmin-label {
+  display: inline-block;
+  font-size: 12px;
+  color: #f5a623;
+  font-weight: 600;
+  font-style: italic;
+}
+
+.light .qb-root-superadmin-label {
+  color: #b45309;
 }
 
 .qb-user-role-actions {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.qb-settings-role-select-wrap {
-  flex: 0 0 280px;
   min-width: 0;
 }
 
-@media (max-width: 720px) {
-  .qb-settings-role-select-wrap {
-    flex: 1 1 100%;
-  }
-
-  .qb-settings-role-grant-btn {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .qb-settings-users-table-wrap {
-    height: 360px;
-    min-height: 360px;
-    max-height: 360px;
-  }
+.qb-settings-role-select-wrap {
+  flex: 0 0 260px;
+  min-width: 0;
 }
 
 .qb-table-role-select {
-  width: 180px;
-  min-width: 180px;
+  flex: 1 1 124px;
+  min-width: 118px;
+  max-width: 168px;
 }
 
 .qb-table-role-select .qb-select-btn {
@@ -504,8 +528,11 @@
   color: #fb7185;
   border-radius: 7px;
   padding: 5px 10px;
-  font-size: 11px;
+  min-height: 32px;
+  font-size: 11.5px;
   font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -517,4 +544,144 @@
 .qb-user-revoke-btn:hover {
   background: rgba(244, 63, 94, 0.22);
   border-color: #f43f5e;
+}
+
+/* Tablet & Reduced-Width Viewports: Structured 2-Row Card-List (Zero Horizontal Overflow) */
+@media (max-width: 900px) {
+  .qb-roster-head {
+    display: none;
+  }
+
+  .qb-roster-list-scroll {
+    min-height: 200px;
+    max-height: 440px;
+  }
+
+  .qb-roster-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "user role"
+      "assigned actions";
+    gap: 10px 14px;
+    padding: 14px 16px;
+  }
+
+  .qb-roster-cell {
+    padding: 0;
+  }
+
+  .qb-roster-cell-user {
+    grid-area: user;
+  }
+
+  .qb-roster-cell-role {
+    grid-area: role;
+    justify-self: end;
+  }
+
+  .qb-roster-cell-assigned {
+    grid-area: assigned;
+  }
+
+  .qb-roster-cell-actions {
+    grid-area: actions;
+    justify-self: end;
+  }
+
+  .qb-table-role-select {
+    flex: 0 1 160px;
+    min-width: 132px;
+  }
+}
+
+/* Mobile Viewports: Clean Vertical Card Stack & Touch-Ready Controls */
+@media (max-width: 600px) {
+  .qb-settings-role-grant-card,
+  .qb-settings-users-roster-card {
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .qb-settings-role-select-wrap {
+    flex: 1 1 100%;
+  }
+
+  .qb-settings-role-grant-btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 40px;
+  }
+
+  .qb-settings-roster-search {
+    flex: 1 1 100%;
+  }
+
+  .qb-settings-roster-filters {
+    width: 100%;
+  }
+
+  .qb-settings-roster-filter-chip {
+    flex: 1 1 auto;
+    text-align: center;
+    padding: 7px 10px;
+  }
+
+  .qb-roster-list-scroll {
+    max-height: 460px;
+  }
+
+  .qb-roster-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "user role"
+      "assigned assigned"
+      "actions actions";
+    gap: 8px 10px;
+    padding: 13px 14px;
+  }
+
+  .qb-user-assigned-cell {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+  }
+
+  .qb-user-assigned-date {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  .qb-user-assigned-date::after {
+    content: "·";
+    margin-left: 6px;
+    opacity: 0.6;
+  }
+
+  .qb-roster-cell-actions {
+    justify-self: stretch;
+    width: 100%;
+    padding-top: 2px;
+  }
+
+  .qb-user-role-actions {
+    width: 100%;
+  }
+
+  .qb-table-role-select {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
+    width: auto;
+  }
+
+  .qb-table-role-select .qb-select-btn {
+    min-height: 38px;
+  }
+
+  .qb-user-revoke-btn {
+    min-height: 38px;
+    padding: 6px 14px;
+  }
 }

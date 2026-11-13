@@ -830,11 +830,34 @@ async function startServer() {
       res.sendFile(path.resolve(__dirname, "dist", "index.html"));
     });
   } else {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
+    let viteServer: Awaited<ReturnType<typeof createViteServer>> | null = null;
+    const viteReady = createViteServer({
+      server: {
+        middlewareMode: true,
+        hmr: false,
+        allowedHosts: true,
+      },
       appType: "spa",
+    })
+      .then((vite) => {
+        viteServer = vite;
+      })
+      .catch((err) => {
+        console.error("Failed to initialize Vite dev middleware:", err);
+        process.exit(1);
+      });
+
+    app.use(async (req, res, next) => {
+      try {
+        await viteReady;
+        if (viteServer) {
+          return viteServer.middlewares(req, res, next);
+        }
+        return next();
+      } catch (err) {
+        return next(err);
+      }
     });
-    app.use(vite.middlewares);
   }
 
   const server = app.listen(PORT, "0.0.0.0", () => {
@@ -850,4 +873,7 @@ async function startServer() {
   });
 }
 
-startServer();
+startServer().catch((err) => {
+  console.error("Failed to start server:", err);
+  process.exit(1);
+});

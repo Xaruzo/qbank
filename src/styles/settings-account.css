@@ -809,3 +809,28 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+@media (max-width: 600px) {
+  .qb-settings-page-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .qb-settings-footer-right {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .qb-settings-footer-cancel-btn,
+  .qb-settings-footer-save-btn {
+    flex: 1 1 0;
+    justify-content: center;
+    min-height: 42px;
+  }
+
+  .qb-settings-success-chip {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+}

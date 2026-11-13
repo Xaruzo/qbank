@@ -1,14 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { fabric } from "fabric";
-import { 
-  Pencil, 
-  MousePointer2, 
-  Type, 
+import {
+  Pencil,
+  MousePointer2,
+  Hand,
+  Type,
   AlignLeft,
   AlignCenter,
   AlignRight,
-  AlignJustify,
   AlignStartHorizontal,
   AlignCenterHorizontal,
   AlignEndHorizontal,
@@ -19,13 +19,11 @@ import {
   AlignVerticalDistributeCenter,
   Grid,
   Magnet,
-  Eraser, 
-  ChevronUp, 
-  ChevronDown, 
-  Plus, 
-  Minus, 
-  Trash2, 
-  Undo2, 
+  Eraser,
+  Plus,
+  Minus,
+  Trash2,
+  Undo2,
   Redo2,
   RotateCcw,
   Square,
@@ -40,9 +38,6 @@ import {
   Ungroup,
   Palette,
   Ruler,
-  Bold,
-  Italic,
-  Underline,
   Sliders,
   ArrowRight,
   StickyNote,
@@ -59,6 +54,9 @@ import {
   RotateCw,
   Play,
   ScanEye,
+  Eye,
+  EyeOff,
+  HelpCircle,
 } from "lucide-react";
 import SolutionSizeEstimatorModal from "./SolutionSizeEstimatorModal";
 
@@ -73,7 +71,6 @@ import {
 import {
   toHighlighterColor,
   getShapeAnchors,
-  getObjectAnchors,
   findBestConnection,
   buildCurvedArrowPath,
   buildElbowConnectorPath,
@@ -82,6 +79,11 @@ import {
   getLocalElbowPath,
   getLocalStraightPath,
   distToSegment,
+  CUSTOM_FABRIC_PROPS,
+  clampCanvasHeight,
+  computeResponsiveBoardSize,
+  computeFloatingBarPosition,
+  computeViewportInsertPoint,
 } from "../../utils/canvas/canvasMath";
 
 const isObjectHitByEraser = (obj, px, py, r) => {
@@ -282,11 +284,13 @@ const isObjectHitByEraser = (obj, px, py, r) => {
 export default function DrawCanvas({ value, onChange, layersHost, isStudioModal = false, questionContext = null }) {
   const containerRef = useRef(null);
   const boardRef = useRef(null);
+  const artboardFrameRef = useRef(null);
   const menuHostRef = useRef(null);
   const canvasHostRef = useRef(null);
   const fabricRef = useRef(null);
   const fontSizeInputRef = useRef(null);
   const layerIdSeq = useRef(1);
+  const insertSeqRef = useRef(0);
   const lastPointer = useRef(null);
   const toolRef = useRef("move");
   const spaceDownRef = useRef(false);
@@ -295,8 +299,9 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
   const isErasingRef = useRef(false);
   const erasedInCurrentDragRef = useRef(false);
   const lastErasePointerRef = useRef(null);
-  const resizeScrollRef = useRef({ lastH: 0, active: false, lastChange: 0, raf: 0 });
-  const resizeAutoScrollGuardRef = useRef({ skipUntil: 0 });
+  const boardScaleRef = useRef(1);
+  const eraserCursorRef = useRef("default");
+  const addTextRef = useRef(null);
   const fontCommitTimer = useRef(null);
   const textLiveTimer = useRef(null);
   const textExportTimer = useRef(null);
@@ -307,7 +312,12 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
   const [size, setSize] = useState(2);
   const sizeRef = useRef(size);
   useEffect(() => { sizeRef.current = size; }, [size]);
-  const [height, setHeight] = useState(700);
+  const [height, setHeight] = useState(() => clampCanvasHeight(value?.canvasHeight || 700, 500, 2400));
+  const heightRef = useRef(height);
+  useEffect(() => { heightRef.current = height; }, [height]);
+  const [artboardSize, setArtboardSize] = useState(() =>
+    computeResponsiveBoardSize(820, 820, clampCanvasHeight(value?.canvasHeight || 700, 500, 2400))
+  );
   const [layersVersion, setLayersVersion] = useState(0);
   const [activeLayerIds, setActiveLayerIds] = useState([]);
   const [fontSize, setFontSize] = useState(24);
@@ -323,8 +333,11 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
   const [snapping, setSnapping] = useState(true);
   const snappingRef = useRef(true);
   const [gridMode, setGridMode] = useState("none"); // "none" | "dots" | "grid"
+  const gridModeRef = useRef("none");
   const [alignMenuOpen, setAlignMenuOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [zoomPercent, setZoomPercent] = useState(100);
+  const [historyState, setHistoryState] = useState({ canUndo: false, canRedo: false });
   const [selectionBounds, setSelectionBounds] = useState(null);
   const [activeObjProps, setActiveObjProps] = useState(null);
   const [floatingPopover, setFloatingPopover] = useState(null);
@@ -335,6 +348,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
   const flowchartMenuRef = useRef(null);
   const shapesMenuRef = useRef(null);
   const mathMenuRef = useRef(null);
+  const shortcutsRef = useRef(null);
   const [toastMsg, setToastMsg] = useState("");
   const toastTimer = useRef(null);
   const stickyNoteMenuRef = useRef(null);
@@ -347,15 +361,15 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     if (!canvas) return;
     try {
       const prevBg = canvas.backgroundColor;
-      const prevActive = canvas.getActiveObject();
-      if (prevActive) canvas.discardActiveObject();
+      const prevVpt = canvas.viewportTransform ? [...canvas.viewportTransform] : [1, 0, 0, 1, 0, 0];
+      const guides = canvas.getObjects().filter(o => o.isGuide);
+      guides.forEach(g => canvas.remove(g));
+      canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
       canvas.backgroundColor = "#ffffff";
       canvas.renderAll();
-      const currentWidth = typeof canvas.getWidth === "function" ? canvas.getWidth() : BASE_W;
-      const multiplier = Math.min(2.5, Math.max(2, (BASE_W / (currentWidth || BASE_W)) * 2));
-      const url = canvas.toDataURL({ format: "png", quality: 0.85, multiplier });
+      const url = canvas.toDataURL({ format: "png", quality: 0.9, multiplier: 2 });
       canvas.backgroundColor = prevBg;
-      if (prevActive) canvas.setActiveObject(prevActive);
+      canvas.setViewportTransform(prevVpt);
       canvas.renderAll();
       setEstimatorSnapshot(url);
       setShowSolEstimator(true);
@@ -372,6 +386,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     setMathMenuOpen(false);
     setColorPickerOpen(false);
     setAlignMenuOpen(false);
+    setShortcutsOpen(false);
   }, []);
 
   const toggleToolbarMenu = useCallback((menu) => {
@@ -382,6 +397,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     setMathMenuOpen(prev => menu === "math" ? !prev : false);
     setColorPickerOpen(prev => menu === "color" ? !prev : false);
     setAlignMenuOpen(prev => menu === "align" ? !prev : false);
+    setShortcutsOpen(prev => menu === "shortcuts" ? !prev : false);
   }, []);
 
   const ensureLayerId = useCallback((obj) => {
@@ -633,7 +649,10 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       const origObjectToObject = fabric.Object.prototype.toObject;
       fabric.Object.prototype.toObject = function(...args) {
         const o = origObjectToObject.apply(this, args);
-        return this.shapeKind ? { ...o, shapeKind: this.shapeKind } : o;
+        for (const prop of CUSTOM_FABRIC_PROPS) {
+          if (this[prop] !== undefined) o[prop] = this[prop];
+        }
+        return o;
       };
       fabric.Object.prototype.__cseShapeKindToObject = true;
     }
@@ -642,11 +661,10 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       const origToObject = fabric.Textbox.prototype.toObject;
       fabric.Textbox.prototype.toObject = function(...args) {
         const o = origToObject.apply(this, args);
-        return {
-          ...o,
-          boxHeight: this.boxHeight,
-          ...(this.shapeKind ? { shapeKind: this.shapeKind } : {})
-        };
+        for (const prop of CUSTOM_FABRIC_PROPS) {
+          if (this[prop] !== undefined) o[prop] = this[prop];
+        }
+        return o;
       };
       fabric.Textbox.prototype.__cseBoxHeightToObject = true;
     }
@@ -715,7 +733,8 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
 
     const eraseAt = (p, directTarget) => {
       if (!p) return;
-      const eraserRadius = Math.max(10, Math.min(36, (sizeRef.current || 2) * 4));
+      const zoom = canvas.getZoom() || 1;
+      const eraserRadius = Math.max(8, Math.min(48, (sizeRef.current || 2) * 4)) / zoom;
       const objects = canvas.getObjects();
       const toRemove = [];
 
@@ -750,7 +769,8 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       const dx = p2.x - p1.x;
       const dy = p2.y - p1.y;
       const dist = Math.hypot(dx, dy);
-      const step = 8;
+      const zoom = canvas.getZoom() || 1;
+      const step = 8 / zoom;
       if (dist <= step) {
         eraseAt(p2);
         return;
@@ -759,6 +779,23 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       for (let i = 1; i <= numSteps; i++) {
         const t = i / numSteps;
         eraseAt({ x: p1.x + dx * t, y: p1.y + dy * t });
+      }
+    };
+
+    const restoreToolCursor = () => {
+      const curTool = toolRef.current;
+      if (curTool === "pen" || curTool === "highlighter") {
+        canvas.defaultCursor = "crosshair";
+        canvas.hoverCursor = "crosshair";
+      } else if (curTool === "pan") {
+        canvas.defaultCursor = "grab";
+        canvas.hoverCursor = "grab";
+      } else if (curTool === "eraser") {
+        canvas.defaultCursor = eraserCursorRef.current || "crosshair";
+        canvas.hoverCursor = eraserCursorRef.current || "crosshair";
+      } else {
+        canvas.defaultCursor = "default";
+        canvas.hoverCursor = "move";
       }
     };
 
@@ -780,12 +817,16 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       }
       if (isPanningRef.current) {
         isPanningRef.current = false;
-        const isPan = toolRef.current === "pan";
-        canvas.skipTargetFind = isPan ? true : false;
-        canvas.selection = (!canvas.isDrawingMode && toolRef.current === "move");
-        if (canvas.isDrawingMode) canvas.defaultCursor = "crosshair";
-        else if (isPan) canvas.defaultCursor = "grab";
-        else canvas.defaultCursor = "default";
+        const isDraw = (toolRef.current === "pen" || toolRef.current === "highlighter") && !spaceDownRef.current;
+        canvas.isDrawingMode = isDraw;
+        canvas.skipTargetFind = toolRef.current === "pan" || toolRef.current === "eraser";
+        canvas.selection = (!canvas.isDrawingMode && toolRef.current === "move" && !spaceDownRef.current);
+        if (spaceDownRef.current) {
+          canvas.defaultCursor = "grab";
+          canvas.hoverCursor = "grab";
+        } else {
+          restoreToolCursor();
+        }
         canvas.requestRenderAll();
       }
     };
@@ -834,20 +875,22 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     canvas.on("mouse:move", (opt) => {
       const ev = opt?.e;
       if (!ev) return;
-      if (typeof ev.buttons === "number" && ev.buttons === 0 && !ev.touches) {
+      if (typeof ev.buttons === "number" && ev.buttons === 0 && !ev.touches && ev.pointerType !== "touch") {
         stopStuckInteractions(ev);
         lastPointer.current = canvas.getPointer(ev);
         return;
       }
       if (isPanningRef.current) {
         const p = getClientPoint(ev);
-        const dx = p.x - panLastRef.current.x;
-        const dy = p.y - panLastRef.current.y;
+        const scale = boardScaleRef.current || 1;
+        const dx = (p.x - panLastRef.current.x) / scale;
+        const dy = (p.y - panLastRef.current.y) / scale;
         const vpt = canvas.viewportTransform;
         if (vpt) {
           vpt[4] += dx;
           vpt[5] += dy;
           canvas.requestRenderAll();
+          updateFloatingCoords();
         }
         panLastRef.current = p;
         try {
@@ -878,21 +921,27 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       }
       if (!isPanningRef.current) return;
       isPanningRef.current = false;
-      const isPan = toolRef.current === "pan";
-      canvas.skipTargetFind = isPan ? true : false;
-      canvas.selection = (!canvas.isDrawingMode && toolRef.current === "move");
-      if (canvas.isDrawingMode) canvas.defaultCursor = "crosshair";
-      else if (isPan) canvas.defaultCursor = "grab";
-      else canvas.defaultCursor = "default";
+      const isDraw = (toolRef.current === "pen" || toolRef.current === "highlighter") && !spaceDownRef.current;
+      canvas.isDrawingMode = isDraw;
+      canvas.skipTargetFind = toolRef.current === "pan" || toolRef.current === "eraser";
+      canvas.selection = (!canvas.isDrawingMode && toolRef.current === "move" && !spaceDownRef.current);
+      if (spaceDownRef.current) {
+        canvas.defaultCursor = "grab";
+        canvas.hoverCursor = "grab";
+      } else {
+        restoreToolCursor();
+      }
       canvas.requestRenderAll();
+      updateFloatingCoords();
     });
 
-    const clampZoom = (z) => Math.max(0.2, Math.min(4, z));
+    const clampZoom = (z) => Math.max(0.25, Math.min(4, z));
     const zoomToPoint = (point, nextZoom) => {
       const z = clampZoom(nextZoom);
       canvas.zoomToPoint(point, z);
       canvas.requestRenderAll();
       setZoomPercent(Math.round(z * 100));
+      updateFloatingCoords();
     };
 
     const handleWheelZoom = (opt) => {
@@ -907,7 +956,8 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       } catch {}
       const delta = ev.deltaY || 0;
       const factor = Math.pow(0.999, delta);
-      const point = new fabric.Point(ev.offsetX, ev.offsetY);
+      const ptr = canvas.getPointer(ev, true);
+      const point = new fabric.Point(ptr.x, ptr.y);
       zoomToPoint(point, canvas.getZoom() * factor);
     };
     canvas.on("mouse:wheel", handleWheelZoom);
@@ -954,7 +1004,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
 
     // Prevent ghost drawing when mouse moves over canvas without buttons pressed
     const handleMouseMoveCapture = (ev) => {
-      if (typeof ev.buttons === "number" && ev.buttons === 0 && !ev.touches) {
+      if (typeof ev.buttons === "number" && ev.buttons === 0 && !ev.touches && ev.pointerType !== "touch") {
         stopStuckInteractions(ev);
       }
     };
@@ -1039,15 +1089,29 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
         const sx = Math.abs(obj.scaleX || 1);
         const sy = Math.abs(obj.scaleY || 1);
         if ((sx > 1.001 || sx < 0.999) || (sy > 1.001 || sy < 0.999)) {
-        const center = typeof obj.getCenterPoint === "function" ? obj.getCenterPoint() : null;
+          const center = typeof obj.getCenterPoint === "function" ? obj.getCenterPoint() : null;
           const baseFontSize = Number(obj.fontSize || 24) || 24;
           const scaleFont = Math.max(sx, sy);
           obj.set({ scaleX: 1, scaleY: 1, fontSize: Math.max(8, Math.min(120, Math.round(baseFontSize * scaleFont))) });
           obj.initDimensions?.();
-        if (center) obj.setPositionByOrigin(center, "center", "center");
+          if (center) obj.setPositionByOrigin(center, "center", "center");
           obj.setCoords?.();
         }
       }
+      if (obj.locked || (obj.lockMovementX && obj.lockMovementY)) {
+        obj.set({
+          lockMovementX: true,
+          lockMovementY: true,
+          lockRotation: true,
+          lockScalingX: true,
+          lockScalingY: true,
+          hasControls: false,
+        });
+        obj.locked = true;
+      }
+      const allowSelect = toolRef.current === "move";
+      obj.selectable = allowSelect;
+      obj.evented = allowSelect;
       if (!obj.layerId) obj.layerId = `layer-${layerIdSeq.current++}`;
       obj.setCoords?.();
     };
@@ -1097,28 +1161,27 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
         setActiveObjProps(null);
         return;
       }
-      const bound = active.getBoundingRect(true, true);
-      const boardW = boardRef.current ? boardRef.current.clientWidth : 820;
-      const boardH = boardRef.current ? boardRef.current.clientHeight : 460;
-      const centerX = bound.left + bound.width / 2;
-      const safeEdge = Math.min(210, Math.floor(boardW / 2));
-      const clampedX = boardW <= 560
-        ? Math.round(boardW / 2)
-        : Math.max(safeEdge, Math.min(boardW - safeEdge, centerX));
-      const barEstH = boardW < 640 ? 74 : 44;
-      const isNearTop = bound.top < barEstH + 14;
-      const rawTop = isNearTop
-        ? bound.top + bound.height + 10
-        : Math.max(8, bound.top - barEstH - 6);
-      const topPos = Math.max(8, Math.min(boardH - barEstH - 6, rawTop));
+      const bound = active.getBoundingRect(false, true);
+      const hostEl = menuHostRef.current || boardRef.current;
+      const hostRect = hostEl?.getBoundingClientRect?.();
+      const frameRect = artboardFrameRef.current?.getBoundingClientRect?.();
+      const artboardOffsetX = hostRect && frameRect ? Math.max(0, frameRect.left - hostRect.left) : 0;
+      const artboardOffsetY = hostRect && frameRect ? Math.max(0, frameRect.top - hostRect.top) : 0;
+      const hostWidth = hostEl?.clientWidth || 820;
+      const hostHeight = hostEl?.clientHeight || 500;
 
-      setSelectionBounds({
-        left: Math.round(clampedX),
-        top: Math.round(topPos),
-        width: Math.round(bound.width),
-        height: Math.round(bound.height),
-        isNearTop,
+      const pos = computeFloatingBarPosition({
+        boundLeft: bound.left,
+        boundTop: bound.top,
+        boundWidth: bound.width,
+        boundHeight: bound.height,
+        scale: boardScaleRef.current || 1,
+        artboardOffsetX,
+        artboardOffsetY,
+        hostWidth,
+        hostHeight,
       });
+      setSelectionBounds(pos);
 
       const activeObjects = canvas.getActiveObjects?.() || (active ? [active] : []);
       const multiSelectCount = activeObjects.filter(o => o && !o.isGuide).length;
@@ -1128,6 +1191,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       const isArrow = active.shapeKind === "arrow" ||
         active.shapeKind === "curvedArrow" ||
         active.shapeKind === "elbowArrow";
+      const isFreePath = active.type === "path" && !isArrow && active.shapeKind !== "longDivision";
       const isLine = active.type === "line" ||
         active.shapeKind === "hrLine" ||
         active.shapeKind === "vrLine" ||
@@ -1149,11 +1213,12 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
         fontStyle: active.fontStyle || "normal",
         underline: !!active.underline,
         textAlign: active.textAlign || "left",
-        isLocked: !!(active.lockMovementX && active.lockMovementY),
+        isLocked: !!(active.locked || (active.lockMovementX && active.lockMovementY)),
         isText,
         isShape,
         isLine,
         isArrow,
+        isFreePath,
         isFlowchartNode,
         isFlowchartShape,
         multiSelectCount,
@@ -1287,6 +1352,15 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       obj.setCoords();
     };
 
+    const serializeCanvas = () => canvas.toJSON([...CUSTOM_FABRIC_PROPS]);
+    const syncHistoryFlags = () => {
+      setHistoryState({
+        canUndo: history.current.length > 1,
+        canRedo: redoStack.current.length > 0,
+      });
+    };
+
+    let loadingAsync = false;
     // Load initial value if exists
     if (value) {
       const savedZoom = value.zoom || null;
@@ -1294,6 +1368,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       const data = typeof value === "string" ? value : JSON.stringify(value.state || value);
       try {
         if (data.startsWith("data:image")) {
+          loadingAsync = true;
           isInternalChange.current = true;
           fabric.Image.fromURL(data, (img) => {
             canvas.add(img);
@@ -1308,8 +1383,27 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
           canvas.loadFromJSON(data, () => {
             migrateLegacyTextOnCanvas();
             canvas.getObjects().forEach(ensureLayerId);
-            if (savedVpt) canvas.setViewportTransform(savedVpt);
-            else if (savedZoom) canvas.setZoom(savedZoom);
+            if (Array.isArray(savedVpt) && savedVpt.length === 6) {
+              canvas.setViewportTransform(savedVpt);
+            } else if (savedZoom) {
+              canvas.setZoom(savedZoom);
+            }
+            setZoomPercent(Math.round((canvas.getZoom() || 1) * 100));
+            const maxObjBottom = canvas.getObjects().reduce((maxB, o) => {
+              if (!o || o.isGuide) return maxB;
+              const r = o.getBoundingRect ? o.getBoundingRect(true, true) : null;
+              return r ? Math.max(maxB, r.top + r.height) : maxB;
+            }, 0);
+            const fittedH = clampCanvasHeight(
+              Math.max(value?.canvasHeight || MIN_H, maxObjBottom ? maxObjBottom + 60 : MIN_H),
+              MIN_H,
+              MAX_H
+            );
+            if (fittedH !== heightRef.current) {
+              heightRef.current = fittedH;
+              setHeight(fittedH);
+              canvas.setHeight(fittedH);
+            }
             canvas.renderAll();
             isInternalChange.current = false;
             saveHistory();
@@ -1318,47 +1412,35 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
         }
       } catch (e) {
         console.error("Failed to load canvas data", e);
+        isInternalChange.current = false;
       }
     }
 
-    // A brand-new canvas still needs one history entry: without it the very
-    // first stroke has no prior snapshot to restore, so Ctrl+Z (or the Undo
-    // toolbar button) is a no-op and can never remove the first thing drawn.
-    // This also covers the edge case where a saved value fails to load.
-    if (history.current.length === 0) {
-      history.current.push(JSON.stringify(canvas.toJSON()));
+    // Seed initial undo snapshot for a blank canvas (or failed synchronous load)
+    if (!loadingAsync && history.current.length === 0) {
+      history.current.push(JSON.stringify(serializeCanvas()));
+      syncHistoryFlags();
     }
 
     function saveHistory() {
       if (isInternalChange.current) return;
-      history.current.push(JSON.stringify(canvas.toJSON()));
+      history.current.push(JSON.stringify(serializeCanvas()));
       if (history.current.length > 50) history.current.shift();
-      redoStack.current = []; // Clear redo on new action
+      redoStack.current = [];
+      syncHistoryFlags();
     }
 
     const exportDataURL = () => {
-      const currentWidth = typeof canvas.getWidth === "function" ? canvas.getWidth() : BASE_W;
-      // Cap the multiplier so narrow/tall canvases don't rasterize huge images on every change.
-      const multiplier = Math.min(2.5, Math.max(2, (BASE_W / (currentWidth || BASE_W)) * 2));
       const prevBg = canvas.backgroundColor;
+      const prevVpt = canvas.viewportTransform ? [...canvas.viewportTransform] : [1, 0, 0, 1, 0, 0];
+      canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
       canvas.backgroundColor = "#ffffff";
       canvas.renderAll();
-      const url = canvas.toDataURL({ format: "png", quality: 0.8, multiplier });
+      const url = canvas.toDataURL({ format: "png", quality: 0.85, multiplier: 2 });
       canvas.backgroundColor = prevBg;
+      canvas.setViewportTransform(prevVpt);
       canvas.renderAll();
       return url;
-    };
-
-    const handleChange = () => {
-      saveHistory();
-      const guides = canvas.getObjects().filter(o => o.isGuide);
-      if (guides.length) {
-        guides.forEach(g => canvas.remove(g));
-        canvas.renderAll();
-      }
-      const state = canvas.toJSON();
-      const dataURL = exportDataURL();
-      onChange({ state, dataURL, zoom: canvas.getZoom(), vpt: [...canvas.viewportTransform] });
     };
 
     const removeStrayGuides = () => {
@@ -1369,22 +1451,46 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       }
     };
 
+    const handleChange = () => {
+      saveHistory();
+      removeStrayGuides();
+      const state = serializeCanvas();
+      const dataURL = exportDataURL();
+      onChange({
+        state,
+        dataURL,
+        zoom: canvas.getZoom(),
+        vpt: [...canvas.viewportTransform],
+        canvasHeight: heightRef.current,
+      });
+    };
+
     // Cheap push used while typing: serializes state only, no PNG rasterization.
     const handleLiveState = () => {
       if (isInternalChange.current) return;
       removeStrayGuides();
-      const state = canvas.toJSON();
-      onChange({ state, zoom: canvas.getZoom(), vpt: [...canvas.viewportTransform] });
+      const state = serializeCanvas();
+      onChange({
+        state,
+        zoom: canvas.getZoom(),
+        vpt: [...canvas.viewportTransform],
+        canvasHeight: heightRef.current,
+      });
     };
 
-    // Full push including the PNG preview. Fired once the user pauses typing,
-    // so the expensive dataURL export never runs in a per-keystroke loop.
+    // Full push including the PNG preview once typing pauses.
     const handleLiveExport = () => {
       if (isInternalChange.current) return;
       removeStrayGuides();
-      const state = canvas.toJSON();
+      const state = serializeCanvas();
       const dataURL = exportDataURL();
-      onChange({ state, dataURL, zoom: canvas.getZoom(), vpt: [...canvas.viewportTransform] });
+      onChange({
+        state,
+        dataURL,
+        zoom: canvas.getZoom(),
+        vpt: [...canvas.viewportTransform],
+        canvasHeight: heightRef.current,
+      });
     };
 
     const scheduleLiveChange = () => {
@@ -1416,12 +1522,6 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       ensureLayerId(e.target);
       refreshUI();
       if (!e.target._fromUndo && !e.target.isGuide) scheduleCommitChange();
-    });
-    canvas.on("object:removed", (e) => {
-      refreshUI();
-      if (!e.target._fromUndo && !e.target.isGuide) {
-        if (!isErasingRef.current) scheduleCommitChange();
-      }
     });
     canvas.on("object:modified", (e) => {
       const t = e.target;
@@ -1549,7 +1649,11 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     canvas.on("selection:cleared", refreshUI);
     canvas.on("path:created", (e) => {
       const path = e.path;
-      path.selectable = (tool === "move");
+      if (!path) return;
+      const curTool = toolRef.current;
+      path.selectable = curTool === "move";
+      path.evented = curTool === "move";
+      if (curTool === "highlighter") path.isHighlighter = true;
       ensureLayerId(path);
       scheduleCommitChange();
       canvas.requestRenderAll();
@@ -1690,7 +1794,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       let p = edgesFromCenter();
 
       // Grid snapping when grid is active
-      if (gridMode !== "none") {
+      if (gridModeRef.current !== "none") {
         const gridStep = 20;
         const gridTol = 5;
         const nearX = Math.round(center.x / gridStep) * gridStep;
@@ -2498,6 +2602,16 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       }
     });
 
+    canvas.on("text:editing:exited", (e) => {
+      const t = e?.target;
+      if (t && !t.isGuide) {
+        configureTextObj(t);
+        t.setCoords?.();
+        refreshUI();
+        if (!isInternalChange.current) scheduleCommitChange();
+      }
+    });
+
     const performUndo = () => {
       if (changeCommitTimer.current) {
         window.clearTimeout(changeCommitTimer.current);
@@ -2513,11 +2627,20 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
         canvas.forEachObject(obj => obj._fromUndo = true);
         migrateLegacyTextOnCanvas();
         canvas.getObjects().forEach(ensureLayerId);
+        canvas.backgroundColor = gridModeRef.current === "none" ? "#ffffff" : "transparent";
         canvas.renderAll();
         isInternalChange.current = false;
-        const state = canvas.toJSON();
+        setZoomPercent(Math.round((canvas.getZoom() || 1) * 100));
+        syncHistoryFlags();
+        const state = serializeCanvas();
         const dataURL = exportDataURL();
-        onChange({ state, dataURL });
+        onChange({
+          state,
+          dataURL,
+          zoom: canvas.getZoom(),
+          vpt: [...canvas.viewportTransform],
+          canvasHeight: heightRef.current,
+        });
         refreshUI();
       });
     };
@@ -2536,11 +2659,20 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
         canvas.forEachObject(obj => obj._fromUndo = true);
         migrateLegacyTextOnCanvas();
         canvas.getObjects().forEach(ensureLayerId);
+        canvas.backgroundColor = gridModeRef.current === "none" ? "#ffffff" : "transparent";
         canvas.renderAll();
         isInternalChange.current = false;
-        const state = canvas.toJSON();
+        setZoomPercent(Math.round((canvas.getZoom() || 1) * 100));
+        syncHistoryFlags();
+        const state = serializeCanvas();
         const dataURL = exportDataURL();
-        onChange({ state, dataURL });
+        onChange({
+          state,
+          dataURL,
+          zoom: canvas.getZoom(),
+          vpt: [...canvas.viewportTransform],
+          canvasHeight: heightRef.current,
+        });
         refreshUI();
       });
     };
@@ -2575,14 +2707,14 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       if (!objs.length) return false;
       clipboardData.current = {
         type: (objs.length > 1 ? "activeSelection" : (active.type || "object")),
-        objects: objs.map(o => o.toObject())
+        objects: objs.map(o => o.toObject([...CUSTOM_FABRIC_PROPS]))
       };
       clipboard.current = active;
       clipboardMeta.current = { type: active.type };
       clipboardClone.current = null;
       active.clone((cloned) => {
         clipboardClone.current = cloned;
-      });
+      }, [...CUSTOM_FABRIC_PROPS]);
       return true;
     };
 
@@ -2612,16 +2744,28 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
             delete obj.fractionRole;
             delete obj.longDivisionId;
             delete obj.longDivisionRole;
-            obj.set({ selectable: true, hasControls: true, evented: true });
+            delete obj.layerId;
+            obj.locked = false;
+            obj.set({
+              selectable: true,
+              hasControls: true,
+              evented: true,
+              lockMovementX: false,
+              lockMovementY: false,
+              lockRotation: false,
+              lockScalingX: false,
+              lockScalingY: false,
+            });
             if (isTextObj(obj)) obj.initDimensions();
             configureHrLine(obj);
+            configureLongDivisionBracket(obj);
             ensureLayerId(obj);
             obj.dirty = true;
           };
 
           objects.forEach((obj) => {
             cleanObj(obj);
-            obj.set({ visible: true, opacity: 1 });
+            obj.set({ visible: true, opacity: obj.opacity != null ? obj.opacity : 1 });
             obj.setCoords?.();
             canvas.add(obj);
           });
@@ -3005,6 +3149,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
       canvas.requestRenderAll();
       setZoomPercent(100);
+      updateFloatingCoords();
     };
 
     // Keyboard support
@@ -3028,7 +3173,15 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       }
 
       if (e.code === "Space" && !isTyping && !isEditingText) {
-        spaceDownRef.current = true;
+        if (!spaceDownRef.current) {
+          spaceDownRef.current = true;
+          canvas.isDrawingMode = false;
+          canvas.selection = false;
+          canvas.skipTargetFind = true;
+          canvas.defaultCursor = "grab";
+          canvas.hoverCursor = "grab";
+          canvas.requestRenderAll();
+        }
         e.preventDefault();
         return;
       }
@@ -3136,15 +3289,24 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
         if (e.shiftKey) ungroupSelection();
         else groupSelection();
         e.preventDefault();
-      } else if (key === 's' && !ctrlKey && !isTyping && !isEditingText) {
+      } else if (key === 's' && !ctrlKey && !e.altKey && !isTyping && !isEditingText) {
         straightenSelection();
-      } else if (key === 'e' && !ctrlKey && !isTyping && !isEditingText) {
+      } else if (key === 'e' && !ctrlKey && !e.altKey && !isTyping && !isEditingText) {
         setTool("eraser");
-      } else if (key === 'p' && !ctrlKey && !isTyping && !isEditingText) {
+        e.preventDefault();
+      } else if (key === 'p' && !ctrlKey && !e.altKey && !isTyping && !isEditingText) {
         setTool("pen");
-      } else if (key === 'v' && !ctrlKey && !isTyping && !isEditingText) {
+        e.preventDefault();
+      } else if (key === 'h' && !ctrlKey && !e.altKey && !isTyping && !isEditingText) {
+        setTool("highlighter");
+        e.preventDefault();
+      } else if (key === 't' && !ctrlKey && !e.altKey && !isTyping && !isEditingText) {
+        addTextRef.current?.();
+        e.preventDefault();
+      } else if (key === 'v' && !ctrlKey && !e.altKey && !isTyping && !isEditingText) {
         setTool("move");
-      } else if ((e.key === "Delete" || e.key === "Backspace") && !(e.target?.tagName && e.target.tagName.match(/INPUT|TEXTAREA/))) {
+        e.preventDefault();
+      } else if ((e.key === "Delete" || e.key === "Backspace") && !(e.target?.tagName && e.target.tagName.match(/INPUT|TEXTAREA/)) && !isEditingText) {
         deleteSelection();
       }
     };
@@ -3155,24 +3317,26 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       }
       if (e.code !== "Space") return;
       spaceDownRef.current = false;
-      if (isPanningRef.current) {
-        isPanningRef.current = false;
-        canvas.skipTargetFind = false;
-        canvas.selection = (!canvas.isDrawingMode && toolRef.current === "move");
-        canvas.defaultCursor = canvas.isDrawingMode ? "crosshair" : "default";
-        canvas.requestRenderAll();
-      }
+      isPanningRef.current = false;
+      const isDraw = toolRef.current === "pen" || toolRef.current === "highlighter";
+      canvas.isDrawingMode = isDraw;
+      canvas.skipTargetFind = toolRef.current === "pan" || toolRef.current === "eraser";
+      canvas.selection = (!isDraw && toolRef.current === "move");
+      restoreToolCursor();
+      canvas.requestRenderAll();
     };
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
 
     const handleWindowBlur = () => {
       spaceDownRef.current = false;
-      if (isPanningRef.current) {
+      if (isPanningRef.current || toolRef.current === "pen" || toolRef.current === "highlighter") {
         isPanningRef.current = false;
-        canvas.skipTargetFind = toolRef.current === "pan";
-        canvas.selection = (!canvas.isDrawingMode && toolRef.current === "move");
-        canvas.defaultCursor = canvas.isDrawingMode ? "crosshair" : "default";
+        const isDraw = toolRef.current === "pen" || toolRef.current === "highlighter";
+        canvas.isDrawingMode = isDraw;
+        canvas.skipTargetFind = toolRef.current === "pan" || toolRef.current === "eraser";
+        canvas.selection = (!isDraw && toolRef.current === "move");
+        restoreToolCursor();
         canvas.requestRenderAll();
       }
       const editing = canvas.getActiveObject();
@@ -3196,6 +3360,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     fabricRef.current.zoomBy = zoomBy;
     fabricRef.current.resetZoom = resetZoom;
     fabricRef.current.refreshUI = refreshUI;
+    fabricRef.current.commitHistoryChange = handleChange;
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
@@ -3263,25 +3428,29 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
   }, [colorPickerOpen]);
 
   useEffect(() => {
-    if (!stickyNoteMenuOpen && !floatingPopover && !flowchartMenuOpen && !shapesMenuOpen && !mathMenuOpen) return;
+    if (!stickyNoteMenuOpen && !floatingPopover && !flowchartMenuOpen && !shapesMenuOpen && !mathMenuOpen && !shortcutsOpen) return;
     const onPointerDown = (e) => {
       if (stickyNoteMenuRef.current && stickyNoteMenuRef.current.contains(e.target)) return;
       if (flowchartMenuRef.current && flowchartMenuRef.current.contains(e.target)) return;
       if (shapesMenuRef.current && shapesMenuRef.current.contains(e.target)) return;
       if (mathMenuRef.current && mathMenuRef.current.contains(e.target)) return;
+      if (shortcutsRef.current && shortcutsRef.current.contains(e.target)) return;
       if (e.target.closest && e.target.closest(".draw-canva-floating-bar")) return;
       setStickyNoteMenuOpen(false);
       setFlowchartMenuOpen(false);
       setShapesMenuOpen(false);
       setMathMenuOpen(false);
+      setShortcutsOpen(false);
       setFloatingPopover(null);
     };
     const onKeyDown = (e) => {
       if (e.key === "Escape") {
+        e.preventDefault();
         setStickyNoteMenuOpen(false);
         setFlowchartMenuOpen(false);
         setShapesMenuOpen(false);
         setMathMenuOpen(false);
+        setShortcutsOpen(false);
         setFloatingPopover(null);
       }
     };
@@ -3293,16 +3462,17 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       window.removeEventListener("touchstart", onPointerDown);
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [stickyNoteMenuOpen, floatingPopover, flowchartMenuOpen, shapesMenuOpen, mathMenuOpen]);
+  }, [stickyNoteMenuOpen, floatingPopover, flowchartMenuOpen, shapesMenuOpen, mathMenuOpen, shortcutsOpen]);
 
   useEffect(() => {
     snappingRef.current = snapping;
   }, [snapping]);
 
   useEffect(() => {
+    gridModeRef.current = gridMode;
     const canvas = fabricRef.current;
     if (!canvas) return;
-    canvas.backgroundColor = gridMode === "none" ? "#ffffff" : gridMode === "warm" ? "#faf8f5" : "transparent";
+    canvas.backgroundColor = gridMode === "none" ? "#ffffff" : "transparent";
     canvas.requestRenderAll();
   }, [gridMode]);
 
@@ -3333,12 +3503,13 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     const isPan = tool === "pan";
     const isEraser = tool === "eraser";
     const isHighlighter = tool === "highlighter";
-    canvas.isDrawingMode = (tool === "pen" || isHighlighter);
-    canvas.selection = (!canvas.isDrawingMode && !isEraser && tool === "move");
+    const wantsDrawing = tool === "pen" || isHighlighter;
+    canvas.isDrawingMode = wantsDrawing && !spaceDownRef.current;
+    canvas.selection = !canvas.isDrawingMode && !isEraser && tool === "move" && !spaceDownRef.current;
     canvas.selectionKey = "shiftKey";
-    canvas.skipTargetFind = isPan || isEraser;
-    
-    if (canvas.isDrawingMode || isPan) {
+    canvas.skipTargetFind = isPan || isEraser || spaceDownRef.current;
+
+    if (wantsDrawing || isPan) {
       canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
       canvas.freeDrawingBrush.color = isHighlighter ? toHighlighterColor(color) : color;
       canvas.freeDrawingBrush.width = isHighlighter ? Math.max(16, size * 5) : size;
@@ -3348,120 +3519,82 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       canvas.discardActiveObject();
       canvas.forEachObject(obj => { obj.selectable = false; obj.evented = false; });
     } else {
-      canvas.forEachObject(obj => { obj.selectable = true; obj.evented = true; });
+      canvas.forEachObject(obj => {
+        if (obj.isGuide) return;
+        const isLocked = !!(obj.locked || (obj.lockMovementX && obj.lockMovementY));
+        obj.selectable = true;
+        obj.evented = true;
+        if (isLocked) obj.hasControls = false;
+      });
     }
 
-    // Set cursors
-    if (tool === "pen" || isHighlighter) {
-      canvas.defaultCursor = 'crosshair';
-      canvas.hoverCursor = 'crosshair';
+    const eraserR = Math.max(10, Math.min(30, size * 3.5));
+    const s = eraserR * 2 + 6;
+    const c = eraserR + 3;
+    const cursorSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}"><circle cx="${c}" cy="${c}" r="${eraserR}" fill="rgba(239,68,68,0.22)" stroke="#e11d48" stroke-width="1.75"/><circle cx="${c}" cy="${c}" r="1.5" fill="#e11d48"/></svg>`;
+    const cursorUrl = `url("data:image/svg+xml;utf8,${encodeURIComponent(cursorSvg)}") ${c} ${c}, auto`;
+    eraserCursorRef.current = cursorUrl;
+
+    if (spaceDownRef.current) {
+      canvas.defaultCursor = "grab";
+      canvas.hoverCursor = "grab";
+    } else if (wantsDrawing) {
+      canvas.defaultCursor = "crosshair";
+      canvas.hoverCursor = "crosshair";
     } else if (isEraser) {
-      const eraserR = Math.max(10, Math.min(30, size * 3.5));
-      const s = eraserR * 2 + 6;
-      const c = eraserR + 3;
-      const cursorSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 ${s} ${s}"><circle cx="${c}" cy="${c}" r="${eraserR}" fill="rgba(239,68,68,0.22)" stroke="#e11d48" stroke-width="1.75"/><circle cx="${c}" cy="${c}" r="1.5" fill="#e11d48"/></svg>`;
-      const cursorUrl = `url("data:image/svg+xml;utf8,${encodeURIComponent(cursorSvg)}") ${c} ${c}, auto`;
       canvas.defaultCursor = cursorUrl;
       canvas.hoverCursor = cursorUrl;
-    } else if (tool === "pan") {
-      canvas.defaultCursor = 'grab';
-      canvas.hoverCursor = 'grab';
+    } else if (isPan) {
+      canvas.defaultCursor = "grab";
+      canvas.hoverCursor = "grab";
     } else {
-      canvas.defaultCursor = 'default';
-      canvas.hoverCursor = 'move';
+      canvas.defaultCursor = "default";
+      canvas.hoverCursor = "move";
     }
 
     canvas.requestRenderAll();
   }, [tool, color, size]);
 
-  // Handle height changes
-  useEffect(() => {
-    if (!fabricRef.current) return;
-    fabricRef.current.setHeight(Math.max(MIN_H, Math.min(height, MAX_H)));
-    fabricRef.current.requestRenderAll();
-  }, [height, MAX_H, MIN_H]);
-
-  useEffect(() => {
+  // Responsive CSS-scaled artboard sizing (preserves logical 820px width across all devices)
+  const applyBoardLayout = useCallback(() => {
     const el = boardRef.current;
     const canvas = fabricRef.current;
     if (!el || !canvas) return;
-    const apply = () => {
-      const w = Math.floor(el.clientWidth - 20);
-      const maxW = 1180;
-      const next = Math.max(280, Math.min(maxW, w || 820));
-      if (canvas.getWidth() !== next) canvas.setWidth(next);
-      canvas.calcOffset?.();
-      canvas.requestRenderAll();
-    };
-    apply();
-    const ro = new ResizeObserver(apply);
+    const pad = window.innerWidth <= 768 ? 12 : 24;
+    const availW = Math.max(240, (el.clientWidth || BASE_W + pad) - pad);
+    const clampedH = clampCanvasHeight(heightRef.current, MIN_H, MAX_H);
+    const sz = computeResponsiveBoardSize(availW, BASE_W, clampedH);
+    if (canvas.getWidth() !== BASE_W) canvas.setWidth(BASE_W);
+    if (canvas.getHeight() !== clampedH) canvas.setHeight(clampedH);
+    canvas.setDimensions(
+      { width: `${sz.displayWidth}px`, height: `${sz.displayHeight}px` },
+      { cssOnly: true }
+    );
+    boardScaleRef.current = sz.scale;
+    setArtboardSize((prev) =>
+      prev.displayWidth === sz.displayWidth &&
+      prev.displayHeight === sz.displayHeight &&
+      prev.logicalHeight === sz.logicalHeight
+        ? prev
+        : sz
+    );
+    canvas.calcOffset?.();
+    canvas.requestRenderAll();
+    canvas.refreshUI?.();
+  }, [BASE_W, MAX_H, MIN_H]);
+
+  useEffect(() => {
+    applyBoardLayout();
+  }, [height, applyBoardLayout]);
+
+  useEffect(() => {
+    const el = boardRef.current;
+    if (!el) return;
+    applyBoardLayout();
+    const ro = new ResizeObserver(applyBoardLayout);
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (boardRef.current) boardRef.current.style.height = `${height}px`;
-  }, [height]);
-
-  useEffect(() => {
-    if (!boardRef.current) return;
-    const resizeScroll = resizeScrollRef.current;
-    const autoScrollGuard = resizeAutoScrollGuardRef.current;
-    autoScrollGuard.skipUntil = performance.now() + 500;
-    resizeScroll.lastH = Math.round(boardRef.current.getBoundingClientRect().height || 0);
-
-    const tick = () => {
-      const el = boardRef.current;
-      if (!el) {
-        resizeScroll.active = false;
-        resizeScroll.raf = 0;
-        return;
-      }
-      if (!resizeScroll.active) {
-        resizeScroll.raf = 0;
-        return;
-      }
-
-      const scroller = el.closest(".qb-main");
-      if (scroller) {
-        const scrollerRect = scroller.getBoundingClientRect();
-        const boardRect = el.getBoundingClientRect();
-        const margin = 24;
-        const delta = boardRect.bottom - (scrollerRect.bottom - margin);
-        if (delta > 0) scroller.scrollTop += delta;
-      }
-
-      if (performance.now() - resizeScroll.lastChange > 180) {
-        resizeScroll.active = false;
-        resizeScroll.raf = 0;
-        return;
-      }
-      resizeScroll.raf = window.requestAnimationFrame(tick);
-    };
-
-    const ro = new ResizeObserver((entries) => {
-      const target = entries[0]?.target;
-      if (!target) return;
-      const h = Math.round(target.getBoundingClientRect().height || 0);
-      if (!h) return;
-      const canAutoScroll = performance.now() >= autoScrollGuard.skipUntil;
-      if (canAutoScroll && h > resizeScroll.lastH + 1) {
-        resizeScroll.active = true;
-        resizeScroll.lastChange = performance.now();
-        if (!resizeScroll.raf) resizeScroll.raf = window.requestAnimationFrame(tick);
-      }
-      resizeScroll.lastH = h;
-      const next = Math.max(MIN_H, Math.min(h, MAX_H));
-      setHeight((prev) => (prev === next ? prev : next));
-    });
-    ro.observe(boardRef.current);
-    return () => {
-      ro.disconnect();
-      if (resizeScroll.raf) window.cancelAnimationFrame(resizeScroll.raf);
-      resizeScroll.raf = 0;
-      resizeScroll.active = false;
-    };
-  }, [MAX_H, MIN_H]);
+  }, [applyBoardLayout]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -3489,9 +3622,14 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
 
   const getLayerLabel = useCallback((obj) => {
     if (!obj) return "Layer";
-    if (isTextObj(obj)) return obj.text?.trim() ? `Text: ${obj.text.trim().slice(0, 18)}` : "Text";
+    if (isTextObj(obj)) {
+      if (obj.isStickyNote) return obj.text?.trim() ? `Note: ${obj.text.trim().slice(0, 16)}` : "Note";
+      return obj.text?.trim() ? `Text: ${obj.text.trim().slice(0, 18)}` : "Text";
+    }
     if (obj.type === "path") {
       if (obj.shapeKind === "longDivision") return "Long Division";
+      if (obj.shapeKind === "arrow" || obj.shapeKind === "curvedArrow" || obj.shapeKind === "elbowArrow") return "Arrow";
+      if (obj.isHighlighter) return "Highlight";
       return "Pen";
     }
     if (obj.type === "image") return "Image";
@@ -3500,8 +3638,8 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     if (obj.type === "triangle") return "Triangle";
     if (obj.type === "polygon") return "Star";
     if (obj.type === "polyline") {
-      if (obj.shapeKind === "tray") return "Tray";
-      if (obj.shapeKind === "roof") return "Roof";
+      if (obj.shapeKind === "tray") return "Bracket";
+      if (obj.shapeKind === "roof") return "Caret";
       return "Polyline";
     }
     if (obj.type === "line") {
@@ -3519,6 +3657,27 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     return obj.type || "Layer";
   }, []);
 
+  const getLayerIcon = useCallback((obj) => {
+    if (!obj) return <Layers size={13} />;
+    if (obj.isStickyNote) return <StickyNote size={13} />;
+    if (isTextObj(obj)) return <Type size={13} />;
+    if (obj.type === "path") {
+      if (obj.shapeKind === "arrow" || obj.shapeKind === "curvedArrow" || obj.shapeKind === "elbowArrow") return <ArrowRight size={13} />;
+      if (obj.shapeKind === "longDivision") return <Divide size={13} />;
+      return <Pencil size={13} />;
+    }
+    if (obj.type === "triangle") return <Triangle size={13} />;
+    if (obj.type === "group") return <Layers size={13} />;
+    if (obj.type === "line") return <Minus size={13} />;
+    return <Square size={13} />;
+  }, []);
+
+  const getNextInsertPoint = useCallback(() => {
+    const canvas = fabricRef.current;
+    const vpt = canvas?.viewportTransform || [1, 0, 0, 1, 0, 0];
+    return computeViewportInsertPoint(BASE_W, heightRef.current || MIN_H, vpt, insertSeqRef.current++);
+  }, [BASE_W, MIN_H]);
+
   const commitCanvasChange = useCallback((obj) => {
     const canvas = fabricRef.current;
     if (!canvas || !obj) return;
@@ -3527,24 +3686,35 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     if (obj.fractionId) canvas.fire("text:changed", { target: obj });
   }, []);
 
+  const applyColorToObj = (obj, c) => {
+    if (!obj) return;
+    if (isTextObj(obj)) {
+      obj.set("fill", c);
+    } else if (obj.type === "path") {
+      obj.set("stroke", obj.isHighlighter ? toHighlighterColor(c) : c);
+    } else if ((isHrLine(obj) && obj.type === "line") || obj.type === "line") {
+      obj.set("stroke", c);
+    } else if (obj.type === "rect") {
+      if (obj.shapeKind === "hrLine" || obj.height <= 5) obj.set("fill", c);
+      else obj.set("stroke", c);
+    } else if (obj.type === "circle" || obj.type === "triangle" || obj.type === "polygon" || obj.type === "polyline") {
+      obj.set("stroke", c);
+    } else if ((obj.type === "activeSelection" || obj.type === "group") && typeof obj.forEachObject === "function") {
+      obj.forEachObject((child) => applyColorToObj(child, c));
+    }
+    obj.dirty = true;
+  };
+
   const applyColor = useCallback((c) => {
     setColor(c);
     setHexInput(c);
     const canvas = fabricRef.current;
     const active = canvas?.getActiveObject();
     if (!canvas || !active) return;
-    if (isTextObj(active)) active.set("fill", c);
-    else if (active.type === "path") active.set("stroke", c);
-    else if (isHrLine(active) && active.type === "line") active.set("stroke", c);
-    else if (active.type === "rect") {
-      if (active.shapeKind === "hrLine" || active.height <= 5) active.set("fill", c);
-      else active.set("stroke", c);
-    }
-    else if (active.type === "circle" || active.type === "triangle" || active.type === "polygon" || active.type === "polyline") {
-      active.set("stroke", c);
-    }
+    applyColorToObj(active, c);
     canvas.requestRenderAll();
     commitCanvasChange(active);
+    canvas.refreshUI?.();
   }, [commitCanvasChange]);
 
   const straightenSelection = useCallback(() => {
@@ -3624,11 +3794,13 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     commitCanvasChange(active);
   }, [commitCanvasChange]);
 
-  const addText = () => {
-    if (!fabricRef.current) return;
+  const addText = useCallback(() => {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    const pt = getNextInsertPoint();
     const text = new fabric.Textbox("Type here...", {
-      left: 100,
-      top: 100,
+      left: Math.max(24, pt.x - 130),
+      top: Math.max(24, pt.y - 20),
       width: 260,
       fontFamily: "DM Sans",
       fontSize: 24,
@@ -3636,32 +3808,22 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       textAlign: "left",
     });
     configureTextObj(text);
-    fabricRef.current.add(text);
-    fabricRef.current.setActiveObject(text);
+    canvas.add(text);
+    canvas.setActiveObject(text);
+    canvas.requestRenderAll();
     setTool("move");
-  };
+  }, [color, getNextInsertPoint]);
 
-  const addLine = () => {
-    if (!fabricRef.current) return;
-    const line = new fabric.Rect({
-      left: 150,
-      top: 150,
-      width: 30,
-      height: 2,
-      fill: color,
-      originX: 'center',
-      hasControls: false
-    });
-    fabricRef.current.add(line);
-    fabricRef.current.setActiveObject(line);
-    setTool("move");
-  };
+  useEffect(() => {
+    addTextRef.current = addText;
+  }, [addText]);
 
   const addHrLine = () => {
     if (!fabricRef.current) return;
+    const pt = getNextInsertPoint();
     const line = new fabric.Line([0, 0, 220, 0], {
-      left: 100,
-      top: 150,
+      left: Math.max(20, pt.x - 110),
+      top: pt.y,
       stroke: color,
       strokeWidth: HR_LINE_THICKNESS,
       strokeUniform: true,
@@ -3679,9 +3841,10 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
 
   const addVrLine = () => {
     if (!fabricRef.current) return;
+    const pt = getNextInsertPoint();
     const line = new fabric.Line([0, 0, 0, 220], {
-      left: 150,
-      top: 100,
+      left: pt.x,
+      top: Math.max(20, pt.y - 110),
       stroke: color,
       strokeWidth: HR_LINE_THICKNESS,
       strokeUniform: true,
@@ -3699,9 +3862,10 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
 
   const addSquare = () => {
     if (!fabricRef.current) return;
+    const pt = getNextInsertPoint();
     const rect = new fabric.Rect({
-      left: 100,
-      top: 100,
+      left: Math.max(20, pt.x - 30),
+      top: Math.max(20, pt.y - 30),
       width: 60,
       height: 60,
       fill: 'transparent',
@@ -3716,9 +3880,10 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
 
   const addRectangle = () => {
     if (!fabricRef.current) return;
+    const pt = getNextInsertPoint();
     const rect = new fabric.Rect({
-      left: 100,
-      top: 100,
+      left: Math.max(20, pt.x - 70),
+      top: Math.max(20, pt.y - 40),
       width: 140,
       height: 80,
       fill: 'transparent',
@@ -3733,9 +3898,10 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
 
   const addCircle = () => {
     if (!fabricRef.current) return;
+    const pt = getNextInsertPoint();
     const circle = new fabric.Circle({
-      left: 150,
-      top: 150,
+      left: pt.x,
+      top: pt.y,
       radius: 42,
       fill: 'transparent',
       stroke: color,
@@ -3751,9 +3917,10 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
 
   const addTriangle = () => {
     if (!fabricRef.current) return;
+    const pt = getNextInsertPoint();
     const tri = new fabric.Triangle({
-      left: 150,
-      top: 150,
+      left: pt.x,
+      top: pt.y,
       width: 110,
       height: 95,
       fill: 'transparent',
@@ -3770,6 +3937,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
 
   const addStar = () => {
     if (!fabricRef.current) return;
+    const pt = getNextInsertPoint();
     const spikes = 5;
     const outerR = 48;
     const innerR = 22;
@@ -3780,8 +3948,8 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       pts.push({ x: r * Math.cos(a), y: r * Math.sin(a) });
     }
     const star = new fabric.Polygon(pts, {
-      left: 150,
-      top: 150,
+      left: pt.x,
+      top: pt.y,
       originX: 'center',
       originY: 'center',
       fill: 'transparent',
@@ -3797,9 +3965,10 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
 
   const addOblong = () => {
     if (!fabricRef.current) return;
+    const pt = getNextInsertPoint();
     const pill = new fabric.Rect({
-      left: 100,
-      top: 100,
+      left: Math.max(20, pt.x - 70),
+      top: Math.max(20, pt.y - 28),
       width: 140,
       height: 56,
       fill: 'transparent',
@@ -3816,14 +3985,15 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
 
   const addTrayShape = () => {
     if (!fabricRef.current) return;
+    const pt = getNextInsertPoint();
     const tray = new fabric.Polyline([
       { x: 0, y: 0 },
       { x: 0, y: 64 },
       { x: 108, y: 64 },
       { x: 108, y: 0 }
     ], {
-      left: 150,
-      top: 150,
+      left: pt.x,
+      top: pt.y,
       originX: "center",
       originY: "center",
       fill: "transparent",
@@ -3842,13 +4012,14 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
 
   const addRoofShape = () => {
     if (!fabricRef.current) return;
+    const pt = getNextInsertPoint();
     const roof = new fabric.Polyline([
       { x: 0, y: 46 },
       { x: 36, y: 0 },
       { x: 72, y: 46 }
     ], {
-      left: 150,
-      top: 150,
+      left: pt.x,
+      top: pt.y,
       originX: "center",
       originY: "center",
       fill: "transparent",
@@ -3868,9 +4039,10 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
   const addStickyNote = useCallback((bg = "#fef08a", textCol = "#713f12") => {
     const canvas = fabricRef.current;
     if (!canvas) return;
+    const pt = getNextInsertPoint();
     const note = new fabric.Textbox("Key Rule / Formula\nDouble-click to write...", {
-      left: 120,
-      top: 100,
+      left: Math.max(20, pt.x - 85),
+      top: Math.max(20, pt.y - 45),
       width: 170,
       backgroundColor: bg,
       fill: textCol,
@@ -3892,7 +4064,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     canvas.requestRenderAll();
     setTool("move");
     setStickyNoteMenuOpen(false);
-  }, []);
+  }, [getNextInsertPoint]);
 
   const connectSelectedShapes = useCallback((connectorType = "straight") => {
     const canvas = fabricRef.current;
@@ -3979,10 +4151,11 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       connectSelectedShapes("straight");
       return;
     }
+    const pt = getNextInsertPoint();
     const pathD = getLocalStraightPath(160, head);
     const arrow = new fabric.Path(pathD, {
-      left: 140,
-      top: 140,
+      left: Math.max(20, pt.x - 80),
+      top: pt.y,
       stroke: color || "#1a2540",
       strokeWidth: 2.5,
       fill: "transparent",
@@ -3999,7 +4172,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     canvas.requestRenderAll();
     setTool("move");
     showToast("Straight arrow added! (→)");
-  }, [color, connectSelectedShapes, ensureLayerId, showToast]);
+  }, [color, connectSelectedShapes, ensureLayerId, getNextInsertPoint, showToast]);
 
   const addCurvedArrow = useCallback((customBend = -35, head = "end") => {
     const canvas = fabricRef.current;
@@ -4009,10 +4182,11 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       connectSelectedShapes("curved");
       return;
     }
+    const pt = getNextInsertPoint();
     const pathD = getLocalCurvedPath(160, customBend, head);
     const arrow = new fabric.Path(pathD, {
-      left: 140,
-      top: 140,
+      left: Math.max(20, pt.x - 80),
+      top: Math.max(20, pt.y - 25),
       stroke: color || "#1a2540",
       strokeWidth: 2.5,
       fill: "transparent",
@@ -4030,7 +4204,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     canvas.requestRenderAll();
     setTool("move");
     showToast("Curved process arrow added! (↷)");
-  }, [color, connectSelectedShapes, ensureLayerId, showToast]);
+  }, [color, connectSelectedShapes, ensureLayerId, getNextInsertPoint, showToast]);
 
   const addElbowConnector = useCallback((head = "end") => {
     const canvas = fabricRef.current;
@@ -4040,10 +4214,11 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       connectSelectedShapes("elbow");
       return;
     }
+    const pt = getNextInsertPoint();
     const pathD = getLocalElbowPath(160, 80, head);
     const arrow = new fabric.Path(pathD, {
-      left: 140,
-      top: 140,
+      left: Math.max(20, pt.x - 80),
+      top: Math.max(20, pt.y - 40),
       stroke: color || "#1a2540",
       strokeWidth: 2.5,
       fill: "transparent",
@@ -4060,9 +4235,9 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     canvas.requestRenderAll();
     setTool("move");
     showToast("Elbow 90° step connector added! (↳)");
-  }, [color, connectSelectedShapes, ensureLayerId, showToast]);
+  }, [color, connectSelectedShapes, ensureLayerId, getNextInsertPoint, showToast]);
 
-  const modifyActiveArrow = useCallback(({ newKind, newBend, newHead, flipDirection, detach, snapToNearest }) => {
+  const modifyActiveArrow = useCallback(({ newKind, newBend, newHead, flipDirection, detach, snapToNearest, commit = true }) => {
     const canvas = fabricRef.current;
     const active = canvas?.getActiveObject();
     if (!canvas || !active) return;
@@ -4158,6 +4333,8 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     const prevOpacity = active.opacity != null ? active.opacity : 1;
     const prevLayerId = active.layerId;
 
+    const prevInternal = isInternalChange.current;
+    if (!commit) isInternalChange.current = true;
     const idx = canvas._objects.indexOf(active);
     canvas.remove(active);
     const pathOptions = {
@@ -4191,16 +4368,18 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     }
     canvas.setActiveObject(newArrow);
     canvas.requestRenderAll();
-    commitCanvasChange(newArrow);
+    isInternalChange.current = prevInternal;
+    if (commit) commitCanvasChange(newArrow);
     if (typeof canvas.refreshUI === "function") canvas.refreshUI();
   }, [color, commitCanvasChange, showToast]);
 
   const addProcessStep = useCallback((text = "Step 1: Formula / Process") => {
     const canvas = fabricRef.current;
     if (!canvas) return;
+    const pt = getNextInsertPoint();
     const box = new fabric.Textbox(text, {
-      left: 130,
-      top: 130,
+      left: Math.max(20, pt.x - 85),
+      top: Math.max(20, pt.y - 30),
       width: 170,
       backgroundColor: "#eff6ff",
       fill: "#1e3a8a",
@@ -4229,14 +4408,15 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     setTool("move");
     setFlowchartMenuOpen(false);
     showToast("Process step card added! Double click to edit.");
-  }, [configureTextObj, ensureLayerId, showToast]);
+  }, [configureTextObj, ensureLayerId, getNextInsertPoint, showToast]);
 
   const addDecisionDiamond = useCallback(() => {
     const canvas = fabricRef.current;
     if (!canvas) return;
+    const pt = getNextInsertPoint();
     const text = new fabric.Textbox("Condition?\n(Yes / No)", {
-      left: 140,
-      top: 140,
+      left: Math.max(20, pt.x - 70),
+      top: Math.max(20, pt.y - 30),
       width: 140,
       backgroundColor: "rgba(245, 158, 11, 0.16)",
       stroke: "#d97706",
@@ -4264,14 +4444,15 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     setTool("move");
     setFlowchartMenuOpen(false);
     showToast("Decision condition card added!");
-  }, [configureTextObj, ensureLayerId, showToast]);
+  }, [configureTextObj, ensureLayerId, getNextInsertPoint, showToast]);
 
   const addTerminator = useCallback((text = "Start / Solution") => {
     const canvas = fabricRef.current;
     if (!canvas) return;
+    const pt = getNextInsertPoint();
     const box = new fabric.Textbox(text, {
-      left: 140,
-      top: 140,
+      left: Math.max(20, pt.x - 75),
+      top: Math.max(20, pt.y - 25),
       width: 150,
       backgroundColor: "#f0fdf4",
       fill: "#166534",
@@ -4300,14 +4481,15 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     setTool("move");
     setFlowchartMenuOpen(false);
     showToast("Start / End capsule added!");
-  }, [configureTextObj, ensureLayerId, showToast]);
+  }, [configureTextObj, ensureLayerId, getNextInsertPoint, showToast]);
 
   const addDataNode = useCallback((text = "Input / Output Data") => {
     const canvas = fabricRef.current;
     if (!canvas) return;
+    const pt = getNextInsertPoint();
     const box = new fabric.Textbox(text, {
-      left: 140,
-      top: 140,
+      left: Math.max(20, pt.x - 80),
+      top: Math.max(20, pt.y - 25),
       width: 160,
       backgroundColor: "#f5f3ff",
       fill: "#5b21b6",
@@ -4336,7 +4518,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     setTool("move");
     setFlowchartMenuOpen(false);
     showToast("Input / Output data card added!");
-  }, [configureTextObj, ensureLayerId, showToast]);
+  }, [configureTextObj, ensureLayerId, getNextInsertPoint, showToast]);
 
   const addNextConnectedStep = useCallback((stepShape = "process") => {
     const canvas = fabricRef.current;
@@ -4934,9 +5116,10 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     const existing = (canvas.getObjects?.() || []).filter(o => o && o.isStepBadge);
     const idx = typeof customStepNum === "number" && customStepNum >= 1 ? customStepNum - 1 : existing.length;
     const label = STEP_CIRCLES[idx] || `${idx + 1}.`;
+    const pt = getNextInsertPoint();
     const badge = new fabric.Textbox(label, {
-      left: 70,
-      top: 70 + (idx % 6) * 44,
+      left: Math.max(20, pt.x - 18),
+      top: Math.max(20, pt.y - 18),
       width: 36,
       backgroundColor: "#eff6ff",
       fill: "#1d4ed8",
@@ -4960,14 +5143,15 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     setTool("move");
     setShapesMenuOpen(false);
     showToast(`Added Step Badge ${label}`);
-  }, [configureTextObj, ensureLayerId, showToast]);
+  }, [configureTextObj, ensureLayerId, getNextInsertPoint, showToast]);
 
   const addCancelSlash = useCallback(() => {
     const canvas = fabricRef.current;
     if (!canvas) return;
+    const pt = getNextInsertPoint();
     const slash = new fabric.Line([0, 28, 34, 0], {
-      left: 160,
-      top: 130,
+      left: pt.x,
+      top: pt.y,
       stroke: "#ef4444",
       strokeWidth: HR_LINE_THICKNESS,
       strokeUniform: true,
@@ -4982,14 +5166,15 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     canvas.requestRenderAll();
     setTool("move");
     showToast("Cancellation slash added! Place over terms to cancel.");
-  }, [ensureLayerId, showToast]);
+  }, [ensureLayerId, getNextInsertPoint, showToast]);
 
   const addCalloutCard = useCallback((preset) => {
     const canvas = fabricRef.current;
     if (!canvas || !preset) return;
+    const pt = getNextInsertPoint();
     const card = new fabric.Textbox(preset.defaultText, {
-      left: 110,
-      top: 110,
+      left: Math.max(20, pt.x - 110),
+      top: Math.max(20, pt.y - 35),
       width: 220,
       backgroundColor: preset.bg,
       fill: preset.text,
@@ -5019,7 +5204,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     setTool("move");
     setStickyNoteMenuOpen(false);
     showToast(`${preset.label} added!`);
-  }, [configureTextObj, ensureLayerId, showToast]);
+  }, [configureTextObj, ensureLayerId, getNextInsertPoint, showToast]);
 
   const addVennDiagram = useCallback(() => {
     const canvas = fabricRef.current;
@@ -5181,14 +5366,14 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     if (typeof canvas.refreshUI === "function") canvas.refreshUI();
   }, [commitCanvasChange]);
 
-  const applyActiveOpacity = useCallback((pct) => {
+  const applyActiveOpacity = useCallback((pct, commit = true) => {
     const canvas = fabricRef.current;
     const active = canvas?.getActiveObject();
     if (!canvas || !active) return;
     active.set("opacity", Math.max(0.05, Math.min(1, pct / 100)));
     active.dirty = true;
     canvas.requestRenderAll();
-    commitCanvasChange(active);
+    if (commit) commitCanvasChange(active);
     if (typeof canvas.refreshUI === "function") canvas.refreshUI();
   }, [commitCanvasChange]);
 
@@ -5225,18 +5410,29 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     if (typeof canvas.refreshUI === "function") canvas.refreshUI();
   }, [commitCanvasChange]);
 
-  const copyImageToClipboard = useCallback(async () => {
+  const renderCleanExportDataURL = useCallback(() => {
     const canvas = fabricRef.current;
-    if (!canvas) return;
+    if (!canvas) return null;
+    const prevActive = canvas.getActiveObject();
+    const prevBg = canvas.backgroundColor;
+    const prevVpt = canvas.viewportTransform ? [...canvas.viewportTransform] : [1, 0, 0, 1, 0, 0];
+    canvas.discardActiveObject();
+    canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+    canvas.backgroundColor = "#ffffff";
+    canvas.renderAll();
+    const dataUrl = canvas.toDataURL({ format: "png", multiplier: 2 });
+    canvas.backgroundColor = prevBg;
+    canvas.setViewportTransform(prevVpt);
+    if (prevActive) canvas.setActiveObject(prevActive);
+    canvas.renderAll();
+    return dataUrl;
+  }, []);
+
+  const copyImageToClipboard = useCallback(async () => {
+    if (!fabricRef.current) return;
     try {
-      const prevActive = canvas.getActiveObject();
-      canvas.discardActiveObject();
-      canvas.requestRenderAll();
-      const dataUrl = canvas.toDataURL({ format: "png", multiplier: 2 });
-      if (prevActive) {
-        canvas.setActiveObject(prevActive);
-        canvas.requestRenderAll();
-      }
+      const dataUrl = renderCleanExportDataURL();
+      if (!dataUrl) return;
       const res = await fetch(dataUrl);
       const blob = await res.blob();
       if (navigator.clipboard && window.ClipboardItem) {
@@ -5249,38 +5445,31 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       console.error("Clipboard copy error:", err);
       showToast("Could not copy to clipboard.");
     }
-  }, [showToast]);
+  }, [renderCleanExportDataURL, showToast]);
 
   const downloadImage = useCallback(() => {
-    const canvas = fabricRef.current;
-    if (!canvas) return;
+    if (!fabricRef.current) return;
     try {
-      const prevActive = canvas.getActiveObject();
-      canvas.discardActiveObject();
-      canvas.requestRenderAll();
-      const dataUrl = canvas.toDataURL({ format: "png", multiplier: 2 });
-      if (prevActive) {
-        canvas.setActiveObject(prevActive);
-        canvas.requestRenderAll();
-      }
+      const dataUrl = renderCleanExportDataURL();
+      if (!dataUrl) return;
       const a = document.createElement("a");
       a.href = dataUrl;
-      a.download = `canva-diagram-${Date.now()}.png`;
+      a.download = `whiteboard-diagram-${Date.now()}.png`;
       a.click();
       showToast("Diagram exported as PNG!");
     } catch (err) {
       console.error("Download error:", err);
     }
-  }, [showToast]);
+  }, [renderCleanExportDataURL, showToast]);
 
   const addFraction = () => {
     if (!fabricRef.current) return;
     const canvas = fabricRef.current;
     const fId = `fraction-${Date.now()}`;
-    const left = 150;
-    const top = 100;
+    const pt = getNextInsertPoint();
+    const left = pt.x;
+    const top = Math.max(20, pt.y - 25);
 
-    // Numerator
     const num = new fabric.IText("1", {
       left: left,
       top: top,
@@ -5294,7 +5483,6 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       hasControls: false
     });
 
-    // Denominator
     const den = new fabric.IText("2", {
       left: left,
       top: top + 40,
@@ -5308,7 +5496,6 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       hasControls: false
     });
 
-    // Fraction Line
     const line = new fabric.Line([0, 0, 30, 0], {
       left: left,
       top: top + 25,
@@ -5330,17 +5517,17 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     canvas.setActiveObject(num);
     num.enterEditing();
     num.selectAll();
-    
     canvas.requestRenderAll();
     setTool("move");
   };
 
   const addLongDivision = () => {
     if (!fabricRef.current) return;
+    const pt = getNextInsertPoint();
     const geometry = buildLongDivisionPath(LONG_DIVISION_DEFAULT_WIDTH, LONG_DIVISION_DEFAULT_HEIGHT);
     const bracket = new fabric.Path(geometry.path, {
-      left: 100,
-      top: 100,
+      left: pt.x,
+      top: pt.y,
       stroke: color,
       strokeWidth: HR_LINE_THICKNESS,
       strokeLineCap: "round",
@@ -5363,8 +5550,9 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     if (!fabricRef.current) return;
     const canvas = fabricRef.current;
     const longDivisionId = `long-division-${Date.now()}`;
-    const bracketLeft = 176;
-    const bracketTop = 92;
+    const pt = getNextInsertPoint();
+    const bracketLeft = Math.max(48, pt.x - 16);
+    const bracketTop = Math.max(24, pt.y - 30);
     const geometry = buildLongDivisionPath(LONG_DIVISION_PRESET_WIDTH, LONG_DIVISION_PRESET_HEIGHT);
     const divisor = new fabric.IText("2", {
       left: bracketLeft + 4,
@@ -5422,9 +5610,10 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
 
   const addSymbol = (sym) => {
     if (!fabricRef.current) return;
+    const pt = getNextInsertPoint();
     const text = new fabric.IText(sym, {
-      left: 150,
-      top: 150,
+      left: pt.x,
+      top: pt.y,
       fontFamily: "DM Sans",
       fontSize: 28,
       fill: color,
@@ -5450,9 +5639,20 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
 
   const clear = () => {
     const canvas = fabricRef.current;
-    canvas.clear();
-    canvas.setBackgroundColor("#ffffff", () => canvas.requestRenderAll());
-    onChange(null);
+    if (!canvas) return;
+    const objs = canvas.getObjects().filter(o => !o.isGuide);
+    if (!objs.length) return;
+    isInternalChange.current = true;
+    canvas.discardActiveObject();
+    objs.forEach(o => canvas.remove(o));
+    canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+    setZoomPercent(100);
+    canvas.backgroundColor = gridModeRef.current === "none" ? "#ffffff" : "transparent";
+    canvas.requestRenderAll();
+    isInternalChange.current = false;
+    canvas.commitHistoryChange?.();
+    canvas.refreshUI?.();
+    showToast("Canvas cleared — Undo with Ctrl+Z");
   };
 
   const deleteSelected = () => {
@@ -5461,26 +5661,6 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     if (activeObjects.length) {
       canvas.remove(...activeObjects);
       canvas.discardActiveObject().requestRenderAll();
-    }
-  };
-
-  const moveForward = () => {
-    const canvas = fabricRef.current;
-    const activeObject = canvas.getActiveObject();
-    if (activeObject) {
-      canvas.bringForward(activeObject);
-      canvas.requestRenderAll();
-      commitCanvasChange(activeObject);
-    }
-  };
-
-  const moveBackward = () => {
-    const canvas = fabricRef.current;
-    const activeObject = canvas.getActiveObject();
-    if (activeObject) {
-      canvas.sendBackwards(activeObject);
-      canvas.requestRenderAll();
-      commitCanvasChange(activeObject);
     }
   };
 
@@ -5518,14 +5698,66 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     setZoomPercent(100);
   };
   const bumpBoardHeight = (delta) => {
-    const cur = Math.round(boardRef.current?.getBoundingClientRect?.().height || height);
-    const next = Math.max(MIN_H, Math.min(cur + delta, MAX_H));
-    if (boardRef.current) boardRef.current.style.height = `${next}px`;
+    const next = clampCanvasHeight((heightRef.current || height) + delta, MIN_H, MAX_H);
+    if (next === heightRef.current) return;
+    heightRef.current = next;
     setHeight(next);
+    const canvas = fabricRef.current;
+    if (canvas) {
+      canvas.setHeight(next);
+      canvas.requestRenderAll();
+      if (canvas.getObjects().some(o => !o.isGuide)) {
+        canvas.commitHistoryChange?.();
+      }
+    }
   };
+
+  const toggleLayerVisibility = (obj) => {
+    const canvas = fabricRef.current;
+    if (!canvas || !obj) return;
+    const nextVisible = obj.visible === false;
+    obj.set("visible", nextVisible);
+    if (!nextVisible && canvas.getActiveObject() === obj) {
+      canvas.discardActiveObject();
+    }
+    canvas.requestRenderAll();
+    commitCanvasChange(obj);
+    canvas.refreshUI?.();
+  };
+
+  const toggleLayerLock = (obj) => {
+    const canvas = fabricRef.current;
+    if (!canvas || !obj) return;
+    const nextLocked = !(obj.locked || (obj.lockMovementX && obj.lockMovementY));
+    obj.set({
+      lockMovementX: nextLocked,
+      lockMovementY: nextLocked,
+      lockRotation: nextLocked,
+      lockScalingX: nextLocked,
+      lockScalingY: nextLocked,
+      hasControls: !nextLocked,
+    });
+    obj.locked = nextLocked;
+    canvas.requestRenderAll();
+    commitCanvasChange(obj);
+    canvas.refreshUI?.();
+  };
+
+  const deleteLayerObj = (obj) => {
+    const canvas = fabricRef.current;
+    if (!canvas || !obj) return;
+    if (canvas.getActiveObject() === obj) canvas.discardActiveObject();
+    canvas.remove(obj);
+    canvas.requestRenderAll();
+    canvas.refreshUI?.();
+  };
+
   const selectLayer = (obj, closeAfter) => {
     const canvas = fabricRef.current;
     if (!canvas) return;
+    if (obj.visible === false) {
+      obj.set("visible", true);
+    }
     canvas.discardActiveObject();
     canvas.setActiveObject(obj);
     canvas.requestRenderAll();
@@ -5611,94 +5843,113 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     <div
       style={{
         width: "100%",
-        borderRadius: useExternalLayers ? 0 : 20,
+        borderRadius: useExternalLayers ? 0 : 16,
         border: useExternalLayers ? "none" : "1px solid var(--border)",
         background: useExternalLayers
           ? "transparent"
-          : "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))",
-        padding: useExternalLayers ? 0 : 14,
+          : "var(--surface)",
+        padding: useExternalLayers ? 0 : 12,
         height: useExternalLayers ? "100%" : boardHeight,
-        maxHeight: useExternalLayers ? "calc(100dvh - var(--hdr-height) - 44px)" : undefined,
+        flex: useExternalLayers ? 1 : undefined,
+        minHeight: 0,
         overflow: "hidden",
         display: "flex",
         flexDirection: "column"
       }}
     >
       {!useExternalLayers && (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 10, flexShrink: 0 }}>
           <div>
-            <div style={{ fontSize: 10, letterSpacing: 1, textTransform: "uppercase", opacity: 0.88, marginBottom: 4 }}>Visual Layers</div>
-            <div style={{ fontSize: 14, fontWeight: 700 }}>Drawing stack</div>
+            <div style={{ fontSize: 10, letterSpacing: 1, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 2 }}>Visual Layers</div>
+            <div style={{ fontSize: 13, fontWeight: 700 }}>Drawing stack</div>
           </div>
           {showClose && (
-            <button className="draw-tb" onClick={() => setLayersOpen(false)} title="Close Layers">
+            <button type="button" className="draw-tb" onClick={() => setLayersOpen(false)} title="Close Layers">
               <X size={16} />
             </button>
           )}
         </div>
       )}
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, overflow: "auto", flex: 1, overscrollBehavior: isMobile ? "auto" : "contain", padding: "2px 4px" }}>
+      <div className="draw-layers-list" style={{ overscrollBehavior: isMobile ? "auto" : "contain" }}>
         {canvasObjects.slice().reverse().map((obj) => {
           const key = obj.layerId || `${obj.type}-${obj.left}-${obj.top}`;
           const id = obj.layerId || "";
           const isActive = !!(id && activeLayerIdSet.has(id));
           const isDragging = !!(id && draggingLayerId === id);
           const isOver = !!(id && dragOverLayerId === id && draggingLayerId && draggingLayerId !== id);
+          const isHidden = obj.visible === false;
+          const isLocked = !!(obj.locked || (obj.lockMovementX && obj.lockMovementY));
           return (
             <div key={key} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <button
-                type="button"
+              <div
                 data-layer-role="layer"
                 data-layer-id={id}
-                onPointerDown={(e) => { if (id) beginLayerDrag(id, e); }}
-                onClick={() => {
-                  if (dragJustEndedRef.current) return;
-                  selectLayer(obj, showClose);
-                }}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 8,
-                  padding: "10px 12px",
-                  borderRadius: 14,
-                  border: "1px solid var(--border)",
-                  outline: isOver ? "2px solid #f5a623" : (isActive ? "2px solid #a855f7" : "none"),
-                  outlineOffset: -1,
-                  background: isOver ? "rgba(245,166,35,0.12)" : "var(--surface-h)",
-                  opacity: isDragging ? 0.55 : 1,
-                  color: "inherit",
-                  cursor: "pointer",
-                  textAlign: "left",
-                  touchAction: "pan-y"
-                }}
+                className={`draw-layer-row${isActive ? " is-active" : ""}${isOver ? " is-over" : ""}${isHidden ? " is-hidden" : ""}`}
+                style={{ opacity: isDragging ? 0.55 : undefined }}
               >
-                <span style={{ fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {getLayerLabel(obj)}
-                </span>
-                <span style={{ fontSize: 11, opacity: 0.9 }}>{Math.round(obj.angle || 0)}°</span>
-              </button>
+                <button
+                  type="button"
+                  className="draw-layer-select-btn"
+                  onPointerDown={(e) => { if (id) beginLayerDrag(id, e); }}
+                  onClick={() => {
+                    if (dragJustEndedRef.current) return;
+                    selectLayer(obj, showClose);
+                  }}
+                  title="Click to select, drag to reorder"
+                >
+                  <span className="draw-layer-icon">{getLayerIcon(obj)}</span>
+                  <span className="draw-layer-name">{getLayerLabel(obj)}</span>
+                </button>
+                <div className="draw-layer-actions">
+                  <button
+                    type="button"
+                    className="draw-layer-action-btn"
+                    onClick={() => toggleLayerVisibility(obj)}
+                    title={isHidden ? "Show Layer" : "Hide Layer"}
+                    aria-label={isHidden ? "Show Layer" : "Hide Layer"}
+                  >
+                    {isHidden ? <EyeOff size={13} /> : <Eye size={13} />}
+                  </button>
+                  <button
+                    type="button"
+                    className="draw-layer-action-btn"
+                    onClick={() => toggleLayerLock(obj)}
+                    title={isLocked ? "Unlock Layer" : "Lock Layer"}
+                    aria-label={isLocked ? "Unlock Layer" : "Lock Layer"}
+                    style={isLocked ? { color: "#f5a623" } : undefined}
+                  >
+                    {isLocked ? <Lock size={13} /> : <Unlock size={13} />}
+                  </button>
+                  <button
+                    type="button"
+                    className="draw-layer-action-btn is-danger"
+                    onClick={() => deleteLayerObj(obj)}
+                    title="Delete Layer"
+                    aria-label="Delete Layer"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              </div>
               {obj.type === "group" && Array.isArray(obj._objects) && obj._objects.length > 0 && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 4, paddingLeft: 16 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4, paddingLeft: 14 }}>
                   {obj._objects.slice().reverse().map((child, i) => (
                     <div
                       key={`${id || key}-sub-${i}`}
                       style={{
                         display: "flex",
                         alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: 8,
-                        padding: "7px 10px",
-                        borderRadius: 12,
+                        gap: 6,
+                        padding: "5px 9px",
+                        borderRadius: 8,
                         border: "1px solid var(--border)",
                         background: "var(--surface)",
-                        opacity: 0.95
+                        fontSize: 11,
+                        color: "var(--text-mid)",
                       }}
                     >
-                      <span style={{ fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {getLayerLabel(child)}
-                      </span>
-                      <span style={{ fontSize: 11, opacity: 0.9 }}>{Math.round(child?.angle || 0)}°</span>
+                      <span className="draw-layer-icon">{getLayerIcon(child)}</span>
+                      <span className="draw-layer-name">{getLayerLabel(child)}</span>
                     </div>
                   ))}
                 </div>
@@ -5707,7 +5958,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
           );
         })}
         {!canvasObjects.length && (
-          <div style={{ fontSize: 12 }}>No layers yet</div>
+          <div style={{ fontSize: 12, color: "var(--text-muted)", padding: "8px 4px" }}>No layers yet — draw or insert an element.</div>
         )}
       </div>
     </div>
@@ -5716,56 +5967,105 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
   return (
     <div
       ref={containerRef}
+      className={isStudioModal ? "draw-studio-root" : undefined}
       style={{ userSelect: "none", WebkitUserSelect: "none" }}
       onDragStart={(e) => e.preventDefault()}
     >
       <div className="draw-bar">
-        {/* Row 1: Creation, Solution Tools, Shapes & Math */}
+        {/* Row 1: Core Tools, Connectors, Shapes & Math */}
         <div className="draw-bar-row">
-          {/* Core Drawing & Solution Brushes */}
+          {/* Core Drawing, Selection & Navigation */}
           <div className="draw-bar-group">
-            <button className={`draw-tb${tool === "pen" ? " draw-on" : ""}`} onClick={() => setTool("pen")} title="Draw with Pen (P)">
+            <button
+              type="button"
+              className={`draw-tb${tool === "pen" ? " draw-on" : ""}`}
+              onClick={() => setTool("pen")}
+              title="Pen Tool (P)"
+              aria-label="Pen Tool"
+              aria-pressed={tool === "pen"}
+            >
               <Pencil size={15} />
             </button>
             <button
+              type="button"
               className={`draw-tb${tool === "highlighter" ? " draw-on" : ""}`}
               onClick={() => setTool("highlighter")}
-              title="Highlighter Marker for Key Steps & Answers (H)"
+              title="Highlighter Marker (H)"
+              aria-label="Highlighter Marker"
+              aria-pressed={tool === "highlighter"}
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="m9 11-6 6v3h9l3-3" />
                 <path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4" />
               </svg>
             </button>
-            <button className={`draw-tb${tool === "move" ? " draw-on" : ""}`} onClick={() => setTool("move")} title="Select & Move Objects (V)">
+            <button
+              type="button"
+              className={`draw-tb${tool === "move" ? " draw-on" : ""}`}
+              onClick={() => setTool("move")}
+              title="Select & Move (V)"
+              aria-label="Select & Move"
+              aria-pressed={tool === "move"}
+            >
               <MousePointer2 size={15} />
             </button>
-            <button className={`draw-tb${tool === "pan" ? " draw-on" : ""}`} onClick={() => setTool("pan")} title="Pan Canvas (Hold Space)">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2v6M12 16v6M2 12h6M16 12h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                <path d="M12 2l-2 2m2-2l2 2M12 22l-2-2m2 2l2-2M2 12l2-2m-2 2l2 2M22 12l-2-2m2 2l-2 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+            <button
+              type="button"
+              className={`draw-tb${tool === "pan" ? " draw-on" : ""}`}
+              onClick={() => setTool("pan")}
+              title="Pan Canvas (Hold Space)"
+              aria-label="Pan Canvas"
+              aria-pressed={tool === "pan"}
+            >
+              <Hand size={15} />
             </button>
-            <button className={`draw-tb${tool === "eraser" ? " draw-on" : ""}`} onClick={() => setTool("eraser")} title="Eraser Brush (E)">
+            <button
+              type="button"
+              className={`draw-tb${tool === "eraser" ? " draw-on" : ""}`}
+              onClick={() => setTool("eraser")}
+              title="Eraser Brush (E)"
+              aria-label="Eraser Brush"
+              aria-pressed={tool === "eraser"}
+            >
               <Eraser size={15} />
             </button>
-            <button className="draw-tb" onClick={addText} title="Add Text Layer (T)">
+            <button
+              type="button"
+              className="draw-tb"
+              onClick={addText}
+              title="Add Text Layer (T)"
+              aria-label="Add Text Layer"
+            >
               <Type size={15} />
             </button>
           </div>
 
           {/* Lines, Connectors & Quick Solution Stamps */}
           <div className="draw-bar-group">
-            <button className="draw-tb" onClick={addLine} title="Add Line Segment / Fraction Bar">
+            <button
+              type="button"
+              className="draw-tb"
+              onClick={addHrLine}
+              title="Add Line / Fraction Bar"
+              aria-label="Add Line"
+            >
               <Minus size={15} />
             </button>
-            <button className="draw-tb" onClick={() => addArrow("end")} title="Add Process / Connector Arrow">
+            <button
+              type="button"
+              className="draw-tb"
+              onClick={() => addArrow("end")}
+              title="Add Connector Arrow"
+              aria-label="Add Connector Arrow"
+            >
               <ArrowRight size={15} />
             </button>
             <button
+              type="button"
               className="draw-tb"
               onClick={addCancelSlash}
-              title="Add Cancellation Slash (Strike out / Cancel terms)"
+              title="Add Cancellation Slash (Strike out terms)"
+              aria-label="Add Cancellation Slash"
               style={{ color: "#e0365a", fontWeight: 800 }}
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
@@ -5773,9 +6073,11 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
               </svg>
             </button>
             <button
+              type="button"
               className="draw-tb draw-tb-pill"
               onClick={() => addStepBadge()}
-              title="Add Numbered Solution Step Badge (1, 2, 3...)"
+              title="Add Numbered Step Badge (1, 2, 3...)"
+              aria-label="Add Step Badge"
             >
               <span className="draw-step-pill-icon">1</span>
               <span className="draw-tb-pill-label">Step</span>
@@ -5784,20 +6086,13 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
 
           {/* Shapes, Callouts & Flowchart Templates */}
           <div className="draw-bar-group">
-            <button className="draw-tb" onClick={addSquare} title="Add Square">
-              <Square size={15} />
-            </button>
-            <button className="draw-tb" onClick={addCircle} title="Add Circle">
-              <span style={{ display: "inline-block", width: 14, height: 14, border: "2px solid currentColor", borderRadius: "50%" }} />
-            </button>
-
-            {/* All Shapes & Solution Stamps Popover */}
             <div className="draw-popover-anchor" ref={shapesMenuRef}>
               <button
                 type="button"
                 className={`draw-tb draw-tb-pill${shapesMenuOpen ? " draw-on" : ""}`}
                 onClick={() => toggleToolbarMenu("shapes")}
-                title="More Shapes, Brackets, Venn & Step Badges"
+                title="Shapes, Brackets, Venn & Step Badges"
+                aria-expanded={shapesMenuOpen}
               >
                 <CircleDot size={14} />
                 <span className="draw-tb-pill-label">Shapes</span>
@@ -5807,47 +6102,47 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                 <div className="draw-popover-menu" style={{ width: 248 }}>
                   <div className="draw-popover-section-title">Shapes & Diagrams</div>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4, marginBottom: 8 }}>
-                    <button className="draw-tb draw-popover-grid-btn" onClick={() => { addSquare(); setShapesMenuOpen(false); }} title="Add Square">
+                    <button type="button" className="draw-tb draw-popover-grid-btn" onClick={() => { addSquare(); setShapesMenuOpen(false); }} title="Add Square">
                       <Square size={14} />
                       <span>Square</span>
                     </button>
-                    <button className="draw-tb draw-popover-grid-btn" onClick={() => { addRectangle(); setShapesMenuOpen(false); }} title="Add Rounded Rectangle">
+                    <button type="button" className="draw-tb draw-popover-grid-btn" onClick={() => { addRectangle(); setShapesMenuOpen(false); }} title="Add Rounded Rectangle">
                       <span style={{ display: "inline-block", width: 15, height: 10, border: "2px solid currentColor", borderRadius: 2 }} />
                       <span>Rect</span>
                     </button>
-                    <button className="draw-tb draw-popover-grid-btn" onClick={() => { addCircle(); setShapesMenuOpen(false); }} title="Add Circle">
+                    <button type="button" className="draw-tb draw-popover-grid-btn" onClick={() => { addCircle(); setShapesMenuOpen(false); }} title="Add Circle">
                       <span style={{ display: "inline-block", width: 13, height: 13, border: "2px solid currentColor", borderRadius: "50%" }} />
                       <span>Circle</span>
                     </button>
-                    <button className="draw-tb draw-popover-grid-btn" onClick={() => { addTriangle(); setShapesMenuOpen(false); }} title="Add Triangle">
+                    <button type="button" className="draw-tb draw-popover-grid-btn" onClick={() => { addTriangle(); setShapesMenuOpen(false); }} title="Add Triangle">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                         <path d="M12 4 L21 20 H3 Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
                       </svg>
                       <span>Triangle</span>
                     </button>
-                    <button className="draw-tb draw-popover-grid-btn" onClick={() => { addStar(); setShapesMenuOpen(false); }} title="Add Star">
+                    <button type="button" className="draw-tb draw-popover-grid-btn" onClick={() => { addStar(); setShapesMenuOpen(false); }} title="Add Star">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                         <path d="M12 2 L15.1 8.6 L22 9.3 L17 13.9 L18.5 21 L12 17.4 L5.5 21 L7 13.9 L2 9.3 L8.9 8.6 Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
                       </svg>
                       <span>Star</span>
                     </button>
-                    <button className="draw-tb draw-popover-grid-btn" onClick={() => { addOblong(); setShapesMenuOpen(false); }} title="Add Oblong (Butterfly Method)">
+                    <button type="button" className="draw-tb draw-popover-grid-btn" onClick={() => { addOblong(); setShapesMenuOpen(false); }} title="Add Oblong (Butterfly Method)">
                       <span style={{ display: "inline-block", width: 15, height: 8, border: "2px solid currentColor", borderRadius: 9999 }} />
                       <span>Oblong</span>
                     </button>
-                    <button className="draw-tb draw-popover-grid-btn" onClick={() => { addTrayShape(); setShapesMenuOpen(false); }} title="Add Tray Shape (Bracket)">
+                    <button type="button" className="draw-tb draw-popover-grid-btn" onClick={() => { addTrayShape(); setShapesMenuOpen(false); }} title="Add Tray Shape (Bracket)">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                         <path d="M5 5 V18 H19 V5" stroke="currentColor" strokeWidth="2" strokeLinecap="butt" strokeLinejoin="miter" />
                       </svg>
                       <span>Bracket</span>
                     </button>
-                    <button className="draw-tb draw-popover-grid-btn" onClick={() => { addRoofShape(); setShapesMenuOpen(false); }} title="Add Roof / Caret Shape">
+                    <button type="button" className="draw-tb draw-popover-grid-btn" onClick={() => { addRoofShape(); setShapesMenuOpen(false); }} title="Add Roof / Caret Shape">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                         <path d="M4 17 L12 7 L20 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                       <span>Caret</span>
                     </button>
-                    <button className="draw-tb draw-popover-grid-btn" onClick={() => { addVennDiagram(); setShapesMenuOpen(false); }} title="Add 2-Circle Venn Diagram">
+                    <button type="button" className="draw-tb draw-popover-grid-btn" onClick={() => { addVennDiagram(); setShapesMenuOpen(false); }} title="Add 2-Circle Venn Diagram">
                       <CircleDot size={14} />
                       <span>Venn</span>
                     </button>
@@ -5857,15 +6152,15 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                     Rotatable Lines & Slash
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4, marginBottom: 8 }}>
-                    <button className="draw-tb draw-popover-grid-btn" onClick={() => { addHrLine(); setShapesMenuOpen(false); }} title="Rotatable Horizontal Line">
+                    <button type="button" className="draw-tb draw-popover-grid-btn" onClick={() => { addHrLine(); setShapesMenuOpen(false); }} title="Rotatable Horizontal Line">
                       <span>⊶⊷</span>
                       <span>H-Line</span>
                     </button>
-                    <button className="draw-tb draw-popover-grid-btn" onClick={() => { addVrLine(); setShapesMenuOpen(false); }} title="Rotatable Vertical Line">
+                    <button type="button" className="draw-tb draw-popover-grid-btn" onClick={() => { addVrLine(); setShapesMenuOpen(false); }} title="Rotatable Vertical Line">
                       <span>⫯</span>
                       <span>V-Line</span>
                     </button>
-                    <button className="draw-tb draw-popover-grid-btn" onClick={() => { addCancelSlash(); setShapesMenuOpen(false); }} style={{ color: "#e0365a" }} title="Cancellation Slash">
+                    <button type="button" className="draw-tb draw-popover-grid-btn" onClick={() => { addCancelSlash(); setShapesMenuOpen(false); }} style={{ color: "#e0365a" }} title="Cancellation Slash">
                       <span style={{ fontWeight: 800 }}>/</span>
                       <span>Cancel</span>
                     </button>
@@ -5880,7 +6175,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                         key={sc}
                         type="button"
                         className="draw-tb"
-                        onClick={() => addStepBadge(idx + 1)}
+                        onClick={() => { addStepBadge(idx + 1); setShapesMenuOpen(false); }}
                         title={`Insert Step ${idx + 1} Badge`}
                         style={{ fontWeight: 700, fontSize: 13 }}
                       >
@@ -5892,13 +6187,13 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
               )}
             </div>
 
-            {/* Sticky Notes & Solution Callout Cards */}
             <div className="draw-popover-anchor" ref={stickyNoteMenuRef}>
               <button
                 type="button"
                 className={`draw-tb draw-tb-pill${stickyNoteMenuOpen ? " draw-on" : ""}`}
                 onClick={() => toggleToolbarMenu("sticky")}
-                title="Add Sticky Note or Solution Callout Card"
+                title="Add Sticky Note or Callout Card"
+                aria-expanded={stickyNoteMenuOpen}
               >
                 <StickyNote size={14} />
                 <span className="draw-tb-pill-label">Note</span>
@@ -5966,13 +6261,13 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
               )}
             </div>
 
-            {/* Flowchart, Smart Connectors & Solution Templates */}
             <div className="draw-popover-anchor" ref={flowchartMenuRef}>
               <button
                 type="button"
                 className={`draw-tb draw-tb-pill${flowchartMenuOpen ? " draw-on" : ""}`}
                 onClick={() => toggleToolbarMenu("flow")}
                 title="Flowchart, Smart Connectors & Solution Templates"
+                aria-expanded={flowchartMenuOpen}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="3" width="6" height="6" rx="1.5" />
@@ -5985,80 +6280,77 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
               </button>
               {flowchartMenuOpen && (
                 <div className="draw-popover-menu draw-popover-right" style={{ width: 256 }}>
-                  {/* Connectors & Arrows */}
                   <div>
                     <div className="draw-popover-section-title">Connectors & Arrows</div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
-                      <button className="draw-tb" onClick={() => { addArrow("end"); setFlowchartMenuOpen(false); }} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 7px" }}>
+                      <button type="button" className="draw-tb" onClick={() => { addArrow("end"); setFlowchartMenuOpen(false); }} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 7px" }}>
                         <span>→</span> Straight
                       </button>
-                      <button className="draw-tb" onClick={() => { addCurvedArrow(-35, "end"); setFlowchartMenuOpen(false); }} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 7px" }}>
+                      <button type="button" className="draw-tb" onClick={() => { addCurvedArrow(-35, "end"); setFlowchartMenuOpen(false); }} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 7px" }}>
                         <span>↷</span> Curved Arc
                       </button>
-                      <button className="draw-tb" onClick={() => { addElbowConnector("end"); setFlowchartMenuOpen(false); }} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 7px" }}>
+                      <button type="button" className="draw-tb" onClick={() => { addElbowConnector("end"); setFlowchartMenuOpen(false); }} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 7px" }}>
                         <span>↳</span> 90° Elbow
                       </button>
-                      <button className="draw-tb" onClick={() => { addArrow("both"); setFlowchartMenuOpen(false); }} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 7px" }}>
+                      <button type="button" className="draw-tb" onClick={() => { addArrow("both"); setFlowchartMenuOpen(false); }} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 7px" }}>
                         <span>↔</span> Two-Way
                       </button>
-                      <button className="draw-tb" onClick={() => { addArrow("circle-arrow"); setFlowchartMenuOpen(false); }} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 7px" }}>
+                      <button type="button" className="draw-tb" onClick={() => { addArrow("circle-arrow"); setFlowchartMenuOpen(false); }} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 7px" }}>
                         <span>•→</span> Dot-to-Arrow
                       </button>
-                      <button className="draw-tb" onClick={() => { connectSelectedShapes("curved"); setFlowchartMenuOpen(false); }} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 7px", color: "#2563eb", fontWeight: 700 }}>
+                      <button type="button" className="draw-tb" onClick={() => { connectSelectedShapes("curved"); setFlowchartMenuOpen(false); }} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 7px", color: "#2563eb", fontWeight: 700 }}>
                         <Link2 size={13} />
                         <span>Connect 2 Sel</span>
                       </button>
                     </div>
                   </div>
 
-                  {/* Flowchart Nodes */}
                   <div style={{ borderTop: "1px solid var(--border)", paddingTop: 6, marginTop: 6 }}>
                     <div className="draw-popover-section-title">Flowchart Nodes</div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
-                      <button className="draw-tb" onClick={addProcessStep} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 7px" }}>
+                      <button type="button" className="draw-tb" onClick={addProcessStep} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 7px" }}>
                         <span style={{ display: "inline-block", width: 14, height: 10, border: "1.5px solid currentColor", borderRadius: 2 }} />
                         Process Card
                       </button>
-                      <button className="draw-tb" onClick={addDecisionDiamond} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 7px" }}>
+                      <button type="button" className="draw-tb" onClick={addDecisionDiamond} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 7px" }}>
                         <span style={{ display: "inline-block", width: 10, height: 10, border: "1.5px solid #d97706", transform: "rotate(45deg)", margin: "0 2px" }} />
                         Decision
                       </button>
-                      <button className="draw-tb" onClick={addTerminator} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 7px" }}>
+                      <button type="button" className="draw-tb" onClick={addTerminator} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 7px" }}>
                         <span style={{ display: "inline-block", width: 16, height: 9, border: "1.5px solid #22c55e", borderRadius: 999 }} />
                         Start / End
                       </button>
-                      <button className="draw-tb" onClick={addDataNode} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 7px" }}>
+                      <button type="button" className="draw-tb" onClick={addDataNode} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 7px" }}>
                         <span style={{ display: "inline-block", width: 14, height: 10, border: "1.5px solid currentColor", transform: "skewX(-20deg)" }} />
                         Data Node
                       </button>
                     </div>
                   </div>
 
-                  {/* Quick Solution & Flowchart Templates */}
                   <div style={{ borderTop: "1px solid var(--border)", paddingTop: 6, marginTop: 6 }}>
                     <div className="draw-popover-section-title">Solution & Diagram Templates</div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                      <button className="draw-tb" onClick={() => addProcessTemplate("series")} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 8px" }}>
+                      <button type="button" className="draw-tb" onClick={() => addProcessTemplate("series")} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 8px" }}>
                         <Binary size={13} className="text-amber-500" />
                         <span>Number Series Pattern (+d Jumps)</span>
                       </button>
-                      <button className="draw-tb" onClick={() => addProcessTemplate("crossMultiply")} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 8px" }}>
+                      <button type="button" className="draw-tb" onClick={() => addProcessTemplate("crossMultiply")} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 8px" }}>
                         <X size={13} className="text-emerald-500" />
                         <span>Cross-Multiply Ratio Grid</span>
                       </button>
-                      <button className="draw-tb" onClick={() => addProcessTemplate("dstTriangle")} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 8px" }}>
+                      <button type="button" className="draw-tb" onClick={() => addProcessTemplate("dstTriangle")} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 8px" }}>
                         <Triangle size={13} className="text-cyan-500" />
                         <span>Distance-Speed-Time Triangle</span>
                       </button>
-                      <button className="draw-tb" onClick={() => addProcessTemplate("linear3")} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 8px" }}>
+                      <button type="button" className="draw-tb" onClick={() => addProcessTemplate("linear3")} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 8px" }}>
                         <Play size={13} className="text-blue-500" />
                         <span>3-Step Process (1 ➔ 2 ➔ 3)</span>
                       </button>
-                      <button className="draw-tb" onClick={() => addProcessTemplate("decision")} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 8px" }}>
+                      <button type="button" className="draw-tb" onClick={() => addProcessTemplate("decision")} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 8px" }}>
                         <GitBranch size={13} className="text-purple-500" />
                         <span>If-Else Decision Branch (Yes / No)</span>
                       </button>
-                      <button className="draw-tb" onClick={() => addProcessTemplate("cycle")} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 8px" }}>
+                      <button type="button" className="draw-tb" onClick={() => addProcessTemplate("cycle")} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 8px" }}>
                         <RotateCw size={13} className="text-pink-500" />
                         <span>3-Node Cycle (Feedback Loop)</span>
                       </button>
@@ -6071,10 +6363,22 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
 
           {/* Math Presets & Operators */}
           <div className="draw-bar-group">
-            <button className="draw-tb" onClick={addFraction} title="Add Fraction (Auto-layout)">
+            <button
+              type="button"
+              className="draw-tb"
+              onClick={addFraction}
+              title="Add Fraction (Auto-layout)"
+              aria-label="Add Fraction"
+            >
               <Divide size={15} />
             </button>
-            <button className="draw-tb" onClick={addLongDivisionPreset} title="Add Long Division Preset (Auto-layout)">
+            <button
+              type="button"
+              className="draw-tb"
+              onClick={addLongDivisionPreset}
+              title="Add Long Division Preset (Auto-layout)"
+              aria-label="Add Long Division Preset"
+            >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <text x="3.5" y="14.2" fontSize="7" fill="currentColor" fontFamily="Arial, sans-serif">2</text>
                 <text x="11" y="10.5" fontSize="6" fill="currentColor" fontFamily="Arial, sans-serif">12</text>
@@ -6082,13 +6386,13 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
               </svg>
             </button>
 
-            {/* Math & Logic Symbols Popover */}
             <div className="draw-popover-anchor" ref={mathMenuRef}>
               <button
                 type="button"
                 className={`draw-tb draw-tb-pill${mathMenuOpen ? " draw-on" : ""}`}
                 onClick={() => toggleToolbarMenu("math")}
                 title="Math & Logic Operators, Roots, Pi, Therefore"
+                aria-expanded={mathMenuOpen}
               >
                 <span style={{ fontWeight: 700, fontSize: 12 }}>±=</span>
                 <span className="draw-tb-pill-label">Math</span>
@@ -6124,13 +6428,13 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                     Math Layouts
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                    <button className="draw-tb" onClick={() => { addFraction(); setMathMenuOpen(false); }} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 8px" }}>
+                    <button type="button" className="draw-tb" onClick={() => { addFraction(); setMathMenuOpen(false); }} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 8px" }}>
                       <Divide size={13} /> Editable Fraction (a / b)
                     </button>
-                    <button className="draw-tb" onClick={() => { addLongDivisionPreset(); setMathMenuOpen(false); }} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 8px" }}>
+                    <button type="button" className="draw-tb" onClick={() => { addLongDivisionPreset(); setMathMenuOpen(false); }} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 8px" }}>
                       <span>⟌</span> Long Division (Auto-layout)
                     </button>
-                    <button className="draw-tb" onClick={() => { addLongDivision(); setMathMenuOpen(false); }} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 8px" }}>
+                    <button type="button" className="draw-tb" onClick={() => { addLongDivision(); setMathMenuOpen(false); }} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 8px" }}>
                       <span>⌈</span> Long Division Bracket Only
                     </button>
                   </div>
@@ -6140,21 +6444,23 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
           </div>
         </div>
 
-        {/* Row 2: Styling, Alignment, View & History */}
+        {/* Row 2: Color, Stroke, Alignment, View & Actions */}
         <div className="draw-bar-row">
           {/* Color & Stroke */}
           <div className="draw-bar-group draw-bar-group-color draw-popover-anchor" ref={colorPickerRef}>
             {COLORS.map((c, idx) => (
-              <div
+              <button
                 key={c}
+                type="button"
                 onClick={() => applyColor(c)}
                 className={`draw-color-swatch${idx >= 4 ? " draw-color-swatch-extra" : ""}`}
                 style={{
-                  width: 17, height: 17, borderRadius: "50%", background: c, cursor: "pointer", flexShrink: 0,
+                  width: 17, height: 17, borderRadius: "50%", background: c, cursor: "pointer", flexShrink: 0, padding: 0,
                   border: color === c ? "2px solid #fff" : "1px solid rgba(0,0,0,0.15)",
                   boxShadow: color === c ? "0 0 0 2px #f5a623" : "none"
                 }}
                 title={`Color ${c}`}
+                aria-label={`Select color ${c}`}
               />
             ))}
             <button
@@ -6162,6 +6468,8 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
               className={`draw-tb${colorPickerOpen ? " draw-on" : ""}`}
               onClick={() => toggleToolbarMenu("color")}
               title="Open Full Color Palette"
+              aria-label="Open Full Color Palette"
+              aria-expanded={colorPickerOpen}
               style={{ padding: "0 5px", minWidth: 26, height: 26, gap: 3 }}
             >
               <Palette size={13} />
@@ -6186,6 +6494,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                       type="button"
                       onClick={() => applyColor(c)}
                       title={c}
+                      aria-label={`Color ${c}`}
                       style={{
                         width: 22, height: 22, borderRadius: "50%", background: c, cursor: "pointer", padding: 0,
                         border: color === c ? "2px solid var(--text)" : "1px solid rgba(0,0,0,0.15)",
@@ -6200,6 +6509,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                     value={/^#[0-9a-fA-F]{6}$/.test(color) ? color : "#1a2540"}
                     onChange={e => applyColor(e.target.value)}
                     title="Native color picker"
+                    aria-label="Native color picker"
                     style={{ width: 34, height: 28, padding: 0, border: "1px solid var(--border)", borderRadius: 6, background: "transparent", cursor: "pointer" }}
                   />
                   <input
@@ -6218,6 +6528,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                       if (e.key === "Escape") e.currentTarget.blur();
                     }}
                     placeholder="#1a2540"
+                    aria-label="Hex color code"
                     title="Enter a hex color code and press Enter"
                     style={{ flex: 1, minWidth: 0, padding: "4px 8px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--input-bg)", color: "var(--text)", fontFamily: "'Fira Mono',monospace", fontSize: 11, outline: "none" }}
                   />
@@ -6226,58 +6537,60 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
             )}
             <div className="draw-bar-subdivider" />
             <span style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 600, minWidth: 14, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{size}</span>
-            <input type="range" min={1} max={20} value={size} onChange={e => setSize(+e.target.value)}
+            <input
+              type="range"
+              min={1}
+              max={20}
+              value={size}
+              onChange={e => setSize(+e.target.value)}
               className="draw-stroke-slider"
-              title={tool === "eraser" ? `Eraser Size: ${size}px` : tool === "highlighter" ? `Highlighter Width: ${Math.max(14, size * 4)}px` : `Stroke Size: ${size}px`}
-              style={{ width: 44, accentColor: "#f5a623", cursor: "pointer" }} />
+              aria-label={tool === "eraser" ? "Eraser Size" : tool === "highlighter" ? "Highlighter Width" : "Stroke Size"}
+              title={tool === "eraser" ? `Eraser Size: ${size}px` : tool === "highlighter" ? `Highlighter Width: ${Math.max(16, size * 5)}px` : `Stroke Size: ${size}px`}
+              style={{ width: 52, accentColor: "#f5a623", cursor: "pointer" }}
+            />
           </div>
 
-          {/* Arrange & Align */}
+          {/* Align, Layer Order & Straighten */}
           <div className="draw-bar-group draw-bar-group-arrange">
-            <button className="draw-tb" onClick={moveForward} title="Bring Forward">
-              <ChevronUp size={15} />
-            </button>
-            <button className="draw-tb" onClick={moveBackward} title="Send Backward">
-              <ChevronDown size={15} />
-            </button>
-            <div className="draw-bar-subdivider" />
             <div ref={alignMenuRef} className="draw-popover-anchor">
-              <button 
+              <button
                 type="button"
-                className={`draw-tb draw-tb-pill${alignMenuOpen ? " draw-on" : ""}`} 
-                onClick={() => toggleToolbarMenu("align")} 
+                className={`draw-tb draw-tb-pill${alignMenuOpen ? " draw-on" : ""}`}
+                onClick={() => toggleToolbarMenu("align")}
                 disabled={!canAlign}
-                title="Align & Group Objects"
+                title="Align, Order & Group Objects"
+                aria-expanded={alignMenuOpen}
               >
                 <AlignCenterHorizontal size={14} />
                 <span className="draw-tb-pill-label">Align</span>
               </button>
               {alignMenuOpen && (
-                <div className="draw-popover-menu" style={{ minWidth: 168 }}>
+                <div className="draw-popover-menu" style={{ minWidth: 176 }}>
                   <div className="draw-popover-section-title">
                     {selectionCount > 1 ? `Align ${selectionCount} Items` : "Align to Page"}
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4, marginBottom: 6 }}>
-                    <button className="draw-tb" onClick={() => { handleAlign("left"); setAlignMenuOpen(false); }} title="Align Left">
+                    <button type="button" className="draw-tb" onClick={() => { handleAlign("left"); setAlignMenuOpen(false); }} title="Align Left">
                       <AlignStartHorizontal size={15} />
                     </button>
-                    <button className="draw-tb" onClick={() => { handleAlign("centerH"); setAlignMenuOpen(false); }} title="Center Horizontally">
+                    <button type="button" className="draw-tb" onClick={() => { handleAlign("centerH"); setAlignMenuOpen(false); }} title="Center Horizontally">
                       <AlignCenterHorizontal size={15} />
                     </button>
-                    <button className="draw-tb" onClick={() => { handleAlign("right"); setAlignMenuOpen(false); }} title="Align Right">
+                    <button type="button" className="draw-tb" onClick={() => { handleAlign("right"); setAlignMenuOpen(false); }} title="Align Right">
                       <AlignEndHorizontal size={15} />
                     </button>
-                    <button className="draw-tb" onClick={() => { handleAlign("top"); setAlignMenuOpen(false); }} title="Align Top">
+                    <button type="button" className="draw-tb" onClick={() => { handleAlign("top"); setAlignMenuOpen(false); }} title="Align Top">
                       <AlignStartVertical size={15} />
                     </button>
-                    <button className="draw-tb" onClick={() => { handleAlign("middleV"); setAlignMenuOpen(false); }} title="Center Vertically">
+                    <button type="button" className="draw-tb" onClick={() => { handleAlign("middleV"); setAlignMenuOpen(false); }} title="Center Vertically">
                       <AlignCenterVertical size={15} />
                     </button>
-                    <button className="draw-tb" onClick={() => { handleAlign("bottom"); setAlignMenuOpen(false); }} title="Align Bottom">
+                    <button type="button" className="draw-tb" onClick={() => { handleAlign("bottom"); setAlignMenuOpen(false); }} title="Align Bottom">
                       <AlignEndVertical size={15} />
                     </button>
                   </div>
                   <button
+                    type="button"
                     className="draw-tb"
                     style={{ width: "100%", justifyContent: "center", fontSize: 11, gap: 5, padding: "5px 6px", marginBottom: 6 }}
                     onClick={() => { handleAlign("centerCanvas"); setAlignMenuOpen(false); }}
@@ -6286,12 +6599,31 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                     <Square size={13} style={{ strokeDasharray: "2 2" }} />
                     Center on Canvas
                   </button>
+                  {selectionCount === 1 && (
+                    <div style={{ borderTop: "1px solid var(--border)", paddingTop: 6, marginBottom: (canGroup || canUngroup || canDistribute) ? 6 : 0 }}>
+                      <div className="draw-popover-section-title">Layer Order</div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
+                        <button type="button" className="draw-tb" onClick={() => { arrangeActive("forward"); setAlignMenuOpen(false); }} style={{ fontSize: 11 }}>
+                          Forward
+                        </button>
+                        <button type="button" className="draw-tb" onClick={() => { arrangeActive("backward"); setAlignMenuOpen(false); }} style={{ fontSize: 11 }}>
+                          Backward
+                        </button>
+                        <button type="button" className="draw-tb" onClick={() => { arrangeActive("front"); setAlignMenuOpen(false); }} style={{ fontSize: 11 }}>
+                          To Front
+                        </button>
+                        <button type="button" className="draw-tb" onClick={() => { arrangeActive("back"); setAlignMenuOpen(false); }} style={{ fontSize: 11 }}>
+                          To Back
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   {(canGroup || canUngroup) && (
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, borderTop: "1px solid var(--border)", paddingTop: 6, marginBottom: canDistribute ? 6 : 0 }}>
-                      <button className="draw-tb" disabled={!canGroup} onClick={() => { fabricRef.current?.groupSelection?.(); setAlignMenuOpen(false); }} style={{ justifyContent: "center", fontSize: 11 }}>
+                      <button type="button" className="draw-tb" disabled={!canGroup} onClick={() => { fabricRef.current?.groupSelection?.(); setAlignMenuOpen(false); }} style={{ justifyContent: "center", fontSize: 11 }}>
                         Group
                       </button>
-                      <button className="draw-tb" disabled={!canUngroup} onClick={() => { fabricRef.current?.ungroupSelection?.(); setAlignMenuOpen(false); }} style={{ justifyContent: "center", fontSize: 11 }}>
+                      <button type="button" className="draw-tb" disabled={!canUngroup} onClick={() => { fabricRef.current?.ungroupSelection?.(); setAlignMenuOpen(false); }} style={{ justifyContent: "center", fontSize: 11 }}>
                         Ungroup
                       </button>
                     </div>
@@ -6302,11 +6634,11 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                         Distribute
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
-                        <button className="draw-tb" style={{ justifyContent: "center", fontSize: 11, gap: 4, padding: "5px 4px" }} onClick={() => { handleAlign("distributeH"); setAlignMenuOpen(false); }} title="Distribute Horizontally">
+                        <button type="button" className="draw-tb" style={{ justifyContent: "center", fontSize: 11, gap: 4, padding: "5px 4px" }} onClick={() => { handleAlign("distributeH"); setAlignMenuOpen(false); }} title="Distribute Horizontally">
                           <AlignHorizontalDistributeCenter size={14} />
                           Horiz
                         </button>
-                        <button className="draw-tb" style={{ justifyContent: "center", fontSize: 11, gap: 4, padding: "5px 4px" }} onClick={() => { handleAlign("distributeV"); setAlignMenuOpen(false); }} title="Distribute Vertically">
+                        <button type="button" className="draw-tb" style={{ justifyContent: "center", fontSize: 11, gap: 4, padding: "5px 4px" }} onClick={() => { handleAlign("distributeV"); setAlignMenuOpen(false); }} title="Distribute Vertically">
                           <AlignVerticalDistributeCenter size={14} />
                           Vert
                         </button>
@@ -6316,85 +6648,123 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                 </div>
               )}
             </div>
-            <button className="draw-tb" onClick={straightenSelection} disabled={!canStraighten} title="Straighten Line (S)">
+            <button
+              type="button"
+              className="draw-tb"
+              onClick={straightenSelection}
+              disabled={!canStraighten}
+              title="Straighten Selected Stroke (S)"
+              aria-label="Straighten Selected Stroke"
+            >
               <Ruler size={15} />
-            </button>
-          </div>
-
-          {/* Canvas Aids & Zoom View */}
-          <div className="draw-bar-group draw-bar-group-canvas">
-            <button className={`draw-tb${snapping ? " draw-on" : ""}`} onClick={() => setSnapping(s => !s)} title={snapping ? "Smart Snapping Enabled (M)" : "Smart Snapping Disabled (M)"}>
-              <Magnet size={15} />
-            </button>
-            <button className={`draw-tb${gridMode !== "none" ? " draw-on" : ""}`} onClick={() => setGridMode(g => g === "none" ? "dots" : g === "dots" ? "grid" : "none")} title={`Canvas Grid: ${gridMode === "none" ? "Off" : gridMode} (G)`}>
-              <Grid size={15} />
-            </button>
-            <div className="draw-bar-subdivider" />
-            <button className="draw-tb" onClick={() => fabricRef.current?.zoomBy?.(1/1.2)} title="Zoom Out (Ctrl+-)">
-              <ZoomOut size={14} />
-            </button>
-            <button className="draw-tb" onClick={handleResetZoom} style={{ fontSize: 11, fontWeight: 600, minWidth: 36, padding: "0 3px", fontVariantNumeric: "tabular-nums" }} title="Reset Zoom to 100%">
-              {zoomPercent}%
-            </button>
-            <button className="draw-tb" onClick={() => fabricRef.current?.zoomBy?.(1.2)} title="Zoom In (Ctrl++)">
-              <ZoomIn size={14} />
-            </button>
-          </div>
-
-          {/* Clipboard, History & Destructive Actions */}
-          <div className="draw-bar-group draw-bar-group-history">
-            <button className="draw-tb" onClick={undo} title="Undo (Ctrl+Z)">
-              <Undo2 size={15} />
-            </button>
-            <button className="draw-tb" onClick={redo} title="Redo (Ctrl+Y)">
-              <Redo2 size={15} />
-            </button>
-            <div className="draw-bar-subdivider" />
-            <button className="draw-tb" onClick={deleteSelected} style={{ color: "#e0365a" }} title="Delete Selected (Del)">
-              <Trash2 size={15} />
-            </button>
-            <button className="draw-tb" onClick={clear} style={{ color: "#e0365a" }} title="Clear Canvas">
-              <RotateCcw size={15} />
-            </button>
-            <div className="draw-bar-subdivider" />
-            <button className="draw-tb" onClick={copyImageToClipboard} title="Copy Diagram to System Clipboard">
-              <Copy size={14} />
-            </button>
-            <button className="draw-tb" onClick={downloadImage} title="Export / Download Diagram as PNG">
-              <Download size={14} />
-            </button>
-            <div className="draw-bar-subdivider" />
-            <button
-              className="draw-tb"
-              onClick={() => bumpBoardHeight(200)}
-              title="Add 200px Vertical Space (+ Height)"
-              style={{ fontSize: 11, fontWeight: 700, padding: "0 6px", color: "var(--text)" }}
-            >
-              + Height
-            </button>
-            <button
-              className="draw-tb"
-              onClick={() => bumpBoardHeight(-150)}
-              title="Reduce Vertical Space (- Height)"
-              style={{ fontSize: 11, fontWeight: 700, padding: "0 6px", color: "var(--text-muted)" }}
-            >
-              - Height
             </button>
             <div className="draw-bar-subdivider" />
             <button
               type="button"
-              className={`draw-tb draw-sol-est-btn${showSolEstimator ? " draw-on" : ""}`}
-              onClick={openSolutionEstimator}
-              title="Estimate Solution Display Size & Resolution (Simulates how this diagram renders on the question)"
-              style={{ gap: 5, padding: "0 8px", fontSize: 11, fontWeight: 700, color: "#f59e0b" }}
+              className={`draw-tb${snapping ? " draw-on" : ""}`}
+              onClick={() => setSnapping(s => !s)}
+              title={snapping ? "Smart Snapping On (M)" : "Smart Snapping Off (M)"}
+              aria-label="Toggle Smart Snapping"
+              aria-pressed={snapping}
             >
-              <ScanEye size={14} />
-              <span style={{ whiteSpace: "nowrap" }}>Solution Preview</span>
+              <Magnet size={15} />
+            </button>
+            <button
+              type="button"
+              className={`draw-tb${gridMode !== "none" ? " draw-on" : ""}`}
+              onClick={() => setGridMode(g => g === "none" ? "dots" : g === "dots" ? "grid" : "none")}
+              title={`Grid: ${gridMode === "none" ? "Off" : gridMode} (G)`}
+              aria-label="Toggle Canvas Grid"
+              aria-pressed={gridMode !== "none"}
+            >
+              <Grid size={15} />
+            </button>
+          </div>
+
+          {/* History, Selection Actions, Export & Narrow Layers Toggle */}
+          <div className="draw-bar-group draw-bar-group-history">
+            <button
+              type="button"
+              className="draw-tb"
+              onClick={undo}
+              disabled={!historyState.canUndo}
+              title="Undo (Ctrl+Z)"
+              aria-label="Undo"
+            >
+              <Undo2 size={15} />
+            </button>
+            <button
+              type="button"
+              className="draw-tb"
+              onClick={redo}
+              disabled={!historyState.canRedo}
+              title="Redo (Ctrl+Y)"
+              aria-label="Redo"
+            >
+              <Redo2 size={15} />
+            </button>
+            <div className="draw-bar-subdivider" />
+            <button
+              type="button"
+              className="draw-tb"
+              onClick={() => fabricRef.current?.duplicateSelection?.()}
+              disabled={!canCopy}
+              title="Duplicate Selected (Ctrl+D)"
+              aria-label="Duplicate Selected"
+            >
+              <CopyPlus size={15} />
+            </button>
+            <button
+              type="button"
+              className="draw-tb"
+              onClick={deleteSelected}
+              disabled={!canCopy}
+              style={{ color: "#e0365a" }}
+              title="Delete Selected (Del)"
+              aria-label="Delete Selected"
+            >
+              <Trash2 size={15} />
+            </button>
+            <button
+              type="button"
+              className="draw-tb"
+              onClick={clear}
+              disabled={!canvasObjects.length}
+              style={{ color: "#e0365a" }}
+              title="Clear Canvas (Undoable)"
+              aria-label="Clear Canvas"
+            >
+              <RotateCcw size={15} />
+            </button>
+            <div className="draw-bar-subdivider" />
+            <button
+              type="button"
+              className="draw-tb"
+              onClick={copyImageToClipboard}
+              title="Copy Diagram PNG to Clipboard"
+              aria-label="Copy PNG"
+            >
+              <Copy size={14} />
+            </button>
+            <button
+              type="button"
+              className="draw-tb"
+              onClick={downloadImage}
+              title="Export Diagram as PNG"
+              aria-label="Export PNG"
+            >
+              <Download size={14} />
             </button>
             {(!isMobile && narrow && !hideInternalLayersBtn) && (
               <>
                 <div className="qb-draw-layers-divider draw-bar-subdivider" />
-                <button className="draw-tb qb-draw-layers-btn" onClick={() => setLayersOpen(o => !o)} title={layersOpen ? "Hide Layers" : "Show Layers"}>
+                <button
+                  type="button"
+                  className="draw-tb qb-draw-layers-btn"
+                  onClick={() => setLayersOpen(o => !o)}
+                  title={layersOpen ? "Hide Layers" : "Show Layers"}
+                  aria-label={layersOpen ? "Hide Layers" : "Show Layers"}
+                >
                   {layersOpen ? <X size={15} /> : <span style={{ fontSize: 11, padding: "0 4px" }}>Layers</span>}
                 </button>
               </>
@@ -6405,7 +6775,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
 
       {useExternalLayers ? createPortal(layersPanel(false), layersHost) : null}
 
-      <div style={{ position: "relative" }} ref={menuHostRef}>
+      <div className="draw-stage-wrap" ref={menuHostRef}>
         {toastMsg && (
           <div className="draw-canva-toast">
             <Check size={14} style={{ color: "#10b981", flexShrink: 0 }} />
@@ -6419,9 +6789,11 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
             className="draw-canva-floating-bar-wrap"
             style={{
               position: "absolute",
-              left: 8,
-              right: 8,
+              left: `${selectionBounds.left}px`,
               top: `${selectionBounds.top}px`,
+              transform: "translateX(-50%)",
+              width: "max-content",
+              maxWidth: "calc(100% - 16px)",
               zIndex: 25,
               pointerEvents: "none",
               display: "flex",
@@ -6446,7 +6818,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                         width: 15,
                         height: 15,
                         borderRadius: "50%",
-                        background: activeObjProps.fill === "transparent" ? "none" : activeObjProps.fill,
+                        backgroundColor: activeObjProps.fill === "transparent" ? "transparent" : activeObjProps.fill,
                         border: "1.5px solid rgba(0,0,0,0.18)",
                         backgroundImage: activeObjProps.fill === "transparent"
                           ? "repeating-linear-gradient(45deg, #ccc 0, #ccc 2px, #fff 2px, #fff 4px)"
@@ -6460,7 +6832,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                     </span>
                   </button>
                   {floatingPopover === "fill" && (
-                    <div className="draw-floating-popover" style={{ width: 196 }}>
+                    <div className={`draw-floating-popover${selectionBounds.openPopoverUpward ? " is-upward" : ""}`} style={{ width: 196 }}>
                       <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8, color: "var(--text-muted)" }}>
                         {activeObjProps.isText ? "Text Color" : "Fill Color"}
                       </div>
@@ -6475,7 +6847,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                               width: 22,
                               height: 22,
                               borderRadius: "50%",
-                              background: item.value === "transparent" ? "none" : item.value,
+                              backgroundColor: item.value === "transparent" ? "transparent" : item.value,
                               backgroundImage: item.value === "transparent"
                                 ? "repeating-linear-gradient(45deg, #ccc 0, #ccc 2px, #fff 2px, #fff 4px)"
                                 : "none",
@@ -6513,7 +6885,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                                   width: 22,
                                   height: 22,
                                   borderRadius: 6,
-                                  background: item.value === "transparent" ? "none" : item.value,
+                                  backgroundColor: item.value === "transparent" ? "transparent" : item.value,
                                   backgroundImage: item.value === "transparent"
                                     ? "repeating-linear-gradient(45deg, #ccc 0, #ccc 2px, #fff 2px, #fff 4px)"
                                     : "none",
@@ -6531,14 +6903,14 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                 </div>
               )}
 
-              {/* Border / Stroke for Shapes & Lines */}
-              {(activeObjProps.isShape || activeObjProps.isLine) && (
+              {/* Border / Stroke for Shapes, Lines & Freehand Strokes */}
+              {(activeObjProps.isShape || activeObjProps.isLine || activeObjProps.isFreePath) && (
                 <div className="draw-floating-anchor">
                   <button
                     type="button"
                     className="draw-canva-pill-btn"
                     onClick={() => setFloatingPopover(p => p === "stroke" ? null : "stroke")}
-                    title="Border & Stroke"
+                    title="Stroke & Border"
                   >
                     <span
                       style={{
@@ -6549,10 +6921,10 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                         display: "inline-block"
                       }}
                     />
-                    <span style={{ fontSize: 11, fontWeight: 600 }}>Border</span>
+                    <span style={{ fontSize: 11, fontWeight: 600 }}>{activeObjProps.isFreePath ? "Stroke" : "Border"}</span>
                   </button>
                   {floatingPopover === "stroke" && (
-                    <div className="draw-floating-popover" style={{ width: 215 }}>
+                    <div className={`draw-floating-popover${selectionBounds.openPopoverUpward ? " is-upward" : ""}`} style={{ width: 215 }}>
                       <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8, color: "var(--text-muted)" }}>
                         Border Color
                       </div>
@@ -6639,7 +7011,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                       </span>
                     </button>
                     {floatingPopover === "font" && (
-                      <div className="draw-floating-popover" style={{ width: 145 }}>
+                      <div className={`draw-floating-popover${selectionBounds.openPopoverUpward ? " is-upward" : ""}`} style={{ width: 145 }}>
                         <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6, color: "var(--text-muted)" }}>
                           Font Family
                         </div>
@@ -6785,7 +7157,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                       </span>
                     </button>
                     {floatingPopover === "arrowHead" && (
-                      <div className="draw-floating-popover" style={{ width: 145 }}>
+                      <div className={`draw-floating-popover${selectionBounds.openPopoverUpward ? " is-upward" : ""}`} style={{ width: 145 }}>
                         <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6, color: "var(--text-muted)" }}>
                           Arrowhead
                         </div>
@@ -6822,7 +7194,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                         <span style={{ fontSize: 11, fontWeight: 600 }}>Arc: {activeObjProps.bend || -35}</span>
                       </button>
                       {floatingPopover === "curvature" && (
-                        <div className="draw-floating-popover" style={{ width: 200 }}>
+                        <div className={`draw-floating-popover${selectionBounds.openPopoverUpward ? " is-upward" : ""}`} style={{ width: 200 }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                             <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--text-muted)" }}>
                               Curvature Bend
@@ -6835,7 +7207,10 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                             max={90}
                             step={5}
                             value={activeObjProps.bend != null ? activeObjProps.bend : -35}
-                            onChange={(e) => modifyActiveArrow({ newBend: Number(e.target.value) })}
+                            onChange={(e) => modifyActiveArrow({ newBend: Number(e.target.value), commit: false })}
+                            onMouseUp={(e) => modifyActiveArrow({ newBend: Number(e.currentTarget.value), commit: true })}
+                            onTouchEnd={(e) => modifyActiveArrow({ newBend: Number(e.currentTarget.value), commit: true })}
+                            onKeyUp={(e) => modifyActiveArrow({ newBend: Number(e.currentTarget.value), commit: true })}
                             style={{ width: "100%", accentColor: "#3b82f6", cursor: "pointer", marginBottom: 8 }}
                           />
                           <div style={{ fontSize: 9.5, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", marginBottom: 4 }}>
@@ -6902,7 +7277,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                     <span style={{ fontSize: 11 }}>Connect ▾</span>
                   </button>
                   {floatingPopover === "multiConnect" && (
-                    <div className="draw-floating-popover" style={{ width: 175 }}>
+                    <div className={`draw-floating-popover${selectionBounds.openPopoverUpward ? " is-upward" : ""}`} style={{ width: 175 }}>
                       <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6, color: "var(--text-muted)" }}>
                         Smart Connector
                       </div>
@@ -6975,7 +7350,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                   <span style={{ fontSize: 11, fontWeight: 600 }}>{activeObjProps.opacity}%</span>
                 </button>
                 {floatingPopover === "opacity" && (
-                  <div className="draw-floating-popover" style={{ width: 170 }}>
+                  <div className={`draw-floating-popover${selectionBounds.openPopoverUpward ? " is-upward" : ""}`} style={{ width: 170 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                       <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--text-muted)" }}>
                         Opacity
@@ -6987,7 +7362,10 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                       min={10}
                       max={100}
                       value={activeObjProps.opacity}
-                      onChange={(e) => applyActiveOpacity(+e.target.value)}
+                      onChange={(e) => applyActiveOpacity(+e.target.value, false)}
+                      onMouseUp={(e) => applyActiveOpacity(+e.currentTarget.value, true)}
+                      onTouchEnd={(e) => applyActiveOpacity(+e.currentTarget.value, true)}
+                      onKeyUp={(e) => applyActiveOpacity(+e.currentTarget.value, true)}
                       style={{ width: "100%", accentColor: "#a855f7", cursor: "pointer" }}
                     />
                   </div>
@@ -7006,7 +7384,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                   <span style={{ fontSize: 11, fontWeight: 600 }}>Position</span>
                 </button>
                 {floatingPopover === "arrange" && (
-                  <div className="draw-floating-popover" style={{ width: 145 }}>
+                  <div className={`draw-floating-popover${selectionBounds.openPopoverUpward ? " is-upward" : ""}`} style={{ width: 145 }}>
                     <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6, color: "var(--text-muted)" }}>
                       Layer Order
                     </div>
@@ -7044,6 +7422,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
         {ctxMenu && (
           <div
             ref={ctxMenuRef}
+            className="draw-ctx-menu-wrap"
             style={{
               position: "absolute",
               left: ctxMenu.x,
@@ -7143,15 +7522,16 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
             )}
           </div>
         )}
-        <div style={{ 
-          width: "100%", overflow: "hidden", overscrollBehavior: "auto", resize: "vertical", minHeight: MIN_H, maxHeight: MAX_H, boxSizing: "border-box",
-          borderRadius: 20, border: "1px solid var(--border)",
-          background: "linear-gradient(180deg, rgba(244,246,250,0.98), rgba(236,239,245,0.92))", padding: "12px", flex: 1, minWidth: 0,
-          display: "flex", justifyContent: "center", alignItems: "flex-start",
-          touchAction: "none"
-        }} className={`draw-board-shell ${gridMode !== "none" ? `draw-grid-${gridMode}` : ""}`} ref={boardRef}>
-          <div style={{ boxShadow: "0 18px 38px rgba(15,23,42,0.12)", width: "fit-content", margin: 0, borderRadius: 16, overflow: "hidden", position: "relative" }}>
-            <div className={`draw-canvas-host ${gridMode !== "none" ? `draw-grid-${gridMode}` : ""}`} ref={canvasHostRef} />
+        <div className="draw-board-shell" ref={boardRef} onScroll={() => fabricRef.current?.refreshUI?.()}>
+          <div
+            ref={artboardFrameRef}
+            className="draw-artboard-frame"
+            style={{
+              width: artboardSize.displayWidth,
+              height: artboardSize.displayHeight,
+            }}
+          >
+            <div className={`draw-canvas-host${gridMode !== "none" ? ` draw-grid-${gridMode}` : ""}`} ref={canvasHostRef} />
             {showSafeBounds && (
               <div
                 className="draw-safe-bounds-overlay"
@@ -7160,7 +7540,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                   top: 0,
                   left: 0,
                   width: "100%",
-                  height: Math.min(580, height),
+                  height: Math.round(Math.min(580, height) * (artboardSize.scale || 1)),
                   border: "2px dashed rgba(245, 158, 11, 0.65)",
                   pointerEvents: "none",
                   zIndex: 2,
@@ -7200,13 +7580,94 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       </div>
 
       <div className="draw-canvas-footer-bar">
-        <div className="draw-status-pill">
-          <span className="draw-status-dot" />
-          <span>Canvas: <strong className="tabular-nums">{BASE_W}×{height}px</strong></span>
-          <span className="draw-status-divider draw-status-extra">·</span>
-          <span className="draw-status-extra">Retina 2×: <strong className="tabular-nums">{BASE_W * 2}×{height * 2}px</strong></span>
-          <span className="draw-status-divider draw-status-extra">·</span>
-          <span className="draw-status-extra">Solution Card: <strong>~680px width</strong></span>
+        <div className="draw-footer-controls">
+          <div className="draw-footer-cluster">
+            <button
+              type="button"
+              className="draw-footer-btn"
+              onClick={() => fabricRef.current?.zoomBy?.(1 / 1.2)}
+              title="Zoom Out (Ctrl+-)"
+              aria-label="Zoom Out"
+            >
+              <ZoomOut size={13} />
+            </button>
+            <button
+              type="button"
+              className="draw-footer-btn"
+              onClick={handleResetZoom}
+              title="Reset Zoom to 100%"
+              aria-label={`Reset zoom, currently ${zoomPercent}%`}
+            >
+              {zoomPercent}%
+            </button>
+            <button
+              type="button"
+              className="draw-footer-btn"
+              onClick={() => fabricRef.current?.zoomBy?.(1.2)}
+              title="Zoom In (Ctrl++)"
+              aria-label="Zoom In"
+            >
+              <ZoomIn size={13} />
+            </button>
+          </div>
+
+          <div className="draw-footer-cluster">
+            <button
+              type="button"
+              className="draw-footer-btn"
+              onClick={() => bumpBoardHeight(-150)}
+              disabled={height <= MIN_H}
+              title="Decrease Canvas Height (-150px)"
+              aria-label="Decrease Canvas Height"
+            >
+              <Minus size={12} />
+            </button>
+            <span className="draw-footer-dim-label">{BASE_W} × {height}px</span>
+            <button
+              type="button"
+              className="draw-footer-btn"
+              onClick={() => bumpBoardHeight(200)}
+              disabled={height >= MAX_H}
+              title="Increase Canvas Height (+200px)"
+              aria-label="Increase Canvas Height"
+            >
+              <Plus size={12} />
+            </button>
+          </div>
+
+          <div className="draw-popover-anchor" ref={shortcutsRef}>
+            <button
+              type="button"
+              className={`draw-footer-btn${shortcutsOpen ? " is-active" : ""}`}
+              onClick={() => toggleToolbarMenu("shortcuts")}
+              title="Keyboard Shortcuts"
+              aria-label="Keyboard Shortcuts"
+              aria-expanded={shortcutsOpen}
+              style={{ border: "1px solid var(--border)", background: "var(--surface-h)" }}
+            >
+              <HelpCircle size={13} />
+              <span>Shortcuts</span>
+            </button>
+            {shortcutsOpen && (
+              <div className="draw-shortcuts-popover">
+                <div className="draw-popover-section-title" style={{ marginBottom: 6 }}>Keyboard Shortcuts</div>
+                {[
+                  ["Pen / Highlighter", "P / H"],
+                  ["Select / Eraser / Text", "V / E / T"],
+                  ["Pan Canvas", "Hold Space"],
+                  ["Snap / Grid / Straighten", "M / G / S"],
+                  ["Undo / Redo", "Ctrl+Z / Ctrl+Y"],
+                  ["Duplicate / Delete", "Ctrl+D / Del"],
+                  ["Nudge / Align", "Arrows / Alt+Arrows"],
+                ].map(([label, kbd]) => (
+                  <div key={label} className="draw-shortcuts-row">
+                    <span>{label}</span>
+                    <kbd className="draw-shortcuts-kbd">{kbd}</kbd>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <button
@@ -7216,13 +7677,9 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
           title="Estimate display size and view simulation on question card"
         >
           <ScanEye size={13} />
-          <span>Estimate Size on Solution</span>
+          <span>Solution Preview</span>
         </button>
       </div>
-
-      <p className="draw-keyboard-hints" style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 6, textAlign: "right", fontStyle: "italic" }}>
-        Canva Mode: [Del] deletes, Arrow keys nudge (Alt+Arrows align), [M] toggles magnet snap, [G] toggles grid, [Ctrl+D] duplicates, Double-click text to edit.
-      </p>
 
       <SolutionSizeEstimatorModal
         isOpen={showSolEstimator}

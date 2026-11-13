@@ -124,12 +124,13 @@ export default function SettingsPage({
 
     const updateIndicator = () => {
       const currentItem = navItemRefs.current[activeTab];
-      if (currentItem && navContainerRef.current) {
-        const containerRect = navContainerRef.current.getBoundingClientRect();
+      const container = navContainerRef.current;
+      if (currentItem && container) {
+        const containerRect = container.getBoundingClientRect();
         const itemRect = currentItem.getBoundingClientRect();
         setIndicatorStyle({
-          top: itemRect.top - containerRect.top,
-          left: itemRect.left - containerRect.left,
+          top: itemRect.top - containerRect.top + container.scrollTop,
+          left: itemRect.left - containerRect.left + container.scrollLeft,
           width: itemRect.width,
           height: itemRect.height,
         });
@@ -139,9 +140,17 @@ export default function SettingsPage({
     updateIndicator();
     const rafId = requestAnimationFrame(updateIndicator);
     window.addEventListener("resize", updateIndicator);
+    const resizeObserver =
+      typeof ResizeObserver !== "undefined" && navContainerRef.current
+        ? new ResizeObserver(() => updateIndicator())
+        : null;
+    if (resizeObserver && navContainerRef.current) {
+      resizeObserver.observe(navContainerRef.current);
+    }
     return () => {
       cancelAnimationFrame(rafId);
       window.removeEventListener("resize", updateIndicator);
+      resizeObserver?.disconnect();
     };
   }, [activeTab, isLiteMode, isSuperAdmin, isQuestionAdmin]);
 
@@ -1273,132 +1282,150 @@ export default function SettingsPage({
                   </div>
                 </div>
 
-                <div className="qb-settings-users-table-wrap">
-                  <table className="qb-settings-users-table">
-                    <thead>
-                      <tr>
-                        <th>USER ACCOUNT</th>
-                        <th>CURRENT ROLE</th>
-                        <th>ASSIGNED DATE</th>
-                        <th>ACTIONS</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {!isUsersLoading &&
-                        filteredUsers.map((uRecord) => {
-                          const isRootSuper = uRecord.email.toLowerCase() === "xaruzowarlord@gmail.com";
-                          return (
-                            <tr key={uRecord.email}>
-                              <td>
-                                <div className="qb-user-cell">
-                                  <div className={`qb-user-cell-avatar role-${uRecord.role}`}>
-                                    <span>{uRecord.fullName.slice(0, 2).toUpperCase()}</span>
-                                    {uRecord.avatarUrl && (
-                                      <img
-                                        src={uRecord.avatarUrl}
-                                        alt=""
-                                        className="qb-user-cell-avatar-img"
-                                        referrerPolicy="no-referrer"
-                                        loading="lazy"
-                                        onError={(e) => {
-                                          e.currentTarget.style.display = "none";
-                                        }}
-                                      />
-                                    )}
-                                  </div>
-                                  <div className="qb-user-cell-info">
-                                    <span className="qb-user-cell-name">{uRecord.fullName}</span>
-                                    <span className="qb-user-cell-email">{uRecord.email}</span>
-                                  </div>
-                                </div>
-                              </td>
-                              <td>
-                                <span className={`qb-role-pill role-${uRecord.role}`}>
-                                  {uRecord.role === "superadmin" && <Crown size={12} />}
-                                  {uRecord.role === "admin" && <ShieldCheck size={12} />}
-                                  <span>{uRecord.role.toUpperCase()}</span>
-                                </span>
-                              </td>
-                              <td>
-                                <div className="qb-user-assigned-cell">
-                                  <span>{new Date(uRecord.assignedAt).toLocaleDateString()}</span>
-                                  <span className="text-muted text-xs">by {uRecord.assignedBy || "System"}</span>
-                                </div>
-                              </td>
-                              <td>
-                                {isRootSuper ? (
-                                  <span className="text-xs text-amber-400 font-medium italic">Primary Root Superadmin</span>
-                                ) : (
-                                  <div className="qb-user-role-actions">
-                                    <CustomSelect
-                                      value={uRecord.role}
-                                      onChange={(val) =>
-                                        handleAssignRole(uRecord.email, val as UserRole, uRecord.fullName)
-                                      }
-                                      options={QUICK_ROLE_OPTIONS}
-                                      className="qb-table-role-select"
-                                      showCheckmark
-                                      portal
+                <div
+                  className="qb-settings-users-table-wrap"
+                  role="table"
+                  aria-label="Registered user accounts and role assignments"
+                >
+                  {/* Fixed Column Header (never overlapped by list scrollbar) */}
+                  <div className="qb-roster-head" role="rowgroup">
+                    <div className="qb-roster-head-row" role="row">
+                      <div className="qb-roster-th" role="columnheader">USER ACCOUNT</div>
+                      <div className="qb-roster-th" role="columnheader">CURRENT ROLE</div>
+                      <div className="qb-roster-th" role="columnheader">ASSIGNED DATE</div>
+                      <div className="qb-roster-th" role="columnheader">ACTIONS</div>
+                    </div>
+                  </div>
+
+                  {/* Scrollable List Body (ONLY this region scrolls vertically) */}
+                  <div className="qb-roster-list-scroll" role="rowgroup">
+                    {!isUsersLoading &&
+                      filteredUsers.map((uRecord) => {
+                        const isRootSuper = uRecord.email.toLowerCase() === "xaruzowarlord@gmail.com";
+                        const assignedDateText = new Date(uRecord.assignedAt).toLocaleDateString();
+                        const assignedByText = `by ${uRecord.assignedBy || "System"}`;
+                        return (
+                          <div key={uRecord.email} className="qb-roster-row" role="row">
+                            <div className="qb-roster-cell qb-roster-cell-user" role="cell">
+                              <div className="qb-user-cell">
+                                <div className={`qb-user-cell-avatar role-${uRecord.role}`}>
+                                  <span>{uRecord.fullName.slice(0, 2).toUpperCase()}</span>
+                                  {uRecord.avatarUrl && (
+                                    <img
+                                      src={uRecord.avatarUrl}
+                                      alt=""
+                                      className="qb-user-cell-avatar-img"
+                                      referrerPolicy="no-referrer"
+                                      loading="lazy"
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = "none";
+                                      }}
                                     />
-                                    {uRecord.role !== "reviewer" && (
-                                      <button
-                                        type="button"
-                                        className="qb-user-revoke-btn"
-                                        title="Revoke admin privileges"
-                                        onClick={() => handleRevokeRole(uRecord.email)}
-                                      >
-                                        Revoke
-                                      </button>
-                                    )}
-                                  </div>
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                    </tbody>
-                  </table>
+                                  )}
+                                </div>
+                                <div className="qb-user-cell-info">
+                                  <span className="qb-user-cell-name" title={uRecord.fullName}>
+                                    {uRecord.fullName}
+                                  </span>
+                                  <span className="qb-user-cell-email" title={uRecord.email}>
+                                    {uRecord.email}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
 
-                  {isUsersLoading && (
-                    <div className="qb-roster-state-box">
-                      <Loader2 size={22} className="qb-roster-spinner" />
-                      <p className="qb-roster-state-title">Syncing registered accounts...</p>
-                    </div>
-                  )}
+                            <div className="qb-roster-cell qb-roster-cell-role" role="cell">
+                              <span className={`qb-role-pill role-${uRecord.role}`}>
+                                {uRecord.role === "superadmin" && <Crown size={12} />}
+                                {uRecord.role === "admin" && <ShieldCheck size={12} />}
+                                <span>{uRecord.role.toUpperCase()}</span>
+                              </span>
+                            </div>
 
-                  {!isUsersLoading && filteredUsers.length === 0 && (
-                    <div className="qb-roster-state-box">
-                      <div className="qb-roster-state-icon">
-                        <Users size={22} />
+                            <div className="qb-roster-cell qb-roster-cell-assigned" role="cell">
+                              <div className="qb-user-assigned-cell">
+                                <span className="qb-user-assigned-date tabular-nums">{assignedDateText}</span>
+                                <span className="qb-user-assigned-by" title={assignedByText}>
+                                  {assignedByText}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="qb-roster-cell qb-roster-cell-actions" role="cell">
+                              {isRootSuper ? (
+                                <span className="qb-root-superadmin-label">
+                                  Primary Root Superadmin
+                                </span>
+                              ) : (
+                                <div className="qb-user-role-actions">
+                                  <CustomSelect
+                                    value={uRecord.role}
+                                    onChange={(val) =>
+                                      handleAssignRole(uRecord.email, val as UserRole, uRecord.fullName)
+                                    }
+                                    options={QUICK_ROLE_OPTIONS}
+                                    className="qb-table-role-select"
+                                    showCheckmark
+                                    portal
+                                  />
+                                  {uRecord.role !== "reviewer" && (
+                                    <button
+                                      type="button"
+                                      className="qb-user-revoke-btn"
+                                      title="Revoke admin privileges"
+                                      onClick={() => handleRevokeRole(uRecord.email)}
+                                    >
+                                      Revoke
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                    {isUsersLoading && (
+                      <div className="qb-roster-state-box">
+                        <Loader2 size={22} className="qb-roster-spinner" />
+                        <p className="qb-roster-state-title">Syncing registered accounts...</p>
                       </div>
-                      <p className="qb-roster-state-title">
-                        {roleFilter !== "all" && !roleSearch.trim()
-                          ? `No ${roleFilter.toUpperCase()} accounts found`
-                          : "No matching accounts"}
-                      </p>
-                      <p className="qb-roster-state-desc">
-                        {roleFilter !== "all" || roleSearch.trim()
-                          ? "Try adjusting your role filter or search query to see other registered accounts."
-                          : "Registered user accounts will appear here once signed in."}
-                      </p>
-                      {(roleFilter !== "all" || roleSearch.trim()) && (
-                        <button
-                          type="button"
-                          className="qb-roster-reset-btn"
-                          onClick={() => {
-                            setRoleFilter("all");
-                            setRoleSearch("");
-                          }}
-                        >
-                          Reset filters
-                        </button>
-                      )}
-                    </div>
-                  )}
+                    )}
+
+                    {!isUsersLoading && filteredUsers.length === 0 && (
+                      <div className="qb-roster-state-box">
+                        <div className="qb-roster-state-icon">
+                          <Users size={22} />
+                        </div>
+                        <p className="qb-roster-state-title">
+                          {roleFilter !== "all" && !roleSearch.trim()
+                            ? `No ${roleFilter.toUpperCase()} accounts found`
+                            : "No matching accounts"}
+                        </p>
+                        <p className="qb-roster-state-desc">
+                          {roleFilter !== "all" || roleSearch.trim()
+                            ? "Try adjusting your role filter or search query to see other registered accounts."
+                            : "Registered user accounts will appear here once signed in."}
+                        </p>
+                        {(roleFilter !== "all" || roleSearch.trim()) && (
+                          <button
+                            type="button"
+                            className="qb-roster-reset-btn"
+                            onClick={() => {
+                              setRoleFilter("all");
+                              setRoleSearch("");
+                            }}
+                          >
+                            Reset filters
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="qb-settings-roster-footer">
-                  <span className="qb-settings-roster-count">
+                  <span className="qb-settings-roster-count tabular-nums">
                     Showing {filteredUsers.length} of {usersList.length}{" "}
                     {usersList.length === 1 ? "account" : "accounts"}
                   </span>

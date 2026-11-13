@@ -300,3 +300,151 @@ export const distToSegment = (
   return Math.hypot(px - (x1 + t * (x2 - x1)), py - (y1 + t * (y2 - y1)));
 };
 
+export const CUSTOM_FABRIC_PROPS: readonly string[] = [
+  "layerId",
+  "shapeKind",
+  "boxHeight",
+  "fractionId",
+  "fractionRole",
+  "longDivisionId",
+  "longDivisionRole",
+  "longDivisionWidth",
+  "longDivisionHeight",
+  "connectorKind",
+  "arrowHead",
+  "bend",
+  "isSmartConnector",
+  "connectedFromId",
+  "connectedToId",
+  "isStickyNote",
+  "isStepBadge",
+  "isHighlighter",
+  "locked",
+];
+
+export const clampCanvasHeight = (
+  value: number,
+  minH: number = 500,
+  maxH: number = 2400
+): number => {
+  const num = Number.isFinite(value) ? value : minH;
+  return Math.max(minH, Math.min(maxH, Math.round(num)));
+};
+
+export interface ResponsiveBoardSize {
+  logicalWidth: number;
+  logicalHeight: number;
+  displayWidth: number;
+  displayHeight: number;
+  scale: number;
+}
+
+export const computeResponsiveBoardSize = (
+  containerInnerWidth: number,
+  logicalWidth: number,
+  logicalHeight: number
+): ResponsiveBoardSize => {
+  const safeLogicalW = Math.max(200, logicalWidth || 820);
+  const safeLogicalH = Math.max(200, logicalHeight || 700);
+  const availableW = Number.isFinite(containerInnerWidth) && containerInnerWidth > 0
+    ? containerInnerWidth
+    : safeLogicalW;
+  const displayWidth = Math.max(240, Math.min(safeLogicalW, Math.floor(availableW)));
+  const scale = displayWidth / safeLogicalW;
+  const displayHeight = Math.max(160, Math.round(safeLogicalH * scale));
+  return {
+    logicalWidth: safeLogicalW,
+    logicalHeight: safeLogicalH,
+    displayWidth,
+    displayHeight,
+    scale,
+  };
+};
+
+export interface FloatingBarInput {
+  boundLeft: number;
+  boundTop: number;
+  boundWidth: number;
+  boundHeight: number;
+  scale?: number;
+  artboardOffsetX?: number;
+  artboardOffsetY?: number;
+  hostWidth: number;
+  hostHeight: number;
+}
+
+export interface FloatingBarPosition {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  isNearTop: boolean;
+  openPopoverUpward: boolean;
+}
+
+export const computeFloatingBarPosition = ({
+  boundLeft,
+  boundTop,
+  boundWidth,
+  boundHeight,
+  scale = 1,
+  artboardOffsetX = 0,
+  artboardOffsetY = 0,
+  hostWidth,
+  hostHeight,
+}: FloatingBarInput): FloatingBarPosition => {
+  const s = scale > 0 ? scale : 1;
+  const leftPx = artboardOffsetX + boundLeft * s;
+  const topPx = artboardOffsetY + boundTop * s;
+  const widthPx = boundWidth * s;
+  const heightPx = boundHeight * s;
+
+  const safeHostW = Math.max(260, hostWidth || 820);
+  const safeHostH = Math.max(200, hostHeight || 500);
+  const centerX = leftPx + widthPx / 2;
+  const safeEdge = Math.min(210, Math.floor(safeHostW / 2));
+  const clampedX =
+    safeHostW <= 560
+      ? Math.round(safeHostW / 2)
+      : Math.max(safeEdge, Math.min(safeHostW - safeEdge, centerX));
+
+  const barEstH = safeHostW < 640 ? 74 : 44;
+  const isNearTop = topPx < barEstH + 16;
+  const rawTop = isNearTop
+    ? topPx + heightPx + 10
+    : Math.max(8, topPx - barEstH - 8);
+  const topPos = Math.max(8, Math.min(safeHostH - barEstH - 8, rawTop));
+  const openPopoverUpward = topPos > safeHostH - 220;
+
+  return {
+    left: Math.round(clampedX),
+    top: Math.round(topPos),
+    width: Math.round(widthPx),
+    height: Math.round(heightPx),
+    isNearTop,
+    openPopoverUpward,
+  };
+};
+
+export const computeViewportInsertPoint = (
+  canvasWidth: number,
+  canvasHeight: number,
+  viewportTransform?: number[] | null,
+  staggerIndex: number = 0
+): Point2D => {
+  const vpt = Array.isArray(viewportTransform) && viewportTransform.length >= 6
+    ? viewportTransform
+    : [1, 0, 0, 1, 0, 0];
+  const zoom = vpt[0] || 1;
+  const panX = vpt[4] || 0;
+  const panY = vpt[5] || 0;
+  const screenCenterX = (canvasWidth || 820) / 2;
+  const screenCenterY = Math.min(canvasHeight || 700, 620) / 2;
+  const sceneX = (screenCenterX - panX) / zoom;
+  const sceneY = (screenCenterY - panY) / zoom;
+  const step = (staggerIndex % 5) - 2;
+  return {
+    x: Math.round(Math.max(40, Math.min((canvasWidth || 820) - 40, sceneX + step * 16))),
+    y: Math.round(Math.max(40, Math.min((canvasHeight || 700) - 40, sceneY + step * 14))),
+  };
+};
