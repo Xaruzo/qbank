@@ -59,6 +59,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import SolutionSizeEstimatorModal from "./SolutionSizeEstimatorModal";
+import ColorPickerPanel from "./ColorPickerPopover";
 
 import {
   CANVA_FONTS,
@@ -329,7 +330,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
   const [draggingLayerId, setDraggingLayerId] = useState(null);
   const [dragOverLayerId, setDragOverLayerId] = useState(null);
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
-  const [hexInput, setHexInput] = useState("#1a2540");
+  const [floatingCustomColor, setFloatingCustomColor] = useState(null);
   const [snapping, setSnapping] = useState(true);
   const snappingRef = useRef(true);
   const [gridMode, setGridMode] = useState("none"); // "none" | "dots" | "grid"
@@ -339,6 +340,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
   const [zoomPercent, setZoomPercent] = useState(100);
   const [historyState, setHistoryState] = useState({ canUndo: false, canRedo: false });
   const [selectionBounds, setSelectionBounds] = useState(null);
+  const floatingBarRef = useRef(null);
   const [activeObjProps, setActiveObjProps] = useState(null);
   const [floatingPopover, setFloatingPopover] = useState(null);
   const [stickyNoteMenuOpen, setStickyNoteMenuOpen] = useState(false);
@@ -535,6 +537,34 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       });
     }
   };
+  const configureArrow = (obj) => {
+    if (!obj || (obj.shapeKind !== "arrow" && obj.shapeKind !== "curvedArrow" && obj.shapeKind !== "elbowArrow")) return;
+    obj.set({ strokeUniform: true });
+    if (
+      obj.shapeKind === "arrow" &&
+      !obj.isSmartConnector &&
+      !obj.connectedFromId &&
+      !obj.connectedToId &&
+      (obj.isLocalArrow || Math.abs((obj.height || 0) - 13) <= 2)
+    ) {
+      obj.isLocalArrow = true;
+      obj.set({
+        lockScalingY: true,
+        uniformScaling: false,
+        centeredScaling: false,
+        hasRotatingPoint: true,
+        padding: 8,
+      });
+      if (typeof obj.setControlsVisibility === "function") {
+        obj.setControlsVisibility({
+          tl: false, tr: false, bl: false, br: false,
+          ml: true, mr: true,
+          mt: false, mb: false,
+          mtr: true,
+        });
+      }
+    }
+  };
   const configureTextObj = (obj) => {
     if (!obj || obj.type !== "textbox") return;
     obj.centeredScaling = false;
@@ -592,17 +622,22 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       isDrawingMode: false,
     });
     canvas.uniformScaling = true;
+    canvas.centeredRotation = true;
+    canvas.centeredKey = null;
 
     // Canva-style selection handles
     fabric.Object.prototype.transparentCorners = false;
     fabric.Object.prototype.cornerColor = '#f5a623';
+    fabric.Object.prototype.cornerStrokeColor = '#ffffff';
     fabric.Object.prototype.cornerStyle = 'circle';
-    fabric.Object.prototype.cornerSize = 10;
+    fabric.Object.prototype.cornerSize = 9;
     fabric.Object.prototype.borderColor = '#f5a623';
-    fabric.Object.prototype.padding = 5;
+    fabric.Object.prototype.borderScaleFactor = 1.5;
+    fabric.Object.prototype.padding = 6;
     fabric.Object.prototype.hasRotatingPoint = true;
     fabric.Object.prototype.rotatingPointOffset = 24;
     fabric.Object.prototype.lockRotation = false;
+    fabric.Object.prototype.centeredRotation = true;
     fabric.Object.prototype.centeredScaling = false;
     fabric.Object.prototype.lockScalingFlip = true;
 
@@ -831,9 +866,16 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       }
     };
 
+    let activeDragOrigin = null;
+    let altMeasureActive = false;
+    let lastAltEvent = null;
+
     canvas.on("mouse:down", (opt) => {
       const ev = opt?.e;
       if (!ev) return;
+      if (altMeasureActive) {
+        clearGuides();
+      }
       // Clear any stray browser text selection (such as "100%") so dragging on canvas never triggers native drag
       try {
         const activeEl = document.activeElement;
@@ -870,14 +912,32 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
         } catch {}
         return;
       }
+      const dragRef = canvas.getActiveObject() || opt?.target;
+      if (dragRef && !dragRef.isGuide) {
+        activeDragOrigin = {
+          target: dragRef,
+          center: dragRef.getCenterPoint(),
+          origLeft: dragRef.left,
+          origTop: dragRef.top,
+        };
+      } else {
+        activeDragOrigin = null;
+      }
       lastPointer.current = canvas.getPointer(ev);
     });
     canvas.on("mouse:move", (opt) => {
       const ev = opt?.e;
       if (!ev) return;
+      lastAltEvent = ev;
       if (typeof ev.buttons === "number" && ev.buttons === 0 && !ev.touches && ev.pointerType !== "touch") {
         stopStuckInteractions(ev);
         lastPointer.current = canvas.getPointer(ev);
+        if (ev.altKey) {
+          renderAltHoverGuides(ev, opt?.target);
+        } else if (altMeasureActive) {
+          clearGuides();
+          canvas.requestRenderAll();
+        }
         return;
       }
       if (isPanningRef.current) {
@@ -909,7 +969,15 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       }
       lastPointer.current = canvas.getPointer(ev);
     });
+    canvas.on("mouse:out", () => {
+      lastAltEvent = null;
+      if (altMeasureActive) {
+        clearGuides();
+        canvas.requestRenderAll();
+      }
+    });
     canvas.on("mouse:up", () => {
+      activeDragOrigin = null;
       if (isErasingRef.current) {
         isErasingRef.current = false;
         lastErasePointerRef.current = null;
@@ -1078,11 +1146,12 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       if (!obj || obj.isGuide) return;
       configureTextObj(obj);
       configureHrLine(obj);
+      configureArrow(obj);
       configureLongDivisionBracket(obj);
       if (obj.shapeKind === "roof" && obj.strokeWidth === 5) {
         obj.set({ strokeWidth: HR_LINE_THICKNESS, strokeUniform: true });
       }
-      if (["rect", "circle", "triangle", "polygon", "polyline"].includes(obj.type)) {
+      if (["line", "rect", "circle", "triangle", "polygon", "polyline"].includes(obj.type) || obj.shapeKind === "arrow" || obj.shapeKind === "curvedArrow" || obj.shapeKind === "elbowArrow") {
         obj.set({ strokeUniform: true });
       }
       if (obj.type === "i-text") {
@@ -1180,6 +1249,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
         artboardOffsetY,
         hostWidth,
         hostHeight,
+        barHeight: floatingBarRef.current?.offsetHeight || undefined,
       });
       setSelectionBounds(pos);
 
@@ -1282,6 +1352,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
         const newArrow = new fabric.Path(pathD, {
           stroke: prevStroke,
           strokeWidth: prevStrokeWidth,
+          strokeUniform: true,
           strokeDashArray: prevStrokeDash,
           opacity: prevOpacity,
           fill: "transparent",
@@ -1660,25 +1731,32 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       refreshUI();
     });
 
-    // Smart Alignment (Snapping) with Visual Guides
-    const SNAP_TOLERANCE = () => 10 / (canvas.getZoom() || 1);
-    const MEASURE_TOLERANCE = 2;
+    // Smart Alignment (Canva-style Closest-Target Snapping, Segmented Guides & Equal Spacing)
+    const SNAP_TOLERANCE = () => 8 / (canvas.getZoom() || 1);
+    const MEASURE_TOLERANCE = 1.5;
+    const PAGE_MARGIN = 24;
     const guideObjects = [];
 
-    const createGuideLine = (type, pos) => {
-      const line = new fabric.Line(
-        type === 'v' ? [pos, 0, pos, canvas.height] : [0, pos, canvas.width, pos],
-        {
-          stroke: '#a855f7',
-          strokeWidth: 2,
-          selectable: false,
-          evented: false,
-          opacity: 0.8,
-          strokeDashArray: [4, 4],
-          excludeFromExport: true,
-          isGuide: true
-        }
-      );
+    const createGuideLine = (type, pos, options = {}) => {
+      const {
+        from = 0,
+        to = type === "v" ? canvas.height : canvas.width,
+        stroke = "#a855f7",
+        strokeWidth = 1.5,
+        dash = [4, 4],
+        opacity = 0.85,
+      } = options;
+      const coords = type === "v" ? [pos, from, pos, to] : [from, pos, to, pos];
+      const line = new fabric.Line(coords, {
+        stroke,
+        strokeWidth,
+        selectable: false,
+        evented: false,
+        opacity,
+        strokeDashArray: dash || undefined,
+        excludeFromExport: true,
+        isGuide: true,
+      });
       canvas.add(line);
       guideObjects.push(line);
       return line;
@@ -1690,10 +1768,10 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
         strokeWidth: 1.5,
         selectable: false,
         evented: false,
-        opacity: 0.9,
+        opacity: 0.92,
         strokeDashArray: [3, 3],
         excludeFromExport: true,
-        isGuide: true
+        isGuide: true,
       });
       canvas.add(line);
       guideObjects.push(line);
@@ -1703,7 +1781,8 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     const createMeasureTag = (text, x, y, fill) => {
       const label = new fabric.Text(String(text), {
         fontFamily: "DM Sans",
-        fontSize: 12,
+        fontSize: 11.5,
+        fontWeight: "600",
         fill: "#ffffff",
         originX: "center",
         originY: "center",
@@ -1711,14 +1790,14 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
         evented: false,
       });
 
-      const paddingX = 8;
-      const paddingY = 5;
+      const paddingX = 7;
+      const paddingY = 4;
       const bg = new fabric.Rect({
         width: label.width + paddingX * 2,
         height: label.height + paddingY * 2,
         fill,
-        rx: 8,
-        ry: 8,
+        rx: 6,
+        ry: 6,
         originX: "center",
         originY: "center",
         selectable: false,
@@ -1733,7 +1812,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
         selectable: false,
         evented: false,
         excludeFromExport: true,
-        isGuide: true
+        isGuide: true,
       });
 
       canvas.add(group);
@@ -1742,6 +1821,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     };
 
     const clearGuides = () => {
+      altMeasureActive = false;
       while (guideObjects.length) canvas.remove(guideObjects.pop());
     };
 
@@ -1753,289 +1833,423 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       if (Array.isArray(obj._objects)) obj._objects.forEach(clearTransientTransformState);
     };
 
+    const getCanvasBounds = (target) => {
+      const b = target.getBoundingRect(true, true);
+      return {
+        left: b.left,
+        top: b.top,
+        right: b.left + b.width,
+        bottom: b.top + b.height,
+        width: b.width,
+        height: b.height,
+        w: b.width,
+        h: b.height,
+        centerX: b.left + b.width / 2,
+        centerY: b.top + b.height / 2,
+      };
+    };
+
+    const getSnapCandidates = (activeObj) => {
+      const excluded = new Set([activeObj]);
+      if (Array.isArray(activeObj?._objects)) {
+        activeObj._objects.forEach((child) => excluded.add(child));
+      }
+      const list = [];
+      canvas.forEachObject((other) => {
+        if (!other || excluded.has(other) || other.isGuide || !other.visible) return;
+        if (activeObj?.fractionId && other.fractionId === activeObj.fractionId) return;
+        if (activeObj?.longDivisionId && other.longDivisionId === activeObj.longDivisionId) return;
+        const bounds = getCanvasBounds(other);
+        if (bounds.width <= 0 && bounds.height <= 0) return;
+        list.push({ obj: other, ...bounds });
+      });
+      return list;
+    };
+
+    const shiftObjectBy = (target, dx, dy) => {
+      if (!dx && !dy) return;
+      const c = target.getCenterPoint();
+      target.setPositionByOrigin(new fabric.Point(c.x + dx, c.y + dy), "center", "center");
+      target.setCoords();
+      if (target.fractionId) syncFraction(target);
+      if (target.longDivisionId) syncLongDivision(target);
+    };
+
+    const renderAltHoverGuides = (ev, explicitTarget = null) => {
+      const active = canvas.getActiveObject();
+      if (
+        !active ||
+        active.isGuide ||
+        active.isEditing ||
+        canvas._currentTransform ||
+        isPanningRef.current ||
+        isErasingRef.current ||
+        canvas.isDrawingMode
+      ) {
+        if (altMeasureActive) {
+          clearGuides();
+          canvas.requestRenderAll();
+        }
+        return;
+      }
+
+      clearGuides();
+      const canvasWidth = canvas.width;
+      const canvasHeight = canvas.height;
+      const p = getCanvasBounds(active);
+      const color = "#ec4899";
+
+      const clampPillX = (x) => Math.max(16, Math.min(canvasWidth - 16, x));
+      const clampPillY = (y) => Math.max(12, Math.min(canvasHeight - 12, y));
+      const drawDim = (x1, y1, x2, y2, dist) => {
+        if (dist < 1) return;
+        createMeasureLine(x1, y1, x2, y2, color);
+        createMeasureTag(Math.round(dist), clampPillX((x1 + x2) / 2), clampPillY((y1 + y2) / 2), color);
+      };
+
+      const excluded = new Set([active]);
+      if (Array.isArray(active._objects)) active._objects.forEach((c) => excluded.add(c));
+
+      let hoverObj = explicitTarget;
+      if (!hoverObj && ev) {
+        try {
+          hoverObj = canvas.findTarget(ev, false);
+        } catch {}
+      }
+      if (
+        hoverObj &&
+        (excluded.has(hoverObj) ||
+          hoverObj.isGuide ||
+          !hoverObj.visible ||
+          (active.fractionId && hoverObj.fractionId === active.fractionId) ||
+          (active.longDivisionId && hoverObj.longDivisionId === active.longDivisionId))
+      ) {
+        hoverObj = null;
+      }
+
+      if (hoverObj) {
+        const q = getCanvasBounds(hoverObj);
+        const pInsideQ = p.left >= q.left && p.right <= q.right && p.top >= q.top && p.bottom <= q.bottom;
+        const qInsideP = q.left >= p.left && q.right <= p.right && q.top >= p.top && q.bottom <= p.bottom;
+
+        if (pInsideQ || qInsideP) {
+          const inner = pInsideQ ? p : q;
+          const outer = pInsideQ ? q : p;
+          drawDim(outer.left, inner.centerY, inner.left, inner.centerY, inner.left - outer.left);
+          drawDim(inner.right, inner.centerY, outer.right, inner.centerY, outer.right - inner.right);
+          drawDim(inner.centerX, outer.top, inner.centerX, inner.top, inner.top - outer.top);
+          drawDim(inner.centerX, inner.bottom, inner.centerX, outer.bottom, outer.bottom - inner.bottom);
+        } else {
+          const oy = Math.min(p.bottom, q.bottom) - Math.max(p.top, q.top);
+          const ox = Math.min(p.right, q.right) - Math.max(p.left, q.left);
+
+          if (q.left > p.right || p.left > q.right) {
+            const x1 = q.left > p.right ? p.right : q.right;
+            const x2 = q.left > p.right ? q.left : p.left;
+            const y = oy > 4 ? (Math.max(p.top, q.top) + Math.min(p.bottom, q.bottom)) / 2 : p.centerY;
+            drawDim(x1, y, x2, y, x2 - x1);
+            if (oy <= 4) {
+              const helperX = q.left > p.right ? q.left : q.right;
+              const yFrom = y < q.top ? y : q.bottom;
+              const yTo = y < q.top ? q.top : y;
+              createMeasureLine(helperX, yFrom, helperX, yTo, color);
+            }
+          }
+
+          if (q.top > p.bottom || p.top > q.bottom) {
+            const y1 = q.top > p.bottom ? p.bottom : q.bottom;
+            const y2 = q.top > p.bottom ? q.top : p.top;
+            const x = ox > 4 ? (Math.max(p.left, q.left) + Math.min(p.right, q.right)) / 2 : p.centerX;
+            drawDim(x, y1, x, y2, y2 - y1);
+            if (ox <= 4) {
+              const helperY = q.top > p.bottom ? q.top : q.bottom;
+              const xFrom = x < q.left ? x : q.right;
+              const xTo = x < q.left ? q.left : x;
+              createMeasureLine(xFrom, helperY, xTo, helperY, color);
+            }
+          }
+        }
+      } else {
+        drawDim(0, p.centerY, p.left, p.centerY, p.left);
+        drawDim(p.right, p.centerY, canvasWidth, p.centerY, canvasWidth - p.right);
+        drawDim(p.centerX, 0, p.centerX, p.top, p.top);
+        drawDim(p.centerX, p.bottom, p.centerX, canvasHeight, canvasHeight - p.bottom);
+      }
+
+      altMeasureActive = true;
+      canvas.requestRenderAll();
+    };
+
     const applyMoveGuides = (obj, nativeEvent, moveIntent = null) => {
       if (!obj) return;
       clearGuides();
 
-      // Ensure compound math presets stay together during movement
-      if (obj.fractionId) {
-        syncFraction(obj);
-      }
-      if (obj.longDivisionId) {
-        syncLongDivision(obj);
+      if (obj.fractionId) syncFraction(obj);
+      if (obj.longDivisionId) syncLongDivision(obj);
+
+      const lockAxis = moveIntent?.lockAxis || null; // "x" locks X axis, "y" locks Y axis
+      const dragAxisCenter = moveIntent?.dragOriginCenter || null;
+      if (lockAxis === "y" && dragAxisCenter) {
+        createGuideLine("h", dragAxisCenter.y, { stroke: "#38bdf8", dash: [4, 4], opacity: 0.7 });
+      } else if (lockAxis === "x" && dragAxisCenter) {
+        createGuideLine("v", dragAxisCenter.x, { stroke: "#38bdf8", dash: [4, 4], opacity: 0.7 });
       }
 
       if (!snappingRef.current || nativeEvent?.altKey || nativeEvent?.ctrlKey || nativeEvent?.metaKey) return;
 
       const canvasWidth = canvas.width;
       const canvasHeight = canvas.height;
-      const w = obj.getScaledWidth();
-      const h = obj.getScaledHeight();
-      let center = obj.getCenterPoint();
+      const tol = SNAP_TOLERANCE();
+      let p = getCanvasBounds(obj);
 
-      const setCenter = (cx, cy) => {
-        center = new fabric.Point(Math.round(cx), Math.round(cy));
-        obj.setPositionByOrigin(center, "center", "center");
-        obj.setCoords();
-        // If part of a math preset, sync the other parts after snapping
-        if (obj.fractionId) syncFraction(obj);
-        if (obj.longDivisionId) syncLongDivision(obj);
-      };
-
-      const edgesFromCenter = () => ({
-        centerX: center.x,
-        centerY: center.y,
-        left: center.x - w / 2,
-        right: center.x + w / 2,
-        top: center.y - h / 2,
-        bottom: center.y + h / 2,
-      });
-
-      let p = edgesFromCenter();
-
-      // Grid snapping when grid is active
+      // Optional grid pre-snap when canvas grid is visible
       if (gridModeRef.current !== "none") {
         const gridStep = 20;
         const gridTol = 5;
-        const nearX = Math.round(center.x / gridStep) * gridStep;
-        const nearY = Math.round(center.y / gridStep) * gridStep;
-        let snapX = center.x;
-        let snapY = center.y;
-        if (Math.abs(center.x - nearX) <= gridTol) snapX = nearX;
-        if (Math.abs(center.y - nearY) <= gridTol) snapY = nearY;
-        if (snapX !== center.x || snapY !== center.y) {
-          setCenter(snapX, snapY);
-          p = edgesFromCenter();
-        }
-      }
-      const prevEdges = moveIntent?.prevCenter
-        ? {
-            centerX: moveIntent.prevCenter.x,
-            centerY: moveIntent.prevCenter.y,
-            left: moveIntent.prevCenter.x - w / 2,
-            right: moveIntent.prevCenter.x + w / 2,
-            top: moveIntent.prevCenter.y - h / 2,
-            bottom: moveIntent.prevCenter.y + h / 2,
-          }
-        : null;
-      const shouldGuide = (edge, value) => Math.abs(p[edge] - value) < SNAP_TOLERANCE();
-      const shouldSnap = (axis, edge, value) => {
-        if (!shouldGuide(edge, value)) return false;
-        if (!prevEdges) return true;
-        const delta = axis === "x" ? Number(moveIntent?.dx || 0) : Number(moveIntent?.dy || 0);
-        if (!delta) return true;
-        const prevDist = Math.abs(prevEdges[edge] - value);
-        const nextDist = Math.abs(p[edge] - value);
-        return nextDist + 0.001 < prevDist;
-      };
-
-      let snappedV = false;
-      let snappedH = false;
-
-      const snapHrToX = (x) => {
-        if (!isHrLine(obj)) return false;
-        const tol = SNAP_TOLERANCE();
-        const leftPt = obj.getPointByOrigin("left", "center");
-        const rightPt = obj.getPointByOrigin("right", "center");
-        const c = obj.getCenterPoint();
-        const dL = Math.abs(leftPt.x - x);
-        const dR = Math.abs(rightPt.x - x);
-        const dC = Math.abs(c.x - x);
-        const best = Math.min(dL, dR, dC);
-        if (best >= tol) return false;
-        const dx = best === dL ? (x - leftPt.x) : (best === dR ? (x - rightPt.x) : (x - c.x));
-        if (prevEdges && moveIntent && Number(moveIntent.dx)) {
-          const prevL = leftPt.x - Number(moveIntent.dx);
-          const prevR = rightPt.x - Number(moveIntent.dx);
-          const prevC = c.x - Number(moveIntent.dx);
-          const prevBest = Math.min(Math.abs(prevL - x), Math.abs(prevR - x), Math.abs(prevC - x));
-          if (best + 0.001 >= prevBest) return false;
-        }
-        setCenter(p.centerX + dx, p.centerY);
-        p = edgesFromCenter();
-        createGuideLine("v", x);
-        return true;
-      };
-      const snapHrToY = (y) => {
-        if (!isHrLine(obj)) return false;
-        const tol = SNAP_TOLERANCE();
-        const leftPt = obj.getPointByOrigin("left", "center");
-        const rightPt = obj.getPointByOrigin("right", "center");
-        const c = obj.getCenterPoint();
-        const dL = Math.abs(leftPt.y - y);
-        const dR = Math.abs(rightPt.y - y);
-        const dC = Math.abs(c.y - y);
-        const best = Math.min(dL, dR, dC);
-        if (best >= tol) return false;
-        const dy = best === dL ? (y - leftPt.y) : (best === dR ? (y - rightPt.y) : (y - c.y));
-        if (prevEdges && moveIntent && Number(moveIntent.dy)) {
-          const prevL = leftPt.y - Number(moveIntent.dy);
-          const prevR = rightPt.y - Number(moveIntent.dy);
-          const prevC = c.y - Number(moveIntent.dy);
-          const prevBest = Math.min(Math.abs(prevL - y), Math.abs(prevR - y), Math.abs(prevC - y));
-          if (best + 0.001 >= prevBest) return false;
-        }
-        setCenter(p.centerX, p.centerY + dy);
-        p = edgesFromCenter();
-        createGuideLine("h", y);
-        return true;
-      };
-
-      // 1. Snap/show guides near canvas centers
-      if (!snappedV) {
-        if (snapHrToX(canvasWidth / 2)) snappedV = true;
-        else if (shouldGuide("centerX", canvasWidth / 2)) {
-          if (shouldSnap("x", "centerX", canvasWidth / 2)) {
-            setCenter(canvasWidth / 2, p.centerY);
-            p = edgesFromCenter();
-          }
-          createGuideLine('v', canvasWidth / 2);
-          snappedV = true;
-        }
-      }
-      if (!snappedH) {
-        if (snapHrToY(canvasHeight / 2)) snappedH = true;
-        else if (shouldGuide("centerY", canvasHeight / 2)) {
-          if (shouldSnap("y", "centerY", canvasHeight / 2)) {
-            setCenter(p.centerX, canvasHeight / 2);
-            p = edgesFromCenter();
-          }
-          createGuideLine('h', canvasHeight / 2);
-          snappedH = true;
+        const nearX = Math.round(p.centerX / gridStep) * gridStep;
+        const nearY = Math.round(p.centerY / gridStep) * gridStep;
+        const gdx = lockAxis !== "x" && Math.abs(p.centerX - nearX) <= gridTol ? nearX - p.centerX : 0;
+        const gdy = lockAxis !== "y" && Math.abs(p.centerY - nearY) <= gridTol ? nearY - p.centerY : 0;
+        if (gdx || gdy) {
+          shiftObjectBy(obj, gdx, gdy);
+          p = getCanvasBounds(obj);
         }
       }
 
-      // 2. Snap/show guides near other objects (edges and centers)
-      canvas.forEachObject((other) => {
-        if (other === obj || other.isGuide) return;
-        if (obj.fractionId && other.fractionId === obj.fractionId) return;
-        if (obj.longDivisionId && other.longDivisionId === obj.longDivisionId) return;
-        if (!other.visible) return;
-
-        const otherCenter = other.getCenterPoint();
-        const ow = other.getScaledWidth();
-        const oh = other.getScaledHeight();
-        const q = {
-          centerX: otherCenter.x,
-          centerY: otherCenter.y,
-          left: otherCenter.x - ow / 2,
-          right: otherCenter.x + ow / 2,
-          top: otherCenter.y - oh / 2,
-          bottom: otherCenter.y + oh / 2,
-        };
-
-        // Vertical Snapping (X-axis)
-        if (!snappedV) {
-          if (snapHrToX(q.left) || snapHrToX(q.centerX) || snapHrToX(q.right)) {
-            snappedV = true;
-          } else if (shouldGuide("left", q.left)) {
-            if (shouldSnap("x", "left", q.left)) {
-              setCenter(q.left + w / 2, p.centerY);
-              p = edgesFromCenter();
-            }
-            createGuideLine('v', q.left);
-            snappedV = true;
-          } else if (shouldGuide("centerX", q.centerX)) {
-            if (shouldSnap("x", "centerX", q.centerX)) {
-              setCenter(q.centerX, p.centerY);
-              p = edgesFromCenter();
-            }
-            createGuideLine('v', q.centerX);
-            snappedV = true;
-          } else if (shouldGuide("right", q.right)) {
-            if (shouldSnap("x", "right", q.right)) {
-              setCenter(q.right - w / 2, p.centerY);
-              p = edgesFromCenter();
-            }
-            createGuideLine('v', q.right);
-            snappedV = true;
-          } else if (shouldGuide("left", q.right)) {
-            if (shouldSnap("x", "left", q.right)) {
-              setCenter(q.right + w / 2, p.centerY);
-              p = edgesFromCenter();
-            }
-            createGuideLine('v', q.right);
-            snappedV = true;
-          } else if (shouldGuide("right", q.left)) {
-            if (shouldSnap("x", "right", q.left)) {
-              setCenter(q.left - w / 2, p.centerY);
-              p = edgesFromCenter();
-            }
-            createGuideLine('v', q.left);
-            snappedV = true;
-          }
-        }
-
-        // Horizontal Snapping (Y-axis)
-        if (!snappedH) {
-          if (snapHrToY(q.top) || snapHrToY(q.centerY) || snapHrToY(q.bottom)) {
-            snappedH = true;
-          } else if (shouldGuide("top", q.top)) {
-            if (shouldSnap("y", "top", q.top)) {
-              setCenter(p.centerX, q.top + h / 2);
-              p = edgesFromCenter();
-            }
-            createGuideLine('h', q.top);
-            snappedH = true;
-          } else if (shouldGuide("centerY", q.centerY)) {
-            if (shouldSnap("y", "centerY", q.centerY)) {
-              setCenter(p.centerX, q.centerY);
-              p = edgesFromCenter();
-            }
-            createGuideLine('h', q.centerY);
-            snappedH = true;
-          } else if (shouldGuide("bottom", q.bottom)) {
-            if (shouldSnap("y", "bottom", q.bottom)) {
-              setCenter(p.centerX, q.bottom - h / 2);
-              p = edgesFromCenter();
-            }
-            createGuideLine('h', q.bottom);
-            snappedH = true;
-          } else if (shouldGuide("top", q.bottom)) {
-            if (shouldSnap("y", "top", q.bottom)) {
-              setCenter(p.centerX, q.bottom + h / 2);
-              p = edgesFromCenter();
-            }
-            createGuideLine('h', q.bottom);
-            snappedH = true;
-          } else if (shouldGuide("bottom", q.top)) {
-            if (shouldSnap("y", "bottom", q.top)) {
-              setCenter(p.centerX, q.top - h / 2);
-              p = edgesFromCenter();
-            }
-            createGuideLine('h', q.top);
-            snappedH = true;
-          }
-        }
-      });
-
-      const objects = canvas.getObjects();
-      const candidates = [];
-      objects.forEach((other) => {
-        if (other === obj || other.isGuide) return;
-        if (obj.fractionId && other.fractionId === obj.fractionId) return;
-        if (obj.longDivisionId && other.longDivisionId === obj.longDivisionId) return;
-        if (!other.visible) return;
-
-        const c = other.getCenterPoint();
-        const ow = other.getScaledWidth();
-        const oh = other.getScaledHeight();
-        candidates.push({
-          obj: other,
-          centerX: c.x,
-          centerY: c.y,
-          left: c.x - ow / 2,
-          right: c.x + ow / 2,
-          top: c.y - oh / 2,
-          bottom: c.y + oh / 2,
-          w: ow,
-          h: oh,
-        });
-      });
-
+      const candidates = getSnapCandidates(obj);
       const overlapY = (a, b) => Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
       const overlapX = (a, b) => Math.min(a.right, b.right) - Math.max(a.left, b.left);
 
+      const allowDelta = (axis, delta) => {
+        if (lockAxis === axis) return false;
+        const intentDelta = axis === "x" ? Number(moveIntent?.dx || 0) : Number(moveIntent?.dy || 0);
+        if (!moveIntent || !intentDelta) return true;
+        // On keyboard arrow nudges, only snap if moving closer to the target
+        return Math.abs(delta) + 0.001 < Math.abs(delta + intentDelta);
+      };
+
+      // Collect all candidate snaps on X and Y (closest-target wins)
+      let bestSnapX = null;
+      let bestSnapY = null;
+
+      const considerSnapX = (delta, priority = 1) => {
+        const dist = Math.abs(delta);
+        if (dist >= tol || !allowDelta("x", delta)) return;
+        if (
+          !bestSnapX ||
+          dist < bestSnapX.dist - 0.5 ||
+          (Math.abs(dist - bestSnapX.dist) <= 0.5 && priority > bestSnapX.priority)
+        ) {
+          bestSnapX = { delta, dist, priority };
+        }
+      };
+
+      const considerSnapY = (delta, priority = 1) => {
+        const dist = Math.abs(delta);
+        if (dist >= tol || !allowDelta("y", delta)) return;
+        if (
+          !bestSnapY ||
+          dist < bestSnapY.dist - 0.5 ||
+          (Math.abs(dist - bestSnapY.dist) <= 0.5 && priority > bestSnapY.priority)
+        ) {
+          bestSnapY = { delta, dist, priority };
+        }
+      };
+
+      // 1. Page centers (highest priority), safe margins, and page edges
+      considerSnapX(canvasWidth / 2 - p.centerX, 3);
+      considerSnapX(PAGE_MARGIN - p.left, 2);
+      considerSnapX(canvasWidth - PAGE_MARGIN - p.right, 2);
+      considerSnapX(0 - p.left, 2);
+      considerSnapX(canvasWidth - p.right, 2);
+
+      considerSnapY(canvasHeight / 2 - p.centerY, 3);
+      considerSnapY(PAGE_MARGIN - p.top, 2);
+      considerSnapY(canvasHeight - PAGE_MARGIN - p.bottom, 2);
+      considerSnapY(0 - p.top, 2);
+      considerSnapY(canvasHeight - p.bottom, 2);
+
+      // 2. All other objects' edges & centers
+      candidates.forEach((q) => {
+        considerSnapX(q.left - p.left, 2);
+        considerSnapX(q.centerX - p.centerX, 2);
+        considerSnapX(q.right - p.right, 2);
+        considerSnapX(q.right - p.left, 1);
+        considerSnapX(q.left - p.right, 1);
+
+        considerSnapY(q.top - p.top, 2);
+        considerSnapY(q.centerY - p.centerY, 2);
+        considerSnapY(q.bottom - p.bottom, 2);
+        considerSnapY(q.bottom - p.top, 1);
+        considerSnapY(q.top - p.bottom, 1);
+      });
+
+      // 3. Equal-gap spacing magnetic snap (midpoint between neighbors + matching existing pair gaps)
+      const findNearestNeighbors = (bounds) => {
+        let leftN = null;
+        let rightN = null;
+        let topN = null;
+        let bottomN = null;
+        candidates.forEach((q) => {
+          const oy = overlapY(bounds, q);
+          if (oy > Math.min(bounds.height, q.height) * 0.25) {
+            if (q.right <= bounds.left + tol) {
+              const d = bounds.left - q.right;
+              if (!leftN || d < leftN.d) leftN = { ...q, d };
+            }
+            if (q.left >= bounds.right - tol) {
+              const d = q.left - bounds.right;
+              if (!rightN || d < rightN.d) rightN = { ...q, d };
+            }
+          }
+          const ox = overlapX(bounds, q);
+          if (ox > Math.min(bounds.width, q.width) * 0.25) {
+            if (q.bottom <= bounds.top + tol) {
+              const d = bounds.top - q.bottom;
+              if (!topN || d < topN.d) topN = { ...q, d };
+            }
+            if (q.top >= bounds.bottom - tol) {
+              const d = q.top - bounds.bottom;
+              if (!bottomN || d < bottomN.d) bottomN = { ...q, d };
+            }
+          }
+        });
+        return { leftN, rightN, topN, bottomN };
+      };
+
+      const preNeighbors = findNearestNeighbors(p);
+      if (preNeighbors.leftN && preNeighbors.rightN) {
+        const space = preNeighbors.rightN.left - preNeighbors.leftN.right - p.width;
+        if (space >= 0) {
+          const targetLeft = preNeighbors.leftN.right + space / 2;
+          considerSnapX(targetLeft - p.left, 2.5);
+        }
+      }
+      if (preNeighbors.topN && preNeighbors.bottomN) {
+        const space = preNeighbors.bottomN.top - preNeighbors.topN.bottom - p.height;
+        if (space >= 0) {
+          const targetTop = preNeighbors.topN.bottom + space / 2;
+          considerSnapY(targetTop - p.top, 2.5);
+        }
+      }
+
+      // Match spacing of adjacent card pairs on the same row/column
+      const rowOverlapping = candidates
+        .filter((q) => overlapY(p, q) > Math.min(p.height, q.height) * 0.25)
+        .sort((a, b) => a.left - b.left);
+      for (let i = 0; i < rowOverlapping.length - 1; i++) {
+        const a = rowOverlapping[i];
+        const b = rowOverlapping[i + 1];
+        const pairGap = b.left - a.right;
+        if (pairGap >= 2) {
+          considerSnapX(b.right + pairGap - p.left, 2);
+          considerSnapX(a.left - pairGap - p.width - p.left, 2);
+        }
+      }
+
+      const colOverlapping = candidates
+        .filter((q) => overlapX(p, q) > Math.min(p.width, q.width) * 0.25)
+        .sort((a, b) => a.top - b.top);
+      for (let i = 0; i < colOverlapping.length - 1; i++) {
+        const a = colOverlapping[i];
+        const b = colOverlapping[i + 1];
+        const pairGap = b.top - a.bottom;
+        if (pairGap >= 2) {
+          considerSnapY(b.bottom + pairGap - p.top, 2);
+          considerSnapY(a.top - pairGap - p.height - p.top, 2);
+        }
+      }
+
+      // Apply single best snap on each axis
+      const snapDx = bestSnapX ? bestSnapX.delta : 0;
+      const snapDy = bestSnapY ? bestSnapY.delta : 0;
+      if (snapDx || snapDy) {
+        shiftObjectBy(obj, snapDx, snapDy);
+        p = getCanvasBounds(obj);
+      }
+
+      // 4. Draw visual alignment guides for ALL aligned references at the snapped position
+      const ALIGN_EPS = 0.75;
+      const vLines = new Map();
+      const hLines = new Map();
+
+      const registerVLine = (x, top, bottom, isPage = false, isCenter = false) => {
+        const key = Math.round(x * 2) / 2;
+        const cur = vLines.get(key);
+        if (!cur) {
+          vLines.set(key, { x, top, bottom, isPage, isCenter });
+        } else {
+          cur.top = Math.min(cur.top, top);
+          cur.bottom = Math.max(cur.bottom, bottom);
+          cur.isPage = cur.isPage || isPage;
+          cur.isCenter = cur.isCenter || isCenter;
+        }
+      };
+
+      const registerHLine = (y, left, right, isPage = false, isCenter = false) => {
+        const key = Math.round(y * 2) / 2;
+        const cur = hLines.get(key);
+        if (!cur) {
+          hLines.set(key, { y, left, right, isPage, isCenter });
+        } else {
+          cur.left = Math.min(cur.left, left);
+          cur.right = Math.max(cur.right, right);
+          cur.isPage = cur.isPage || isPage;
+          cur.isCenter = cur.isCenter || isCenter;
+        }
+      };
+
+      if (Math.abs(p.centerX - canvasWidth / 2) <= ALIGN_EPS) registerVLine(canvasWidth / 2, 0, canvasHeight, true, true);
+      if (Math.abs(p.left - PAGE_MARGIN) <= ALIGN_EPS) registerVLine(PAGE_MARGIN, 0, canvasHeight, true, false);
+      if (Math.abs(p.right - (canvasWidth - PAGE_MARGIN)) <= ALIGN_EPS) registerVLine(canvasWidth - PAGE_MARGIN, 0, canvasHeight, true, false);
+      if (Math.abs(p.left) <= ALIGN_EPS) registerVLine(0, 0, canvasHeight, true, false);
+      if (Math.abs(p.right - canvasWidth) <= ALIGN_EPS) registerVLine(canvasWidth, 0, canvasHeight, true, false);
+
+      if (Math.abs(p.centerY - canvasHeight / 2) <= ALIGN_EPS) registerHLine(canvasHeight / 2, 0, canvasWidth, true, true);
+      if (Math.abs(p.top - PAGE_MARGIN) <= ALIGN_EPS) registerHLine(PAGE_MARGIN, 0, canvasWidth, true, false);
+      if (Math.abs(p.bottom - (canvasHeight - PAGE_MARGIN)) <= ALIGN_EPS) registerHLine(canvasHeight - PAGE_MARGIN, 0, canvasWidth, true, false);
+      if (Math.abs(p.top) <= ALIGN_EPS) registerHLine(0, 0, canvasWidth, true, false);
+      if (Math.abs(p.bottom - canvasHeight) <= ALIGN_EPS) registerHLine(canvasHeight, 0, canvasWidth, true, false);
+
+      candidates.forEach((q) => {
+        const minY = Math.min(p.top, q.top) - 6;
+        const maxY = Math.max(p.bottom, q.bottom) + 6;
+        if (Math.abs(p.left - q.left) <= ALIGN_EPS) registerVLine(q.left, minY, maxY);
+        if (Math.abs(p.centerX - q.centerX) <= ALIGN_EPS) registerVLine(q.centerX, minY, maxY);
+        if (Math.abs(p.right - q.right) <= ALIGN_EPS) registerVLine(q.right, minY, maxY);
+        if (Math.abs(p.left - q.right) <= ALIGN_EPS) registerVLine(q.right, minY, maxY);
+        if (Math.abs(p.right - q.left) <= ALIGN_EPS) registerVLine(q.left, minY, maxY);
+
+        const minX = Math.min(p.left, q.left) - 6;
+        const maxX = Math.max(p.right, q.right) + 6;
+        if (Math.abs(p.top - q.top) <= ALIGN_EPS) registerHLine(q.top, minX, maxX);
+        if (Math.abs(p.centerY - q.centerY) <= ALIGN_EPS) registerHLine(q.centerY, minX, maxX);
+        if (Math.abs(p.bottom - q.bottom) <= ALIGN_EPS) registerHLine(q.bottom, minX, maxX);
+        if (Math.abs(p.top - q.bottom) <= ALIGN_EPS) registerHLine(q.bottom, minX, maxX);
+        if (Math.abs(p.bottom - q.top) <= ALIGN_EPS) registerHLine(q.top, minX, maxX);
+      });
+
+      vLines.forEach((g) => {
+        createGuideLine("v", g.x, {
+          from: g.isPage ? 0 : Math.max(0, g.top),
+          to: g.isPage ? canvasHeight : Math.min(canvasHeight, g.bottom),
+          stroke: g.isCenter ? "#d946ef" : "#a855f7",
+          dash: g.isCenter ? null : [4, 4],
+          strokeWidth: g.isCenter ? 1.5 : 1.5,
+        });
+      });
+
+      hLines.forEach((g) => {
+        createGuideLine("h", g.y, {
+          from: g.isPage ? 0 : Math.max(0, g.left),
+          to: g.isPage ? canvasWidth : Math.min(canvasWidth, g.right),
+          stroke: g.isCenter ? "#d946ef" : "#a855f7",
+          dash: g.isCenter ? null : [4, 4],
+          strokeWidth: g.isCenter ? 1.5 : 1.5,
+        });
+      });
+
+      // 5. Distance & Equal-Spacing Measurement Tags
       let leftNeighbor = null;
       let rightNeighbor = null;
       let topNeighbor = null;
@@ -2043,7 +2257,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
 
       candidates.forEach((q) => {
         const oy = overlapY(p, q);
-        if (oy > Math.min(h, q.h) * 0.3) {
+        if (oy > Math.min(p.height, q.height) * 0.25) {
           if (q.right <= p.left) {
             const d = p.left - q.right;
             if (!leftNeighbor || d < leftNeighbor.d) leftNeighbor = { ...q, d };
@@ -2055,7 +2269,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
         }
 
         const ox = overlapX(p, q);
-        if (ox > Math.min(w, q.w) * 0.3) {
+        if (ox > Math.min(p.width, q.width) * 0.25) {
           if (q.bottom <= p.top) {
             const d = p.top - q.bottom;
             if (!topNeighbor || d < topNeighbor.d) topNeighbor = { ...q, d };
@@ -2070,44 +2284,80 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       const baseColor = "#a855f7";
       const okColor = "#22c55e";
 
-      if (leftNeighbor) {
+      const eqCenterH = Boolean(leftNeighbor && rightNeighbor && Math.abs(leftNeighbor.d - rightNeighbor.d) <= MEASURE_TOLERANCE);
+      let matchedPairH = null;
+      if (!eqCenterH && (leftNeighbor || rightNeighbor)) {
+        for (let i = 0; i < rowOverlapping.length - 1; i++) {
+          const a = rowOverlapping[i];
+          const b = rowOverlapping[i + 1];
+          const pairGap = b.left - a.right;
+          if (pairGap < 2) continue;
+          if (leftNeighbor && leftNeighbor.obj === b.obj && Math.abs(leftNeighbor.d - pairGap) <= MEASURE_TOLERANCE) {
+            matchedPairH = { a, b, pairGap, side: "left" };
+            break;
+          }
+          if (rightNeighbor && rightNeighbor.obj === a.obj && Math.abs(rightNeighbor.d - pairGap) <= MEASURE_TOLERANCE) {
+            matchedPairH = { a, b, pairGap, side: "right" };
+            break;
+          }
+        }
+      }
+
+      if (leftNeighbor && leftNeighbor.d >= 1) {
         const y = (Math.max(p.top, leftNeighbor.top) + Math.min(p.bottom, leftNeighbor.bottom)) / 2;
-        createMeasureLine(leftNeighbor.right, y, p.left, y, baseColor);
-        createMeasureTag(Math.round(leftNeighbor.d), (leftNeighbor.right + p.left) / 2, y, baseColor);
+        const c = eqCenterH || matchedPairH?.side === "left" ? okColor : baseColor;
+        createMeasureLine(leftNeighbor.right, y, p.left, y, c);
+        createMeasureTag(Math.round(leftNeighbor.d), (leftNeighbor.right + p.left) / 2, y, c);
       }
-      if (rightNeighbor) {
+      if (rightNeighbor && rightNeighbor.d >= 1) {
         const y = (Math.max(p.top, rightNeighbor.top) + Math.min(p.bottom, rightNeighbor.bottom)) / 2;
-        createMeasureLine(p.right, y, rightNeighbor.left, y, baseColor);
-        createMeasureTag(Math.round(rightNeighbor.d), (p.right + rightNeighbor.left) / 2, y, baseColor);
+        const c = eqCenterH || matchedPairH?.side === "right" ? okColor : baseColor;
+        createMeasureLine(p.right, y, rightNeighbor.left, y, c);
+        createMeasureTag(Math.round(rightNeighbor.d), (p.right + rightNeighbor.left) / 2, y, c);
+      }
+      if (matchedPairH) {
+        const { a, b, pairGap } = matchedPairH;
+        const yP = (Math.max(a.top, b.top) + Math.min(a.bottom, b.bottom)) / 2;
+        createMeasureLine(a.right, yP, b.left, yP, okColor);
+        createMeasureTag(Math.round(pairGap), (a.right + b.left) / 2, yP, okColor);
       }
 
-      if (leftNeighbor && rightNeighbor && Math.abs(leftNeighbor.d - rightNeighbor.d) <= MEASURE_TOLERANCE) {
-        const yL = (Math.max(p.top, leftNeighbor.top) + Math.min(p.bottom, leftNeighbor.bottom)) / 2;
-        const yR = (Math.max(p.top, rightNeighbor.top) + Math.min(p.bottom, rightNeighbor.bottom)) / 2;
-        createMeasureLine(leftNeighbor.right, yL, p.left, yL, okColor);
-        createMeasureTag(Math.round(leftNeighbor.d), (leftNeighbor.right + p.left) / 2, yL, okColor);
-        createMeasureLine(p.right, yR, rightNeighbor.left, yR, okColor);
-        createMeasureTag(Math.round(rightNeighbor.d), (p.right + rightNeighbor.left) / 2, yR, okColor);
+      const eqCenterV = Boolean(topNeighbor && bottomNeighbor && Math.abs(topNeighbor.d - bottomNeighbor.d) <= MEASURE_TOLERANCE);
+      let matchedPairV = null;
+      if (!eqCenterV && (topNeighbor || bottomNeighbor)) {
+        for (let i = 0; i < colOverlapping.length - 1; i++) {
+          const a = colOverlapping[i];
+          const b = colOverlapping[i + 1];
+          const pairGap = b.top - a.bottom;
+          if (pairGap < 2) continue;
+          if (topNeighbor && topNeighbor.obj === b.obj && Math.abs(topNeighbor.d - pairGap) <= MEASURE_TOLERANCE) {
+            matchedPairV = { a, b, pairGap, side: "top" };
+            break;
+          }
+          if (bottomNeighbor && bottomNeighbor.obj === a.obj && Math.abs(bottomNeighbor.d - pairGap) <= MEASURE_TOLERANCE) {
+            matchedPairV = { a, b, pairGap, side: "bottom" };
+            break;
+          }
+        }
       }
 
-      if (topNeighbor) {
+      if (topNeighbor && topNeighbor.d >= 1) {
         const x = (Math.max(p.left, topNeighbor.left) + Math.min(p.right, topNeighbor.right)) / 2;
-        createMeasureLine(x, topNeighbor.bottom, x, p.top, baseColor);
-        createMeasureTag(Math.round(topNeighbor.d), x, (topNeighbor.bottom + p.top) / 2, baseColor);
+        const c = eqCenterV || matchedPairV?.side === "top" ? okColor : baseColor;
+        createMeasureLine(x, topNeighbor.bottom, x, p.top, c);
+        createMeasureTag(Math.round(topNeighbor.d), x, (topNeighbor.bottom + p.top) / 2, c);
       }
-      if (bottomNeighbor) {
+      if (bottomNeighbor && bottomNeighbor.d >= 1) {
         const x = (Math.max(p.left, bottomNeighbor.left) + Math.min(p.right, bottomNeighbor.right)) / 2;
-        createMeasureLine(x, p.bottom, x, bottomNeighbor.top, baseColor);
-        createMeasureTag(Math.round(bottomNeighbor.d), x, (p.bottom + bottomNeighbor.top) / 2, baseColor);
+        const c = eqCenterV || matchedPairV?.side === "bottom" ? okColor : baseColor;
+        createMeasureLine(x, p.bottom, x, bottomNeighbor.top, c);
+        createMeasureTag(Math.round(bottomNeighbor.d), x, (p.bottom + bottomNeighbor.top) / 2, c);
       }
-
-      if (topNeighbor && bottomNeighbor && Math.abs(topNeighbor.d - bottomNeighbor.d) <= MEASURE_TOLERANCE) {
-        const xT = (Math.max(p.left, topNeighbor.left) + Math.min(p.right, topNeighbor.right)) / 2;
-        const xB = (Math.max(p.left, bottomNeighbor.left) + Math.min(p.right, bottomNeighbor.right)) / 2;
-        createMeasureLine(xT, topNeighbor.bottom, xT, p.top, okColor);
-        createMeasureTag(Math.round(topNeighbor.d), xT, (topNeighbor.bottom + p.top) / 2, okColor);
-        createMeasureLine(xB, p.bottom, xB, bottomNeighbor.top, okColor);
-        createMeasureTag(Math.round(bottomNeighbor.d), xB, (p.bottom + bottomNeighbor.top) / 2, okColor);
+      if (matchedPairV) {
+        const { a, b, pairGap } = matchedPairV;
+        const xP = (Math.max(a.left, b.left) + Math.min(a.right, b.right)) / 2;
+        createMeasureLine(xP, a.bottom, xP, b.top, okColor);
+        createMeasureTag(Math.round(pairGap), xP, (a.bottom + b.top) / 2, okColor);
       }
     };
 
@@ -2140,13 +2390,101 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     };
 
     canvas.on("object:moving", (options) => {
-      applyMoveGuides(options.target, options?.e);
-      updateFloatingCoords(options.target);
-      updateConnectedArrowsForObject(options.target);
+      const obj = options.target;
+      const ev = options?.e;
+      let moveIntent = null;
+
+      if (obj && !obj.isGuide) {
+        if (!activeDragOrigin || activeDragOrigin.target !== obj) {
+          const curC = obj.getCenterPoint();
+          const orig = options?.transform?.original;
+          const baseCenter = orig
+            ? new fabric.Point(curC.x - (obj.left - orig.left), curC.y - (obj.top - orig.top))
+            : curC;
+          activeDragOrigin = {
+            target: obj,
+            center: baseCenter,
+            origLeft: orig?.left ?? obj.left,
+            origTop: orig?.top ?? obj.top,
+          };
+        }
+
+        if (ev?.shiftKey && activeDragOrigin?.center) {
+          const curCenter = obj.getCenterPoint();
+          const dx = curCenter.x - activeDragOrigin.center.x;
+          const dy = curCenter.y - activeDragOrigin.center.y;
+          if (Math.abs(dx) >= Math.abs(dy)) {
+            obj.setPositionByOrigin(new fabric.Point(curCenter.x, activeDragOrigin.center.y), "center", "center");
+            obj.setCoords();
+            moveIntent = { lockAxis: "y", dragOriginCenter: activeDragOrigin.center };
+          } else {
+            obj.setPositionByOrigin(new fabric.Point(activeDragOrigin.center.x, curCenter.y), "center", "center");
+            obj.setCoords();
+            moveIntent = { lockAxis: "x", dragOriginCenter: activeDragOrigin.center };
+          }
+        }
+      }
+
+      applyMoveGuides(obj, ev, moveIntent);
+      updateFloatingCoords(obj);
+      updateConnectedArrowsForObject(obj);
     });
+
     canvas.on("object:rotating", (options) => {
-      updateFloatingCoords(options.target);
-      updateConnectedArrowsForObject(options.target);
+      const obj = options.target;
+      const ev = options?.e;
+      clearGuides();
+
+      if (obj && !obj.isGuide) {
+        let angle = (((obj.angle || 0) % 360) + 360) % 360;
+        let snapped = false;
+
+        if (snappingRef.current && !ev?.altKey) {
+          if (ev?.shiftKey) {
+            angle = (Math.round(angle / 15) * 15) % 360;
+            snapped = true;
+          } else {
+            const DETENTS = [0, 45, 90, 135, 180, 225, 270, 315, 360];
+            const ROTATE_TOL = 5;
+            let bestDetent = null;
+            let bestDiff = ROTATE_TOL + 0.001;
+            for (const d of DETENTS) {
+              const diff = Math.abs(angle - d);
+              if (diff < bestDiff) {
+                bestDiff = diff;
+                bestDetent = d;
+              }
+            }
+            if (bestDetent !== null) {
+              angle = bestDetent % 360;
+              snapped = true;
+            }
+          }
+        }
+
+        if (snapped) {
+          const prevCenter = obj.getCenterPoint();
+          obj.centeredRotation = true;
+          if (typeof obj.rotate === "function") {
+            obj.rotate(angle);
+          } else {
+            obj.set({ angle });
+          }
+          obj.setPositionByOrigin(prevCenter, "center", "center");
+          obj.setCoords();
+        }
+
+        if (obj.fractionId) syncFraction(obj);
+        if (obj.longDivisionId) syncLongDivision(obj);
+
+        const b = getCanvasBounds(obj);
+        const tagX = Math.max(24, Math.min(canvas.width - 24, b.centerX));
+        const tagY = b.bottom + 18 <= canvas.height - 14 ? b.bottom + 18 : Math.max(14, b.top - 18);
+        createMeasureTag(`${Math.round(angle)}°`, tagX, tagY, snapped ? "#22c55e" : "#a855f7");
+      }
+
+      updateFloatingCoords(obj);
+      updateConnectedArrowsForObject(obj);
     });
 
     canvas.on("object:scaling", (options) => {
@@ -2154,7 +2492,46 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       clearGuides();
       updateConnectedArrowsForObject(obj);
 
-      if (!snappingRef.current || options?.e?.altKey) return;
+      if (!snappingRef.current || options?.e?.altKey) {
+        if (
+          obj?.type === "path" &&
+          obj.shapeKind === "arrow" &&
+          !obj.isSmartConnector &&
+          !obj.connectedFromId &&
+          !obj.connectedToId &&
+          (obj.isLocalArrow || Math.abs((obj.height || 0) - 13) <= 2)
+        ) {
+          const cornerNow = options?.transform?.corner || "";
+          const anchorCornerNow = cornerNow ? oppositeCorner(cornerNow) : null;
+          const anchorOriginNow = anchorCornerNow ? cornerToOrigin(anchorCornerNow) : null;
+          const anchorPtNow = anchorOriginNow ? obj.getPointByOrigin(anchorOriginNow.originX, anchorOriginNow.originY) : null;
+          const sx = Math.abs(obj.scaleX || 1);
+          const sy = Math.abs(obj.scaleY || 1);
+          if (sx > 1.001 || sx < 0.999 || sy > 1.001 || sy < 0.999) {
+            const head = obj.arrowHead || "end";
+            const nextW = Math.max(30, (obj.width || 140) * sx);
+            const pad = head === "circle-arrow" ? 16.5 : 20;
+            const template = new fabric.Path(getLocalStraightPath(nextW + pad, head));
+            obj.set({
+              path: template.path,
+              pathOffset: template.pathOffset,
+              width: template.width,
+              height: template.height,
+              scaleX: 1,
+              scaleY: 1,
+              strokeUniform: true,
+              dirty: true,
+            });
+            obj.isLocalArrow = true;
+            if (anchorPtNow && anchorOriginNow) {
+              obj.setPositionByOrigin(anchorPtNow, anchorOriginNow.originX, anchorOriginNow.originY);
+            }
+            obj.setCoords();
+          }
+        }
+        updateFloatingCoords(obj);
+        return;
+      }
 
       const corner = options?.transform?.corner || "";
       const isTextbox = obj?.type === "textbox" && !obj.isGuide;
@@ -2238,30 +2615,14 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
         ? new fabric.Point(obj.__resizeAnchor.x, obj.__resizeAnchor.y)
         : anchorPoint;
 
-      const candidates = [];
-      canvas.getObjects().forEach((other) => {
-        if (other === obj || other.isGuide) return;
-        if (obj.fractionId && other.fractionId === obj.fractionId) return;
-        if (obj.longDivisionId && other.longDivisionId === obj.longDivisionId) return;
-        if (!other.visible) return;
-
-        const c = other.getCenterPoint();
-        const ow = other.getScaledWidth();
-        const oh = other.getScaledHeight();
-        candidates.push({
-          centerX: c.x,
-          centerY: c.y,
-          left: c.x - ow / 2,
-          right: c.x + ow / 2,
-          top: c.y - oh / 2,
-          bottom: c.y + oh / 2,
-          w: ow,
-          h: oh,
-        });
-      });
+      const candidates = getSnapCandidates(obj);
+      const isAxisAligned = Math.abs((((obj.angle || 0) % 90) + 90) % 90) < 1;
+      let snappedXTarget = null;
+      let snappedYTarget = null;
 
       if (snapRight || snapLeft) {
         const movePoint = obj.getPointByOrigin(dragOrigin.originX, dragOrigin.originY);
+        const ax = resizeAnchorPoint ? resizeAnchorPoint.x : (anchorPoint ? anchorPoint.x : movePoint.x);
         const edge = movePoint.x;
         let best = null;
         let bestDist = SNAP_TOLERANCE();
@@ -2275,26 +2636,33 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
         };
 
         consider(canvasWidth / 2);
+        consider(PAGE_MARGIN);
+        consider(canvasWidth - PAGE_MARGIN);
+        consider(0);
+        consider(canvasWidth);
         candidates.forEach((q) => {
           consider(q.left);
           consider(q.centerX);
           consider(q.right);
+          if (isAxisAligned && q.width >= 8) {
+            consider(snapRight ? ax + q.width : ax - q.width);
+          }
         });
 
         if (best != null) {
-          const ax = resizeAnchorPoint ? resizeAnchorPoint.x : (anchorPoint ? anchorPoint.x : movePoint.x);
           const nextW = Math.max(5, Math.abs(best - ax));
           obj.set("scaleX", nextW / baseW);
           clampScale(obj);
           if (resizeAnchorPoint && anchorOrigin) obj.setPositionByOrigin(resizeAnchorPoint, anchorOrigin.originX, anchorOrigin.originY);
           else if (anchorPoint && anchorOrigin) obj.setPositionByOrigin(anchorPoint, anchorOrigin.originX, anchorOrigin.originY);
           obj.setCoords();
-          createGuideLine("v", best);
+          snappedXTarget = best;
         }
       }
 
       if (snapBottom || snapTop) {
         const movePoint = obj.getPointByOrigin(dragOrigin.originX, dragOrigin.originY);
+        const ay = anchorPoint ? anchorPoint.y : movePoint.y;
         const edge = movePoint.y;
         let best = null;
         let bestDist = SNAP_TOLERANCE();
@@ -2308,20 +2676,26 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
         };
 
         consider(canvasHeight / 2);
+        consider(PAGE_MARGIN);
+        consider(canvasHeight - PAGE_MARGIN);
+        consider(0);
+        consider(canvasHeight);
         candidates.forEach((q) => {
           consider(q.top);
           consider(q.centerY);
           consider(q.bottom);
+          if (isAxisAligned && q.height >= 8) {
+            consider(snapBottom ? ay + q.height : ay - q.height);
+          }
         });
 
         if (best != null) {
-          const ay = anchorPoint ? anchorPoint.y : movePoint.y;
           const nextH = Math.max(5, Math.abs(best - ay));
           obj.set("scaleY", nextH / baseH);
           clampScale(obj);
           if (anchorPoint && anchorOrigin) obj.setPositionByOrigin(anchorPoint, anchorOrigin.originX, anchorOrigin.originY);
           obj.setCoords();
-          createGuideLine("h", best);
+          snappedYTarget = best;
         }
       }
 
@@ -2332,17 +2706,106 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
 
       normalizeTextboxDuringScaling(obj, anchorOrigin, anchorPoint);
 
-      const center = obj.getCenterPoint();
-      const w = obj.getScaledWidth();
-      const h = obj.getScaledHeight();
-      const p = {
-        centerX: center.x,
-        centerY: center.y,
-        left: center.x - w / 2,
-        right: center.x + w / 2,
-        top: center.y - h / 2,
-        bottom: center.y + h / 2,
-      };
+      if (
+        obj?.type === "path" &&
+        obj.shapeKind === "arrow" &&
+        !obj.isSmartConnector &&
+        !obj.connectedFromId &&
+        !obj.connectedToId &&
+        (obj.isLocalArrow || Math.abs((obj.height || 0) - 13) <= 2)
+      ) {
+        const sx = Math.abs(obj.scaleX || 1);
+        const sy = Math.abs(obj.scaleY || 1);
+        if (sx > 1.001 || sx < 0.999 || sy > 1.001 || sy < 0.999) {
+          const head = obj.arrowHead || "end";
+          const nextW = Math.max(30, (obj.width || 140) * sx);
+          const pad = head === "circle-arrow" ? 16.5 : 20;
+          const template = new fabric.Path(getLocalStraightPath(nextW + pad, head));
+          obj.set({
+            path: template.path,
+            pathOffset: template.pathOffset,
+            width: template.width,
+            height: template.height,
+            scaleX: 1,
+            scaleY: 1,
+            strokeUniform: true,
+            dirty: true,
+          });
+          obj.isLocalArrow = true;
+          if (anchorPoint && anchorOrigin) {
+            obj.setPositionByOrigin(anchorPoint, anchorOrigin.originX, anchorOrigin.originY);
+          }
+          obj.setCoords();
+        } else {
+          obj.set({ scaleX: 1, scaleY: 1, strokeUniform: true });
+        }
+      }
+
+      const p = getCanvasBounds(obj);
+      const w = p.width;
+      const h = p.height;
+
+      if (snappedXTarget != null) {
+        const isPageCenter = Math.abs(snappedXTarget - canvasWidth / 2) <= 0.5;
+        const isPageLine =
+          isPageCenter ||
+          Math.abs(snappedXTarget) <= 0.5 ||
+          Math.abs(snappedXTarget - PAGE_MARGIN) <= 0.5 ||
+          Math.abs(snappedXTarget - (canvasWidth - PAGE_MARGIN)) <= 0.5 ||
+          Math.abs(snappedXTarget - canvasWidth) <= 0.5;
+
+        let minY = p.top - 6;
+        let maxY = p.bottom + 6;
+        if (!isPageLine) {
+          candidates.forEach((q) => {
+            if (
+              Math.abs(q.left - snappedXTarget) <= 1 ||
+              Math.abs(q.centerX - snappedXTarget) <= 1 ||
+              Math.abs(q.right - snappedXTarget) <= 1
+            ) {
+              minY = Math.min(minY, q.top - 6);
+              maxY = Math.max(maxY, q.bottom + 6);
+            }
+          });
+        }
+        createGuideLine("v", snappedXTarget, {
+          from: isPageLine ? 0 : Math.max(0, minY),
+          to: isPageLine ? canvasHeight : Math.min(canvasHeight, maxY),
+          stroke: isPageCenter ? "#d946ef" : "#a855f7",
+          dash: isPageCenter ? null : [4, 4],
+        });
+      }
+
+      if (snappedYTarget != null) {
+        const isPageCenter = Math.abs(snappedYTarget - canvasHeight / 2) <= 0.5;
+        const isPageLine =
+          isPageCenter ||
+          Math.abs(snappedYTarget) <= 0.5 ||
+          Math.abs(snappedYTarget - PAGE_MARGIN) <= 0.5 ||
+          Math.abs(snappedYTarget - (canvasHeight - PAGE_MARGIN)) <= 0.5 ||
+          Math.abs(snappedYTarget - canvasHeight) <= 0.5;
+
+        let minX = p.left - 6;
+        let maxX = p.right + 6;
+        if (!isPageLine) {
+          candidates.forEach((q) => {
+            if (
+              Math.abs(q.top - snappedYTarget) <= 1 ||
+              Math.abs(q.centerY - snappedYTarget) <= 1 ||
+              Math.abs(q.bottom - snappedYTarget) <= 1
+            ) {
+              minX = Math.min(minX, q.left - 6);
+              maxX = Math.max(maxX, q.right + 6);
+            }
+          });
+        }
+        createGuideLine("h", snappedYTarget, {
+          from: isPageLine ? 0 : Math.max(0, minX),
+          to: isPageLine ? canvasWidth : Math.min(canvasWidth, maxX),
+          stroke: isPageCenter ? "#d946ef" : "#a855f7",
+          dash: isPageCenter ? null : [4, 4],
+        });
+      }
 
       const overlapY = (a, b) => Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
       const overlapX = (a, b) => Math.min(a.right, b.right) - Math.max(a.left, b.left);
@@ -2354,7 +2817,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
 
       candidates.forEach((q) => {
         const oy = overlapY(p, q);
-        if (oy > Math.min(h, q.h) * 0.3) {
+        if (oy > Math.min(h, q.h) * 0.25) {
           if (q.right <= p.left) {
             const d = p.left - q.right;
             if (!leftNeighbor || d < leftNeighbor.d) leftNeighbor = { ...q, d };
@@ -2366,7 +2829,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
         }
 
         const ox = overlapX(p, q);
-        if (ox > Math.min(w, q.w) * 0.3) {
+        if (ox > Math.min(w, q.w) * 0.25) {
           if (q.bottom <= p.top) {
             const d = p.top - q.bottom;
             if (!topNeighbor || d < topNeighbor.d) topNeighbor = { ...q, d };
@@ -2380,50 +2843,77 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
 
       const baseColor = "#a855f7";
       const okColor = "#22c55e";
+      const eqCenterH = Boolean(leftNeighbor && rightNeighbor && Math.abs(leftNeighbor.d - rightNeighbor.d) <= MEASURE_TOLERANCE);
+      const eqCenterV = Boolean(topNeighbor && bottomNeighbor && Math.abs(topNeighbor.d - bottomNeighbor.d) <= MEASURE_TOLERANCE);
 
-      if (leftNeighbor) {
+      if (leftNeighbor && leftNeighbor.d >= 1) {
         const y = (Math.max(p.top, leftNeighbor.top) + Math.min(p.bottom, leftNeighbor.bottom)) / 2;
-        createMeasureLine(leftNeighbor.right, y, p.left, y, baseColor);
-        createMeasureTag(Math.round(leftNeighbor.d), (leftNeighbor.right + p.left) / 2, y, baseColor);
+        const c = eqCenterH ? okColor : baseColor;
+        createMeasureLine(leftNeighbor.right, y, p.left, y, c);
+        createMeasureTag(Math.round(leftNeighbor.d), (leftNeighbor.right + p.left) / 2, y, c);
       }
-      if (rightNeighbor) {
+      if (rightNeighbor && rightNeighbor.d >= 1) {
         const y = (Math.max(p.top, rightNeighbor.top) + Math.min(p.bottom, rightNeighbor.bottom)) / 2;
-        createMeasureLine(p.right, y, rightNeighbor.left, y, baseColor);
-        createMeasureTag(Math.round(rightNeighbor.d), (p.right + rightNeighbor.left) / 2, y, baseColor);
+        const c = eqCenterH ? okColor : baseColor;
+        createMeasureLine(p.right, y, rightNeighbor.left, y, c);
+        createMeasureTag(Math.round(rightNeighbor.d), (p.right + rightNeighbor.left) / 2, y, c);
       }
 
-      if (leftNeighbor && rightNeighbor && Math.abs(leftNeighbor.d - rightNeighbor.d) <= MEASURE_TOLERANCE) {
-        const yL = (Math.max(p.top, leftNeighbor.top) + Math.min(p.bottom, leftNeighbor.bottom)) / 2;
-        const yR = (Math.max(p.top, rightNeighbor.top) + Math.min(p.bottom, rightNeighbor.bottom)) / 2;
-        createMeasureLine(leftNeighbor.right, yL, p.left, yL, okColor);
-        createMeasureTag(Math.round(leftNeighbor.d), (leftNeighbor.right + p.left) / 2, yL, okColor);
-        createMeasureLine(p.right, yR, rightNeighbor.left, yR, okColor);
-        createMeasureTag(Math.round(rightNeighbor.d), (p.right + rightNeighbor.left) / 2, yR, okColor);
-      }
-
-      if (topNeighbor) {
+      if (topNeighbor && topNeighbor.d >= 1) {
         const x = (Math.max(p.left, topNeighbor.left) + Math.min(p.right, topNeighbor.right)) / 2;
-        createMeasureLine(x, topNeighbor.bottom, x, p.top, baseColor);
-        createMeasureTag(Math.round(topNeighbor.d), x, (topNeighbor.bottom + p.top) / 2, baseColor);
+        const c = eqCenterV ? okColor : baseColor;
+        createMeasureLine(x, topNeighbor.bottom, x, p.top, c);
+        createMeasureTag(Math.round(topNeighbor.d), x, (topNeighbor.bottom + p.top) / 2, c);
       }
-      if (bottomNeighbor) {
+      if (bottomNeighbor && bottomNeighbor.d >= 1) {
         const x = (Math.max(p.left, bottomNeighbor.left) + Math.min(p.right, bottomNeighbor.right)) / 2;
-        createMeasureLine(x, p.bottom, x, bottomNeighbor.top, baseColor);
-        createMeasureTag(Math.round(bottomNeighbor.d), x, (p.bottom + bottomNeighbor.top) / 2, baseColor);
+        const c = eqCenterV ? okColor : baseColor;
+        createMeasureLine(x, p.bottom, x, bottomNeighbor.top, c);
+        createMeasureTag(Math.round(bottomNeighbor.d), x, (p.bottom + bottomNeighbor.top) / 2, c);
       }
 
-      if (topNeighbor && bottomNeighbor && Math.abs(topNeighbor.d - bottomNeighbor.d) <= MEASURE_TOLERANCE) {
-        const xT = (Math.max(p.left, topNeighbor.left) + Math.min(p.right, topNeighbor.right)) / 2;
-        const xB = (Math.max(p.left, bottomNeighbor.left) + Math.min(p.right, bottomNeighbor.right)) / 2;
-        createMeasureLine(xT, topNeighbor.bottom, xT, p.top, okColor);
-        createMeasureTag(Math.round(topNeighbor.d), xT, (topNeighbor.bottom + p.top) / 2, okColor);
-        createMeasureLine(xB, p.bottom, xB, bottomNeighbor.top, okColor);
-        createMeasureTag(Math.round(bottomNeighbor.d), xB, (p.bottom + bottomNeighbor.top) / 2, okColor);
+      // Equal-dimension bars (Canva-style matched width/height indicators)
+      if ((snapRight || snapLeft) && p.width >= 8) {
+        const matchedW = candidates
+          .filter((q) => q.width >= 8 && Math.abs(q.width - p.width) <= MEASURE_TOLERANCE)
+          .sort((a, b) => Math.hypot(a.centerX - p.centerX, a.centerY - p.centerY) - Math.hypot(b.centerX - p.centerX, b.centerY - p.centerY))
+          .slice(0, 2);
+        if (matchedW.length > 0) {
+          const yP = Math.min(canvasHeight - 12, p.bottom + 14);
+          createMeasureLine(p.left, yP, p.right, yP, okColor);
+          createMeasureTag(`${Math.round(p.width)}w`, p.centerX, yP, okColor);
+          matchedW.forEach((q) => {
+            const yQ = Math.min(canvasHeight - 12, q.bottom + 14);
+            createMeasureLine(q.left, yQ, q.right, yQ, okColor);
+            createMeasureTag(`${Math.round(q.width)}w`, q.centerX, yQ, okColor);
+          });
+        }
       }
+
+      if ((snapBottom || snapTop) && p.height >= 8) {
+        const matchedH = candidates
+          .filter((q) => q.height >= 8 && Math.abs(q.height - p.height) <= MEASURE_TOLERANCE)
+          .sort((a, b) => Math.hypot(a.centerX - p.centerX, a.centerY - p.centerY) - Math.hypot(b.centerX - p.centerX, b.centerY - p.centerY))
+          .slice(0, 2);
+        if (matchedH.length > 0) {
+          const xP = Math.min(canvasWidth - 18, p.right + 16);
+          createMeasureLine(xP, p.top, xP, p.bottom, okColor);
+          createMeasureTag(`${Math.round(p.height)}h`, xP, p.centerY, okColor);
+          matchedH.forEach((q) => {
+            const xQ = Math.min(canvasWidth - 18, q.right + 16);
+            createMeasureLine(xQ, q.top, xQ, q.bottom, okColor);
+            createMeasureTag(`${Math.round(q.height)}h`, xQ, q.centerY, okColor);
+          });
+        }
+      }
+
       updateFloatingCoords(obj);
     });
 
-    canvas.on("mouse:up", clearGuides);
+    canvas.on("mouse:up", () => {
+      activeDragOrigin = null;
+      clearGuides();
+    });
 
     // Real-time Fraction Alignment & Sync
     function syncFraction(target) {
@@ -2999,7 +3489,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       // Discard active selection to revert child coordinates to world canvas space
       canvas.discardActiveObject();
 
-      if (alignmentType === "distributeH" || alignmentType === "distributeV") {
+      if (alignmentType === "tidyUp" || alignmentType === "distributeH" || alignmentType === "distributeV") {
         if (objects.length < 3) {
           const reSel = new fabric.ActiveSelection(objects, { canvas });
           canvas.setActiveObject(reSel);
@@ -3008,7 +3498,106 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
           return false;
         }
 
-        if (alignmentType === "distributeH") {
+        if (alignmentType === "tidyUp") {
+          const items = objects.map((obj) => ({ obj, ...getCanvasBounds(obj) }));
+          const sortedByY = [...items].sort((a, b) => a.centerY - b.centerY);
+          const rows = [];
+
+          sortedByY.forEach((item) => {
+            const curRow = rows[rows.length - 1];
+            if (!curRow) {
+              rows.push([item]);
+              return;
+            }
+            const avgY = curRow.reduce((s, r) => s + r.centerY, 0) / curRow.length;
+            const maxH = Math.max(...curRow.map((r) => r.height), item.height);
+            if (Math.abs(item.centerY - avgY) <= maxH * 0.55) {
+              curRow.push(item);
+            } else {
+              rows.push([item]);
+            }
+          });
+
+          rows.forEach((r) => r.sort((a, b) => a.centerX - b.centerX));
+
+          if (rows.length === 1) {
+            // Single horizontal row: align centerY + even horizontal spacing
+            const row = rows[0];
+            const rowCenterY = row.reduce((s, r) => s + r.centerY, 0) / row.length;
+            const first = row[0];
+            const last = row[row.length - 1];
+            const span = last.right - first.left - row.reduce((s, r) => s + r.width, 0);
+            const gap = span >= 4 ? span / (row.length - 1) : 16;
+            let curX = first.left;
+            row.forEach((it) => {
+              const targetCX = curX + it.width / 2;
+              shiftObjectBy(it.obj, targetCX - it.centerX, rowCenterY - it.centerY);
+              curX += it.width + gap;
+            });
+          } else if (rows.every((r) => r.length === 1)) {
+            // Single vertical column: align centerX + even vertical spacing
+            const col = rows.map((r) => r[0]);
+            const colCenterX = col.reduce((s, r) => s + r.centerX, 0) / col.length;
+            const first = col[0];
+            const last = col[col.length - 1];
+            const span = last.bottom - first.top - col.reduce((s, r) => s + r.height, 0);
+            const gap = span >= 4 ? span / (col.length - 1) : 16;
+            let curY = first.top;
+            col.forEach((it) => {
+              const targetCY = curY + it.height / 2;
+              shiftObjectBy(it.obj, colCenterX - it.centerX, targetCY - it.centerY);
+              curY += it.height + gap;
+            });
+          } else {
+            // 2D Grid auto-alignment
+            const maxCols = Math.max(...rows.map((r) => r.length));
+            const colWidths = Array(maxCols).fill(0);
+            const rowHeights = rows.map((r) => Math.max(...r.map((it) => it.height)));
+
+            rows.forEach((r) => {
+              r.forEach((it, cIdx) => {
+                colWidths[cIdx] = Math.max(colWidths[cIdx], it.width);
+              });
+            });
+
+            const hGaps = [];
+            rows.forEach((r) => {
+              for (let c = 0; c < r.length - 1; c++) {
+                const g = r[c + 1].left - r[c].right;
+                if (g >= 2) hGaps.push(g);
+              }
+            });
+            const vGaps = [];
+            for (let r = 0; r < rows.length - 1; r++) {
+              const rBot = Math.max(...rows[r].map((it) => it.bottom));
+              const nTop = Math.min(...rows[r + 1].map((it) => it.top));
+              if (nTop - rBot >= 2) vGaps.push(nTop - rBot);
+            }
+
+            const avgH = hGaps.length ? hGaps.reduce((s, g) => s + g, 0) / hGaps.length : 18;
+            const avgV = vGaps.length ? vGaps.reduce((s, g) => s + g, 0) / vGaps.length : 18;
+            const colGap = Math.max(12, Math.min(48, Math.round(avgH)));
+            const rowGap = Math.max(12, Math.min(48, Math.round(avgV)));
+
+            const colOffsets = [];
+            let curX = minLeft;
+            for (let c = 0; c < maxCols; c++) {
+              colOffsets.push(curX);
+              curX += colWidths[c] + colGap;
+            }
+
+            let curY = minTop;
+            rows.forEach((r, rIdx) => {
+              const cellH = rowHeights[rIdx];
+              r.forEach((it, cIdx) => {
+                const cellCenterX = colOffsets[cIdx] + colWidths[cIdx] / 2;
+                const cellCenterY = curY + cellH / 2;
+                shiftObjectBy(it.obj, cellCenterX - it.centerX, cellCenterY - it.centerY);
+              });
+              curY += cellH + rowGap;
+            });
+          }
+        } else if (alignmentType === "distributeH") {
           const sorted = [...objects].sort((a, b) => {
             const bA = a.getBoundingRect(true, true);
             const bB = b.getBoundingRect(true, true);
@@ -3162,6 +3751,11 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       const activeNow = canvas.getActiveObject();
       const isEditingText = isTextObj(activeNow) && !!activeNow.isEditing;
 
+      if (e.key === "Alt" && !isTyping && !isEditingText) {
+        if (!e.repeat) renderAltHoverGuides(lastAltEvent);
+        return;
+      }
+
       // Guaranteed way out of a stuck text edit: fabric normally handles Escape
       // on its hidden textarea, but if that listener is ever lost this still
       // lets the user cancel the edit instead of locking the canvas.
@@ -3311,6 +3905,10 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       }
     };
     const handleKeyUp = (e) => {
+      if (e.key === "Alt" && altMeasureActive) {
+        clearGuides();
+        canvas.requestRenderAll();
+      }
       if (/^Arrow(Up|Down|Left|Right)$/.test(e.key || "")) {
         clearGuides();
         canvas.requestRenderAll();
@@ -3329,6 +3927,10 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     window.addEventListener("keyup", handleKeyUp);
 
     const handleWindowBlur = () => {
+      if (altMeasureActive) {
+        clearGuides();
+        canvas.requestRenderAll();
+      }
       spaceDownRef.current = false;
       if (isPanningRef.current || toolRef.current === "pen" || toolRef.current === "highlighter") {
         isPanningRef.current = false;
@@ -3705,15 +4307,14 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     obj.dirty = true;
   };
 
-  const applyColor = useCallback((c) => {
+  const applyColor = useCallback((c, commit = true) => {
     setColor(c);
-    setHexInput(c);
     const canvas = fabricRef.current;
     const active = canvas?.getActiveObject();
     if (!canvas || !active) return;
     applyColorToObj(active, c);
     canvas.requestRenderAll();
-    commitCanvasChange(active);
+    if (commit) commitCanvasChange(active);
     canvas.refreshUI?.();
   }, [commitCanvasChange]);
 
@@ -4116,6 +4717,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       const arrow = new fabric.Path(pathData, {
         stroke: color || "#3b82f6",
         strokeWidth: 2.5,
+        strokeUniform: true,
         fill: "transparent",
         strokeLineCap: "round",
         strokeLineJoin: "round",
@@ -4158,6 +4760,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       top: pt.y,
       stroke: color || "#1a2540",
       strokeWidth: 2.5,
+      strokeUniform: true,
       fill: "transparent",
       strokeLineCap: "round",
       strokeLineJoin: "round",
@@ -4166,6 +4769,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     arrow.shapeKind = "arrow";
     arrow.connectorKind = "straight";
     arrow.arrowHead = head;
+    arrow.isLocalArrow = true;
     ensureLayerId(arrow);
     canvas.add(arrow);
     canvas.setActiveObject(arrow);
@@ -4189,6 +4793,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       top: Math.max(20, pt.y - 25),
       stroke: color || "#1a2540",
       strokeWidth: 2.5,
+      strokeUniform: true,
       fill: "transparent",
       strokeLineCap: "round",
       strokeLineJoin: "round",
@@ -4198,6 +4803,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     arrow.connectorKind = "curved";
     arrow.bend = customBend;
     arrow.arrowHead = head;
+    arrow.isLocalArrow = true;
     ensureLayerId(arrow);
     canvas.add(arrow);
     canvas.setActiveObject(arrow);
@@ -4221,6 +4827,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       top: Math.max(20, pt.y - 40),
       stroke: color || "#1a2540",
       strokeWidth: 2.5,
+      strokeUniform: true,
       fill: "transparent",
       strokeLineCap: "round",
       strokeLineJoin: "round",
@@ -4229,6 +4836,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     arrow.shapeKind = "elbowArrow";
     arrow.connectorKind = "elbow";
     arrow.arrowHead = head;
+    arrow.isLocalArrow = true;
     ensureLayerId(arrow);
     canvas.add(arrow);
     canvas.setActiveObject(arrow);
@@ -4340,6 +4948,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     const pathOptions = {
       stroke: prevStroke,
       strokeWidth: prevStrokeWidth,
+      strokeUniform: true,
       strokeDashArray: prevStrokeDash,
       opacity: prevOpacity,
       fill: "transparent",
@@ -4358,8 +4967,11 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     newArrow.bend = currentBend;
     newArrow.arrowHead = currentHead;
     newArrow.isSmartConnector = !!(fromId && toId);
+    newArrow.isLocalArrow = !isAnchored;
     newArrow.connectedFromId = fromId;
     newArrow.connectedToId = toId;
+    configureArrow(newArrow);
+    ensureLayerId(newArrow);
 
     if (idx >= 0 && idx < canvas._objects.length) {
       canvas.insertAt(newArrow, idx, false);
@@ -4622,6 +5234,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       const arrow = new fabric.Path(pathD, {
         stroke: color || "#3b82f6",
         strokeWidth: 2.5,
+        strokeUniform: true,
         fill: "transparent",
         strokeLineCap: "round",
         strokeLineJoin: "round",
@@ -4691,6 +5304,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
           const arrow = new fabric.Path(pathD, {
             stroke: "#3b82f6",
             strokeWidth: 2.5,
+            strokeUniform: true,
             fill: "transparent",
             strokeLineCap: "round",
             strokeLineJoin: "round",
@@ -4801,6 +5415,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
           const arrow = new fabric.Path(pathD, {
             stroke: "#475569",
             strokeWidth: 2.2,
+            strokeUniform: true,
             fill: "transparent",
             strokeLineCap: "round",
             strokeLineJoin: "round",
@@ -4889,6 +5504,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
           const arrow = new fabric.Path(pathD, {
             stroke: "#2563eb",
             strokeWidth: 2.5,
+            strokeUniform: true,
             fill: "transparent",
             strokeLineCap: "round",
             strokeLineJoin: "round",
@@ -4949,6 +5565,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
         const arrow = new fabric.Path(arc.d, {
           stroke: "#dc2626",
           strokeWidth: 2.2,
+          strokeUniform: true,
           fill: "transparent",
           strokeLineCap: "round",
           strokeLineJoin: "round",
@@ -5014,6 +5631,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       const diag1 = new fabric.Path(buildStraightArrowPath(startX + 90, startY + 12, startX + 180, startY + 58, "both"), {
         stroke: "#ef4444",
         strokeWidth: 2,
+        strokeUniform: true,
         strokeDashArray: [4, 3],
         fill: "transparent"
       });
@@ -5023,6 +5641,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       const diag2 = new fabric.Path(buildStraightArrowPath(startX + 90, startY + 58, startX + 180, startY + 12, "both"), {
         stroke: "#2563eb",
         strokeWidth: 2,
+        strokeUniform: true,
         strokeDashArray: [4, 3],
         fill: "transparent"
       });
@@ -5061,16 +5680,19 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
         fill: "rgba(59, 130, 246, 0.08)",
         stroke: "#2563eb",
         strokeWidth: 2.5,
+        strokeUniform: true,
         originX: "center",
         originY: "center"
       });
       const hLine = new fabric.Line([startX + 108, startY + 72, startX + 192, startY + 72], {
         stroke: "#2563eb",
-        strokeWidth: 2.2
+        strokeWidth: 2.2,
+        strokeUniform: true
       });
       const vLine = new fabric.Line([startX + 150, startY + 72, startX + 150, startY + 136], {
         stroke: "#2563eb",
-        strokeWidth: 2.2
+        strokeWidth: 2.2,
+        strokeUniform: true
       });
       const dTxt = new fabric.Textbox("D", {
         left: startX + 130,
@@ -5254,14 +5876,14 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     setTool("move");
   }, []);
 
-  const applyActiveFill = useCallback((c) => {
+  const applyActiveFill = useCallback((c, commit = true) => {
     const canvas = fabricRef.current;
     const active = canvas?.getActiveObject();
     if (!canvas || !active) return;
     active.set("fill", c);
     active.dirty = true;
     canvas.requestRenderAll();
-    commitCanvasChange(active);
+    if (commit) commitCanvasChange(active);
     if (typeof canvas.refreshUI === "function") canvas.refreshUI();
   }, [commitCanvasChange]);
 
@@ -5276,7 +5898,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     if (typeof canvas.refreshUI === "function") canvas.refreshUI();
   }, [commitCanvasChange]);
 
-  const applyActiveStroke = useCallback((c) => {
+  const applyActiveStroke = useCallback((c, commit = true) => {
     const canvas = fabricRef.current;
     const active = canvas?.getActiveObject();
     if (!canvas || !active) return;
@@ -5286,7 +5908,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     }
     active.dirty = true;
     canvas.requestRenderAll();
-    commitCanvasChange(active);
+    if (commit) commitCanvasChange(active);
     if (typeof canvas.refreshUI === "function") canvas.refreshUI();
   }, [commitCanvasChange]);
 
@@ -5916,7 +6538,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                     onClick={() => toggleLayerLock(obj)}
                     title={isLocked ? "Unlock Layer" : "Lock Layer"}
                     aria-label={isLocked ? "Unlock Layer" : "Lock Layer"}
-                    style={isLocked ? { color: "#f5a623" } : undefined}
+                    style={isLocked ? { color: "var(--accent, #f5a623)" } : undefined}
                   >
                     {isLocked ? <Lock size={13} /> : <Unlock size={13} />}
                   </button>
@@ -6485,54 +7107,13 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
               />
             </button>
             {colorPickerOpen && (
-              <div className="draw-popover-menu" style={{ width: 240, padding: 12 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, opacity: 0.75, marginBottom: 10 }}>Color Palette</div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: 6, marginBottom: 12 }}>
-                  {PICKER_COLORS.map(c => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => applyColor(c)}
-                      title={c}
-                      aria-label={`Color ${c}`}
-                      style={{
-                        width: 22, height: 22, borderRadius: "50%", background: c, cursor: "pointer", padding: 0,
-                        border: color === c ? "2px solid var(--text)" : "1px solid rgba(0,0,0,0.15)",
-                        boxShadow: color === c ? "0 0 0 2px #f5a623" : "none"
-                      }}
-                    />
-                  ))}
-                </div>
-                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                  <input
-                    type="color"
-                    value={/^#[0-9a-fA-F]{6}$/.test(color) ? color : "#1a2540"}
-                    onChange={e => applyColor(e.target.value)}
-                    title="Native color picker"
-                    aria-label="Native color picker"
-                    style={{ width: 34, height: 28, padding: 0, border: "1px solid var(--border)", borderRadius: 6, background: "transparent", cursor: "pointer" }}
-                  />
-                  <input
-                    type="text"
-                    value={hexInput}
-                    onChange={e => {
-                      const v = e.target.value;
-                      setHexInput(v);
-                      if (/^#[0-9a-fA-F]{6}$/.test(v)) applyColor(v);
-                    }}
-                    onKeyDown={e => {
-                      if (e.key === "Enter") {
-                        if (/^#[0-9a-fA-F]{6}$/.test(hexInput)) applyColor(hexInput);
-                        e.currentTarget.blur();
-                      }
-                      if (e.key === "Escape") e.currentTarget.blur();
-                    }}
-                    placeholder="#1a2540"
-                    aria-label="Hex color code"
-                    title="Enter a hex color code and press Enter"
-                    style={{ flex: 1, minWidth: 0, padding: "4px 8px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--input-bg)", color: "var(--text)", fontFamily: "'Fira Mono',monospace", fontSize: 11, outline: "none" }}
-                  />
-                </div>
+              <div className="draw-popover-menu" style={{ width: 252, padding: 12 }}>
+                <ColorPickerPanel
+                  title="Color Palette"
+                  value={color}
+                  presets={PICKER_COLORS}
+                  onChange={(nextColor, commit) => applyColor(nextColor, commit)}
+                />
               </div>
             )}
             <div className="draw-bar-subdivider" />
@@ -6643,6 +7224,16 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                           Vert
                         </button>
                       </div>
+                      <button
+                        type="button"
+                        className="draw-tb"
+                        style={{ width: "100%", justifyContent: "center", fontSize: 11, gap: 5, padding: "5px 6px", marginTop: 4 }}
+                        onClick={() => { handleAlign("tidyUp"); setAlignMenuOpen(false); }}
+                        title="Auto-align & evenly space into neat rows/columns"
+                      >
+                        <Grid size={13} />
+                        Tidy Up Grid
+                      </button>
                     </>
                   )}
                 </div>
@@ -6801,6 +7392,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
             }}
           >
             <div
+              ref={floatingBarRef}
               className="draw-canva-floating-bar"
               onMouseDown={(e) => e.stopPropagation()}
             >
@@ -6810,7 +7402,10 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                   <button
                     type="button"
                     className="draw-canva-pill-btn"
-                    onClick={() => setFloatingPopover(p => p === "fill" ? null : "fill")}
+                    onClick={() => {
+                      setFloatingCustomColor(null);
+                      setFloatingPopover(p => p === "fill" ? null : "fill");
+                    }}
                     title={activeObjProps.isText ? "Text & Card Color" : "Fill Color"}
                   >
                     <span
@@ -6832,7 +7427,10 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                     </span>
                   </button>
                   {floatingPopover === "fill" && (
-                    <div className={`draw-floating-popover${selectionBounds.openPopoverUpward ? " is-upward" : ""}`} style={{ width: 196 }}>
+                    <div
+                      className={`draw-floating-popover${selectionBounds.openPopoverUpward ? " is-upward" : ""}`}
+                      style={{ width: floatingCustomColor === "fill" ? 236 : 196 }}
+                    >
                       <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8, color: "var(--text-muted)" }}>
                         {activeObjProps.isText ? "Text Color" : "Fill Color"}
                       </div>
@@ -6858,6 +7456,27 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                           />
                         ))}
                       </div>
+                      <button
+                        type="button"
+                        className={`draw-cp-custom-toggle${floatingCustomColor === "fill" ? " is-open" : ""}`}
+                        onClick={() => setFloatingCustomColor(prev => prev === "fill" ? null : "fill")}
+                      >
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                          <span className="draw-cp-rainbow-dot" />
+                          Custom Color
+                        </span>
+                        <span style={{ fontSize: 10, opacity: 0.7 }}>{floatingCustomColor === "fill" ? "Hide" : "Pick"}</span>
+                      </button>
+                      {floatingCustomColor === "fill" && (
+                        <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--border)" }}>
+                          <ColorPickerPanel
+                            compact
+                            allowTransparent={!activeObjProps.isText}
+                            value={activeObjProps.fill || "#1a2540"}
+                            onChange={(nextColor, commit) => applyActiveFill(nextColor, commit)}
+                          />
+                        </div>
+                      )}
                       {activeObjProps.isText && (
                         <>
                           <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6, paddingTop: 8, borderTop: "1px solid var(--border)", color: "var(--text-muted)" }}>
@@ -6909,7 +7528,10 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                   <button
                     type="button"
                     className="draw-canva-pill-btn"
-                    onClick={() => setFloatingPopover(p => p === "stroke" ? null : "stroke")}
+                    onClick={() => {
+                      setFloatingCustomColor(null);
+                      setFloatingPopover(p => p === "stroke" ? null : "stroke");
+                    }}
                     title="Stroke & Border"
                   >
                     <span
@@ -6924,11 +7546,14 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                     <span style={{ fontSize: 11, fontWeight: 600 }}>{activeObjProps.isFreePath ? "Stroke" : "Border"}</span>
                   </button>
                   {floatingPopover === "stroke" && (
-                    <div className={`draw-floating-popover${selectionBounds.openPopoverUpward ? " is-upward" : ""}`} style={{ width: 215 }}>
+                    <div
+                      className={`draw-floating-popover${selectionBounds.openPopoverUpward ? " is-upward" : ""}`}
+                      style={{ width: floatingCustomColor === "stroke" ? 236 : 215 }}
+                    >
                       <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8, color: "var(--text-muted)" }}>
                         Border Color
                       </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 6, marginBottom: 10 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 6, marginBottom: 8 }}>
                         {COLORS.concat(["#ef4444", "#3b82f6", "#10b981"]).map((c) => (
                           <button
                             key={c}
@@ -6946,6 +7571,27 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                           />
                         ))}
                       </div>
+                      <button
+                        type="button"
+                        className={`draw-cp-custom-toggle${floatingCustomColor === "stroke" ? " is-open" : ""}`}
+                        style={{ marginTop: 0, marginBottom: 10 }}
+                        onClick={() => setFloatingCustomColor(prev => prev === "stroke" ? null : "stroke")}
+                      >
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                          <span className="draw-cp-rainbow-dot" />
+                          Custom Color
+                        </span>
+                        <span style={{ fontSize: 10, opacity: 0.7 }}>{floatingCustomColor === "stroke" ? "Hide" : "Pick"}</span>
+                      </button>
+                      {floatingCustomColor === "stroke" && (
+                        <div style={{ marginBottom: 10, paddingBottom: 8, borderBottom: "1px solid var(--border)" }}>
+                          <ColorPickerPanel
+                            compact
+                            value={activeObjProps.stroke === "transparent" ? "#1a2540" : (activeObjProps.stroke || "#1a2540")}
+                            onChange={(nextColor, commit) => applyActiveStroke(nextColor, commit)}
+                          />
+                        </div>
+                      )}
                       <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6, color: "var(--text-muted)" }}>
                         Border Thickness
                       </div>

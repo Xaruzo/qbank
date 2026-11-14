@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import {
   X,
@@ -40,8 +40,12 @@ export interface SolutionSizeEstimatorModalProps {
 
 const LETTERS = ["A", "B", "C", "D", "E"];
 
-export default function SolutionSizeEstimatorModal({
-  isOpen,
+export default function SolutionSizeEstimatorModal(props: SolutionSizeEstimatorModalProps) {
+  if (!props.isOpen) return null;
+  return <SolutionSizeEstimatorDialog {...props} />;
+}
+
+function SolutionSizeEstimatorDialog({
   onClose,
   imageSrc,
   canvasWidth,
@@ -93,7 +97,54 @@ export default function SolutionSizeEstimatorModal({
   const renderedDiagramHeight = Math.round((simulatedContainerWidth / canvasWidth) * canvasHeight);
   const scalePercent = Math.round((simulatedContainerWidth / canvasWidth) * 100);
 
-  if (!isOpen) return null;
+  // Sliding focus box indicator (vertical on desktop/tablet, horizontal on mobile)
+  const navGroupRef = useRef<HTMLDivElement | null>(null);
+  const deviceBtnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [glider, setGlider] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+    ready: boolean;
+  }>({ left: 0, top: 0, width: 0, height: 0, ready: false });
+
+  useLayoutEffect(() => {
+    const updateGlider = () => {
+      const btn = deviceBtnRefs.current[deviceMode];
+      if (!btn) return;
+      setGlider({
+        left: btn.offsetLeft,
+        top: btn.offsetTop,
+        width: btn.offsetWidth,
+        height: btn.offsetHeight,
+        ready: true,
+      });
+    };
+
+    updateGlider();
+
+    const navEl = navGroupRef.current;
+    let lastW = navEl?.clientWidth ?? 0;
+    let lastH = navEl?.clientHeight ?? 0;
+
+    let observer: ResizeObserver | undefined;
+    if (navEl && typeof ResizeObserver !== "undefined") {
+      observer = new ResizeObserver(() => {
+        if (navEl.clientWidth !== lastW || navEl.clientHeight !== lastH) {
+          lastW = navEl.clientWidth;
+          lastH = navEl.clientHeight;
+          updateGlider();
+        }
+      });
+      observer.observe(navEl);
+    }
+
+    window.addEventListener("resize", updateGlider);
+    return () => {
+      window.removeEventListener("resize", updateGlider);
+      observer?.disconnect();
+    };
+  }, [deviceMode]);
 
   return createPortal(
     <div
@@ -108,11 +159,10 @@ export default function SolutionSizeEstimatorModal({
       <div className="qb-sol-estimator-container">
         {/* Header */}
         <div className="qb-sol-estimator-header">
-          {/* Top Row: Title, Icon, Badge, and Close Button */}
           <div className="qb-sol-estimator-header-top">
             <div className="qb-sol-estimator-header-left">
               <div className="qb-sol-estimator-icon-wrap" aria-hidden="true">
-                <ScanEye size={22} className="qb-sol-estimator-icon" />
+                <ScanEye size={20} className="qb-sol-estimator-icon" />
               </div>
               <div className="qb-sol-estimator-title-block">
                 <div className="qb-sol-estimator-title-row">
@@ -120,11 +170,11 @@ export default function SolutionSizeEstimatorModal({
                     Solution Display Size & Resolution Estimator
                   </h3>
                   <span className="qb-sol-estimator-badge">
-                    <Sparkles size={13} /> Real-time Simulation
+                    <Sparkles size={12} /> Real-time Simulation
                   </span>
                 </div>
                 <p className="qb-sol-estimator-sub">
-                  Shows exactly how this diagram scales and renders on the question card just below the problem choices.
+                  Shows how this diagram scales and renders on the question card below the problem choices.
                 </p>
               </div>
             </div>
@@ -136,107 +186,160 @@ export default function SolutionSizeEstimatorModal({
               aria-label="Close estimator"
               title="Close (Esc)"
             >
-              <X size={20} />
+              <X size={18} />
             </button>
           </div>
-
-          {/* Viewport device switcher strip (dedicated row, spacious & responsive) */}
-          <div className="qb-sol-estimator-devices-row">
-            <div className="qb-sol-estimator-devices" role="group" aria-label="Device viewport mode">
-              <button
-                type="button"
-                className={`qb-sol-device-btn${deviceMode === "desktop" ? " is-active" : ""}`}
-                onClick={() => setDeviceMode("desktop")}
-                title="Desktop Solution Card (~680px width)"
-              >
-                <Monitor size={18} className="qb-sol-device-icon" />
-                <span className="qb-sol-device-label">Desktop (680px)</span>
-              </button>
-              <button
-                type="button"
-                className={`qb-sol-device-btn${deviceMode === "tablet" ? " is-active" : ""}`}
-                onClick={() => setDeviceMode("tablet")}
-                title="Tablet Solution Card (~520px width)"
-              >
-                <Tablet size={18} className="qb-sol-device-icon" />
-                <span className="qb-sol-device-label">Tablet (520px)</span>
-              </button>
-              <button
-                type="button"
-                className={`qb-sol-device-btn${deviceMode === "mobile" ? " is-active" : ""}`}
-                onClick={() => setDeviceMode("mobile")}
-                title="Mobile Solution Card (~340px width)"
-              >
-                <Smartphone size={18} className="qb-sol-device-icon" />
-                <span className="qb-sol-device-label">Mobile (340px)</span>
-              </button>
-              <button
-                type="button"
-                className={`qb-sol-device-btn${deviceMode === "native" ? " is-active" : ""}`}
-                onClick={() => setDeviceMode("native")}
-                title="1:1 Native Canvas Resolution"
-              >
-                <Maximize2 size={18} className="qb-sol-device-icon" />
-                <span className="qb-sol-device-label">1:1 Native</span>
-              </button>
-            </div>
-          </div>
         </div>
 
-        {/* Technical Metrics Strip */}
-        <div className="qb-sol-estimator-metrics-strip">
-          <div className="qb-sol-metric-card">
-            <span className="qb-sol-metric-label">Export / Retina Resolution</span>
-            <div className="qb-sol-metric-val tabular-nums">
-              {retinaWidth} × {retinaHeight} <span className="qb-sol-metric-unit">px</span>
+        {/* Main Workspace: Left Inspector Sidebar (Desktop/Tablet) + Right Preview Body */}
+        <div className="qb-sol-estimator-workspace">
+          <aside className="qb-sol-estimator-sidebar" aria-label="Viewport presets and live specifications">
+            {/* Viewport Device Switcher */}
+            <div className="qb-sol-sidebar-section qb-sol-sidebar-devices-section">
+              <div className="qb-sol-sidebar-heading">
+                <span>VIEWPORT MODE</span>
+                <span className="qb-sol-sidebar-count">4 presets</span>
+              </div>
+              <div
+                ref={navGroupRef}
+                className="qb-sol-estimator-devices"
+                role="group"
+                aria-label="Device viewport mode"
+              >
+                {glider.ready && (
+                  <div
+                    className="qb-sol-nav-indicator"
+                    style={{
+                      transform: `translate3d(${glider.left}px, ${glider.top}px, 0)`,
+                      width: `${glider.width}px`,
+                      height: `${glider.height}px`,
+                    }}
+                    aria-hidden="true"
+                  />
+                )}
+                <button
+                  ref={(el) => { deviceBtnRefs.current.desktop = el; }}
+                  type="button"
+                  className={`qb-sol-device-btn${deviceMode === "desktop" ? " is-active" : ""}`}
+                  onClick={() => setDeviceMode("desktop")}
+                  title="Desktop Solution Card (~680px width)"
+                >
+                  <span className="qb-sol-device-icon-box" aria-hidden="true">
+                    <Monitor size={16} className="qb-sol-device-icon" />
+                  </span>
+                  <span className="qb-sol-device-label">
+                    <span className="qb-sol-device-name">Desktop</span>
+                    <span className="qb-sol-device-dim">680px card width</span>
+                  </span>
+                </button>
+                <button
+                  ref={(el) => { deviceBtnRefs.current.tablet = el; }}
+                  type="button"
+                  className={`qb-sol-device-btn${deviceMode === "tablet" ? " is-active" : ""}`}
+                  onClick={() => setDeviceMode("tablet")}
+                  title="Tablet Solution Card (~520px width)"
+                >
+                  <span className="qb-sol-device-icon-box" aria-hidden="true">
+                    <Tablet size={16} className="qb-sol-device-icon" />
+                  </span>
+                  <span className="qb-sol-device-label">
+                    <span className="qb-sol-device-name">Tablet</span>
+                    <span className="qb-sol-device-dim">520px tablet width</span>
+                  </span>
+                </button>
+                <button
+                  ref={(el) => { deviceBtnRefs.current.mobile = el; }}
+                  type="button"
+                  className={`qb-sol-device-btn${deviceMode === "mobile" ? " is-active" : ""}`}
+                  onClick={() => setDeviceMode("mobile")}
+                  title="Mobile Solution Card (~340px width)"
+                >
+                  <span className="qb-sol-device-icon-box" aria-hidden="true">
+                    <Smartphone size={16} className="qb-sol-device-icon" />
+                  </span>
+                  <span className="qb-sol-device-label">
+                    <span className="qb-sol-device-name">Mobile</span>
+                    <span className="qb-sol-device-dim">340px phone width</span>
+                  </span>
+                </button>
+                <button
+                  ref={(el) => { deviceBtnRefs.current.native = el; }}
+                  type="button"
+                  className={`qb-sol-device-btn${deviceMode === "native" ? " is-active" : ""}`}
+                  onClick={() => setDeviceMode("native")}
+                  title="1:1 Native Canvas Resolution"
+                >
+                  <span className="qb-sol-device-icon-box" aria-hidden="true">
+                    <Maximize2 size={16} className="qb-sol-device-icon" />
+                  </span>
+                  <span className="qb-sol-device-label">
+                    <span className="qb-sol-device-name">1:1 Native</span>
+                    <span className="qb-sol-device-dim">{canvasWidth}px canvas</span>
+                  </span>
+                </button>
+              </div>
             </div>
-            <span className="qb-sol-metric-sub">
-              {exportMultiplier}× HiDPI rasterization · Razor-sharp formulas
-            </span>
-          </div>
 
-          <div className="qb-sol-metric-card">
-            <span className="qb-sol-metric-label">Solution Display Size</span>
-            <div className="qb-sol-metric-val tabular-nums">
-              {simulatedContainerWidth} × {renderedDiagramHeight} <span className="qb-sol-metric-unit">px</span>
+            {/* Technical Metrics Strip */}
+            <div className="qb-sol-sidebar-section qb-sol-sidebar-metrics-section">
+              <div className="qb-sol-sidebar-heading">
+                <span>LIVE TELEMETRY</span>
+              </div>
+              <div className="qb-sol-estimator-metrics-strip">
+                <div className="qb-sol-metric-card">
+                  <span className="qb-sol-metric-label">Export / Retina</span>
+                  <div className="qb-sol-metric-val tabular-nums">
+                    {retinaWidth} × {retinaHeight} <span className="qb-sol-metric-unit">px</span>
+                  </div>
+                  <span className="qb-sol-metric-sub">
+                    {exportMultiplier}× HiDPI · Sharp formulas
+                  </span>
+                </div>
+
+                <div className="qb-sol-metric-card">
+                  <span className="qb-sol-metric-label">Solution Display</span>
+                  <div className="qb-sol-metric-val tabular-nums">
+                    {simulatedContainerWidth} × {renderedDiagramHeight} <span className="qb-sol-metric-unit">px</span>
+                  </div>
+                  <span className="qb-sol-metric-sub">
+                    Ratio {aspectRatio}:1 · 100% width
+                  </span>
+                </div>
+
+                <div className="qb-sol-metric-card">
+                  <span className="qb-sol-metric-label">Display Scale</span>
+                  <div className="qb-sol-metric-val tabular-nums">
+                    {scalePercent}% <span className="qb-sol-metric-unit">scale</span>
+                  </div>
+                  <span className="qb-sol-metric-sub">
+                    {deviceMode === "mobile"
+                      ? "Auto-scaled for phones"
+                      : "Zero horizontal scroll"}
+                  </span>
+                </div>
+
+                <div className="qb-sol-metric-card">
+                  <span className="qb-sol-metric-label">Est. PNG Size</span>
+                  <div className="qb-sol-metric-val tabular-nums">
+                    ~{estimatedFileSizeKB} <span className="qb-sol-metric-unit">KB</span>
+                  </div>
+                  <span className="qb-sol-metric-sub">
+                    <CheckCircle2 size={12} className="qb-sol-metric-ok-icon text-emerald-400 inline mr-1" />
+                    Ultra-light · Instant load
+                  </span>
+                </div>
+              </div>
             </div>
-            <span className="qb-sol-metric-sub">
-              Aspect Ratio {aspectRatio}:1 · Responsive 100% width
-            </span>
-          </div>
+          </aside>
 
-          <div className="qb-sol-metric-card">
-            <span className="qb-sol-metric-label">Display Scale Factor</span>
-            <div className="qb-sol-metric-val tabular-nums">
-              {scalePercent}% <span className="qb-sol-metric-unit">scale</span>
+          {/* Main Body: Scrollable Question & Solution Mockup */}
+          <div className="qb-sol-estimator-body">
+            <div className="qb-sol-estimator-body-intro">
+              <Info size={16} className="qb-sol-estimator-info-icon" />
+              <span>
+                Below is the exact view examinees see when they reveal the step-by-step solution for this question:
+              </span>
             </div>
-            <span className="qb-sol-metric-sub">
-              {deviceMode === "mobile"
-                ? "Auto-scaled for phone screens"
-                : "Optimal reading size · Zero horizontal scroll"}
-            </span>
-          </div>
-
-          <div className="qb-sol-metric-card">
-            <span className="qb-sol-metric-label">Estimated PNG Weight</span>
-            <div className="qb-sol-metric-val tabular-nums">
-              ~{estimatedFileSizeKB} <span className="qb-sol-metric-unit">KB</span>
-            </div>
-            <span className="qb-sol-metric-sub">
-              <CheckCircle2 size={15} className="qb-sol-metric-ok-icon text-emerald-400 inline mr-1" />
-              Ultra-lightweight · Instant load for test-takers
-            </span>
-          </div>
-        </div>
-
-        {/* Main Body: Scrollable Question & Solution Mockup */}
-        <div className="qb-sol-estimator-body">
-          <div className="qb-sol-estimator-body-intro">
-            <Info size={18} className="qb-sol-estimator-info-icon" />
-            <span>
-              Below is the exact view examinees see when they reveal the step-by-step solution for this question:
-            </span>
-          </div>
 
           <div
             className="qb-sol-mockup-frame"
@@ -336,6 +439,7 @@ export default function SolutionSizeEstimatorModal({
               </div>
             </div>
           </div>
+          </div>
         </div>
 
         {/* Footer Actions */}
@@ -350,7 +454,7 @@ export default function SolutionSizeEstimatorModal({
                   className="qb-sol-estimator-checkbox"
                 />
                 <span className="qb-sol-estimator-toggle-text">
-                  Show Solution Safe Area overlay on Whiteboard canvas
+                  Show Safe Area overlay on canvas
                 </span>
               </label>
             )}

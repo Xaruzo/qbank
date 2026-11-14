@@ -2,6 +2,32 @@
    MOBILE & TABLET RESPONSIVE ENHANCEMENTS (Industry Standard Touch Layout)
    Addresses cramped screens, squished buttons, small touch targets, and contrast
    ══════════════════════════════════════════════════════════════════════════ */
+/* Tablet Split Sidebar Tuning (769px – 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .qb-sol-estimator-overlay {
+    padding: 14px;
+  }
+
+  .qb-sol-estimator-container {
+    height: 92vh;
+  }
+
+  .qb-sol-estimator-sidebar {
+    width: 224px;
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .qb-sol-device-btn {
+    padding: 7px 9px;
+    gap: 8px;
+  }
+
+  .qb-sol-estimator-body {
+    padding: 14px;
+  }
+}
+
 @media (max-width: 768px) {
   .qb-sol-estimator-overlay {
     padding: 0;
@@ -18,106 +44,323 @@
   }
 
   .qb-sol-estimator-header {
-    padding: 14px 16px;
-    gap: 12px;
+    padding: 10px 12px;
+    gap: 8px;
+    flex-shrink: 0;
   }
 
   .qb-sol-estimator-header-top {
-    gap: 12px;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .qb-sol-estimator-header-left {
+    gap: 8px;
+    align-items: center;
   }
 
   .qb-sol-estimator-icon-wrap {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+  }
+
+  .qb-sol-estimator-icon {
+    width: 17px;
+    height: 17px;
   }
 
   .qb-sol-estimator-title {
-    font-size: 15px;
-  }
-
-  .qb-sol-estimator-sub {
-    display: none;
-  }
-
-  /* Compact Horizontal Metric Strip on Mobile to save vertical screen space */
-  .qb-sol-estimator-metrics-strip {
-    display: flex;
-    overflow-x: auto;
-    flex-wrap: nowrap;
-    gap: 8px;
-    padding: 8px 12px;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-    grid-template-columns: none;
-  }
-
-  .qb-sol-estimator-metrics-strip::-webkit-scrollbar {
-    display: none;
-  }
-
-  .qb-sol-metric-card {
-    padding: 8px 11px;
-    flex-shrink: 0;
-    min-width: 150px;
-    border-radius: 10px;
-  }
-
-  .qb-sol-metric-val {
-    font-size: 14.5px;
-    margin: 2px 0;
-  }
-
-  .qb-sol-metric-sub {
-    font-size: 10.5px;
+    font-size: 13.5px;
     line-height: 1.25;
   }
 
+  .qb-sol-estimator-badge,
+  .qb-sol-estimator-sub,
+  .qb-sol-sidebar-heading {
+    display: none;
+  }
+
+  .qb-sol-estimator-close-btn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    border-radius: 9px;
+  }
+
+  /* On Mobile: Stack sidebar sections horizontally above preview body */
+  .qb-sol-estimator-workspace {
+    flex-direction: column;
+  }
+
+  .qb-sol-estimator-sidebar {
+    width: 100%;
+    border-right: none;
+    padding: 0;
+    gap: 0;
+    overflow: visible;
+    flex-shrink: 0;
+    background: transparent;
+  }
+
+  html.light .qb-sol-estimator-sidebar,
+  body.light .qb-sol-estimator-sidebar {
+    background: transparent;
+    border-right: none;
+  }
+
+  .qb-sol-sidebar-devices-section {
+    padding: 6px 12px;
+    background: #080e1e;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  html.light .qb-sol-sidebar-devices-section,
+  body.light .qb-sol-sidebar-devices-section {
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  /* Device Switcher: Clean non-overlapping 4-column segmented bar */
+  .qb-sol-estimator-devices {
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    padding: 3px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  html.light .qb-sol-estimator-devices,
+  body.light .qb-sol-estimator-devices {
+    background: #eef2f6;
+    border: 1px solid #cbd5e1;
+  }
+
+  .qb-sol-device-btn {
+    flex: 1 1 0;
+    justify-content: center;
+    padding: 5px 4px;
+    min-height: 34px;
+    gap: 4px;
+    font-size: 11.5px;
+    border-radius: 7px;
+    border: 1px solid transparent;
+    background: transparent;
+    text-align: center;
+    box-shadow: none;
+  }
+
+  .qb-sol-device-icon-box {
+    width: auto;
+    height: auto;
+    background: transparent;
+    color: inherit;
+  }
+
+  .qb-sol-device-icon {
+    width: 14px;
+    height: 14px;
+  }
+
+  .qb-sol-device-label {
+    flex-direction: row;
+  }
+
+  .qb-sol-device-name {
+    font-size: 11.5px;
+    font-weight: 600;
+  }
+
+  .qb-sol-device-dim {
+    display: none;
+  }
+
+  .qb-sol-device-btn:hover {
+    transform: none;
+  }
+
+  .qb-sol-nav-indicator {
+    border-radius: 7px;
+    background: #0284c7;
+    border-color: #38bdf8;
+    box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
+  }
+
+  html.light .qb-sol-nav-indicator,
+  body.light .qb-sol-nav-indicator {
+    background: #0284c7;
+    border-color: #0284c7;
+    box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
+  }
+
+  .qb-sol-device-btn.is-active {
+    color: #ffffff;
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+  }
+
+  .qb-sol-device-btn.is-active .qb-sol-device-icon-box {
+    background: transparent;
+    color: #ffffff;
+    transform: none;
+  }
+
+  html.light .qb-sol-device-btn,
+  body.light .qb-sol-device-btn {
+    background: transparent;
+    border-color: transparent;
+    color: #1e293b;
+  }
+
+  html.light .qb-sol-device-btn.is-active,
+  body.light .qb-sol-device-btn.is-active {
+    color: #ffffff;
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+  }
+
+  html.light .qb-sol-device-btn.is-active .qb-sol-device-icon-box,
+  body.light .qb-sol-device-btn.is-active .qb-sol-device-icon-box {
+    background: transparent;
+    color: #ffffff;
+  }
+
+  /* Compact 2x2 Metric Grid on Mobile — zero clipping, all 4 metrics visible */
+  .qb-sol-estimator-metrics-strip {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    padding: 6px 12px;
+    background: #060a16;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
+  }
+
+  html.light .qb-sol-estimator-metrics-strip,
+  body.light .qb-sol-estimator-metrics-strip {
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .qb-sol-metric-card {
+    padding: 5px 8px;
+    min-width: 0;
+    border-radius: 8px;
+  }
+
+  .qb-sol-metric-label {
+    font-size: 9.5px;
+    letter-spacing: 0.3px;
+  }
+
+  .qb-sol-metric-val {
+    font-size: 13px;
+    margin: 2px 0 0;
+    gap: 3px;
+  }
+
+  .qb-sol-metric-unit {
+    font-size: 10.5px;
+  }
+
+  .qb-sol-metric-sub {
+    display: none;
+  }
+
   .qb-sol-estimator-body {
-    flex: 1 1 auto;
+    flex: 1 1 0%;
     min-height: 0;
     overflow-y: auto;
     width: 100%;
-    padding: 12px;
+    padding: 10px;
     box-sizing: border-box;
   }
 
   .qb-sol-estimator-body-intro {
-    font-size: 11.5px;
-    margin-bottom: 10px;
+    display: none;
   }
 
   .qb-sol-mockup-card {
-    padding: 16px 14px;
-    border-radius: 14px;
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .qb-sol-mockup-meta {
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  .qb-sol-mockup-topic-tag,
+  .qb-sol-mockup-label-tag {
+    font-size: 10px;
+    padding: 3px 7px;
+  }
+
+  .qb-sol-mockup-mode-pill {
+    font-size: 10px;
   }
 
   .qb-sol-mockup-question-text {
-    font-size: 15px;
+    font-size: 14px;
+    line-height: 1.5;
+    margin-bottom: 12px;
   }
 
-  /* Mobile-first Touch Footer */
+  .qb-sol-mockup-choices {
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+
+  .qb-sol-mockup-solution-block {
+    margin-top: 12px;
+    padding-top: 12px;
+  }
+
+  .qb-sol-mockup-media-box {
+    margin-top: 10px;
+    padding: 8px;
+    border-radius: 10px;
+  }
+
+  .qb-sol-mockup-media-header {
+    font-size: 10.5px;
+    margin-bottom: 6px;
+  }
+
+  .qb-sol-mockup-expand-hint {
+    font-size: 11px;
+    margin-top: 6px;
+  }
+
+  /* Compact Mobile Touch Footer */
   .qb-sol-estimator-footer {
-    padding: 12px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+    padding: 8px 12px calc(10px + env(safe-area-inset-bottom, 0px));
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
+    gap: 6px;
+    flex-shrink: 0;
   }
 
   .qb-sol-estimator-footer-left {
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
+    gap: 6px;
     width: 100%;
   }
 
   .qb-sol-estimator-toggle-label {
     width: 100%;
-    min-height: 44px;
+    min-height: 34px;
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
-    padding: 8px 12px;
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-size: 11.5px;
     box-sizing: border-box;
   }
 
@@ -130,11 +373,12 @@
   .qb-sol-estimator-height-group {
     width: 100%;
     justify-content: space-between;
-    min-height: 44px;
+    min-height: 36px;
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
-    padding: 6px 12px;
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 11.5px;
     box-sizing: border-box;
   }
 
@@ -147,11 +391,17 @@
   .qb-sol-estimator-height-stepper {
     flex: 1;
     justify-content: flex-end;
+    gap: 5px;
   }
 
   .qb-sol-estimator-h-btn {
-    min-height: 40px;
-    padding: 8px 14px;
+    min-height: 30px;
+    padding: 4px 9px;
+    font-size: 11px;
+  }
+
+  .qb-sol-estimator-h-val {
+    font-size: 12px;
   }
 
   .qb-sol-estimator-footer-right {
@@ -160,7 +410,8 @@
 
   .qb-sol-estimator-back-btn {
     width: 100%;
-    min-height: 48px;
-    font-size: 15px;
+    min-height: 40px;
+    padding: 8px 16px;
+    font-size: 13.5px;
   }
 }

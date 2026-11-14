@@ -347,15 +347,15 @@
   position: relative;
   background: var(--surface);
   border: 1px solid var(--border);
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28), 0 2px 6px rgba(0, 0, 0, 0.12);
-  border-radius: 12px;
-  padding: 4px 8px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24), 0 2px 6px rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+  padding: 3px 6px;
   backdrop-filter: blur(12px);
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 2px;
   pointer-events: auto;
   width: fit-content;
   max-width: 100%;
@@ -373,7 +373,6 @@
   .draw-canva-floating-bar {
     padding: 4px 6px;
     gap: 3px;
-  
   }
 }
 
@@ -381,8 +380,8 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  height: 28px;
-  padding: 0 7px;
+  height: 26px;
+  padding: 0 6px;
   border-radius: 7px;
   border: 1px solid transparent;
   background: transparent;

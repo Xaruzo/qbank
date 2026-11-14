@@ -371,6 +371,7 @@ export interface FloatingBarInput {
   artboardOffsetY?: number;
   hostWidth: number;
   hostHeight: number;
+  barHeight?: number;
 }
 
 export interface FloatingBarPosition {
@@ -392,6 +393,7 @@ export const computeFloatingBarPosition = ({
   artboardOffsetY = 0,
   hostWidth,
   hostHeight,
+  barHeight,
 }: FloatingBarInput): FloatingBarPosition => {
   const s = scale > 0 ? scale : 1;
   const leftPx = artboardOffsetX + boundLeft * s;
@@ -402,17 +404,19 @@ export const computeFloatingBarPosition = ({
   const safeHostW = Math.max(260, hostWidth || 820);
   const safeHostH = Math.max(200, hostHeight || 500);
   const centerX = leftPx + widthPx / 2;
-  const safeEdge = Math.min(210, Math.floor(safeHostW / 2));
+  const safeEdge = Math.min(220, Math.max(40, Math.floor(safeHostW / 2) - 8));
   const clampedX =
     safeHostW <= 560
       ? Math.round(safeHostW / 2)
       : Math.max(safeEdge, Math.min(safeHostW - safeEdge, centerX));
 
-  const barEstH = safeHostW < 640 ? 74 : 44;
-  const isNearTop = topPx < barEstH + 16;
+  const barEstH = barHeight && barHeight > 0 ? barHeight : (safeHostW < 640 ? 70 : 38);
+  const clearanceAbove = 22;
+  const clearanceBelow = 48;
+  const isNearTop = topPx < barEstH + clearanceAbove + 8;
   const rawTop = isNearTop
-    ? topPx + heightPx + 10
-    : Math.max(8, topPx - barEstH - 8);
+    ? topPx + heightPx + clearanceBelow
+    : Math.max(8, topPx - barEstH - clearanceAbove);
   const topPos = Math.max(8, Math.min(safeHostH - barEstH - 8, rawTop));
   const openPopoverUpward = topPos > safeHostH - 220;
 
