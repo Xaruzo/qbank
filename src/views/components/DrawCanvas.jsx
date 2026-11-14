@@ -87,39 +87,66 @@ import {
   computeViewportInsertPoint,
 } from "../../utils/canvas/canvasMath";
 
-const isObjectHitByEraser = (obj, px, py, r) => {
+const hasVisibleFill = (obj) => {
+  const f = obj?.fill;
+  if (!f || typeof f !== "string") return false;
+  const trimmed = f.trim().toLowerCase();
+  if (!trimmed || trimmed === "transparent" || trimmed === "none") return false;
+  if (/^rgba\([^)]+,\s*0(?:\.0+)?\s*\)$/.test(trimmed)) return false;
+  return true;
+};
+
+const isObjectHitByEraser = (obj, px, py, r, parentMatrix = null) => {
   if (!obj || obj.isGuide || obj.locked || (obj.lockMovementX && obj.lockMovementY) || obj.visible === false) {
     return false;
   }
 
-  // Ensure object coordinates are calculated before hit-testing
   try {
-    if (typeof obj.setCoords === "function") {
+    if (!parentMatrix && typeof obj.setCoords === "function") {
       obj.setCoords();
     }
   } catch {}
 
-  // 1. Quick AABB bounding box check with radius margin in scene coordinates
-  let b = null;
-  try {
-    b = obj.getBoundingRect ? obj.getBoundingRect(true, true) : null;
-  } catch {}
-  if (b) {
-    const pad = r + Math.max(4, (obj.strokeWidth || 2) * Math.max(obj.scaleX || 1, obj.scaleY || 1));
-    if (
-      px < b.left - pad ||
-      px > b.left + b.width + pad ||
-      py < b.top - pad ||
-      py > b.top + b.height + pad
-    ) {
-      return false;
+  const ownMatrix = typeof obj.calcTransformMatrix === "function"
+    ? obj.calcTransformMatrix(Boolean(parentMatrix))
+    : [1, 0, 0, 1, 0, 0];
+  const worldMatrix = parentMatrix
+    ? fabric.util.multiplyTransformMatrices(parentMatrix, ownMatrix)
+    : ownMatrix;
+
+  // 1. Quick AABB bounding box check when top-level
+  if (!parentMatrix) {
+    let b = null;
+    try {
+      b = obj.getBoundingRect ? obj.getBoundingRect(true, true) : null;
+    } catch {}
+    if (b) {
+      const pad = r + Math.max(4, (obj.strokeWidth || 2) * Math.max(obj.scaleX || 1, obj.scaleY || 1));
+      if (
+        px < b.left - pad ||
+        px > b.left + b.width + pad ||
+        py < b.top - pad ||
+        py > b.top + b.height + pad
+      ) {
+        return false;
+      }
     }
   }
 
-  // 2. For fabric.Line (H-Line, V-Line, Cancel Slash, Fraction Line, etc.)
+  // 2. Recursive group check so hollow shapes inside groups test true geometry
+  if (obj.type === "group" && typeof obj.getObjects === "function") {
+    const children = obj.getObjects();
+    for (let i = children.length - 1; i >= 0; i--) {
+      if (isObjectHitByEraser(children[i], px, py, r, worldMatrix)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // 3. For fabric.Line (H-Line, V-Line, Cancel Slash, Fraction Line, etc.)
   if (obj.type === "line") {
     try {
-      const m = obj.calcTransformMatrix ? obj.calcTransformMatrix() : [1, 0, 0, 1, 0, 0];
       const pts = typeof obj.calcLinePoints === "function"
         ? obj.calcLinePoints()
         : {
@@ -128,23 +155,23 @@ const isObjectHitByEraser = (obj, px, py, r) => {
             x2: (obj.width || 0) / 2,
             y2: (obj.height || 0) / 2,
           };
-      const p1 = fabric.util.transformPoint(new fabric.Point(pts.x1, pts.y1), m);
-      const p2 = fabric.util.transformPoint(new fabric.Point(pts.x2, pts.y2), m);
+      const p1 = fabric.util.transformPoint(new fabric.Point(pts.x1, pts.y1), worldMatrix);
+      const p2 = fabric.util.transformPoint(new fabric.Point(pts.x2, pts.y2), worldMatrix);
       const dist = distToSegment(px, py, p1.x, p1.y, p2.x, p2.y);
       const strokeW = (obj.strokeWidth || 2) * (obj.strokeUniform ? 1 : Math.max(obj.scaleX || 1, obj.scaleY || 1));
       if (dist <= r + strokeW / 2 + 2) return true;
     } catch {}
+    return false;
   }
 
-  // 3. For fabric.Path (Pen strokes, Highlighter strokes, Arrows, Long Division bracket)
+  // 4. For fabric.Path (Pen strokes, Highlighter strokes, Arrows, Long Division bracket)
   if (obj.type === "path" && Array.isArray(obj.path)) {
     try {
-      const m = obj.calcTransformMatrix ? obj.calcTransformMatrix() : [1, 0, 0, 1, 0, 0];
       const strokeW = ((obj.strokeWidth || 2) / 2) * (obj.strokeUniform ? 1 : Math.max(obj.scaleX || 1, obj.scaleY || 1));
       const threshold = r + strokeW + 2;
       const offX = obj.pathOffset?.x || 0;
       const offY = obj.pathOffset?.y || 0;
-      const toWorld = (lx, ly) => fabric.util.transformPoint(new fabric.Point(lx - offX, ly - offY), m);
+      const toWorld = (lx, ly) => fabric.util.transformPoint(new fabric.Point(lx - offX, ly - offY), worldMatrix);
 
       const path = obj.path;
       let curX = 0;
@@ -232,52 +259,126 @@ const isObjectHitByEraser = (obj, px, py, r) => {
       }
       return false;
     } catch {}
+    return false;
   }
 
-  // 4. For all Shapes, Texts, Polylines, Groups, Images, etc.:
-  // Use scene-space (absolute=true, calculate=true) containment & oriented edge distance
-  const p = new fabric.Point(px, py);
-  try {
-    if (typeof obj.containsPoint === "function" && obj.containsPoint(p, null, true, true)) {
-      return true;
-    }
-  } catch {}
+  // 5. Text objects (hitbox covers text glyphs & card interior/padding)
+  const strokePad = ((obj.strokeWidth || 2) / 2) * (obj.strokeUniform ? 1 : Math.max(obj.scaleX || 1, obj.scaleY || 1));
+  const edgeThreshold = r + strokePad + 2;
+  const hw = (obj.width || 0) / 2;
+  const hh = (obj.height || 0) / 2;
 
-  try {
-    const coords = typeof obj.calcCoords === "function" ? obj.calcCoords(true) : obj.aCoords;
-    if (coords && coords.tl && coords.tr && coords.br && coords.bl) {
-      const strokePad = ((obj.strokeWidth || 2) / 2) * (obj.strokeUniform ? 1 : Math.max(obj.scaleX || 1, obj.scaleY || 1));
-      const edgeThreshold = r + strokePad;
-      const corners = [coords.tl, coords.tr, coords.br, coords.bl];
-      for (let i = 0; i < 4; i++) {
-        const c1 = corners[i];
-        const c2 = corners[(i + 1) % 4];
-        if (distToSegment(px, py, c1.x, c1.y, c2.x, c2.y) <= edgeThreshold) {
+  if (obj.type === "textbox" || obj.type === "i-text" || obj.type === "text") {
+    try {
+      const inv = fabric.util.invertTransform(worldMatrix);
+      const localP = fabric.util.transformPoint(new fabric.Point(px, py), inv);
+      const sx = Math.abs(obj.scaleX || 1) || 1;
+      const sy = Math.abs(obj.scaleY || 1) || 1;
+      const tolX = edgeThreshold / sx;
+      const tolY = edgeThreshold / sy;
+      if (Math.abs(localP.x) <= hw + tolX && Math.abs(localP.y) <= hh + tolY) {
+        return true;
+      }
+    } catch {}
+    return false;
+  }
+
+  // 6. Circles: exact radial border check when hollow, interior + border check when filled
+  if (obj.type === "circle") {
+    try {
+      const inv = fabric.util.invertTransform(worldMatrix);
+      const localP = fabric.util.transformPoint(new fabric.Point(px, py), inv);
+      const rad = obj.radius || hw || 1;
+      const d = Math.hypot(localP.x, localP.y);
+      const scaleAvg = (Math.abs(obj.scaleX || 1) + Math.abs(obj.scaleY || 1)) / 2 || 1;
+      const localTol = edgeThreshold / scaleAvg;
+      if (hasVisibleFill(obj)) {
+        return d <= rad + localTol;
+      }
+      return Math.abs(d - rad) <= localTol;
+    } catch {}
+  }
+
+  // 7. Triangles: exact 3-edge perimeter check (plus interior check if filled)
+  if (obj.type === "triangle") {
+    try {
+      const topPt = fabric.util.transformPoint(new fabric.Point(0, -hh), worldMatrix);
+      const brPt = fabric.util.transformPoint(new fabric.Point(hw, hh), worldMatrix);
+      const blPt = fabric.util.transformPoint(new fabric.Point(-hw, hh), worldMatrix);
+      if (
+        distToSegment(px, py, topPt.x, topPt.y, brPt.x, brPt.y) <= edgeThreshold ||
+        distToSegment(px, py, brPt.x, brPt.y, blPt.x, blPt.y) <= edgeThreshold ||
+        distToSegment(px, py, blPt.x, blPt.y, topPt.x, topPt.y) <= edgeThreshold
+      ) {
+        return true;
+      }
+      if (hasVisibleFill(obj)) {
+        const sign = (p1, p2, p3) => (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
+        const pt = { x: px, y: py };
+        const d1 = sign(pt, topPt, brPt);
+        const d2 = sign(pt, brPt, blPt);
+        const d3 = sign(pt, blPt, topPt);
+        const hasNeg = d1 < 0 || d2 < 0 || d3 < 0;
+        const hasPos = d1 > 0 || d2 > 0 || d3 > 0;
+        if (!(hasNeg && hasPos)) return true;
+      }
+      return false;
+    } catch {}
+  }
+
+  // 8. Polygons & Polylines: exact segment distance check (plus interior check for filled polygons)
+  if ((obj.type === "polygon" || obj.type === "polyline") && Array.isArray(obj.points) && obj.points.length >= 2) {
+    try {
+      const offX = obj.pathOffset?.x || 0;
+      const offY = obj.pathOffset?.y || 0;
+      const worldPts = obj.points.map((pt) =>
+        fabric.util.transformPoint(new fabric.Point(pt.x - offX, pt.y - offY), worldMatrix)
+      );
+      const segCount = obj.type === "polygon" ? worldPts.length : worldPts.length - 1;
+      for (let i = 0; i < segCount; i++) {
+        const a = worldPts[i];
+        const b = worldPts[(i + 1) % worldPts.length];
+        if (distToSegment(px, py, a.x, a.y, b.x, b.y) <= edgeThreshold) {
           return true;
         }
       }
-      const testAngles = [0, Math.PI / 4, Math.PI / 2, (3 * Math.PI) / 4, Math.PI, (5 * Math.PI) / 4, (3 * Math.PI) / 2, (7 * Math.PI) / 4];
-      for (let i = 0; i < testAngles.length; i++) {
-        const angle = testAngles[i];
-        const testP = new fabric.Point(px + Math.cos(angle) * r, py + Math.sin(angle) * r);
-        if (typeof obj.containsPoint === "function" && obj.containsPoint(testP, null, true, true)) {
-          return true;
+      if (obj.type === "polygon" && hasVisibleFill(obj)) {
+        let inside = false;
+        for (let i = 0, j = worldPts.length - 1; i < worldPts.length; j = i++) {
+          const xi = worldPts[i].x, yi = worldPts[i].y;
+          const xj = worldPts[j].x, yj = worldPts[j].y;
+          if ((yi > py) !== (yj > py) && px < ((xj - xi) * (py - yi)) / ((yj - yi) || 1e-9) + xi) {
+            inside = !inside;
+          }
         }
+        if (inside) return true;
+      }
+      return false;
+    } catch {}
+  }
+
+  // 9. Rectangles & other oriented boxes: check 4 world edges, plus interior only if visibly filled
+  try {
+    const tl = fabric.util.transformPoint(new fabric.Point(-hw, -hh), worldMatrix);
+    const tr = fabric.util.transformPoint(new fabric.Point(hw, -hh), worldMatrix);
+    const br = fabric.util.transformPoint(new fabric.Point(hw, hh), worldMatrix);
+    const bl = fabric.util.transformPoint(new fabric.Point(-hw, hh), worldMatrix);
+    const corners = [tl, tr, br, bl];
+    for (let i = 0; i < 4; i++) {
+      const c1 = corners[i];
+      const c2 = corners[(i + 1) % 4];
+      if (distToSegment(px, py, c1.x, c1.y, c2.x, c2.y) <= edgeThreshold) {
+        return true;
+      }
+    }
+    if (hasVisibleFill(obj)) {
+      const inv = fabric.util.invertTransform(worldMatrix);
+      const localP = fabric.util.transformPoint(new fabric.Point(px, py), inv);
+      if (Math.abs(localP.x) <= hw && Math.abs(localP.y) <= hh) {
+        return true;
       }
     }
   } catch {}
-
-  // 5. Fallback for non-path/non-line objects (Shapes, Texts, Polylines, Groups) within AABB + r
-  if (b && obj.type !== "path" && obj.type !== "line") {
-    if (
-      px >= b.left - r &&
-      px <= b.left + b.width + r &&
-      py >= b.top - r &&
-      py <= b.top + b.height + r
-    ) {
-      return true;
-    }
-  }
 
   return false;
 };
@@ -292,6 +393,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
   const fontSizeInputRef = useRef(null);
   const layerIdSeq = useRef(1);
   const insertSeqRef = useRef(0);
+  const pasteCascadeRef = useRef({ key: null, count: 0 });
   const lastPointer = useRef(null);
   const toolRef = useRef("move");
   const spaceDownRef = useRef(false);
@@ -540,13 +642,9 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
   const configureArrow = (obj) => {
     if (!obj || (obj.shapeKind !== "arrow" && obj.shapeKind !== "curvedArrow" && obj.shapeKind !== "elbowArrow")) return;
     obj.set({ strokeUniform: true });
-    if (
-      obj.shapeKind === "arrow" &&
-      !obj.isSmartConnector &&
-      !obj.connectedFromId &&
-      !obj.connectedToId &&
-      (obj.isLocalArrow || Math.abs((obj.height || 0) - 13) <= 2)
-    ) {
+    const isStandalone = !obj.isSmartConnector && !obj.connectedFromId && !obj.connectedToId;
+    if (!isStandalone) return;
+    if (obj.shapeKind === "arrow" && (obj.isLocalArrow || Math.abs((obj.height || 0) - 13) <= 2)) {
       obj.isLocalArrow = true;
       obj.set({
         lockScalingY: true,
@@ -560,6 +658,40 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
           tl: false, tr: false, bl: false, br: false,
           ml: true, mr: true,
           mt: false, mb: false,
+          mtr: true,
+        });
+      }
+    } else if (obj.shapeKind === "curvedArrow") {
+      obj.isLocalArrow = true;
+      obj.set({
+        lockScalingY: true,
+        uniformScaling: false,
+        centeredScaling: false,
+        hasRotatingPoint: true,
+        padding: 8,
+      });
+      if (typeof obj.setControlsVisibility === "function") {
+        obj.setControlsVisibility({
+          tl: false, tr: false, bl: false, br: false,
+          ml: true, mr: true,
+          mt: false, mb: false,
+          mtr: true,
+        });
+      }
+    } else if (obj.shapeKind === "elbowArrow") {
+      obj.isLocalArrow = true;
+      obj.set({
+        lockScalingY: false,
+        uniformScaling: false,
+        centeredScaling: false,
+        hasRotatingPoint: true,
+        padding: 8,
+      });
+      if (typeof obj.setControlsVisibility === "function") {
+        obj.setControlsVisibility({
+          tl: true, tr: true, bl: true, br: true,
+          ml: true, mr: true,
+          mt: true, mb: true,
           mtr: true,
         });
       }
@@ -702,6 +834,75 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
         return o;
       };
       fabric.Textbox.prototype.__cseBoxHeightToObject = true;
+    }
+
+    if (!fabric.Textbox.prototype.__cseCardRendererPatched) {
+      const isCardTextbox = (tb) =>
+        Boolean(
+          tb &&
+          tb.type === "textbox" &&
+          tb.backgroundColor &&
+          tb.backgroundColor !== "transparent" &&
+          (tb.isStickyNote ||
+            tb.isStepBadge ||
+            ["process", "decision", "terminator", "dataNode"].includes(tb.shapeKind) ||
+            (tb.rx || 0) > 0 ||
+            (tb.ry || 0) > 0)
+        );
+
+      const drawRoundedRectPath = (ctx, x, y, w, h, rx, ry) => {
+        const rX = Math.max(0, Math.min(rx || 0, w / 2));
+        const rY = Math.max(0, Math.min(ry || rx || 0, h / 2));
+        ctx.beginPath();
+        if (rX === 0 && rY === 0) {
+          ctx.rect(x, y, w, h);
+        } else {
+          ctx.moveTo(x + rX, y);
+          ctx.lineTo(x + w - rX, y);
+          ctx.quadraticCurveTo(x + w, y, x + w, y + rY);
+          ctx.lineTo(x + w, y + h - rY);
+          ctx.quadraticCurveTo(x + w, y + h, x + w - rX, y + h);
+          ctx.lineTo(x + rX, y + h);
+          ctx.quadraticCurveTo(x, y + h, x, y + h - rY);
+          ctx.lineTo(x, y + rY);
+          ctx.quadraticCurveTo(x, y, x + rX, y);
+          ctx.closePath();
+        }
+      };
+
+      const origRenderBg = fabric.Textbox.prototype._renderBackground;
+      fabric.Textbox.prototype._renderBackground = function(ctx) {
+        if (!isCardTextbox(this)) {
+          return origRenderBg.apply(this, arguments);
+        }
+        const dim = this._getNonTransformedDimensions();
+        const x = -dim.x / 2;
+        const y = -dim.y / 2;
+        const rx = this.rx || (this.isStickyNote ? 6 : 0);
+        const ry = this.ry || rx;
+        ctx.save();
+        drawRoundedRectPath(ctx, x, y, dim.x, dim.y, rx, ry);
+        ctx.fillStyle = this.backgroundColor;
+        ctx.fill();
+        this._removeShadow(ctx);
+        if (this.stroke && this.stroke !== "transparent" && (this.strokeWidth || 0) > 0) {
+          ctx.strokeStyle = this.stroke;
+          ctx.lineWidth = this.strokeWidth;
+          if (Array.isArray(this.strokeDashArray) && this.strokeDashArray.length) {
+            ctx.setLineDash(this.strokeDashArray);
+          }
+          ctx.stroke();
+        }
+        ctx.restore();
+      };
+
+      const origRenderTextStroke = fabric.Textbox.prototype._renderTextStroke;
+      fabric.Textbox.prototype._renderTextStroke = function(ctx) {
+        if (isCardTextbox(this)) return;
+        return origRenderTextStroke.apply(this, arguments);
+      };
+
+      fabric.Textbox.prototype.__cseCardRendererPatched = true;
     }
     if (typeof window !== "undefined" && import.meta?.env?.DEV) {
       window.__cseFabric = fabric;
@@ -1253,36 +1454,55 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       });
       setSelectionBounds(pos);
 
-      const activeObjects = canvas.getActiveObjects?.() || (active ? [active] : []);
-      const multiSelectCount = activeObjects.filter(o => o && !o.isGuide).length;
+      const activeObjects = (canvas.getActiveObjects?.() || (active ? [active] : [])).filter(o => o && !o.isGuide);
+      const multiSelectCount = activeObjects.length;
 
-      const isText = isTextObj(active);
-      const isShape = ["rect", "circle", "triangle", "polygon", "polyline"].includes(active.type);
-      const isArrow = active.shapeKind === "arrow" ||
-        active.shapeKind === "curvedArrow" ||
-        active.shapeKind === "elbowArrow";
-      const isFreePath = active.type === "path" && !isArrow && active.shapeKind !== "longDivision";
-      const isLine = active.type === "line" ||
-        active.shapeKind === "hrLine" ||
-        active.shapeKind === "vrLine" ||
-        isArrow;
-      const isFlowchartNode = ["process", "decision", "terminator", "dataNode"].includes(active.shapeKind) ||
-        !!active.isStickyNote;
-      const isFlowchartShape = isFlowchartNode || isShape;
+      const collectLeaves = (obj) => {
+        if (!obj) return [];
+        if ((obj.type === "activeSelection" || obj.type === "group") && typeof obj.getObjects === "function") {
+          return obj.getObjects().flatMap(collectLeaves);
+        }
+        return [obj];
+      };
+      const leaves = activeObjects.length > 0 ? activeObjects.flatMap(collectLeaves) : collectLeaves(active);
+      const isGroupOrMulti = active.type === "activeSelection" || active.type === "group" || multiSelectCount > 1;
+
+      const isTextLeaf = (o) => isTextObj(o);
+      const isArrowLeaf = (o) =>
+        o?.shapeKind === "arrow" || o?.shapeKind === "curvedArrow" || o?.shapeKind === "elbowArrow";
+      const isShapeLeaf = (o) =>
+        ["rect", "circle", "triangle", "polygon", "polyline"].includes(o?.type);
+      const isLineLeaf = (o) =>
+        o?.type === "line" || o?.shapeKind === "hrLine" || o?.shapeKind === "vrLine" || isArrowLeaf(o);
+      const isFreePathLeaf = (o) =>
+        o?.type === "path" && !isArrowLeaf(o) && o?.shapeKind !== "longDivision";
+
+      const isText = isTextObj(active) || (isGroupOrMulti && leaves.length > 0 && leaves.every(isTextLeaf));
+      const isShape = isShapeLeaf(active) || (isGroupOrMulti && leaves.some(isShapeLeaf));
+      const isArrow = !isGroupOrMulti && isArrowLeaf(active);
+      const isFreePath = isFreePathLeaf(active) || (isGroupOrMulti && leaves.some(isFreePathLeaf));
+      const isLine = isLineLeaf(active) || (isGroupOrMulti && leaves.some(isLineLeaf));
+      const isFlowchartNode = !isGroupOrMulti && (
+        ["process", "decision", "terminator", "dataNode"].includes(active.shapeKind) || !!active.isStickyNote
+      );
+      const isFlowchartShape = !isGroupOrMulti && (isFlowchartNode || isShapeLeaf(active));
+
+      const repFillObj = leaves.find(o => isShapeLeaf(o) || isTextLeaf(o)) || active;
+      const repStrokeObj = leaves.find(o => isShapeLeaf(o) || isLineLeaf(o) || isFreePathLeaf(o) || o?.isStickyNote || ["process", "decision", "terminator", "dataNode"].includes(o?.shapeKind)) || active;
 
       setActiveObjProps({
-        fill: active.fill || "transparent",
-        bgColor: active.backgroundColor || "transparent",
-        stroke: active.stroke || "transparent",
-        strokeWidth: active.strokeWidth || 0,
-        strokeDashArray: active.strokeDashArray || null,
+        fill: repFillObj?.fill || "transparent",
+        bgColor: repFillObj?.backgroundColor || "transparent",
+        stroke: repStrokeObj?.stroke || "transparent",
+        strokeWidth: repStrokeObj?.strokeWidth || 0,
+        strokeDashArray: repStrokeObj?.strokeDashArray || null,
         opacity: Math.round((active.opacity != null ? active.opacity : 1) * 100),
-        fontFamily: active.fontFamily || "DM Sans, sans-serif",
-        fontSize: Math.round(active.fontSize || 24),
-        fontWeight: active.fontWeight || "normal",
-        fontStyle: active.fontStyle || "normal",
-        underline: !!active.underline,
-        textAlign: active.textAlign || "left",
+        fontFamily: active.fontFamily || leaves.find(isTextLeaf)?.fontFamily || "DM Sans, sans-serif",
+        fontSize: Math.round(active.fontSize || leaves.find(isTextLeaf)?.fontSize || 24),
+        fontWeight: active.fontWeight || leaves.find(isTextLeaf)?.fontWeight || "normal",
+        fontStyle: active.fontStyle || leaves.find(isTextLeaf)?.fontStyle || "normal",
+        underline: !!(active.underline ?? leaves.find(isTextLeaf)?.underline),
+        textAlign: active.textAlign || leaves.find(isTextLeaf)?.textAlign || "left",
         isLocked: !!(active.locked || (active.lockMovementX && active.lockMovementY)),
         isText,
         isShape,
@@ -1292,6 +1512,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
         isFlowchartNode,
         isFlowchartShape,
         multiSelectCount,
+        isGroupOrMulti,
         connectorKind: active.connectorKind || (active.shapeKind === "curvedArrow" ? "curved" : active.shapeKind === "elbowArrow" ? "elbow" : active.shapeKind === "arrow" ? "straight" : null),
         arrowHead: active.arrowHead || "end",
         bend: active.bend != null ? active.bend : -35,
@@ -1318,72 +1539,81 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
 
       if (connectors.length === 0) return;
 
+      const prevInternal = isInternalChange.current;
+      isInternalChange.current = true;
       let changed = false;
-      connectors.forEach(arrow => {
-        const fromId = arrow.connectedFromId;
-        const toId = arrow.connectedToId;
-        const fromObj = allObjects.find(o => o.layerId === fromId);
-        const toObj = allObjects.find(o => o.layerId === toId);
-        if (!fromObj || !toObj) return;
+      try {
+        connectors.forEach(arrow => {
+          const fromId = arrow.connectedFromId;
+          const toId = arrow.connectedToId;
+          const fromObj = allObjects.find(o => o.layerId === fromId);
+          const toObj = allObjects.find(o => o.layerId === toId);
+          if (!fromObj || !toObj) return;
 
-        const conn = findBestConnection(fromObj, toObj);
-        if (!conn) return;
+          const conn = findBestConnection(fromObj, toObj);
+          if (!conn) return;
 
-        const kind = arrow.connectorKind || (arrow.shapeKind === "curvedArrow" ? "curved" : arrow.shapeKind === "elbowArrow" ? "elbow" : "straight");
-        const bend = arrow.bend != null ? arrow.bend : -35;
-        const head = arrow.arrowHead || "end";
+          const kind = arrow.connectorKind || (arrow.shapeKind === "curvedArrow" ? "curved" : arrow.shapeKind === "elbowArrow" ? "elbow" : "straight");
+          const bend = arrow.bend != null ? arrow.bend : -35;
+          const head = arrow.arrowHead || "end";
 
-        let pathD;
-        if (kind === "curved") {
-          pathD = buildCurvedArrowPath(conn.from.x, conn.from.y, conn.to.x, conn.to.y, bend, head).d;
-        } else if (kind === "elbow") {
-          pathD = buildElbowConnectorPath(conn.from.x, conn.from.y, conn.to.x, conn.to.y, head);
-        } else {
-          pathD = buildStraightArrowPath(conn.from.x, conn.from.y, conn.to.x, conn.to.y, head);
-        }
+          let pathD;
+          if (kind === "curved") {
+            pathD = buildCurvedArrowPath(conn.from.x, conn.from.y, conn.to.x, conn.to.y, bend, head).d;
+          } else if (kind === "elbow") {
+            pathD = buildElbowConnectorPath(conn.from.x, conn.from.y, conn.to.x, conn.to.y, head);
+          } else {
+            pathD = buildStraightArrowPath(conn.from.x, conn.from.y, conn.to.x, conn.to.y, head);
+          }
 
-        const prevStroke = arrow.stroke;
-        const prevStrokeWidth = arrow.strokeWidth;
-        const prevStrokeDash = arrow.strokeDashArray;
-        const prevOpacity = arrow.opacity;
-        const prevLayerId = arrow.layerId;
-        const isCurActive = canvas.getActiveObject() === arrow;
+          const prevStroke = arrow.stroke;
+          const prevStrokeWidth = arrow.strokeWidth;
+          const prevStrokeDash = arrow.strokeDashArray;
+          const prevOpacity = arrow.opacity;
+          const prevLayerId = arrow.layerId;
+          const isCurActive = canvas.getActiveObject() === arrow;
 
-        const newArrow = new fabric.Path(pathD, {
-          stroke: prevStroke,
-          strokeWidth: prevStrokeWidth,
-          strokeUniform: true,
-          strokeDashArray: prevStrokeDash,
-          opacity: prevOpacity,
-          fill: "transparent",
-          strokeLineCap: "round",
-          strokeLineJoin: "round",
-          objectCaching: false
+          const newArrow = new fabric.Path(pathD, {
+            stroke: prevStroke,
+            strokeWidth: prevStrokeWidth,
+            strokeUniform: true,
+            strokeDashArray: prevStrokeDash,
+            opacity: prevOpacity,
+            fill: "transparent",
+            strokeLineCap: "round",
+            strokeLineJoin: "round",
+            objectCaching: false
+          });
+          newArrow.layerId = prevLayerId;
+          newArrow.shapeKind = kind === "curved" ? "curvedArrow" : kind === "elbow" ? "elbowArrow" : "arrow";
+          newArrow.connectorKind = kind;
+          newArrow.arrowHead = head;
+          newArrow.bend = bend;
+          newArrow.isSmartConnector = true;
+          newArrow.connectedFromId = fromId;
+          newArrow.connectedToId = toId;
+
+          const idx = canvas._objects.indexOf(arrow);
+          arrow._fromUndo = true;
+          newArrow._fromUndo = true;
+          canvas.remove(arrow);
+          if (idx >= 0 && idx < canvas._objects.length) {
+            canvas.insertAt(newArrow, idx, false);
+          } else {
+            canvas.add(newArrow);
+          }
+          delete newArrow._fromUndo;
+          if (isCurActive) {
+            canvas.setActiveObject(newArrow);
+          }
+          changed = true;
         });
-        newArrow.layerId = prevLayerId;
-        newArrow.shapeKind = kind === "curved" ? "curvedArrow" : kind === "elbow" ? "elbowArrow" : "arrow";
-        newArrow.connectorKind = kind;
-        newArrow.arrowHead = head;
-        newArrow.bend = bend;
-        newArrow.isSmartConnector = true;
-        newArrow.connectedFromId = fromId;
-        newArrow.connectedToId = toId;
 
-        const idx = canvas._objects.indexOf(arrow);
-        canvas.remove(arrow);
-        if (idx >= 0 && idx < canvas._objects.length) {
-          canvas.insertAt(newArrow, idx, false);
-        } else {
-          canvas.add(newArrow);
+        if (changed) {
+          canvas.requestRenderAll();
         }
-        if (isCurActive) {
-          canvas.setActiveObject(newArrow);
-        }
-        changed = true;
-      });
-
-      if (changed) {
-        canvas.requestRenderAll();
+      } finally {
+        isInternalChange.current = prevInternal;
       }
     };
 
@@ -1401,8 +1631,13 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       updateFloatingCoords(active);
     };
 
-    const normalizeTextboxDuringScaling = (obj, anchorOrigin, anchorPoint) => {
+    const normalizeTextboxDuringScaling = (obj, anchorOrigin, anchorPoint, corner = "") => {
       if (!obj || obj.isGuide || obj.type !== "textbox") return;
+      const isCornerHandle = corner === "tl" || corner === "tr" || corner === "bl" || corner === "br";
+      if (isCornerHandle) {
+        // Canva behavior: let corner drag scale smoothly in real time and bake fontSize cleanly on mouse release
+        return;
+      }
       const sx = Math.abs(obj.scaleX || 1);
       const sy = Math.abs(obj.scaleY || 1);
       if (sx > 0.999 && sx < 1.001 && sy > 0.999 && sy < 1.001) return;
@@ -1421,6 +1656,60 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       }
       if (anchorPoint && anchorOrigin) obj.setPositionByOrigin(anchorPoint, anchorOrigin.originX, anchorOrigin.originY);
       obj.setCoords();
+    };
+
+    const regenerateLocalArrowGeometry = (obj, corner = "") => {
+      if (!obj || obj.type !== "path" || obj.isGuide) return false;
+      if (obj.isSmartConnector || obj.connectedFromId || obj.connectedToId) return false;
+      const isLocalStraight = obj.shapeKind === "arrow" && (obj.isLocalArrow || Math.abs((obj.height || 0) - 13) <= 2);
+      const isLocalCurved = obj.shapeKind === "curvedArrow";
+      const isLocalElbow = obj.shapeKind === "elbowArrow";
+      if (!isLocalStraight && !isLocalCurved && !isLocalElbow) return false;
+
+      const sx = Math.abs(obj.scaleX || 1);
+      const sy = Math.abs(obj.scaleY || 1);
+      if (sx <= 1.001 && sx >= 0.999 && sy <= 1.001 && sy >= 0.999) {
+        obj.set({ scaleX: 1, scaleY: 1, strokeUniform: true });
+        return false;
+      }
+
+      const anchorCorner = corner ? oppositeCorner(corner) : null;
+      const anchorOrigin = anchorCorner ? cornerToOrigin(anchorCorner) : { originX: "center", originY: "center" };
+      const anchorPt = obj.getPointByOrigin(anchorOrigin.originX, anchorOrigin.originY);
+      const head = obj.arrowHead || "end";
+
+      let pathD;
+      if (isLocalStraight) {
+        const nextW = Math.max(30, (obj.width || 140) * sx);
+        const pad = head === "circle-arrow" ? 16.5 : 20;
+        pathD = getLocalStraightPath(nextW + pad, head);
+      } else if (isLocalCurved) {
+        const nextW = Math.max(30, (obj.width || 140) * sx);
+        const bend = obj.bend != null ? obj.bend : -35;
+        pathD = getLocalCurvedPath(nextW + 20, bend, head);
+      } else {
+        const nextW = Math.max(30, (obj.width || 140) * sx);
+        const nextH = Math.max(30, (obj.height || 60) * sy);
+        pathD = getLocalElbowPath(nextW + 20, nextH + 20, head);
+      }
+
+      const template = new fabric.Path(pathD);
+      obj.set({
+        path: template.path,
+        pathOffset: template.pathOffset,
+        width: template.width,
+        height: template.height,
+        scaleX: 1,
+        scaleY: 1,
+        strokeUniform: true,
+        dirty: true,
+      });
+      obj.isLocalArrow = true;
+      if (anchorPt && anchorOrigin) {
+        obj.setPositionByOrigin(anchorPt, anchorOrigin.originX, anchorOrigin.originY);
+      }
+      obj.setCoords();
+      return true;
     };
 
     const serializeCanvas = () => canvas.toJSON([...CUSTOM_FABRIC_PROPS]);
@@ -1523,8 +1812,8 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     };
 
     const handleChange = () => {
-      saveHistory();
       removeStrayGuides();
+      saveHistory();
       const state = serializeCanvas();
       const dataURL = exportDataURL();
       onChange({
@@ -1629,7 +1918,8 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
           const ox = t.__resizeAnchor?.originX || t.originX || "left";
           const oy = t.__resizeAnchor?.originY || t.originY || "top";
           const anchor = t.__resizeAnchor ? new fabric.Point(t.__resizeAnchor.x, t.__resizeAnchor.y) : t.getPointByOrigin(ox, oy);
-          if (t.type === "textbox") {
+          const isCornerHandle = corner === "tl" || corner === "tr" || corner === "bl" || corner === "br";
+          if (t.type === "textbox" && !isCornerHandle) {
             const nextW = Math.max(10, (t.width || 0) * sx);
             const baseBoxH = Number.isFinite(t.boxHeight) ? t.boxHeight : (t.height || 0);
             const nextBoxH = baseBoxH ? Math.max(10, baseBoxH * sy) : baseBoxH;
@@ -1641,10 +1931,25 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
               t.boxHeight = finalBoxH;
               t.set("height", finalBoxH);
             }
+          } else if (t.type === "textbox") {
+            const scaleFactor = Math.max(sx, sy);
+            const baseFontSize = Number(t.fontSize || 24) || 24;
+            const nextFontSize = Math.max(8, Math.min(160, Math.round(baseFontSize * scaleFactor)));
+            const nextW = Math.max(20, (t.width || 0) * scaleFactor);
+            const baseBoxH = Number.isFinite(t.boxHeight) ? t.boxHeight : (t.height || 0);
+            const nextBoxH = baseBoxH ? Math.max(10, baseBoxH * scaleFactor) : baseBoxH;
+            t.set({ scaleX: 1, scaleY: 1, fontSize: nextFontSize, width: nextW });
+            t.initDimensions();
+            const computedH = t.height || 0;
+            const finalBoxH = Math.max(computedH, nextBoxH || 0);
+            if (finalBoxH > 0) {
+              t.boxHeight = finalBoxH;
+              t.set("height", finalBoxH);
+            }
           } else {
             const baseFontSize = Number(t.fontSize || 24) || 24;
             const scaleFont = Math.max(sx, sy);
-            const nextFontSize = Math.max(8, Math.min(120, Math.round(baseFontSize * scaleFont)));
+            const nextFontSize = Math.max(8, Math.min(160, Math.round(baseFontSize * scaleFont)));
             t.set({ scaleX: 1, scaleY: 1 });
             t.set("fontSize", nextFontSize);
             t.initDimensions();
@@ -1658,6 +1963,10 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       }
       if (isTextObj(t)) {
         delete t.__resizeAnchor;
+        delete t.__scaleCorner;
+      }
+      if (t?.type === "path" && !t.isGuide && (t.shapeKind === "arrow" || t.shapeKind === "curvedArrow" || t.shapeKind === "elbowArrow")) {
+        regenerateLocalArrowGeometry(t, t.__scaleCorner || "");
         delete t.__scaleCorner;
       }
       if (isHrLine(t)) {
@@ -2492,43 +2801,10 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       clearGuides();
       updateConnectedArrowsForObject(obj);
 
+      const cornerNow = options?.transform?.corner || "";
       if (!snappingRef.current || options?.e?.altKey) {
-        if (
-          obj?.type === "path" &&
-          obj.shapeKind === "arrow" &&
-          !obj.isSmartConnector &&
-          !obj.connectedFromId &&
-          !obj.connectedToId &&
-          (obj.isLocalArrow || Math.abs((obj.height || 0) - 13) <= 2)
-        ) {
-          const cornerNow = options?.transform?.corner || "";
-          const anchorCornerNow = cornerNow ? oppositeCorner(cornerNow) : null;
-          const anchorOriginNow = anchorCornerNow ? cornerToOrigin(anchorCornerNow) : null;
-          const anchorPtNow = anchorOriginNow ? obj.getPointByOrigin(anchorOriginNow.originX, anchorOriginNow.originY) : null;
-          const sx = Math.abs(obj.scaleX || 1);
-          const sy = Math.abs(obj.scaleY || 1);
-          if (sx > 1.001 || sx < 0.999 || sy > 1.001 || sy < 0.999) {
-            const head = obj.arrowHead || "end";
-            const nextW = Math.max(30, (obj.width || 140) * sx);
-            const pad = head === "circle-arrow" ? 16.5 : 20;
-            const template = new fabric.Path(getLocalStraightPath(nextW + pad, head));
-            obj.set({
-              path: template.path,
-              pathOffset: template.pathOffset,
-              width: template.width,
-              height: template.height,
-              scaleX: 1,
-              scaleY: 1,
-              strokeUniform: true,
-              dirty: true,
-            });
-            obj.isLocalArrow = true;
-            if (anchorPtNow && anchorOriginNow) {
-              obj.setPositionByOrigin(anchorPtNow, anchorOriginNow.originX, anchorOriginNow.originY);
-            }
-            obj.setCoords();
-          }
-        }
+        if (obj && !obj.isGuide) obj.__scaleCorner = cornerNow;
+        regenerateLocalArrowGeometry(obj, cornerNow);
         updateFloatingCoords(obj);
         return;
       }
@@ -2704,42 +2980,10 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       else if (anchorPoint && anchorOrigin) obj.setPositionByOrigin(anchorPoint, anchorOrigin.originX, anchorOrigin.originY);
       obj.setCoords();
 
-      normalizeTextboxDuringScaling(obj, anchorOrigin, anchorPoint);
+      normalizeTextboxDuringScaling(obj, anchorOrigin, anchorPoint, corner);
 
-      if (
-        obj?.type === "path" &&
-        obj.shapeKind === "arrow" &&
-        !obj.isSmartConnector &&
-        !obj.connectedFromId &&
-        !obj.connectedToId &&
-        (obj.isLocalArrow || Math.abs((obj.height || 0) - 13) <= 2)
-      ) {
-        const sx = Math.abs(obj.scaleX || 1);
-        const sy = Math.abs(obj.scaleY || 1);
-        if (sx > 1.001 || sx < 0.999 || sy > 1.001 || sy < 0.999) {
-          const head = obj.arrowHead || "end";
-          const nextW = Math.max(30, (obj.width || 140) * sx);
-          const pad = head === "circle-arrow" ? 16.5 : 20;
-          const template = new fabric.Path(getLocalStraightPath(nextW + pad, head));
-          obj.set({
-            path: template.path,
-            pathOffset: template.pathOffset,
-            width: template.width,
-            height: template.height,
-            scaleX: 1,
-            scaleY: 1,
-            strokeUniform: true,
-            dirty: true,
-          });
-          obj.isLocalArrow = true;
-          if (anchorPoint && anchorOrigin) {
-            obj.setPositionByOrigin(anchorPoint, anchorOrigin.originX, anchorOrigin.originY);
-          }
-          obj.setCoords();
-        } else {
-          obj.set({ scaleX: 1, scaleY: 1, strokeUniform: true });
-        }
-      }
+      if (obj && !obj.isGuide) obj.__scaleCorner = corner;
+      regenerateLocalArrowGeometry(obj, corner);
 
       const p = getCanvasBounds(obj);
       const w = p.width;
@@ -2907,6 +3151,16 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
         }
       }
 
+      updateFloatingCoords(obj);
+    });
+
+    canvas.on("object:resizing", (options) => {
+      const obj = options?.target;
+      if (!obj || obj.isGuide) return;
+      if (obj.type === "textbox") {
+        obj.boxHeight = Math.max(obj.height || 0, obj.boxHeight || 0);
+      }
+      updateConnectedArrowsForObject(obj);
       updateFloatingCoords(obj);
     });
 
@@ -3195,9 +3449,15 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       const activeObjects = canvas.getActiveObjects?.() || (active ? [active] : []);
       const objs = (activeObjects || []).filter(o => o && !o.isGuide);
       if (!objs.length) return false;
+      const baseCenter = getRectCenter(active);
       clipboardData.current = {
         type: (objs.length > 1 ? "activeSelection" : (active.type || "object")),
+        baseCenter: { x: baseCenter.x, y: baseCenter.y },
         objects: objs.map(o => o.toObject([...CUSTOM_FABRIC_PROPS]))
+      };
+      pasteCascadeRef.current = {
+        key: `${Date.now()}-${objs.length}`,
+        count: 0,
       };
       clipboard.current = active;
       clipboardMeta.current = { type: active.type };
@@ -3219,22 +3479,61 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
           if (changeCommitTimer.current) window.clearTimeout(changeCommitTimer.current);
           changeCommitTimer.current = null;
 
+          let cascadeOffset = 20;
+          if (!pointOverride) {
+            pasteCascadeRef.current.count = (pasteCascadeRef.current.count || 0) + 1;
+            cascadeOffset = 20 * pasteCascadeRef.current.count;
+          }
+
           const pickTarget = (base) => {
-            if (pointOverride && Number.isFinite(pointOverride.x) && Number.isFinite(pointOverride.y)) return new fabric.Point(pointOverride.x, pointOverride.y);
-            const p = lastPointer.current;
-            if (p && Number.isFinite(p.x) && Number.isFinite(p.y)) return new fabric.Point(p.x, p.y);
-            const c = base || getCanvasCenter();
-            if (Number.isFinite(c.x) && Number.isFinite(c.y)) return new fabric.Point(c.x + 20, c.y + 20);
-            return new fabric.Point(60, 60);
+            if (pointOverride && Number.isFinite(pointOverride.x) && Number.isFinite(pointOverride.y)) {
+              return new fabric.Point(pointOverride.x, pointOverride.y);
+            }
+            const origin = payload.baseCenter || base || getCanvasCenter();
+            if (Number.isFinite(origin?.x) && Number.isFinite(origin?.y)) {
+              const canvasW = canvas.getWidth() || 820;
+              const canvasH = canvas.getHeight() || 700;
+              const tx = Math.min(canvasW - 40, origin.x + cascadeOffset);
+              const ty = Math.min(canvasH - 40, origin.y + cascadeOffset);
+              return new fabric.Point(tx, ty);
+            }
+            return new fabric.Point(80, 80);
           };
+
+          const idMap = new Map();
+          const fractionIdMap = new Map();
+          const longDivIdMap = new Map();
+          objects.forEach((obj) => {
+            if (obj.layerId) {
+              const nextId = `layer-${layerIdSeq.current++}`;
+              idMap.set(obj.layerId, nextId);
+              obj.layerId = nextId;
+            }
+            if (obj.fractionId && !fractionIdMap.has(obj.fractionId)) {
+              fractionIdMap.set(obj.fractionId, `fraction-${Date.now()}-${Math.floor(Math.random() * 1000)}`);
+            }
+            if (obj.longDivisionId && !longDivIdMap.has(obj.longDivisionId)) {
+              longDivIdMap.set(obj.longDivisionId, `long-division-${Date.now()}-${Math.floor(Math.random() * 1000)}`);
+            }
+          });
 
           const cleanObj = (obj) => {
             if (obj.type === "line" && obj.fractionRole === "line" && !obj.shapeKind) obj.shapeKind = "hrLine";
-            delete obj.fractionId;
-            delete obj.fractionRole;
-            delete obj.longDivisionId;
-            delete obj.longDivisionRole;
-            delete obj.layerId;
+            if (obj.fractionId) obj.fractionId = fractionIdMap.get(obj.fractionId) || undefined;
+            if (obj.longDivisionId) obj.longDivisionId = longDivIdMap.get(obj.longDivisionId) || undefined;
+            if (obj.connectedFromId || obj.connectedToId) {
+              const mappedFrom = obj.connectedFromId ? idMap.get(obj.connectedFromId) : null;
+              const mappedTo = obj.connectedToId ? idMap.get(obj.connectedToId) : null;
+              if (mappedFrom && mappedTo) {
+                obj.connectedFromId = mappedFrom;
+                obj.connectedToId = mappedTo;
+              } else {
+                delete obj.connectedFromId;
+                delete obj.connectedToId;
+                obj.isSmartConnector = false;
+                obj.isLocalArrow = true;
+              }
+            }
             obj.locked = false;
             obj.set({
               selectable: true,
@@ -3248,6 +3547,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
             });
             if (isTextObj(obj)) obj.initDimensions();
             configureHrLine(obj);
+            configureArrow(obj);
             configureLongDivisionBracket(obj);
             ensureLayerId(obj);
             obj.dirty = true;
@@ -3292,13 +3592,17 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
         if (changeCommitTimer.current) window.clearTimeout(changeCommitTimer.current);
         changeCommitTimer.current = null;
 
+        let cascadeOffset = 20;
+        if (!pointOverride) {
+          pasteCascadeRef.current.count = (pasteCascadeRef.current.count || 0) + 1;
+          cascadeOffset = 20 * pasteCascadeRef.current.count;
+        }
+
         const pickTarget = (base) => {
           if (pointOverride && Number.isFinite(pointOverride.x) && Number.isFinite(pointOverride.y)) return new fabric.Point(pointOverride.x, pointOverride.y);
-          const p = lastPointer.current;
-          if (p && Number.isFinite(p.x) && Number.isFinite(p.y)) return new fabric.Point(p.x, p.y);
           const c = base || getCanvasCenter();
-          if (Number.isFinite(c.x) && Number.isFinite(c.y)) return new fabric.Point(c.x + 20, c.y + 20);
-          return new fabric.Point(60, 60);
+          if (Number.isFinite(c.x) && Number.isFinite(c.y)) return new fabric.Point(c.x + cascadeOffset, c.y + cascadeOffset);
+          return new fabric.Point(80, 80);
         };
 
         const cleanObj = (obj) => {
@@ -3307,9 +3611,17 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
           delete obj.fractionRole;
           delete obj.longDivisionId;
           delete obj.longDivisionRole;
+          delete obj.connectedFromId;
+          delete obj.connectedToId;
+          if (obj.isSmartConnector) {
+            obj.isSmartConnector = false;
+            obj.isLocalArrow = true;
+          }
+          delete obj.layerId;
           obj.set({ selectable: true, hasControls: true, evented: true });
           if (isTextObj(obj)) obj.initDimensions();
           configureHrLine(obj);
+          configureArrow(obj);
           ensureLayerId(obj);
           obj.dirty = true;
         };
@@ -3317,7 +3629,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
         const metaType = clipboardMeta.current?.type;
 
         if (cloned.type === "group" && metaType === "activeSelection" && typeof cloned.toActiveSelection === "function") {
-          cloned.set({ visible: true, opacity: 1, evented: true });
+          cloned.set({ visible: true, evented: true });
           cloned.canvas = canvas;
           cloned.forEachObject(cleanObj);
           canvas.add(cloned);
@@ -3335,7 +3647,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
         } else if (cloned.type === 'activeSelection') {
           const group = typeof cloned.toGroup === "function" ? cloned.toGroup() : null;
           const g = group || cloned;
-          g.set({ visible: true, opacity: 1, evented: true });
+          g.set({ visible: true, evented: true });
           g.canvas = canvas;
           if (typeof g.forEachObject === "function") g.forEachObject(cleanObj);
           canvas.add(g);
@@ -3358,7 +3670,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
           cleanObj(cloned);
           cloned.set({
             visible: true,
-            opacity: 1,
+            opacity: cloned.opacity != null ? cloned.opacity : 1,
           });
           cloned.setPositionByOrigin(targetCenter, "center", "center");
           cloned.setCoords();
@@ -5880,8 +6192,16 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     const canvas = fabricRef.current;
     const active = canvas?.getActiveObject();
     if (!canvas || !active) return;
-    active.set("fill", c);
-    active.dirty = true;
+    const applyTo = (obj) => {
+      if (!obj) return;
+      if ((obj.type === "activeSelection" || obj.type === "group") && typeof obj.forEachObject === "function") {
+        obj.forEachObject(applyTo);
+      } else if (isTextObj(obj) || ["rect", "circle", "triangle", "polygon", "polyline"].includes(obj.type)) {
+        obj.set("fill", c);
+      }
+      obj.dirty = true;
+    };
+    applyTo(active);
     canvas.requestRenderAll();
     if (commit) commitCanvasChange(active);
     if (typeof canvas.refreshUI === "function") canvas.refreshUI();
@@ -5891,8 +6211,16 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     const canvas = fabricRef.current;
     const active = canvas?.getActiveObject();
     if (!canvas || !active) return;
-    active.set("backgroundColor", c === "transparent" ? "" : c);
-    active.dirty = true;
+    const applyTo = (obj) => {
+      if (!obj) return;
+      if ((obj.type === "activeSelection" || obj.type === "group") && typeof obj.forEachObject === "function") {
+        obj.forEachObject(applyTo);
+      } else {
+        obj.set("backgroundColor", c === "transparent" ? "" : c);
+      }
+      obj.dirty = true;
+    };
+    applyTo(active);
     canvas.requestRenderAll();
     commitCanvasChange(active);
     if (typeof canvas.refreshUI === "function") canvas.refreshUI();
@@ -5902,11 +6230,20 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     const canvas = fabricRef.current;
     const active = canvas?.getActiveObject();
     if (!canvas || !active) return;
-    active.set("stroke", c);
-    if (!active.strokeWidth || active.strokeWidth === 0) {
-      active.set("strokeWidth", 2);
-    }
-    active.dirty = true;
+    const applyTo = (obj) => {
+      if (!obj) return;
+      if ((obj.type === "activeSelection" || obj.type === "group") && typeof obj.forEachObject === "function") {
+        obj.forEachObject(applyTo);
+      } else {
+        const nextStroke = obj.isHighlighter ? toHighlighterColor(c) : c;
+        obj.set("stroke", nextStroke);
+        if (!obj.strokeWidth || obj.strokeWidth === 0) {
+          obj.set("strokeWidth", 2);
+        }
+      }
+      obj.dirty = true;
+    };
+    applyTo(active);
     canvas.requestRenderAll();
     if (commit) commitCanvasChange(active);
     if (typeof canvas.refreshUI === "function") canvas.refreshUI();
@@ -5916,11 +6253,19 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     const canvas = fabricRef.current;
     const active = canvas?.getActiveObject();
     if (!canvas || !active) return;
-    active.set("strokeWidth", w);
-    if (w > 0 && (!active.stroke || active.stroke === "transparent")) {
-      active.set("stroke", color || "#1a2540");
-    }
-    active.dirty = true;
+    const applyTo = (obj) => {
+      if (!obj) return;
+      if ((obj.type === "activeSelection" || obj.type === "group") && typeof obj.forEachObject === "function") {
+        obj.forEachObject(applyTo);
+      } else {
+        obj.set("strokeWidth", w);
+        if (w > 0 && (!obj.stroke || obj.stroke === "transparent")) {
+          obj.set("stroke", obj.isHighlighter ? toHighlighterColor(color || "#1a2540") : (color || "#1a2540"));
+        }
+      }
+      obj.dirty = true;
+    };
+    applyTo(active);
     canvas.requestRenderAll();
     commitCanvasChange(active);
     if (typeof canvas.refreshUI === "function") canvas.refreshUI();
@@ -5930,10 +6275,17 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     const canvas = fabricRef.current;
     const active = canvas?.getActiveObject();
     if (!canvas || !active) return;
-    if (style === "dashed") active.set("strokeDashArray", [8, 6]);
-    else if (style === "dotted") active.set("strokeDashArray", [3, 4]);
-    else active.set("strokeDashArray", null);
-    active.dirty = true;
+    const dash = style === "dashed" ? [8, 6] : style === "dotted" ? [3, 4] : null;
+    const applyTo = (obj) => {
+      if (!obj) return;
+      if ((obj.type === "activeSelection" || obj.type === "group") && typeof obj.forEachObject === "function") {
+        obj.forEachObject(applyTo);
+      } else {
+        obj.set("strokeDashArray", dash);
+      }
+      obj.dirty = true;
+    };
+    applyTo(active);
     canvas.requestRenderAll();
     commitCanvasChange(active);
     if (typeof canvas.refreshUI === "function") canvas.refreshUI();
@@ -7643,7 +7995,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
               )}
 
               {/* Text Formatting: Font, Size, Bold, Italic, Underline, Align */}
-              {activeObjProps.isText && (
+              {activeObjProps.isText && !activeObjProps.isGroupOrMulti && (
                 <>
                   <div className="draw-floating-anchor">
                     <button

@@ -303,6 +303,8 @@ export const distToSegment = (
 export const CUSTOM_FABRIC_PROPS: readonly string[] = [
   "layerId",
   "shapeKind",
+  "rx",
+  "ry",
   "boxHeight",
   "fractionId",
   "fractionRole",
@@ -314,6 +316,7 @@ export const CUSTOM_FABRIC_PROPS: readonly string[] = [
   "arrowHead",
   "bend",
   "isSmartConnector",
+  "isLocalArrow",
   "connectedFromId",
   "connectedToId",
   "isStickyNote",
