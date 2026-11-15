@@ -522,13 +522,16 @@
 }
 
 .qb-label-filter-col .qb-select {
-  min-width: 210px;
+  min-width: 0;
+  width: 100%;
 }
 
 .qb-label-filter-col .qb-select-menu {
-  min-width: 230px;
+  left: auto;
+  right: 0;
+  min-width: 100%;
   width: max-content;
-  max-width: min(340px, 90vw);
+  max-width: min(360px, calc(100vw - 32px));
 }
 
 /* ══════════════════════════════════════════════════════════════════════════

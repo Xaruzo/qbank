@@ -536,6 +536,7 @@ body.qb-guide-active .qb {
 .qb-control-summary .qb-control-stat {
   display:inline-flex;
   align-items:center;
+  gap:4px;
   min-height:32px;
   padding:0 12px;
   border-radius:999px;
@@ -548,7 +549,7 @@ body.qb-guide-active .qb {
 
 .qb-control-summary .qb-control-stat strong {
   color:var(--text-heading);
-  margin-right:4px;
+  margin-right:0;
 }
 
 .qb-filter-fav-btn {

@@ -1702,9 +1702,9 @@
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
-  gap: 12px !important;
+  gap: 10px !important;
   width: 100% !important;
-  margin-top: 6px !important;
+  margin-top: 4px !important;
   box-sizing: border-box !important;
 }
 
@@ -1716,25 +1716,26 @@
 }
 
 .qb-discard-modal-btn {
-  height: 40px !important;
-  padding: 0 16px !important;
-  border-radius: 10px !important;
+  height: 36px !important;
+  padding: 0 14px !important;
+  border-radius: 9px !important;
   font-family: var(--font-sans) !important;
-  font-size: 13.5px !important;
+  font-size: 13px !important;
   font-weight: 600 !important;
   cursor: pointer !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 7px !important;
+  gap: 6px !important;
   white-space: nowrap !important;
   transition: all 0.15s ease !important;
+  box-sizing: border-box !important;
 }
 
 .qb-discard-modal-btn-cancel {
   background: rgba(255, 255, 255, 0.06) !important;
   border: 1px solid rgba(255, 255, 255, 0.14) !important;
-  color: #f1f5f9 !important;
+  color: #e2e8f0 !important;
 }
 
 .qb-discard-modal-btn-cancel:hover {
@@ -1744,45 +1745,106 @@
 }
 
 .qb-discard-modal-btn-save {
-  background: rgba(16, 185, 129, 0.16) !important;
-  border: 1px solid rgba(16, 185, 129, 0.45) !important;
-  color: #34d399 !important;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  border: 1px solid rgba(52, 211, 153, 0.45) !important;
+  color: #ffffff !important;
   font-weight: 700 !important;
+  box-shadow: 0 3px 12px rgba(16, 185, 129, 0.28) !important;
 }
 
 .qb-discard-modal-btn-save:hover {
-  background: rgba(16, 185, 129, 0.28) !important;
-  color: #6ee7b7 !important;
-  border-color: rgba(16, 185, 129, 0.6) !important;
+  background: linear-gradient(135deg, #34d399 0%, #10b981 100%) !important;
+  border-color: rgba(110, 231, 183, 0.65) !important;
+  box-shadow: 0 5px 16px rgba(16, 185, 129, 0.4) !important;
   transform: translateY(-1px);
 }
 
 .qb-discard-modal-btn-danger {
-  background: linear-gradient(135deg, #e11d48 0%, #be123c 100%) !important;
-  border: 1px solid rgba(244, 63, 94, 0.5) !important;
-  color: #ffffff !important;
-  font-weight: 700 !important;
-  box-shadow: 0 4px 14px rgba(225, 29, 72, 0.35) !important;
+  background: rgba(244, 63, 94, 0.12) !important;
+  border: 1px solid rgba(244, 63, 94, 0.4) !important;
+  color: #fda4af !important;
+  font-weight: 600 !important;
 }
 
 .qb-discard-modal-btn-danger:hover {
-  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%) !important;
-  box-shadow: 0 6px 18px rgba(225, 29, 72, 0.5) !important;
+  background: rgba(225, 29, 72, 0.9) !important;
+  border-color: rgba(244, 63, 94, 0.7) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(225, 29, 72, 0.35) !important;
   transform: translateY(-1px);
 }
 
 @media (max-width: 520px) {
+  .qb-discard-modal-overlay {
+    padding: 14px !important;
+  }
+  .qb-discard-modal-card {
+    padding: 18px 16px 16px 16px !important;
+    gap: 13px !important;
+    border-radius: 14px !important;
+  }
+  .qb-discard-modal-header {
+    gap: 11px !important;
+  }
+  .qb-discard-modal-icon-badge {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    border-radius: 10px !important;
+  }
+  .qb-discard-modal-icon-badge svg {
+    width: 19px !important;
+    height: 19px !important;
+  }
+  .qb-discard-modal-title {
+    font-size: 16.5px !important;
+  }
+  .qb-discard-modal-desc {
+    font-size: 12.5px !important;
+    line-height: 1.48 !important;
+  }
+  .qb-discard-modal-preview {
+    padding: 11px 12px !important;
+    border-radius: 10px !important;
+    gap: 6px !important;
+  }
+  .qb-discard-modal-preview-text {
+    font-size: 11.5px !important;
+    line-height: 1.45 !important;
+  }
   .qb-discard-modal-actions {
-    flex-direction: column-reverse !important;
-    gap: 10px !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    margin-top: 2px !important;
   }
   .qb-discard-modal-actions-right {
-    flex-direction: column-reverse !important;
-    width: 100% !important;
-    gap: 8px !important;
+    display: contents !important;
   }
   .qb-discard-modal-btn {
     width: 100% !important;
+    height: 36px !important;
+    padding: 0 10px !important;
+    font-size: 12.5px !important;
+    border-radius: 8px !important;
+    gap: 5px !important;
+  }
+  .qb-discard-modal-btn .qb-btn-icon {
+    width: 13px !important;
+    height: 13px !important;
+    flex-shrink: 0 !important;
+  }
+  .qb-discard-modal-btn-save {
+    grid-column: 1 / -1 !important;
+    order: 1 !important;
+    height: 38px !important;
+    font-size: 13px !important;
+  }
+  .qb-discard-modal-btn-cancel {
+    order: 2 !important;
+  }
+  .qb-discard-modal-btn-danger {
+    order: 3 !important;
   }
 }
 
@@ -1858,28 +1920,32 @@ body.light .qb-discard-modal-btn-cancel:hover {
 
 .light .qb-discard-modal-btn-save,
 body.light .qb-discard-modal-btn-save {
-  background: #ecfdf5 !important;
-  border: 1px solid #a7f3d0 !important;
-  color: #047857 !important;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  border: 1px solid #059669 !important;
+  color: #ffffff !important;
+  box-shadow: 0 3px 10px rgba(5, 150, 105, 0.25) !important;
 }
 
 .light .qb-discard-modal-btn-save:hover,
 body.light .qb-discard-modal-btn-save:hover {
-  background: #d1fae5 !important;
-  color: #065f46 !important;
-  border-color: #6ee7b7 !important;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+  border-color: #047857 !important;
+  color: #ffffff !important;
 }
 
 .light .qb-discard-modal-btn-danger,
 body.light .qb-discard-modal-btn-danger {
-  background: #be123c !important;
-  border: 1px solid #9f1239 !important;
-  color: #ffffff !important;
-  box-shadow: 0 3px 12px rgba(190, 18, 60, 0.35) !important;
+  background: #fff1f2 !important;
+  border: 1px solid #fecdd3 !important;
+  color: #be123c !important;
+  box-shadow: none !important;
 }
 
 .light .qb-discard-modal-btn-danger:hover,
 body.light .qb-discard-modal-btn-danger:hover {
-  background: #9f1239 !important;
-  box-shadow: 0 5px 16px rgba(190, 18, 60, 0.45) !important;
+  background: #be123c !important;
+  border-color: #9f1239 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(190, 18, 60, 0.3) !important;
 }
+
