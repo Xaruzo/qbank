@@ -36,6 +36,10 @@ export default function QuestionDetail({
   canManageQuestions,
   questionIndex,
   totalQuestions,
+  queueQuestions = [],
+  onSelectQuestion,
+  sessionResults = {},
+  onRecordResult,
 }) {
   const [pick, setPick] = useState(null);
   const [showSol, setShowSol] = useState(false);
@@ -46,14 +50,19 @@ export default function QuestionDetail({
   const [answerMs, setAnswerMs] = useState(0);
   const [timerRunning, setTimerRunning] = useState(false);
   const [shareLabel, setShareLabel] = useState("Share");
+  const [scratchMap, setScratchMap] = useState<Record<string, string>>({});
   const timerStartRef = useRef(0);
   const timerIdRef = useRef(null);
   const copyAreaRef = useRef(null);
   const cardScrollRef = useRef(null);
+  const navGridRef = useRef<HTMLDivElement>(null);
+  const activeNavBtnRef = useRef<HTMLButtonElement>(null);
   usePlainTextCopy(copyAreaRef);
 
   const prevRef = useRef(onPrev);
   const nextRef = useRef(onNext);
+  const onPickRef = useRef<(idx: number) => void>(() => {});
+  const toggleSolRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     prevRef.current = onPrev;
@@ -62,19 +71,45 @@ export default function QuestionDetail({
 
   useEffect(() => {
     const onKeyDown = (e) => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
-      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-        if ((e.key === 'ArrowLeft' && hasPrev) || (e.key === 'ArrowRight' && hasNext)) {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        if ((e.key === "ArrowLeft" && hasPrev) || (e.key === "ArrowRight" && hasNext)) {
           e.preventDefault();
           (document.activeElement as HTMLElement | null)?.blur();
-          if (e.key === 'ArrowLeft') prevRef.current();
+          if (e.key === "ArrowLeft") prevRef.current();
           else nextRef.current();
         }
+        return;
+      }
+
+      if (/^[1-9]$/.test(e.key)) {
+        const idx = Number(e.key) - 1;
+        if (idx >= 0 && idx < (question.choices?.length || 0)) {
+          e.preventDefault();
+          onPickRef.current(idx);
+        }
+        return;
+      }
+
+      if (e.key === "s" || e.key === "S") {
+        e.preventDefault();
+        toggleSolRef.current();
       }
     };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [hasPrev, hasNext]);
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [hasPrev, hasNext, question.choices?.length]);
 
   const [expandedZoom, setExpandedZoom] = useState(1);
   const expandedScrollRef = useRef(null);
@@ -267,7 +302,43 @@ export default function QuestionDetail({
     if (pick !== null) return;
     setTimerRunning(false);
     setPick(i);
+    onRecordResult?.(question.id, i === question.correct);
   };
+
+  useEffect(() => {
+    onPickRef.current = onPick;
+    toggleSolRef.current = () => {
+      if (canRevealSolution && hasSolution) {
+        setShowSol((prev) => !prev);
+      }
+    };
+  });
+
+  useEffect(() => {
+    const container = navGridRef.current;
+    const activeBtn = activeNavBtnRef.current;
+    if (!container || !activeBtn) return;
+    const top = activeBtn.offsetTop - container.offsetTop;
+    const targetTop = top - container.clientHeight / 2 + activeBtn.clientHeight / 2;
+    container.scrollTo({ top: Math.max(0, targetTop), behavior: "smooth" });
+  }, [question.id]);
+
+  const queueItems = Array.isArray(queueQuestions) ? queueQuestions : [];
+  const queueAnsweredCount = queueItems.reduce(
+    (acc, q) => (sessionResults[q.id] ? acc + 1 : acc),
+    0
+  );
+  const queueCorrectCount = queueItems.reduce(
+    (acc, q) => (sessionResults[q.id] === "correct" ? acc + 1 : acc),
+    0
+  );
+  const queueAccuracy =
+    queueAnsweredCount > 0 ? Math.round((queueCorrectCount / queueAnsweredCount) * 100) : null;
+  const progressPct =
+    questionIndex && totalQuestions
+      ? Math.min(100, Math.round((questionIndex / totalQuestions) * 100))
+      : 0;
+  const currentScratch = scratchMap[question.id] || "";
 
   return (
     <div className="qb-det-page fu" ref={copyAreaRef}>
@@ -411,6 +482,7 @@ export default function QuestionDetail({
                   className="qb-edit-btn"
                   onClick={() => onEdit(question)}
                   title="Edit question"
+                  aria-label="Edit question"
                 >
                   <Pencil size={13} className="qb-btn-icon" />
                   <span>Edit</span>
@@ -420,6 +492,7 @@ export default function QuestionDetail({
                   className="qb-del-btn"
                   onClick={() => setIsDeleteModalOpen(true)}
                   title="Delete question"
+                  aria-label="Delete question"
                   aria-haspopup="dialog"
                 >
                   <Trash2 size={13} className="qb-btn-icon" />
@@ -431,9 +504,12 @@ export default function QuestionDetail({
         </div>
       </div>
 
-      {/* Main Contained Question Card with Internal Scroll */}
-      <div className="qb-det-card qb-det-card-fixed">
-        <div ref={cardScrollRef} className="qb-det-card-scroll">
+      {/* Split Study Workspace on Desktop, Single Column on Tablet/Mobile */}
+      <div className="qb-det-workspace">
+        <div className="qb-det-main-col">
+          {/* Main Question Card */}
+          <div className="qb-det-card qb-det-card-fixed">
+            <div ref={cardScrollRef} className="qb-det-card-scroll">
           {label && (
             <div className="qb-det-label-wrap">
               <span className="qb-det-label">{label}</span>
@@ -506,70 +582,217 @@ export default function QuestionDetail({
             </div>
           )}
         </div>
+      </div>
 
-        {/* Pinned Bottom Controls Footer */}
-        <div className="qb-det-footer">
-          <div className="qb-det-footer-left">
-            {canRevealSolution && hasSolution && (
-              <button
-                type="button"
-                className={`qb-reveal-toggle${showSol ? " is-active" : ""}`}
-                onClick={() => setShowSol((prev) => !prev)}
-              >
-                <Lightbulb size={15} />
-                <span>{showSol ? "Hide Solution" : "Show Solution"}</span>
-                <ChevronDown size={15} className={`qb-reveal-caret${showSol ? " is-open" : ""}`} />
-              </button>
-            )}
-            {pick === null && (
-              <div className="qb-det-footer-hint">
-                <MousePointerClick size={14} className="qb-det-footer-hint-ico" />
-                <span>Tap a choice to check your answer</span>
-              </div>
-            )}
-          </div>
-
-          {pick !== null && (
-            <div
-              className={`qb-det-footer-verdict ${pick === question.correct ? "ok" : "no"}`}
-              role="status"
-              aria-live="polite"
+      {/* Sticky Bottom Controls Dock (zero vertical target drift across questions) */}
+      <div className="qb-det-footer">
+        <div className="qb-det-footer-left">
+          {canRevealSolution && hasSolution && (
+            <button
+              type="button"
+              className={`qb-reveal-toggle${showSol ? " is-active" : ""}`}
+              onClick={() => setShowSol((prev) => !prev)}
             >
-              {pick === question.correct ? (
-                <CheckCircle2 size={15} className="qb-det-footer-verdict-ico" />
-              ) : (
-                <AlertCircle size={15} className="qb-det-footer-verdict-ico" />
-              )}
-              <span>
-                {pick === question.correct
-                  ? `Correct! Choice ${LETTERS[question.correct]} is right.`
-                  : `Incorrect. The correct answer is ${LETTERS[question.correct]}.`}
-              </span>
+              <Lightbulb size={15} />
+              <span>{showSol ? "Hide Solution" : "Show Solution"}</span>
+              <ChevronDown size={15} className={`qb-reveal-caret${showSol ? " is-open" : ""}`} />
+            </button>
+          )}
+          {pick === null && (
+            <div className="qb-det-footer-hint">
+              <MousePointerClick size={14} className="qb-det-footer-hint-ico" />
+              <span>Tap a choice to check your answer</span>
             </div>
           )}
-
-          <div className="qb-det-footer-right">
-            <button
-              type="button"
-              className="qb-det-navbtn qb-det-navbtn-prev"
-              onClick={onPrev}
-              disabled={!hasPrev}
-              title={hasPrev ? "Previous question (←)" : "No previous question"}
-            >
-              <ChevronLeft size={16} />
-              <span>Prev</span>
-            </button>
-            <button
-              type="button"
-              className="qb-det-navbtn qb-det-navbtn-next"
-              onClick={onNext}
-              title={hasNext ? "Next question (→)" : "Finish review"}
-            >
-              <span>{hasNext ? "Next" : "Finish"}</span>
-              <ChevronRight size={16} />
-            </button>
-          </div>
         </div>
+
+        {pick !== null && (
+          <div
+            className={`qb-det-footer-verdict ${pick === question.correct ? "ok" : "no"}`}
+            role="status"
+            aria-live="polite"
+          >
+            {pick === question.correct ? (
+              <CheckCircle2 size={15} className="qb-det-footer-verdict-ico" />
+            ) : (
+              <AlertCircle size={15} className="qb-det-footer-verdict-ico" />
+            )}
+            <span>
+              {pick === question.correct
+                ? `Correct! Choice ${LETTERS[question.correct]} is right.`
+                : `Incorrect. The correct answer is ${LETTERS[question.correct]}.`}
+            </span>
+          </div>
+        )}
+
+        <div className="qb-det-footer-right">
+          <button
+            type="button"
+            className="qb-det-navbtn qb-det-navbtn-prev"
+            onClick={onPrev}
+            disabled={!hasPrev}
+            title={hasPrev ? "Previous question (←)" : "No previous question"}
+          >
+            <ChevronLeft size={16} />
+            <span>Prev</span>
+          </button>
+          <button
+            type="button"
+            className="qb-det-navbtn qb-det-navbtn-next"
+            onClick={onNext}
+            title={hasNext ? "Next question (→)" : "Finish review"}
+          >
+            <span>{hasNext ? "Next" : "Finish"}</span>
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      </div>
+        </div>
+
+        {/* Desktop Companion Study Rail (Hidden on Tablet/Mobile <= 1099px) */}
+        <aside className="qb-det-rail" aria-label="Study companion rail">
+          {queueItems.length > 0 && (
+            <section className="qb-det-rail-card">
+              <div className="qb-det-rail-head">
+                <h2 className="qb-det-rail-title">Practice Queue</h2>
+                <span className="qb-det-rail-meta">
+                  {questionIndex && totalQuestions ? `${questionIndex} / ${totalQuestions}` : `${queueItems.length} items`}
+                </span>
+              </div>
+
+              {questionIndex && totalQuestions ? (
+                <div className="qb-det-rail-progress" aria-label={`Question ${questionIndex} of ${totalQuestions}`}>
+                  <div className="qb-det-rail-progress-bar">
+                    <div
+                      className="qb-det-rail-progress-fill"
+                      style={{ width: `${progressPct}%` }}
+                    />
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="qb-det-rail-stats">
+                <div className="qb-det-rail-stat">
+                  <span className="qb-det-rail-stat-val">{queueAnsweredCount}</span>
+                  <span className="qb-det-rail-stat-lbl">Answered</span>
+                </div>
+                <div className="qb-det-rail-stat">
+                  <span className="qb-det-rail-stat-val">{queueCorrectCount}</span>
+                  <span className="qb-det-rail-stat-lbl">Correct</span>
+                </div>
+                <div className="qb-det-rail-stat">
+                  <span className="qb-det-rail-stat-val">
+                    {queueAccuracy !== null ? `${queueAccuracy}%` : "—"}
+                  </span>
+                  <span className="qb-det-rail-stat-lbl">Accuracy</span>
+                </div>
+              </div>
+
+              <div className="qb-det-rail-grid" ref={navGridRef} role="navigation" aria-label="Question navigator">
+                {queueItems.map((item, idx) => {
+                  const isCurrent = item.id === question.id;
+                  const status = sessionResults[item.id];
+                  const itemTopic = TOPICS.find((t) => t.id === item.topic);
+                  const num = idx + 1;
+                  return (
+                    <button
+                      key={item.id}
+                      ref={isCurrent ? activeNavBtnRef : undefined}
+                      type="button"
+                      className={`qb-det-nav-cell${isCurrent ? " is-current" : ""}${
+                        status === "correct" ? " is-ok" : status === "wrong" ? " is-no" : ""
+                      }${item.favorite ? " is-fav" : ""}`}
+                      onClick={() => onSelectQuestion?.(item.id)}
+                      aria-current={isCurrent ? "true" : undefined}
+                      title={`Item ${num}${itemTopic ? ` · ${itemTopic.label}` : ""}${item.favorite ? " ★" : ""}`}
+                    >
+                      <span>{num}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="qb-det-rail-legend" aria-hidden="true">
+                <span className="qb-det-legend-item">
+                  <span className="qb-det-legend-swatch is-current" />
+                  Current
+                </span>
+                <span className="qb-det-legend-item">
+                  <span className="qb-det-legend-swatch is-ok" />
+                  Correct
+                </span>
+                <span className="qb-det-legend-item">
+                  <span className="qb-det-legend-swatch is-no" />
+                  Missed
+                </span>
+                <span className="qb-det-legend-item">
+                  <span className="qb-det-legend-swatch is-fav" />
+                  Starred
+                </span>
+              </div>
+            </section>
+          )}
+
+          <section className="qb-det-rail-card">
+            <div className="qb-det-rail-head">
+              <h2 className="qb-det-rail-title">Rough Scratchpad</h2>
+              <button
+                type="button"
+                className="qb-det-rail-clear"
+                disabled={!currentScratch}
+                onClick={() =>
+                  setScratchMap((prev) => ({
+                    ...prev,
+                    [question.id]: "",
+                  }))
+                }
+              >
+                Clear
+              </button>
+            </div>
+            <textarea
+              className="qb-det-scratch-input"
+              rows={5}
+              value={currentScratch}
+              onChange={(e) => {
+                const val = e.target.value;
+                setScratchMap((prev) => ({
+                  ...prev,
+                  [question.id]: val,
+                }));
+              }}
+              placeholder="Jot down formulas, steps, or elimination notes for this item..."
+              aria-label="Rough scratchpad for this question"
+            />
+          </section>
+
+          <section className="qb-det-rail-card qb-det-rail-shortcuts">
+            <div className="qb-det-rail-head">
+              <h2 className="qb-det-rail-title">Keyboard Shortcuts</h2>
+            </div>
+            <div className="qb-det-shortcut-list">
+              <div className="qb-det-shortcut-row">
+                <span className="qb-det-shortcut-label">Previous / Next</span>
+                <span className="qb-det-shortcut-keys">
+                  <kbd>←</kbd>
+                  <kbd>→</kbd>
+                </span>
+              </div>
+              <div className="qb-det-shortcut-row">
+                <span className="qb-det-shortcut-label">Pick answer choice</span>
+                <span className="qb-det-shortcut-keys">
+                  <kbd>1</kbd>–<kbd>{question.choices?.length || 4}</kbd>
+                </span>
+              </div>
+              <div className="qb-det-shortcut-row">
+                <span className="qb-det-shortcut-label">Toggle solution</span>
+                <span className="qb-det-shortcut-keys">
+                  <kbd>S</kbd>
+                </span>
+              </div>
+            </div>
+          </section>
+        </aside>
       </div>
 
       {/* Industry-Standard Accessible Delete Confirmation Modal */}

@@ -5,6 +5,7 @@ import SearchAndFilter from "./views/components/SearchAndFilter";
 import QuestionList from "./views/components/QuestionList";
 import QuestionDetail from "./views/components/QuestionDetail";
 import SideNav from "./views/components/SideNav";
+import MobileTabBar from "./views/components/MobileTabBar";
 
 import QuestionForm from "./views/components/QuestionForm";
 // Route-level code splitting: heavy screens (mock exam runner,
@@ -179,6 +180,7 @@ export default function App() {
   const [savedActiveMockExam, setSavedActiveMockExam] = useState<any | null>(null);
   const [isActiveMockExamLoading, setIsActiveMockExamLoading] = useState(false);
   const [hasLoadedActiveMockExam, setHasLoadedActiveMockExam] = useState(false);
+  const [detailSessionResults, setDetailSessionResults] = useState<Record<string, "correct" | "wrong">>({});
   const [isMobile, setIsMobile] = useState(() => window.matchMedia ? window.matchMedia("(max-width: 600px)").matches : false);
   const [isCompact, setIsCompact] = useState(() => window.matchMedia ? window.matchMedia("(min-width: 601px) and (max-width: 1099px)").matches : false);
   const [showHelpModal, setShowHelpModal] = useState(false);
@@ -681,6 +683,42 @@ export default function App() {
       : view === "notes"
         ? "notes"
         : "home";
+  const SEEN_QUESTIONS_KEY = "qbank-seen-questions-total";
+  const [seenQuestionsTotal, setSeenQuestionsTotal] = useState<number | null>(() => {
+    try {
+      const stored = window.localStorage?.getItem(SEEN_QUESTIONS_KEY);
+      return stored == null || stored === "" ? null : Number(stored) || 0;
+    } catch {
+      return null;
+    }
+  });
+
+  const isViewingQuestions = view === "list" || view === "detail";
+
+  useEffect(() => {
+    if (loading || qs.length <= 0) return;
+    if (isViewingQuestions || (seenQuestionsTotal != null && qs.length < seenQuestionsTotal)) {
+      setSeenQuestionsTotal((prev) => {
+        if (prev === qs.length) return prev;
+        try {
+          window.localStorage?.setItem(SEEN_QUESTIONS_KEY, String(qs.length));
+        } catch {
+          // Ignore storage write errors
+        }
+        return qs.length;
+      });
+    }
+  }, [loading, isViewingQuestions, qs.length, seenQuestionsTotal]);
+
+  const unreadQuestionsBadge =
+    primaryView === "home" || isViewingQuestions || loading || qs.length <= 0
+      ? null
+      : seenQuestionsTotal == null
+        ? qs.length
+        : qs.length > seenQuestionsTotal
+          ? qs.length - seenQuestionsTotal
+          : null;
+
   const hasResumableMock = isResumableMockExam(savedActiveMockExam);
   const scrollMainToTop = () => {
     window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
@@ -694,7 +732,7 @@ export default function App() {
       label: "Question Bank",
       shortLabel: "Questions",
       icon: Home,
-      badge: qs.length > 0 ? qs.length : null,
+      badge: unreadQuestionsBadge,
       onClick: () => {
         if (view === "list") scrollMainToTop();
         else handleGoHome();
@@ -736,12 +774,7 @@ export default function App() {
     const el = mainRef.current;
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
     if (!el) return;
-    if (view === "detail") {
-      const card = el.querySelector(".qb-det-card");
-      if (card) card.scrollIntoView({ behavior: "auto", block: "start" });
-    } else {
-      el.scrollTo({ top: 0, left: 0, behavior: "auto" });
-    }
+    el.scrollTo({ top: 0, left: 0, behavior: "auto" });
   }, [view, selectedId, selectedMockAttemptId, editId]);
 
   if (view === "landing") {
@@ -1069,6 +1102,12 @@ export default function App() {
                 canManageQuestions={canManageQuestions}
                 questionIndex={selectedIndexInFiltered >= 0 ? selectedIndexInFiltered + 1 : undefined}
                 totalQuestions={filteredQuestions.length > 0 ? filteredQuestions.length : qs.length}
+                queueQuestions={filteredQuestions.length > 0 ? filteredQuestions : qs}
+                onSelectQuestion={handleSelectQuestion}
+                sessionResults={detailSessionResults}
+                onRecordResult={(id: string, isCorrect: boolean) => {
+                  setDetailSessionResults((prev) => ({ ...prev, [id]: isCorrect ? "correct" : "wrong" }));
+                }}
                 onPrev={() => {
                   if (prevQuestion) handleSelectQuestion(prevQuestion.id);
                 }}
@@ -1219,48 +1258,7 @@ export default function App() {
           </main>
         </div>
         {isMobile && view !== "mockRun" && view !== "detail" && view !== "add" && (
-          <nav
-            className="qb-mobile-tabbar"
-            aria-label="Primary Bottom Navigation"
-          >
-            <div className="qb-mobile-tabbar-inner">
-              {mobileNavItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = primaryView === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className={`qb-mobile-tab${isActive ? " on" : ""}`}
-                    onClick={item.onClick}
-                    aria-current={isActive ? "page" : undefined}
-                    aria-label={item.badge ? `${item.label} (${item.badge} items)` : item.label}
-                  >
-                    <span className="qb-mobile-tab-indicator" aria-hidden="true" />
-                    <span className="qb-mobile-tab-surface">
-                      <span className="qb-mobile-tab-icon-box" aria-hidden="true">
-                        <Icon size={20} strokeWidth={isActive ? 2.4 : 1.85} />
-                        {item.isLive && (
-                          <span
-                            className="qb-mobile-tab-live-dot"
-                            title="Mock exam in progress"
-                          />
-                        )}
-                        {item.badge != null && (
-                          <span className="qb-mobile-tab-badge" title={`${item.badge} questions`}>
-                            {item.badge}
-                          </span>
-                        )}
-                      </span>
-                      <span className="qb-mobile-tab-label">
-                        {item.shortLabel || item.label}
-                      </span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </nav>
+          <MobileTabBar items={mobileNavItems} activeId={primaryView} />
         )}
       </div>
 

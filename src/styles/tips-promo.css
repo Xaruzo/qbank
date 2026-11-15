@@ -112,55 +112,97 @@
   }
 }
 
-/* Responsive */
+/* Responsive (Mobile Compact Card <= 600px — Desktop & Tablet untouched) */
 @media (max-width: 600px) {
   .qb-tips-promo-banner {
     flex-direction: column;
     align-items: stretch;
-    padding: 18px;
-    gap: 16px;
-  
+    padding: 13px 14px;
+    gap: 10px;
+    margin-bottom: 12px;
+    border-radius: 15px;
   }
+
   .qb-tips-promo-content {
-    gap: 14px;
-  
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 11px;
   }
+
   .qb-tips-promo-icon {
-    width: 48px;
-    height: 48px;
-  
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    margin-top: 1px;
   }
+
   .qb-tips-promo-icon svg {
-    width: 24px;
-    height: 24px;
-  
+    width: 18px;
+    height: 18px;
   }
+
+  .qb-tips-promo-text {
+    gap: 3px;
+  }
+
   .qb-tips-promo-title {
-    font-size: 16px;
-  
+    font-size: 14px;
+    line-height: 1.28;
   }
+
   .qb-tips-promo-desc {
-    font-size: 13px;
-  
+    font-size: 12px;
+    line-height: 1.45;
   }
+
   .qb-tips-promo-btn {
     width: 100%;
+    height: 34px;
     justify-content: center;
-    padding: 14px;
-  
+    padding: 0 12px;
+    font-size: 12.5px;
+    gap: 6px;
+    border-radius: 9px;
+    box-shadow: 0 2px 8px rgba(245, 166, 35, 0.2);
+  }
+
+  .qb-tips-promo-btn svg {
+    width: 14px;
+    height: 14px;
   }
 }
 
-@media (max-width: 420px) {
-  .qb-tips-promo-content {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  
+@media (max-width: 360px) {
+  .qb-tips-promo-banner {
+    padding: 12px;
+    gap: 9px;
   }
+
+  .qb-tips-promo-content {
+    gap: 9px;
+  }
+
   .qb-tips-promo-icon {
-    width: 44px;
-    height: 44px;
-  
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+  }
+
+  .qb-tips-promo-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .qb-tips-promo-title {
+    font-size: 13.5px;
+  }
+
+  .qb-tips-promo-desc {
+    font-size: 11.5px;
+  }
+
+  .qb-tips-promo-btn {
+    height: 32px;
+    font-size: 12px;
   }
 }

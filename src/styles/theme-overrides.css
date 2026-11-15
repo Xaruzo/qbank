@@ -1686,19 +1686,17 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
    MOBILE BOTTOM NAVIGATION THEME ALIGNMENT
    ══════════════════════════════════════════════════════════════════════════ */
 .qb-mobile-tabbar {
-  background: rgba(14, 22, 38, 0.96) !important;
-  backdrop-filter: blur(28px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+  background: #0c1424 !important;
   border-top: 1px solid var(--border) !important;
-  box-shadow: 0 -8px 28px rgba(7, 12, 24, 0.65) !important;
+  box-shadow: 0 -4px 18px rgba(4, 8, 18, 0.38) !important;
 }
 
 .qb-mobile-tab {
-  color: #94a3b8 !important;
+  color: #e2e8f0 !important;
 }
 
 .qb-mobile-tab:hover {
-  color: #f1f5f9 !important;
+  color: #ffffff !important;
 }
 
 .qb-mobile-tab.on {
@@ -1710,14 +1708,14 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   box-shadow: none !important;
 }
 
-.qb-mobile-tab.on .qb-mobile-tab-indicator {
+.qb-mobile-nav-glider-bar {
   background: #f5a623 !important;
   box-shadow: 0 2px 10px rgba(245, 166, 35, 0.7) !important;
 }
 
-.qb-mobile-tab.on .qb-mobile-tab-surface {
+.qb-mobile-nav-glider-pill {
   background: rgba(245, 166, 35, 0.12) !important;
-  border-color: rgba(245, 166, 35, 0.28) !important;
+  border: 1px solid rgba(245, 166, 35, 0.28) !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
 }
 
@@ -1736,36 +1734,36 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 /* Light mode mobile bottom tab bar */
 .light .qb-mobile-tabbar,
 .qb.light .qb-mobile-tabbar {
-  background: rgba(255, 255, 255, 0.96) !important;
+  background: #ffffff !important;
   border-top: 1px solid var(--border) !important;
-  box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.08) !important;
+  box-shadow: 0 -2px 12px rgba(15, 23, 42, 0.06) !important;
 }
 
 .light .qb-mobile-tab,
 .qb.light .qb-mobile-tab {
-  color: #64748b !important;
+  color: #0f172a !important;
 }
 
 .light .qb-mobile-tab:hover,
 .qb.light .qb-mobile-tab:hover {
-  color: #0f172a !important;
+  color: #030712 !important;
 }
 
 .light .qb-mobile-tab.on,
 .qb.light .qb-mobile-tab.on {
-  color: #d97706 !important;
+  color: #c2410c !important;
 }
 
-.light .qb-mobile-tab.on .qb-mobile-tab-indicator,
-.qb.light .qb-mobile-tab.on .qb-mobile-tab-indicator {
+.light .qb-mobile-nav-glider-bar,
+.qb.light .qb-mobile-nav-glider-bar {
   background: #d97706 !important;
   box-shadow: 0 2px 8px rgba(217, 119, 6, 0.5) !important;
 }
 
-.light .qb-mobile-tab.on .qb-mobile-tab-surface,
-.qb.light .qb-mobile-tab.on .qb-mobile-tab-surface {
-  background: rgba(217, 119, 6, 0.08) !important;
-  border-color: rgba(217, 119, 6, 0.22) !important;
+.light .qb-mobile-nav-glider-pill,
+.qb.light .qb-mobile-nav-glider-pill {
+  background: rgba(217, 119, 6, 0.09) !important;
+  border: 1px solid rgba(217, 119, 6, 0.24) !important;
 }
 
 .light .qb-mobile-tab-badge,

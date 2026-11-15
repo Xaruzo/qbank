@@ -319,20 +319,39 @@ export default function SideNav({
 
   // Overlay drawer mount state: stays mounted briefly while the close
   // transition plays, then unmounts (enter/exit animation parity).
-  const [overlayState, setOverlayState] = useState<"closed" | "open" | "closing">("closed");
+  const [overlayState, setOverlayState] = useState<"closed" | "open" | "closing">(
+    open ? "open" : "closed"
+  );
+  const [prevOverlayOpen, setPrevOverlayOpen] = useState(open);
 
-  useEffect(() => {
-    setOverlayState((prev) => {
-      if (open) return "open";
-      return prev === "open" ? "closing" : prev;
-    });
-  }, [open]);
+  // Desktop rail expand/collapse phase: keeps expanded content mounted
+  // while sliding back to the left so collapsing mirrors opening smoothly.
+  const [prevRailOpen, setPrevRailOpen] = useState(open);
+  const [railPhase, setRailPhase] = useState<"idle" | "opening" | "closing">("idle");
+
+  if (variant === "overlay" && open !== prevOverlayOpen) {
+    setPrevOverlayOpen(open);
+    setOverlayState(open ? "open" : "closing");
+    if (!open && profileMenuOpen) setProfileMenuOpen(false);
+  }
+
+  if (variant === "rail" && open !== prevRailOpen) {
+    setPrevRailOpen(open);
+    setRailPhase(open ? "opening" : "closing");
+    if (profileMenuOpen) setProfileMenuOpen(false);
+  }
 
   useEffect(() => {
     if (overlayState !== "closing") return undefined;
     const t = window.setTimeout(() => setOverlayState("closed"), 240);
     return () => window.clearTimeout(t);
   }, [overlayState]);
+
+  useEffect(() => {
+    if (railPhase === "idle") return undefined;
+    const t = window.setTimeout(() => setRailPhase("idle"), 240);
+    return () => window.clearTimeout(t);
+  }, [railPhase]);
 
   const expandedPopoverRef = useRef<HTMLDivElement>(null);
   const [expandedCoords, setExpandedCoords] = useState<{ bottom: number; left: number; width: number } | null>(null);
@@ -767,22 +786,21 @@ export default function SideNav({
   }
 
   // Desktop Sidebar (Smooth animated transition between collapsed rail and expanded panel)
+  const isRailClosing = railPhase === "closing";
+  const isRailOpening = railPhase === "opening";
+  const showExpandedPanel = open || isRailClosing;
+  const showCollapsedRail = !open;
+
   return (
     <aside
-      className={`qb-side ${open ? "qb-side-expanded" : "qb-side-collapsed"}`}
+      className={`qb-side ${open ? "qb-side-expanded" : "qb-side-collapsed"}${
+        isRailClosing ? " is-closing" : ""
+      }${isRailOpening ? " is-opening" : ""}`}
       aria-label={open ? "Sidebar navigation expanded" : "Sidebar navigation collapsed"}
     >
       <div className="qb-side-inner qb-modern-sidebar-inner">
-        {open ? (
-          <div className="qb-side-expanded-content">
-            {renderBrandHeader(false)}
-            <div className="qb-modern-sidebar-scroll">
-              {renderWorkspaceNav(false)}
-            </div>
-            {renderFooterSection(false)}
-          </div>
-        ) : (
-          <div className="qb-side-collapsed-content">
+        {showCollapsedRail && (
+          <div className={`qb-side-collapsed-content${isRailClosing ? " is-revealing" : ""}`}>
             <div className="qb-rail-wrap">
               <RailNavList
                 navItems={navItems}
@@ -845,6 +863,21 @@ export default function SideNav({
                 )}
               </div>
             </div>
+          </div>
+        )}
+
+        {showExpandedPanel && (
+          <div
+            className={`qb-side-expanded-content${isRailClosing ? " is-closing" : ""}${
+              isRailOpening ? " is-opening" : ""
+            }`}
+            aria-hidden={isRailClosing || undefined}
+          >
+            {renderBrandHeader(false)}
+            <div className="qb-modern-sidebar-scroll">
+              {renderWorkspaceNav(false)}
+            </div>
+            {renderFooterSection(false)}
           </div>
         )}
       </div>

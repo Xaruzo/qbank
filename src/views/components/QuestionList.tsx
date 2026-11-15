@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { TOPICS, SORT_OPTIONS } from "../../constants/appConstants";
 import {
   ClipboardList,
@@ -371,23 +372,29 @@ export default function QuestionList({
             className="qb-pill"
             onClick={() => setVisibleCount((c) => Math.min(c + PAGE_SIZE, questions.length))}
           >
-            Show more (<span className="tabular-nums">{questions.length - visibleCount}</span> remaining)
+            <span>
+              Show more (<span className="tabular-nums">{questions.length - visibleCount}</span> remaining)
+            </span>
           </button>
         </div>
       )}
 
-      {canManageQuestions && onAddQuestion && (
-        <button
-          type="button"
-          className={`qb-floating-docked-add-btn${showFloatingAdd ? " is-visible" : ""}`}
-          onClick={onAddQuestion}
-          title="Add Question (docked action)"
-          aria-label="Add Question to Reviewer Bank"
-        >
-          <ModernAddIcon size={18} className="qb-floating-add-icon" />
-          <span className="qb-floating-add-text">Add Question</span>
-        </button>
-      )}
+      {canManageQuestions &&
+        onAddQuestion &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <button
+            type="button"
+            className={`qb-floating-docked-add-btn${showFloatingAdd ? " is-visible" : ""}`}
+            onClick={onAddQuestion}
+            title="Add Question (docked action)"
+            aria-label="Add Question to Reviewer Bank"
+          >
+            <ModernAddIcon size={18} className="qb-floating-add-icon" />
+            <span className="qb-floating-add-text">Add Question</span>
+          </button>,
+          document.body
+        )}
     </section>
   );
 }

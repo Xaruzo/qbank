@@ -808,7 +808,7 @@ body.qb-guide-active .qb {
   position: fixed;
   bottom: 24px;
   right: 28px;
-  z-index: 999;
+  z-index: 360;
   display: inline-flex;
   align-items: center;
   gap: 10px;

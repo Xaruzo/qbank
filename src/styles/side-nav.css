@@ -85,10 +85,11 @@
    INDUSTRY STANDARD LEFT-HAND SIDE NAVIGATION (ANTI-AI SLOP)
    ══════════════════════════════════════════════════════════════════════════ */
 .qb-modern-sidebar-inner {
+  position: relative;
   height: 100%;
   display: flex;
   flex-direction: column;
-  overflow: visible;
+  overflow: hidden;
   background: var(--surface);
   border-right: 1px solid var(--border);
 }
@@ -1042,11 +1043,77 @@
    LEFT-HAND SIDE PANEL NAV ANIMATIONS & GLIDE INDICATORS
    ══════════════════════════════════════════════════════════════════════════ */
 .qb-side {
-  transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1), flex-basis 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: width 0.24s cubic-bezier(0.22, 1, 0.36, 1), flex-basis 0.24s cubic-bezier(0.22, 1, 0.36, 1) !important;
 }
 
 .qb-side-inner {
-  transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.qb-side-expanded-content.is-opening {
+  animation: qb-side-panel-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.qb-side-expanded-content.is-closing {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 275px;
+  height: 100%;
+  z-index: 2;
+  background: var(--surface);
+  pointer-events: none;
+  animation: qb-side-panel-out 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.qb-side-collapsed-content.is-revealing {
+  position: relative;
+  z-index: 1;
+  animation: qb-side-rail-in 0.18s cubic-bezier(0.16, 1, 0.3, 1) 0.06s both;
+}
+
+@keyframes qb-side-panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes qb-side-panel-out {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-36px);
+  }
+}
+
+@keyframes qb-side-rail-in {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qb-side {
+    transition: none !important;
+  }
+  .qb-side-expanded-content.is-opening,
+  .qb-side-expanded-content.is-closing,
+  .qb-side-collapsed-content.is-revealing {
+    animation: none !important;
+  }
 }
 
 .qb-nav-item {
