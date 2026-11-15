@@ -382,11 +382,13 @@
 
 .qb-qcard-meta-chip-fav { color:#f5a623; border-color:rgba(245,166,35,.25); background:rgba(245,166,35,.10); }
 
-.qb-qcard-open { display:inline-flex; align-items:center; gap:4px; color:var(--text-muted); font-size:12px; font-weight:700; }
+.qb-qcard-open { display:inline-flex; align-items:center; gap:4px; color:var(--text-muted); font-size:12px; font-weight:700; margin-left:auto; }
 
 .qb-qnum { font-family:'Fira Mono',monospace; font-size:11px; color:var(--text-faint); min-width:36px; flex-shrink:0; }
 
 .qb-badge { font-family:'Fira Mono',monospace; font-size:9px; padding:5px 9px; border-radius:999px; flex-shrink:0; letter-spacing:.8px; font-weight:700; border:1px solid transparent; }
+
+.qb-badge.qb-qcard-topic-badge { font-family:var(--font-sans); font-size:11px; padding:3px 9px; letter-spacing:0.01em; line-height:1.2; }
 
 .qb-qtext { flex:1; font-family:var(--font-input); font-size:15px; font-weight:500; color:var(--text-mid); overflow:hidden; line-height:1.72; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
 

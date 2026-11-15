@@ -322,10 +322,14 @@ export default function QuestionList({
                   <div className="qb-qcard-top-left">
                     <span className="qb-qnum tabular-nums">Question {String(i + 1).padStart(3, "0")}</span>
                     <span
-                      className="qb-badge"
-                      style={{ color: t.color, background: `${t.color}20` }}
+                      className="qb-badge qb-qcard-topic-badge"
+                      style={{
+                        color: t.color,
+                        background: `${t.color}1c`,
+                        borderColor: `${t.color}35`,
+                      }}
                     >
-                      {t.short || t.label.slice(0, 3).toUpperCase()}
+                      {t.label}
                     </span>
                   </div>
                   <button
@@ -350,10 +354,11 @@ export default function QuestionList({
                   </span>
                 </div>
                 <div className="qb-qcard-foot">
-                  <div className="qb-qcard-meta">
-                    <span className="qb-qcard-meta-chip">{t.label}</span>
-                    {q.favorite && <span className="qb-qcard-meta-chip qb-qcard-meta-chip-fav">Starred</span>}
-                  </div>
+                  {q.favorite && (
+                    <div className="qb-qcard-meta">
+                      <span className="qb-qcard-meta-chip qb-qcard-meta-chip-fav">Starred</span>
+                    </div>
+                  )}
                   <span className="qb-qcard-open">
                     Open
                     <ChevronRight size={18} className="qb-qarrow" />

@@ -385,14 +385,14 @@
     border-radius: 8px;
     flex-shrink: 0;
   }
-  .qb-qcard { padding:16px; gap:12px; border-radius:18px; 
+  .qb-qcard { padding:15px; gap:10px; border-radius:18px; 
   }
   .qb-qcard-top,
-.qb-qcard-foot { align-items:flex-start; 
+.qb-qcard-foot { align-items:center; 
   }
-  .qb-qcard-foot { flex-direction:column; 
+  .qb-qcard-foot { flex-direction:row; 
   }
-  .qb-qcard-open { align-self:flex-start; 
+  .qb-qcard-open { align-self:center; margin-left:auto; 
   }
   .qb-qtext { white-space:normal; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; 
   }
