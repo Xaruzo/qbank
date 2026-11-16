@@ -15,6 +15,8 @@ import {
   ArrowUpZA,
   SortAsc,
   SortDesc,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 import MarkdownText from "./MarkdownText";
 import usePlainTextCopy from "../../utils/usePlainTextCopy";
@@ -109,6 +111,7 @@ export default function QuestionList({
   totalInProject,
   sortBy,
   onSortChange,
+  masteryMap = {},
   canManageQuestions = false,
   onAddQuestion,
   onNavigateToTips,
@@ -375,11 +378,29 @@ export default function QuestionList({
                   </span>
                 </div>
                 <div className="qb-qcard-foot">
-                  {q.favorite && (
+                  {(q.favorite || masteryMap?.[q.id]?.attempts) ? (
                     <div className="qb-qcard-meta">
-                      <span className="qb-qcard-meta-chip qb-qcard-meta-chip-fav">Starred</span>
+                      {q.favorite && (
+                        <span className="qb-qcard-inline-status is-fav">Starred</span>
+                      )}
+                      {q.favorite && masteryMap?.[q.id]?.attempts ? (
+                        <span className="qb-qcard-meta-sep" aria-hidden="true">·</span>
+                      ) : null}
+                      {masteryMap?.[q.id]?.attempts ? (
+                        masteryMap[q.id].lastResult === "wrong" ? (
+                          <span className="qb-qcard-inline-status is-missed">
+                            <AlertCircle size={12} aria-hidden="true" />
+                            <span>Missed</span>
+                          </span>
+                        ) : (
+                          <span className="qb-qcard-inline-status is-mastered">
+                            <CheckCircle2 size={12} aria-hidden="true" />
+                            <span>Mastered</span>
+                          </span>
+                        )
+                      ) : null}
                     </div>
-                  )}
+                  ) : null}
                   <span className="qb-qcard-open">
                     Open
                     <ChevronRight size={18} className="qb-qarrow" />

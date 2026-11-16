@@ -595,7 +595,7 @@
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
-  width: min(400px, calc(100vw - 24px));
+  width: min(430px, calc(100vw - 24px));
   max-height: min(540px, calc(100dvh - 90px));
   background: var(--surface);
   border: 1px solid var(--border);
@@ -632,6 +632,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 
 .qb-notif-title-icon-wrap {
@@ -643,6 +644,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .qb-notif-title {
@@ -650,6 +652,7 @@
   font-size: 15px;
   font-weight: 700;
   color: var(--text-heading);
+  white-space: nowrap;
 }
 
 .qb-notif-badge-pill {
@@ -661,25 +664,30 @@
   background: rgba(245, 158, 11, 0.15);
   color: #f59e0b;
   border: 1px solid rgba(245, 158, 11, 0.3);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .qb-notif-head-actions {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
 }
 
 .qb-notif-head-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  border-radius: 6px;
+  gap: 5px;
+  padding: 5px 9px;
+  border-radius: 7px;
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text-muted);
   font-size: 11px;
   font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -702,6 +710,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   border-radius: 8px;
   border: 1px solid transparent;
   background: transparent;

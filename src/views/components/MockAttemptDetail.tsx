@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { AlertTriangle, ArrowUpRight, ChevronLeft, Clock3, Search, Trophy, TrendingUp, Target } from "lucide-react";
 import { LETTERS, TOPICS } from "../../constants/appConstants";
-import { buildQuestionLookup, formatAttemptDate, formatExamDuration, calculatePacingStats } from "../../utils/mockExamAnalytics";
+import { buildQuestionLookup, formatAttemptDate, formatExamDuration, calculatePacingStats, getAttemptModeLabel } from "../../utils/mockExamAnalytics";
 
 export default function MockAttemptDetail({ attempt, qMap, onBack, onReviewAttempt, onStartDrillMistakes }) {
   const [reviewSearch, setReviewSearch] = useState("");
@@ -39,12 +39,14 @@ export default function MockAttemptDetail({ attempt, qMap, onBack, onReviewAttem
           Back to Mock Exam
         </button>
         <div className="qb-mock-attempt-toolbar">
-          <span className={`qb-exam-mode-badge qb-mock-attempt-badge${attempt.mode === "drill" ? " drill" : attempt.mode === "subprofessional" ? " subpro" : " pro"}`}>
+          <span className={`qb-exam-mode-badge qb-mock-attempt-badge${attempt.mode === "drill" ? " drill" : attempt.mode === "quick" ? " quick" : attempt.mode === "subprofessional" ? " subpro" : " pro"}`}>
             {attempt.mode === "drill"
               ? `Mistake Drill (${attempt.totalCount} Items)`
-              : attempt.mode === "subprofessional"
-                ? "Subprofessional Level (165 Items)"
-                : "Professional Level (170 Items)"}
+              : attempt.mode === "quick"
+                ? `Quick Practice (${attempt.totalCount} Items)`
+                : attempt.mode === "subprofessional"
+                  ? "Subprofessional Level (165 Items)"
+                  : "Professional Level (170 Items)"}
           </span>
           {missedCount > 0 && onStartDrillMistakes && (
             <button
@@ -68,7 +70,7 @@ export default function MockAttemptDetail({ attempt, qMap, onBack, onReviewAttem
       <div className="qb-exam-summary" style={{ marginBottom: 18 }}>
         <div className="qb-exam-summary-primary">
           <div className="qb-exam-summary-kicker">
-            Saved Attempt ({attempt.mode === "drill" ? "Mistake Drill" : attempt.mode === "subprofessional" ? "Subprofessional Preset" : "Professional Preset"})
+            Saved Attempt ({getAttemptModeLabel(attempt.mode)})
           </div>
           <div className="qb-exam-summary-scoreline">
             <div className="qb-exam-summary-n">{attempt.scorePercent}%</div>

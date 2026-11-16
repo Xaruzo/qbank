@@ -290,3 +290,65 @@
   
   }
 }
+
+/* Header Offline / Pending Sync Status Chip (only rendered when offline or queue > 0) */
+.qb-hdr-sync-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 9px;
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.qb-hdr-sync-status.is-offline {
+  background: rgba(244, 63, 94, 0.12);
+  border: 1px solid rgba(244, 63, 94, 0.34);
+  color: #fb7185;
+}
+
+.qb-hdr-sync-status.is-pending {
+  background: rgba(245, 166, 35, 0.12);
+  border: 1px solid rgba(245, 166, 35, 0.35);
+  color: #fbbf24;
+}
+
+.light .qb-hdr-sync-status.is-offline,
+.qb.light .qb-hdr-sync-status.is-offline {
+  background: rgba(225, 29, 72, 0.08);
+  border-color: rgba(225, 29, 72, 0.3);
+  color: #be123c;
+}
+
+.light .qb-hdr-sync-status.is-pending,
+.qb.light .qb-hdr-sync-status.is-pending {
+  background: rgba(217, 119, 6, 0.1);
+  border-color: rgba(217, 119, 6, 0.35);
+  color: #b45309;
+}
+
+@media (hover: hover) {
+  .qb-hdr-sync-status.is-offline:hover {
+    background: rgba(244, 63, 94, 0.2);
+  }
+  .qb-hdr-sync-status.is-pending:hover {
+    background: rgba(245, 166, 35, 0.2);
+  }
+}
+
+@media (max-width: 480px) {
+  .qb-hdr-sync-status {
+    height: 30px;
+    padding: 0 8px;
+    font-size: 11px;
+    gap: 4px;
+  }
+}

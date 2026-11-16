@@ -64,10 +64,24 @@ export interface StudyNote {
   updatedAt: string;
 }
 
+export type MasteryFilter = "all" | "unseen" | "missed" | "mastered";
+
+export interface QuestionMasteryRecord {
+  attempts: number;
+  correctCount: number;
+  wrongCount: number;
+  lastResult: "correct" | "wrong";
+  lastAnsweredAt: string;
+}
+
+export type MockExamMode = "professional" | "subprofessional" | "drill" | "quick";
+
 export interface MockExamAttempt {
   id: string;
   sessionId?: string | null;
-  mode: "professional" | "subprofessional";
+  mode: MockExamMode;
+  title?: string;
+  timed?: boolean;
   startedAt: number;
   completedAt: string;
   durationMs: number;
@@ -146,6 +160,15 @@ export interface HeaderProps {
   onMockExam?: () => void;
   onTips?: () => void;
   onNotes?: () => void;
+  onFilterMissed?: () => void;
+  missedCount?: number;
+  unseenCount?: number;
+  todayAnsweredCount?: number;
+  dailyStudyGoal?: number;
+  daysUntilExam?: number | null;
+  hasResumableMock?: boolean;
+  isOnline?: boolean;
+  pendingSyncCount?: number;
   isQuestionAdmin?: boolean;
   isSuperAdmin?: boolean;
   userRole?: UserRole;
@@ -196,6 +219,8 @@ export interface SettingsPageProps {
   mockAttemptsCount?: number;
   favoritesCount?: number;
   notesCount?: number;
+  questions?: Question[];
+  onImportQuestions?: (items: Array<Omit<Question, "id">>) => Promise<{ added: number; synced: number }>;
   onBackToMain: () => void;
 }
 
@@ -226,6 +251,9 @@ export interface SearchAndFilterProps {
   favoriteCount: number;
   favoriteOnly?: boolean;
   onFavoriteOnlyChange?: (val: boolean) => void;
+  masteryFilter?: MasteryFilter;
+  onMasteryChange?: (val: MasteryFilter) => void;
+  masteryCounts?: { all: number; unseen: number; missed: number; mastered: number };
   onResetFilters?: () => void;
 }
 
@@ -236,6 +264,7 @@ export interface QuestionListProps {
   totalInProject: number;
   sortBy: string;
   onSortChange: (sortVal: string) => void;
+  masteryMap?: Record<string, QuestionMasteryRecord>;
   canManageQuestions?: boolean;
   authAvailable?: boolean;
   isAuthenticated?: boolean;
@@ -261,6 +290,7 @@ export interface CustomSelectProps {
   leadIcon?: React.ReactNode;
   showCheckmark?: boolean;
   portal?: boolean;
+  minMenuWidth?: number;
 }
 
 export interface LandingPageProps {

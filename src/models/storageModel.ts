@@ -102,10 +102,16 @@ const mergeMockExamAttempt = (base, incoming) => {
   const topicStats = Array.isArray(incoming.topicStats) && incoming.topicStats.length
     ? incoming.topicStats
     : Array.isArray(base.topicStats) ? base.topicStats : [];
+  const mode = incoming.mode || base.mode || "professional";
+  const title = incoming.title ?? base.title;
+  const timed = incoming.timed !== undefined ? incoming.timed : base.timed;
 
   return {
     ...base,
     ...incoming,
+    mode,
+    ...(title !== undefined ? { title } : {}),
+    ...(timed !== undefined ? { timed } : {}),
     questions,
     topicStats,
   };
@@ -123,7 +129,12 @@ const mergeMockExamHistory = (...sources) => {
     });
   });
 
-  return sortMockExamHistory(Array.from(merged.values())).slice(0, MOCK_EXAM_HISTORY_LIMIT);
+  return sortMockExamHistory(
+    Array.from(merged.values()).map((attempt) => ({
+      ...attempt,
+      mode: attempt?.mode || "professional",
+    }))
+  ).slice(0, MOCK_EXAM_HISTORY_LIMIT);
 };
 
 const getMockExamPendingKey = (userId) => `${MOCK_EXAM_PENDING_KEY}:${userId}`;
@@ -156,6 +167,14 @@ const writeMockHistoryCache = async (key, history) => {
   try { localStorage.setItem(key, value); } catch (_) {}
 };
 
+const emitSyncQueueUpdated = () => {
+  try {
+    if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
+      window.dispatchEvent(new CustomEvent("qbank-sync-queue-updated"));
+    }
+  } catch {}
+};
+
 const normalizeMockExamAttempt = (row) => {
   const topicStats = Array.isArray(row?.topic_stats) ? row.topic_stats : [];
   const questions = Array.isArray(row?.questions) ? row.questions : [];
@@ -169,7 +188,7 @@ const normalizeMockExamAttempt = (row) => {
   return {
     id: row?.id,
     sessionId: row?.id || null,
-    mode: "professional",
+    mode: undefined,
     startedAt: Number.isFinite(startedAt) ? startedAt : Date.now(),
     completedAt,
     durationMs: timeSpentMs,
@@ -439,6 +458,7 @@ export const storageModel = {
   async setPendingMockExamAttempts(history, userId) {
     if (!userId) return;
     await writeMockHistoryCache(getMockExamPendingKey(userId), mergeMockExamHistory(history));
+    emitSyncQueueUpdated();
   },
 
   async enqueuePendingMockExamAttempts(history, userId) {
@@ -639,12 +659,14 @@ export const storageModel = {
     if (window.storage && typeof window.storage.set === 'function') {
       try {
         await window.storage.set(key, value);
+        emitSyncQueueUpdated();
         return;
       } catch (e) {
         console.warn(`window.storage.set failed for key ${key}:`, e);
       }
     }
     try { localStorage.setItem(key, value); } catch (_) {}
+    emitSyncQueueUpdated();
   },
 
   async listPendingUpserts() {
@@ -652,6 +674,14 @@ export const storageModel = {
     return Object.entries(map || {})
       .map(([id, entry]) => normalizePendingQuestionOperation(entry, id))
       .filter(Boolean);
+  },
+
+  async getPendingSyncCount(userId = null) {
+    const [pendingOps, pendingMock] = await Promise.all([
+      this.listPendingUpserts().catch(() => []),
+      userId ? this.getPendingMockExamAttempts(userId).catch(() => []) : Promise.resolve([]),
+    ]);
+    return (pendingOps?.length || 0) + (pendingMock?.length || 0);
   },
 
   async enqueuePendingUpsert(q) {

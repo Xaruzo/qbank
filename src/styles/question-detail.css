@@ -1123,11 +1123,11 @@
   overflow-y:auto;
   -webkit-overflow-scrolling:touch;
   border-radius:8px;
-  scrollbar-gutter:stable;
+  scrollbar-gutter:auto;
 }
 
 .qb-select-menu-scroll::-webkit-scrollbar {
-  width:12px;
+  width:6px;
 }
 
 .qb-select-menu-scroll::-webkit-scrollbar-track {
@@ -1201,7 +1201,12 @@
 
 .qb-select-item-label {
   flex: 1;
+  min-width: 0;
   text-align: left !important;
+}
+
+.qb-select-menu-portal .qb-select-item-label {
+  white-space: nowrap;
 }
 
 .qb-select-item-check {
@@ -1901,4 +1906,113 @@ body.light .qb-cradio:hover:not(:checked) {
 
 .light .qb-editor-side-error {
   color:#c2410c;
+}
+
+/* ── Question Detail Responsive Overflow Menu (< 768px) ── */
+.qb-det-actions-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.qb-det-overflow-wrap {
+  display: none;
+  position: relative;
+}
+
+.qb-det-overflow-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-card);
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.qb-det-overflow-btn.is-active,
+.qb-det-overflow-btn:hover {
+  background: var(--surface-h);
+  border-color: var(--border-h);
+  color: var(--text-heading);
+}
+
+.qb-det-overflow-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 205px;
+  max-width: calc(100vw - 24px);
+  box-sizing: border-box;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  padding: 6px;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.42);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  z-index: 320;
+}
+
+.light .qb-det-overflow-menu {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.14);
+}
+
+.qb-det-overflow-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 11px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-heading);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.qb-det-overflow-item:hover {
+  background: var(--surface-h);
+}
+
+.qb-det-overflow-item.is-danger {
+  color: #fb7185;
+}
+
+.light .qb-det-overflow-item.is-danger {
+  color: #be123c;
+}
+
+.qb-det-overflow-item.is-danger:hover {
+  background: rgba(244, 63, 94, 0.12);
+}
+
+.qb-det-overflow-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 3px 4px;
+}
+
+@media (max-width: 767px) {
+  .qb-det-actions-inline {
+    display: none !important;
+  }
+
+  .qb-det-overflow-wrap {
+    display: inline-flex !important;
+  }
 }

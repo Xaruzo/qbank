@@ -36,6 +36,8 @@ type RunOptions = {
   labelFilter?: string;
   sortBy?: string;
   favoriteOnly?: boolean;
+  masteryFilter?: "all" | "unseen" | "missed" | "mastered";
+  masteryMap?: Record<string, { attempts: number; lastResult: "correct" | "wrong" }>;
 };
 
 // The hook lowercases the search needle before calling the pipeline
@@ -78,6 +80,19 @@ describe("filterAndSortQuestions — filtering", () => {
 
   it("filters to favorites only when favoriteOnly is true", () => {
     expect(ids(run({ favoriteOnly: true }))).toEqual(["1"]);
+  });
+
+  it("filters by mastery status (unseen, missed, mastered) and combines with topicFilter", () => {
+    const masteryMap = {
+      "1": { attempts: 2, lastResult: "correct" as const },
+      "2": { attempts: 1, lastResult: "wrong" as const },
+      "3": { attempts: 1, lastResult: "wrong" as const },
+    };
+
+    expect(ids(run({ masteryFilter: "unseen", masteryMap }))).toEqual(["4"]);
+    expect(ids(run({ masteryFilter: "missed", masteryMap }))).toEqual(["2", "3"]);
+    expect(ids(run({ masteryFilter: "mastered", masteryMap }))).toEqual(["1"]);
+    expect(ids(run({ masteryFilter: "missed", topicFilter: "t1", masteryMap }))).toEqual(["3"]);
   });
 });
 

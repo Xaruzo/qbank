@@ -1,24 +1,19 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   LogIn,
-  LogOut,
   Menu,
-  Moon,
-  Settings,
-  Sun,
   UserCircle2,
   X,
-  CheckCircle2,
   Sparkles,
   Bell,
+  WifiOff,
+  CloudUpload,
 } from "lucide-react";
 import brandLogo from "../../assets/logo.png";
 import NotificationsModal from "./NotificationsModal";
 import type { HeaderProps } from "../../types";
 
 export default function Header({
-  isDark,
-  onToggleTheme,
   onHome,
   onLanding,
   showNavToggle = true,
@@ -29,53 +24,34 @@ export default function Header({
   isAuthenticated = false,
   profile = null,
   onSignIn,
-  onSignOut,
   onOpenSettings,
   onMockExam,
   onTips,
   onNotes,
+  onFilterMissed,
+  missedCount = 0,
+  unseenCount = 0,
+  todayAnsweredCount = 0,
+  dailyStudyGoal = 25,
+  daysUntilExam = null,
+  hasResumableMock = false,
+  isOnline = true,
+  pendingSyncCount = 0,
   currentView = "home",
 }: HeaderProps) {
-  const [menuOpen, setMenuOpen] = useState<boolean>(false);
-  const [settingsOpen, setSettingsOpen] = useState<boolean>(false);
   const [notificationsOpen, setNotificationsOpen] = useState<boolean>(false);
-  const [unreadCount, setUnreadCount] = useState<number>(3);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const notifWrapRef = useRef<HTMLDivElement>(null);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
 
   useEffect(() => {
-    if (!menuOpen) return undefined;
+    if (typeof window === "undefined") return;
+    const handleOpenNotifs = () => setNotificationsOpen(true);
+    window.addEventListener("qbank-open-notifications", handleOpenNotifs);
+    return () => window.removeEventListener("qbank-open-notifications", handleOpenNotifs);
+  }, []);
 
-    const handlePointerDown = (event: MouseEvent) => {
-      if (menuRef.current?.contains(event.target as Node)) return;
-      setMenuOpen(false);
-    };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setMenuOpen(false);
-    };
-
-    window.addEventListener("mousedown", handlePointerDown);
-    window.addEventListener("keydown", handleEscape);
-    return () => {
-      window.removeEventListener("mousedown", handlePointerDown);
-      window.removeEventListener("keydown", handleEscape);
-    };
-  }, [menuOpen]);
-
-  const openSettings = () => {
-    setMenuOpen(false);
+  const openProfileSettings = () => {
     if (onOpenSettings) {
-      onOpenSettings();
-    } else {
-      setSettingsOpen(true);
-    }
-  };
-
-  const handleSignOut = async () => {
-    setMenuOpen(false);
-    if (onSignOut) {
-      await onSignOut();
+      onOpenSettings("identity");
     }
   };
 
@@ -92,6 +68,7 @@ export default function Header({
             src={profile.avatarUrl}
             alt={profile.fullName || "User profile"}
             className="qb-avatar-img"
+            referrerPolicy="no-referrer"
           />
         ) : profile?.fullName ? (
           profile.fullName.slice(0, 2).toUpperCase()
@@ -103,217 +80,153 @@ export default function Header({
     </div>
   );
 
+  const showSyncState = !isOnline || pendingSyncCount > 0;
+
   return (
-    <>
-      <header className="qb-hdr">
-        {/* Left: Hamburger & Brand */}
-        <div className="qb-hdr-left">
-          {showNavToggle && onToggleNav && (
-            <div className="qb-hdr-menu-slot">
-              <button
-                type="button"
-                className={`qb-hdr-menu-btn${navOpen ? " is-active" : ""}`}
-                onClick={onToggleNav}
-                aria-label={navOpen ? "Close sidebar menu" : "Open sidebar menu"}
-                title={navOpen ? "Close sidebar menu" : "Open sidebar menu"}
-              >
-                {navOpen ? <X size={20} /> : <Menu size={20} />}
-              </button>
-            </div>
-          )}
-
-          <div className="qb-logo-block">
+    <header className="qb-hdr">
+      {/* Left: Hamburger & Brand */}
+      <div className="qb-hdr-left">
+        {showNavToggle && onToggleNav && (
+          <div className="qb-hdr-menu-slot">
             <button
               type="button"
-              className="qb-logo"
-              onClick={onHome}
-              title="Return to Question Bank"
+              className={`qb-hdr-menu-btn${navOpen ? " is-active" : ""}`}
+              onClick={onToggleNav}
+              aria-label={navOpen ? "Close sidebar menu" : "Open sidebar menu"}
+              title={navOpen ? "Close sidebar menu" : "Open sidebar menu"}
             >
-              <img className="qb-logo-img" src={brandLogo} alt="QBANK logo" />
-              <div className="qb-logo-text-group">
-                <span className="qb-logo-title">QBANK</span>
-                <span className="qb-logo-sub">Civil Service Reviewer</span>
-              </div>
+              {navOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
           </div>
-        </div>
+        )}
 
-        {/* Right: Actions, Theme, Help & User Profile */}
-        <div className="qb-hdr-right">
-          {/* Quick Landing Overview Link (Hidden when logged in) */}
-          {onLanding && !isAuthenticated && (
-            <button
-              type="button"
-              className={`qb-hdr-landing-link${currentView === "landing" ? " is-active" : ""}`}
-              onClick={onLanding}
-              title="View Landing Page & Exam Overview"
-              aria-label="View Landing Page & Exam Overview"
-            >
-              <Sparkles size={14} className="qb-hdr-landing-icon" />
-              <span>Overview</span>
-            </button>
-          )}
-
-          {/* Notifications Center Button & Panel */}
-          <div className="qb-hdr-notif-wrap" ref={notifWrapRef}>
-            <button
-              type="button"
-              className={`qb-hdr-action-btn qb-hdr-notif-btn${unreadCount > 0 ? " has-unread" : ""}${notificationsOpen ? " is-active" : ""}`}
-              onClick={() => setNotificationsOpen((prev) => !prev)}
-              title="Notifications & Reviewer Updates"
-              aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
-              aria-expanded={notificationsOpen}
-            >
-              <Bell size={17} />
-              {unreadCount > 0 && (
-                <span className="qb-hdr-notif-badge" aria-hidden="true">
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </span>
-              )}
-            </button>
-
-            <NotificationsModal
-              isOpen={notificationsOpen}
-              onClose={() => setNotificationsOpen(false)}
-              onNavigateToMockExam={onMockExam}
-              onNavigateToTips={onTips}
-              onNavigateToNotes={onNotes}
-              onNavigateToQuestions={onHome}
-              onUnreadCountChange={setUnreadCount}
-            />
-          </div>
-
-          {/* User Account / Auth */}
-          {!authAvailable ? (
-            <button
-              type="button"
-              className="qb-auth-btn qb-auth-off-btn"
-              onClick={openSettings}
-              title="Auth is not configured. Click to configure settings."
-            >
-              <UserCircle2 size={16} />
-              <span>Local Profile</span>
-            </button>
-          ) : isAuthenticated ? (
-            <div className="qb-account-wrap" ref={menuRef}>
-              <button
-                type="button"
-                className={`qb-account-btn-avatar shape-${
-                  profile?.avatarShape || "badge"
-                }${menuOpen ? " is-active" : ""}`}
-                onClick={() => setMenuOpen((open) => !open)}
-                aria-expanded={menuOpen}
-                aria-haspopup="menu"
-                aria-label={profile?.fullName ? `${profile.fullName}'s account menu` : "Account menu"}
-                title={profile?.email || profile?.fullName || "Account menu"}
-              >
-                {accountIcon}
-              </button>
-
-              {menuOpen && (
-                <div className="qb-profile-menu" role="menu">
-                  <div className="qb-profile-menu-head">
-                    {accountIcon}
-                    <div className="qb-profile-meta">
-                      <div className="qb-profile-name">
-                        {profile?.fullName || "Reviewer"}
-                      </div>
-                      <div className="qb-profile-email">{profile?.email || ""}</div>
-                      <span className="qb-profile-status-badge">
-                        <CheckCircle2 size={11} /> Verified Account
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="qb-profile-menu-divider" />
-
-                  <button
-                    type="button"
-                    className="qb-profile-menu-item"
-                    onClick={openSettings}
-                  >
-                    <Settings size={16} />
-                    <span>Settings & Preferences</span>
-                  </button>
-
-                  <div className="qb-profile-menu-divider" />
-
-                  <button
-                    type="button"
-                    className="qb-profile-menu-item danger"
-                    onClick={handleSignOut}
-                  >
-                    <LogOut size={16} />
-                    <span>Sign Out</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <button
-              type="button"
-              className="qb-auth-btn qb-auth-signin-btn"
-              onClick={onSignIn}
-              disabled={isAuthLoading}
-              title="Sign in with your Google account"
-            >
-              <LogIn size={15} />
-              <span>{isAuthLoading ? "Signing in..." : "Sign In"}</span>
-            </button>
-          )}
-        </div>
-      </header>
-
-      {/* Settings Modal */}
-      {settingsOpen && (
-        <div className="qb-settings-ov" onClick={() => setSettingsOpen(false)}>
-          <div
-            className="qb-settings-card"
-            onClick={(event) => event.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Settings"
+        <div className="qb-logo-block">
+          <button
+            type="button"
+            className="qb-logo"
+            onClick={onHome}
+            title="Return to Question Bank"
           >
-            <div className="qb-settings-head">
-              <div>
-                <span className="qb-settings-kicker">Preferences</span>
-                <h3 className="qb-settings-title">App Settings</h3>
-              </div>
-              <button
-                type="button"
-                className="qb-settings-close"
-                onClick={() => setSettingsOpen(false)}
-                title="Close settings"
-              >
-                <X size={18} />
-              </button>
+            <img className="qb-logo-img" src={brandLogo} alt="QBANK logo" />
+            <div className="qb-logo-text-group">
+              <span className="qb-logo-title">QBANK</span>
+              <span className="qb-logo-sub">Civil Service Reviewer</span>
             </div>
-
-            <div className="qb-settings-section">
-              <span className="qb-settings-label">Color Theme</span>
-              <button
-                type="button"
-                className="qb-profile-menu-item qb-settings-action"
-                onClick={onToggleTheme}
-              >
-                {isDark ? <Sun size={16} /> : <Moon size={16} />}
-                <span>{isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}</span>
-              </button>
-            </div>
-
-            <div className="qb-settings-section">
-              <span className="qb-settings-label">Account & Sync</span>
-              <p className="qb-settings-text">
-                {isAuthenticated
-                  ? `Signed in as ${profile?.email || profile?.fullName}. Your exam progress, favorites, and study tips are backed up to the cloud.`
-                  : authAvailable
-                  ? "Sign in with Google to sync your mock exams, starred questions, and custom tips across devices."
-                  : "Offline mode active. Questions and tips are stored in your browser's local cache."}
-              </p>
-            </div>
-          </div>
+          </button>
         </div>
-      )}
-    </>
+      </div>
+
+      {/* Right: Connection Sync Indicator (only when offline or queued), Overview, Notifications & Profile */}
+      <div className="qb-hdr-right">
+        {showSyncState && (
+          <button
+            type="button"
+            className={`qb-hdr-sync-status${!isOnline ? " is-offline" : " is-pending"}`}
+            onClick={() => onOpenSettings?.("storage")}
+            title={
+              !isOnline
+                ? `Offline mode${pendingSyncCount > 0 ? ` · ${pendingSyncCount} change(s) queued` : ""}`
+                : `${pendingSyncCount} change(s) waiting to sync`
+            }
+          >
+            {!isOnline ? <WifiOff size={13} /> : <CloudUpload size={13} />}
+            <span className="tabular-nums">
+              {!isOnline
+                ? pendingSyncCount > 0
+                  ? `Offline · ${pendingSyncCount}`
+                  : "Offline"
+                : `${pendingSyncCount} pending`}
+            </span>
+          </button>
+        )}
+
+        {onLanding && !isAuthenticated && (
+          <button
+            type="button"
+            className={`qb-hdr-landing-link${currentView === "landing" ? " is-active" : ""}`}
+            onClick={onLanding}
+            title="View Landing Page & Exam Overview"
+            aria-label="View Landing Page & Exam Overview"
+          >
+            <Sparkles size={14} className="qb-hdr-landing-icon" />
+            <span>Overview</span>
+          </button>
+        )}
+
+        {/* Notifications Center Button & Panel */}
+        <div className="qb-hdr-notif-wrap">
+          <button
+            type="button"
+            className={`qb-hdr-action-btn qb-hdr-notif-btn${unreadCount > 0 ? " has-unread" : ""}${notificationsOpen ? " is-active" : ""}`}
+            onClick={() => setNotificationsOpen((prev) => !prev)}
+            title="Reviewer Alerts & Study Progress"
+            aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
+            aria-expanded={notificationsOpen}
+          >
+            <Bell size={17} />
+            {unreadCount > 0 && (
+              <span className="qb-hdr-notif-badge tabular-nums" aria-hidden="true">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </button>
+
+          <NotificationsModal
+            isOpen={notificationsOpen}
+            onClose={() => setNotificationsOpen(false)}
+            onNavigateToMockExam={onMockExam}
+            onNavigateToTips={onTips}
+            onNavigateToNotes={onNotes}
+            onNavigateToQuestions={onHome}
+            onFilterMissed={onFilterMissed}
+            onOpenSettings={onOpenSettings}
+            onUnreadCountChange={setUnreadCount}
+            missedCount={missedCount}
+            unseenCount={unseenCount}
+            todayAnsweredCount={todayAnsweredCount}
+            dailyStudyGoal={dailyStudyGoal}
+            daysUntilExam={daysUntilExam}
+            hasResumableMock={hasResumableMock}
+            isOnline={isOnline}
+            pendingSyncCount={pendingSyncCount}
+            isAuthenticated={isAuthenticated}
+          />
+        </div>
+
+        {/* User Account / Profile Link (menu actions live inside SideNav popover to avoid redundancy) */}
+        {!authAvailable ? (
+          <button
+            type="button"
+            className="qb-auth-btn qb-auth-off-btn"
+            onClick={openProfileSettings}
+            title="Open Settings & Profile"
+          >
+            <UserCircle2 size={16} />
+            <span>Local Profile</span>
+          </button>
+        ) : isAuthenticated ? (
+          <button
+            type="button"
+            className={`qb-account-btn-avatar shape-${profile?.avatarShape || "badge"}`}
+            onClick={openProfileSettings}
+            aria-label={profile?.fullName ? `Open ${profile.fullName}'s profile settings` : "Open settings"}
+            title={profile?.email ? `${profile.email} · Profile & Settings` : "Profile & Settings"}
+          >
+            {accountIcon}
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="qb-auth-btn qb-auth-signin-btn"
+            onClick={onSignIn}
+            disabled={isAuthLoading}
+            title="Sign in with your Google account"
+          >
+            <LogIn size={15} />
+            <span>{isAuthLoading ? "Signing in..." : "Sign In"}</span>
+          </button>
+        )}
+      </div>
+    </header>
   );
 }

@@ -8,7 +8,6 @@ import {
   Database,
   ArrowLeft,
   Check,
-  Calendar,
   Layers,
   Sparkles,
   Zap,
@@ -29,13 +28,22 @@ import {
   Mail,
   Users,
   Loader2,
+  Upload,
+  FileJson,
 } from "lucide-react";
 import type { SettingsPageProps, UserRole, UserRoleRecord, SelectOption } from "../../types";
 import { useOverlayDialogA11y } from "../../controllers/useOverlayDialogA11y";
 import AvatarStudio from "./AvatarStudio";
 import CustomSelect from "./CustomSelect";
+import ModernDatePicker from "./ModernDatePicker";
 import ChangePasswordModal from "./ChangePasswordModal";
 import { rolesModel } from "../../models/rolesModel";
+import { getDaysUntilExam } from "../../models/masteryModel";
+import {
+  exportQuestionsJson,
+  parseImportedQuestions,
+  type ImportParseResult,
+} from "../../utils/questionImportExport";
 
 const ROLE_GRANT_OPTIONS: SelectOption[] = [
   {
@@ -90,6 +98,8 @@ export default function SettingsPage({
   mockAttemptsCount = 0,
   favoritesCount = 0,
   notesCount = 0,
+  questions = [],
+  onImportQuestions,
   onBackToMain,
 }: SettingsPageProps) {
   const [activeTab, setActiveTab] = useState<string>(initialTab);
@@ -172,6 +182,11 @@ export default function SettingsPage({
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const discardDialogRef = useRef<HTMLDivElement>(null);
+  const importFileInputRef = useRef<HTMLInputElement>(null);
+  const [importPreview, setImportPreview] = useState<ImportParseResult | null>(null);
+  const [importFileName, setImportFileName] = useState("");
+  const [importStatus, setImportStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
 
   // User Roles Management State
   const [usersList, setUsersList] = useState<UserRoleRecord[]>(() => rolesModel.getAllUsers());
@@ -347,18 +362,7 @@ export default function SettingsPage({
     onBackToMain();
   };
 
-  const calculateDaysRemaining = (targetDateStr: string) => {
-    try {
-      const target = new Date(targetDateStr).getTime();
-      const now = new Date().getTime();
-      const diff = Math.ceil((target - now) / (1000 * 60 * 60 * 24));
-      return isNaN(diff) ? null : diff;
-    } catch {
-      return null;
-    }
-  };
-
-  const daysRemaining = calculateDaysRemaining(examDate);
+  const daysRemaining = getDaysUntilExam(examDate);
 
   // Avatar Studio drafts (PolicyPulse flow): stage locally, persist on Save
   const handleStageAvatar = (url: string | null, shape: "circle" | "badge") => {
@@ -429,6 +433,50 @@ export default function SettingsPage({
       dlAnchor.remove();
     } catch (err) {
       console.error("Export failed:", err);
+    }
+  };
+
+  const handleImportFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setImportStatus(null);
+    try {
+      const text = await file.text();
+      const parsed = parseImportedQuestions(text, file.name, questions);
+      setImportFileName(file.name);
+      setImportPreview(parsed);
+    } catch (err) {
+      setImportPreview(null);
+      setImportFileName("");
+      setImportStatus({
+        type: "error",
+        message: err instanceof Error ? err.message : "Could not read selected file.",
+      });
+    }
+  };
+
+  const handleConfirmImport = async () => {
+    if (!onImportQuestions || !importPreview || importPreview.valid.length === 0 || isImporting) return;
+    setIsImporting(true);
+    setImportStatus(null);
+    try {
+      const result = await onImportQuestions(importPreview.valid);
+      const importedCount = typeof result === "number" ? result : result?.added ?? importPreview.valid.length;
+      const syncedCount = typeof result === "object" && result ? result.synced : 0;
+      setImportStatus({
+        type: "success",
+        message: `Imported ${importedCount} question${importedCount === 1 ? "" : "s"} into the Question Bank${syncedCount > 0 ? ` (${syncedCount} synced to cloud)` : ""}.`,
+      });
+      setImportPreview(null);
+      setImportFileName("");
+    } catch (err) {
+      setImportStatus({
+        type: "error",
+        message: err instanceof Error ? err.message : "Bulk import failed.",
+      });
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -806,16 +854,12 @@ export default function SettingsPage({
                   <label htmlFor="settings-exam-date" className="qb-settings-label">
                     Scheduled Exam Date
                   </label>
-                  <div className="qb-settings-input-wrap">
-                    <Calendar size={16} className="qb-settings-input-icon" />
-                    <input
-                      id="settings-exam-date"
-                      type="date"
-                      className="qb-settings-text-input"
-                      value={examDate}
-                      onChange={(e) => setExamDate(e.target.value)}
-                    />
-                  </div>
+                  <ModernDatePicker
+                    id="settings-exam-date"
+                    value={examDate}
+                    onChange={setExamDate}
+                    placeholder="Select scheduled exam date"
+                  />
                   {daysRemaining !== null && (
                     <span className="qb-settings-field-hint" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
                       {daysRemaining > 0 ? (
@@ -1138,6 +1182,124 @@ export default function SettingsPage({
                 </div>
               </div>
 
+              {/* Bulk Question Bank Import & Export */}
+              <div className="qb-settings-bank-io-card">
+                <div className="qb-settings-bank-io-head">
+                  <div className="qb-settings-bank-io-title-group">
+                    <FileJson size={18} className="qb-settings-bank-io-ico" />
+                    <div>
+                      <h4 className="font-semibold text-sm text-heading">Question Bank Import & Export</h4>
+                      <p className="text-xs text-muted">
+                        Export all <span className="tabular-nums">{questions.length}</span> bank items as JSON{isQuestionAdmin ? ", or bulk-import validated .json / .csv question sets." : "."}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="qb-settings-storage-actions-row">
+                  <button
+                    type="button"
+                    className="qb-settings-action-pill"
+                    onClick={() => exportQuestionsJson(questions)}
+                    disabled={questions.length === 0}
+                  >
+                    <Download size={14} />
+                    <span>Export Question Bank (.json)</span>
+                  </button>
+
+                  {isQuestionAdmin && onImportQuestions && (
+                    <>
+                      <input
+                        ref={importFileInputRef}
+                        type="file"
+                        accept=".json,.csv,application/json,text/csv"
+                        onChange={handleImportFileSelect}
+                        style={{ display: "none" }}
+                        aria-label="Import questions file"
+                      />
+                      <button
+                        type="button"
+                        className="qb-settings-action-pill"
+                        onClick={() => importFileInputRef.current?.click()}
+                      >
+                        <Upload size={14} />
+                        <span>Import .json / .csv</span>
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {isQuestionAdmin && onImportQuestions && (
+                  <p className="qb-settings-bank-io-hint">
+                    CSV columns: <code>topic, label, question, choiceA, choiceB, choiceC, choiceD, [choiceE], correct, [solution]</code> (<code>correct</code> accepts A–E or 0–4).
+                  </p>
+                )}
+
+                {importStatus && (
+                  <div className={`qb-settings-bank-io-notice ${importStatus.type}`}>
+                    {importStatus.type === "success" ? <CheckCircle2 size={15} /> : <AlertTriangle size={15} />}
+                    <span>{importStatus.message}</span>
+                  </div>
+                )}
+
+                {importPreview && (
+                  <div className="qb-settings-import-preview">
+                    <div className="qb-settings-import-summary">
+                      <div className="qb-settings-import-filename">{importFileName}</div>
+                      <div className="qb-settings-import-counts">
+                        <span className="is-valid tabular-nums">{importPreview.valid.length} ready</span>
+                        {importPreview.duplicateCount > 0 && (
+                          <span className="is-dup tabular-nums">{importPreview.duplicateCount} duplicate{importPreview.duplicateCount === 1 ? "" : "s"} skipped</span>
+                        )}
+                        {importPreview.errors.length > 0 && (
+                          <span className="is-err tabular-nums">{importPreview.errors.length} error{importPreview.errors.length === 1 ? "" : "s"}</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {importPreview.errors.length > 0 && (
+                      <ul className="qb-settings-import-errors">
+                        {importPreview.errors.slice(0, 5).map((errMsg, idx) => (
+                          <li key={idx}>{errMsg}</li>
+                        ))}
+                        {importPreview.errors.length > 5 && (
+                          <li>+{importPreview.errors.length - 5} more validation error(s)</li>
+                        )}
+                      </ul>
+                    )}
+
+                    <div className="qb-settings-import-actions">
+                      <button
+                        type="button"
+                        className="qb-settings-footer-cancel-btn"
+                        onClick={() => {
+                          setImportPreview(null);
+                          setImportFileName("");
+                        }}
+                        disabled={isImporting}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        className="qb-settings-footer-save-btn"
+                        onClick={handleConfirmImport}
+                        disabled={importPreview.valid.length === 0 || isImporting}
+                      >
+                        {isImporting ? (
+                          <>
+                            <Loader2 size={14} className="animate-spin" />
+                            <span>Importing...</span>
+                          </>
+                        ) : (
+                          <span>Import {importPreview.valid.length} Question{importPreview.valid.length === 1 ? "" : "s"}</span>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Reset Defaults & Clear Cache */}
               <div className="qb-settings-danger-card">
                 <div className="qb-settings-danger-head">
@@ -1358,16 +1520,17 @@ export default function SettingsPage({
                                 </span>
                               ) : (
                                 <div className="qb-user-role-actions">
-                                  <CustomSelect
-                                    value={uRecord.role}
-                                    onChange={(val) =>
-                                      handleAssignRole(uRecord.email, val as UserRole, uRecord.fullName)
-                                    }
-                                    options={QUICK_ROLE_OPTIONS}
-                                    className="qb-table-role-select"
-                                    showCheckmark
-                                    portal
-                                  />
+                                    <CustomSelect
+                                      value={uRecord.role}
+                                      onChange={(val) =>
+                                        handleAssignRole(uRecord.email, val as UserRole, uRecord.fullName)
+                                      }
+                                      options={QUICK_ROLE_OPTIONS}
+                                      className="qb-table-role-select"
+                                      showCheckmark
+                                      portal
+                                      minMenuWidth={196}
+                                    />
                                   {uRecord.role !== "reviewer" && (
                                     <button
                                       type="button"

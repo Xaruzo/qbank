@@ -42,18 +42,28 @@ export default function SearchAndFilter({
   favoriteCount,
   favoriteOnly = false,
   onFavoriteOnlyChange,
+  masteryFilter = "all",
+  onMasteryChange,
+  masteryCounts,
   onResetFilters,
 }: SearchAndFilterProps) {
   const getTopicColor = (id: string) => {
     if (id === "all") return "#f5a623";
     return TOPICS.find((t: TopicDef) => t.id === id)?.color || "#f5a623";
   };
-  const hasActiveFilters = Boolean(search.trim() || topicFilter !== "all" || labelFilter !== "all" || favoriteOnly);
+  const hasActiveFilters = Boolean(
+    search.trim() ||
+    topicFilter !== "all" ||
+    labelFilter !== "all" ||
+    favoriteOnly ||
+    masteryFilter !== "all"
+  );
   const activeFiltersCount = [
     search.trim(),
     topicFilter !== "all" ? topicFilter : "",
     labelFilter !== "all" ? labelFilter : "",
     favoriteOnly ? "fav" : "",
+    masteryFilter !== "all" ? masteryFilter : "",
   ].filter(Boolean).length;
 
   const [labelFilterOpen, setLabelFilterOpen] = useState(false);
@@ -97,6 +107,13 @@ export default function SearchAndFilter({
       window.removeEventListener("scroll", sync, true);
     };
   }, [labelFilterOpen]);
+
+  const resolvedMasteryCounts = masteryCounts || {
+    all: total,
+    unseen: total,
+    missed: 0,
+    mastered: 0,
+  };
 
   return (
     <section className="qb-control-panel" aria-label="Search and Filter Questions">
@@ -265,6 +282,37 @@ export default function SearchAndFilter({
           })}
         </div>
       </div>
+
+      {onMasteryChange && (
+        <div className="qb-mastery-filter-row">
+          <span className="qb-mastery-filter-label">Progress</span>
+          <div className="qb-mastery-segmented" role="tablist" aria-label="Mastery status filter">
+            {(
+              [
+                { id: "all", label: "All", count: resolvedMasteryCounts.all },
+                { id: "unseen", label: "Unseen", count: resolvedMasteryCounts.unseen },
+                { id: "missed", label: "Missed", count: resolvedMasteryCounts.missed },
+                { id: "mastered", label: "Mastered", count: resolvedMasteryCounts.mastered },
+              ] as const
+            ).map((opt) => {
+              const active = masteryFilter === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  className={`qb-mastery-seg-btn status-${opt.id}${active ? " is-active" : ""}`}
+                  onClick={() => onMasteryChange(opt.id)}
+                >
+                  <span>{opt.label}</span>
+                  <span className="qb-mastery-seg-count tabular-nums">{opt.count}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

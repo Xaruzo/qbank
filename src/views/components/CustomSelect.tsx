@@ -20,6 +20,7 @@ export default function CustomSelect({
   leadIcon,
   showCheckmark = false,
   portal = false,
+  minMenuWidth,
 }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [direction, setDirection] = useState<"down" | "up">("down");
@@ -39,21 +40,25 @@ export default function CustomSelect({
     setDirection(nextDir);
 
     if (portal) {
+      const floorWidth = minMenuWidth ?? (showCheckmark ? 186 : 0);
+      const targetWidth = Math.min(window.innerWidth - 24, Math.max(rect.width, floorWidth));
+      const clampedLeft = Math.max(12, Math.min(rect.left, window.innerWidth - targetWidth - 12));
+
       setPortalCoords(
         nextDir === "up"
           ? {
-              left: rect.left,
-              width: rect.width,
+              left: clampedLeft,
+              width: targetWidth,
               bottom: window.innerHeight - rect.top + 6,
             }
           : {
-              left: rect.left,
-              width: rect.width,
+              left: clampedLeft,
+              width: targetWidth,
               top: rect.bottom + 6,
             }
       );
     }
-  }, [portal]);
+  }, [portal, minMenuWidth, showCheckmark]);
 
   useEffect(() => {
     if (!isOpen) return;

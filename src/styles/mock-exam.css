@@ -277,6 +277,12 @@
   border: 1px solid rgba(244, 63, 94, 0.3);
 }
 
+.qb-mock-attempt-tier-pill.quick {
+  background: rgba(56, 189, 248, 0.14);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.32);
+}
+
 .qb-exam-mode-badge {
   font-family: var(--font-sans) !important;
   font-size: 12px !important;
@@ -313,6 +319,20 @@
   color: #a78bfa !important;
   border: 1px solid rgba(139, 92, 246, 0.32) !important;
   font-weight: 500 !important;
+}
+
+.qb-exam-mode-badge.quick {
+  background: rgba(56, 189, 248, 0.12) !important;
+  color: #38bdf8 !important;
+  border: 1px solid rgba(56, 189, 248, 0.32) !important;
+  font-weight: 600 !important;
+}
+
+.light .qb-exam-mode-badge.quick,
+.light .qb-mock-attempt-tier-pill.quick {
+  color: #0369a1 !important;
+  background: rgba(2, 132, 199, 0.1) !important;
+  border-color: rgba(2, 132, 199, 0.3) !important;
 }
 
 .qb-mock-blueprint { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:12px; }
@@ -803,3 +823,177 @@
 .qb-exam-dot-ans { background:rgba(34,197,94,.18); border-color:rgba(34,197,94,.35); }
 
 .qb-exam-dot-review { background:rgba(245,166,35,.18); border-color:rgba(245,166,35,.35); }
+
+/* ── Minimalist Quick Practice Launcher Card ── */
+.qb-quick-practice-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 22px;
+  border-radius: 18px;
+}
+
+.qb-quick-practice-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.qb-quick-practice-title {
+  margin: 2px 0 4px;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-heading);
+  letter-spacing: -0.01em;
+}
+
+.qb-quick-practice-copy {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.qb-quick-practice-match {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #f5a623;
+  white-space: nowrap;
+}
+
+.light .qb-quick-practice-match {
+  color: #b45309;
+}
+
+.qb-quick-practice-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.qb-quick-control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.qb-quick-control-label {
+  font-family: 'Fira Mono', monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: var(--text-faint);
+}
+
+.qb-quick-seg {
+  display: flex;
+  align-items: stretch;
+  padding: 3px;
+  border-radius: 11px;
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  gap: 3px;
+  min-height: 40px;
+  box-sizing: border-box;
+}
+
+.qb-quick-seg-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+}
+
+.qb-quick-seg-btn:hover:not(.is-active) {
+  color: var(--text-heading);
+  background: var(--surface-h);
+}
+
+.qb-quick-seg-btn.is-active {
+  background: rgba(245, 166, 35, 0.16);
+  border-color: rgba(245, 166, 35, 0.45);
+  color: #f5a623;
+  font-weight: 700;
+}
+
+.light .qb-quick-seg-btn.is-active {
+  background: rgba(245, 158, 11, 0.14);
+  border-color: rgba(217, 119, 6, 0.45);
+  color: #b45309;
+}
+
+.qb-quick-topic-select {
+  width: 100%;
+  min-width: 0;
+}
+
+.qb-quick-topic-select .qb-select-btn {
+  min-height: 40px;
+  height: 40px;
+  border-radius: 11px;
+}
+
+.qb-quick-practice-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.qb-quick-practice-note {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.qb-quick-start-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 11px;
+  background: #f5a623;
+  border: 1px solid #f5a623;
+  color: #070c18;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 0.14s ease, filter 0.14s ease;
+}
+
+@media (hover: hover) {
+  .qb-quick-start-btn:hover:not(:disabled) {
+    filter: brightness(1.06);
+    transform: translateY(-1px);
+  }
+}
+
+.qb-quick-start-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

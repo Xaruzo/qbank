@@ -13,9 +13,12 @@ import {
   Target,
   Activity,
   Trophy,
+  Zap,
+  Clock,
 } from "lucide-react";
-import { formatAttemptDate, formatExamDuration } from "../../utils/mockExamAnalytics";
-import { EXAM_PRESETS } from "../../constants/appConstants";
+import { formatAttemptDate, formatExamDuration, getAttemptModeLabel } from "../../utils/mockExamAnalytics";
+import { EXAM_PRESETS, TOPICS } from "../../constants/appConstants";
+import CustomSelect from "./CustomSelect";
 import LoadingSpinner from "./LoadingSpinner";
 
 // Solid tier color for score meters: red < 50, amber 50–74, green 75+.
@@ -29,6 +32,9 @@ export default function MockExam({
   onStartProfessional,
   onStartSubprofessional = undefined,
   onStartExam = undefined,
+  onStartQuickPractice = undefined,
+  questions = [],
+  masteryMap = {},
   activeExam = null,
   isActiveExamLoading = false,
   onResumeActiveExam,
@@ -40,6 +46,10 @@ export default function MockExam({
   onRequireAuth,
 }) {
   const [selectedPresetId, setSelectedPresetId] = useState("professional");
+  const [quickCount, setQuickCount] = useState<10 | 20 | 30>(10);
+  const [quickScope, setQuickScope] = useState<"all" | "unseen" | "missed">("all");
+  const [quickTopic, setQuickTopic] = useState<string>("all");
+  const [quickTimed, setQuickTimed] = useState<boolean>(true);
 
   const sortedHistory = useMemo(
     () => [...history].sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()),
@@ -89,6 +99,43 @@ export default function MockExam({
     }
   };
 
+  const quickMatchingCount = useMemo(() => {
+    if (!Array.isArray(questions) || questions.length === 0) return totalQuestions || 0;
+    return questions.filter((q) => {
+      if (quickTopic !== "all" && q?.topic !== quickTopic) return false;
+      const rec = masteryMap?.[q?.id];
+      if (quickScope === "unseen") return !rec || !rec.attempts;
+      if (quickScope === "missed") return rec?.lastResult === "wrong";
+      return true;
+    }).length;
+  }, [questions, masteryMap, quickTopic, quickScope, totalQuestions]);
+
+  const quickTopicOptions = useMemo(
+    () => [
+      { value: "all", label: "All Subjects" },
+      ...TOPICS.map((t) => ({ value: t.id, label: t.label })),
+    ],
+    []
+  );
+
+  const handleStartQuick = () => {
+    if (onStartQuickPractice) {
+      onStartQuickPractice({
+        count: quickCount,
+        scope: quickScope,
+        topic: quickTopic,
+        timed: quickTimed,
+      });
+    }
+  };
+
+  const getShortModeTag = (mode?: string) => {
+    if (mode === "subprofessional") return "Subpro";
+    if (mode === "drill") return "Drill";
+    if (mode === "quick") return "Quick";
+    return "Pro";
+  };
+
   return (
     <div className="fu qb-mock-page">
       <div className="qb-section-head qb-mock-page-head">
@@ -96,7 +143,7 @@ export default function MockExam({
           <div className="qb-section-kicker">Mock Exam Center</div>
           <h1 className="qb-section-title qb-section-title-lg">Official Civil Service Examination Presets</h1>
         </div>
-        <span className="qb-exam-progress">{sortedHistory.length} saved attempts</span>
+        <span className="qb-exam-progress tabular-nums">{sortedHistory.length} saved attempts</span>
       </div>
 
       {/* Performance Insights Overview Strip - Compact 4-card desktop row */}
@@ -108,7 +155,7 @@ export default function MockExam({
               <Target size={15} />
             </span>
             <span className="qb-mock-mini-tag">
-              {latestAttempt ? (latestAttempt.mode === "subprofessional" ? "Subpro" : "Pro") : "Goal 80%+"}
+              {latestAttempt ? getShortModeTag(latestAttempt.mode) : "Goal 80%+"}
             </span>
           </div>
 
@@ -234,7 +281,7 @@ export default function MockExam({
               <Trophy size={15} />
             </span>
             <span className="qb-mock-mini-tag">
-              {bestAttempt ? (bestAttempt.mode === "subprofessional" ? "Subpro" : "Pro") : "Record"}
+              {bestAttempt ? getShortModeTag(bestAttempt.mode) : "Record"}
             </span>
           </div>
 
@@ -421,7 +468,7 @@ export default function MockExam({
               {isAuthenticated && activeExam && (
                 <button type="button" className="qb-mock-secondary-btn qb-mock-resume-btn" onClick={onResumeActiveExam} disabled={isActiveExamLoading}>
                   <RotateCcw size={16} />
-                  Resume Active {activeExam.mode === "subprofessional" ? "Subprofessional" : "Professional"} Exam
+                  Resume Active {getAttemptModeLabel(activeExam.mode)} Session
                 </button>
               )}
 
@@ -435,11 +482,123 @@ export default function MockExam({
 
             {isAuthenticated && activeExam && (
               <div className="qb-mock-hero-note">
-                Active session: <strong>{activeExam.mode === "subprofessional" ? "Subprofessional Level" : "Professional Level"}</strong> at question {(activeExam.currentIndex || 0) + 1} with {resumableAnsweredCount} answers saved.
+                Active session: <strong>{getAttemptModeLabel(activeExam.mode)}</strong> at question {(activeExam.currentIndex || 0) + 1} with {resumableAnsweredCount} answers saved.
               </div>
             )}
           </div>
         </div>
+
+      {/* Minimalist Quick Practice Mode Builder (10 / 20 / 30 items) */}
+      {onStartQuickPractice && (
+        <section className="qb-det-card qb-quick-practice-card" aria-label="Quick Practice Mode">
+          <div className="qb-quick-practice-head">
+            <div>
+              <div className="qb-mock-section-kicker">Focused Sprint</div>
+              <h2 className="qb-quick-practice-title">Quick Practice Session</h2>
+              <p className="qb-quick-practice-copy">
+                Run a short practice set with your choice of item count, question pool, subject, and timer.
+              </p>
+            </div>
+            <span className="qb-quick-practice-match tabular-nums">
+              {quickMatchingCount} matching item{quickMatchingCount === 1 ? "" : "s"}
+            </span>
+          </div>
+
+          <div className="qb-quick-practice-grid">
+            <div className="qb-quick-control-group">
+              <span className="qb-quick-control-label">Questions</span>
+              <div className="qb-quick-seg" role="group" aria-label="Number of questions">
+                {([10, 20, 30] as const).map((cnt) => (
+                  <button
+                    key={cnt}
+                    type="button"
+                    className={`qb-quick-seg-btn${quickCount === cnt ? " is-active" : ""}`}
+                    onClick={() => setQuickCount(cnt)}
+                  >
+                    {cnt}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="qb-quick-control-group">
+              <span className="qb-quick-control-label">Pool</span>
+              <div className="qb-quick-seg" role="group" aria-label="Question pool">
+                {(
+                  [
+                    { id: "all", label: "All" },
+                    { id: "unseen", label: "Unseen" },
+                    { id: "missed", label: "Missed" },
+                  ] as const
+                ).map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`qb-quick-seg-btn${quickScope === item.id ? " is-active" : ""}`}
+                    onClick={() => setQuickScope(item.id)}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="qb-quick-control-group">
+              <span className="qb-quick-control-label">Subject</span>
+              <CustomSelect
+                value={quickTopic}
+                onChange={setQuickTopic}
+                options={quickTopicOptions}
+                className="qb-quick-topic-select"
+                showCheckmark
+                portal
+              />
+            </div>
+
+            <div className="qb-quick-control-group">
+              <span className="qb-quick-control-label">Pacing</span>
+              <div className="qb-quick-seg" role="group" aria-label="Timer option">
+                <button
+                  type="button"
+                  className={`qb-quick-seg-btn${quickTimed ? " is-active" : ""}`}
+                  onClick={() => setQuickTimed(true)}
+                >
+                  <Clock size={13} />
+                  <span>Timed</span>
+                </button>
+                <button
+                  type="button"
+                  className={`qb-quick-seg-btn${!quickTimed ? " is-active" : ""}`}
+                  onClick={() => setQuickTimed(false)}
+                >
+                  <span>Untimed</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="qb-quick-practice-foot">
+            <span className="qb-quick-practice-note tabular-nums">
+              {quickTimed
+                ? `Est. limit: ${Math.min(quickCount, quickMatchingCount)} min (1 min/item)`
+                : "Untimed study run · elapsed stopwatch active"}
+            </span>
+            <button
+              type="button"
+              className="qb-quick-start-btn"
+              onClick={handleStartQuick}
+              disabled={quickMatchingCount === 0}
+            >
+              <Zap size={15} />
+              <span>
+                {quickMatchingCount === 0
+                  ? "No Matching Items"
+                  : `Start ${Math.min(quickCount, quickMatchingCount)}-Item Quick Practice`}
+              </span>
+            </button>
+          </div>
+        </section>
+      )}
 
       {/* History of Saved Attempts */}
       <div className="qb-mock-history">
@@ -478,6 +637,8 @@ export default function MockExam({
               {sortedHistory.map((attempt, index) => {
                 const isSubPro = attempt.mode === "subprofessional";
                 const isDrill = attempt.mode === "drill";
+                const isQuick = attempt.mode === "quick";
+                const tierClass = isDrill ? "drill" : isQuick ? "quick" : isSubPro ? "subpro" : "pro";
                 return (
                   <button
                     key={attempt.id}
@@ -487,12 +648,12 @@ export default function MockExam({
                   >
                     <div className="qb-mock-attempt-top">
                       <div className="qb-mock-attempt-top-left">
-                        <span className="qb-mock-attempt-rank">Attempt {sortedHistory.length - index}</span>
-                        <span className={`qb-mock-attempt-tier-pill ${isDrill ? "drill" : isSubPro ? "subpro" : "pro"}`}>
-                          {isDrill ? "Mistake Drill" : isSubPro ? "Subprofessional" : "Professional"}
+                        <span className="qb-mock-attempt-rank tabular-nums">Attempt {sortedHistory.length - index}</span>
+                        <span className={`qb-mock-attempt-tier-pill ${tierClass}`}>
+                          {getAttemptModeLabel(attempt.mode)}
                         </span>
                       </div>
-                      <span className="qb-mock-attempt-score">{attempt.scorePercent}%</span>
+                      <span className="qb-mock-attempt-score tabular-nums">{attempt.scorePercent}%</span>
                     </div>
                     <div className="qb-mock-attempt-date">{formatAttemptDate(attempt.completedAt)}</div>
                     <div className="qb-mock-attempt-meta">

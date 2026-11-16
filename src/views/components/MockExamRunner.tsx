@@ -13,7 +13,15 @@ const formatClock = (ms) => {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 };
 
-export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit, onBackToAttempt, onStartDrillMistakes }) {
+export default function MockExamRunner({
+  exam,
+  qMap,
+  onUpdateExam,
+  onExit,
+  onBackToAttempt,
+  onStartDrillMistakes,
+  onRecordBatchMastery = undefined,
+}) {
   const [now, setNow] = useState(Date.now());
   const [showSol, setShowSol] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -23,12 +31,15 @@ export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit, onBac
   const expandedScrollRef = useRef(null);
   const expandedImgRef = useRef(null);
   const copyAreaRef = useRef(null);
+  const recordedMasterySessionsRef = useRef(new Set<string>());
   usePlainTextCopy(copyAreaRef);
   const [expandedZoom, setExpandedZoom] = useState(1);
 
-  const endAt = exam.startedAt + exam.durationMs;
-  const remainingMs = Math.max(0, endAt - now);
-  const finished = exam.finished || remainingMs <= 0;
+  const isTimed = exam.timed !== false;
+  const endAt = exam.startedAt + (exam.durationMs || 0);
+  const remainingMs = isTimed ? Math.max(0, endAt - now) : 0;
+  const elapsedMs = Math.max(0, now - (exam.startedAt || now));
+  const finished = exam.finished || (isTimed && remainingMs <= 0);
   const metrics = useMemo(() => calculateExamMetrics(exam, qMap, now), [exam, qMap, now]);
   const questionLookup = metrics.questionLookup;
   const currentId = exam.orderIds[exam.currentIndex] || null;
@@ -177,8 +188,36 @@ export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit, onBac
 
   useEffect(() => {
     if (!finished) return;
-    if (!exam.finished) onUpdateExam((prev) => ({ ...prev, finished: true }));
+    if (!exam.finished) {
+      onUpdateExam((prev) => ({
+        ...prev,
+        finished: true,
+        ...(prev.timed === false && !Number.isFinite(prev.timeSpentMs)
+          ? { timeSpentMs: Math.max(0, Date.now() - (prev.startedAt || Date.now())) }
+          : {}),
+      }));
+    }
   }, [finished, exam.finished, onUpdateExam]);
+
+  useEffect(() => {
+    if (!finished || exam.isReviewSession || !exam.sessionId || !onRecordBatchMastery) return;
+    if (recordedMasterySessionsRef.current.has(exam.sessionId)) return;
+    recordedMasterySessionsRef.current.add(exam.sessionId);
+
+    const outcomes: Array<{ id: string; isCorrect: boolean }> = [];
+    for (const id of exam.orderIds || []) {
+      const pickVal = exam.answers?.[id];
+      if (pickVal === undefined || pickVal === null) continue;
+      const question = questionLookup.get(id);
+      outcomes.push({
+        id,
+        isCorrect: Number.isInteger(question?.correct) && pickVal === question.correct,
+      });
+    }
+    if (outcomes.length > 0) {
+      onRecordBatchMastery(outcomes);
+    }
+  }, [finished, exam.isReviewSession, exam.sessionId, exam.orderIds, exam.answers, questionLookup, onRecordBatchMastery]);
 
   useEffect(() => {
     if (!finished) {
@@ -215,18 +254,25 @@ export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit, onBac
   const score = finished ? metrics.correctCount : null;
   const examLabel = exam.isReviewSession
     ? "Saved Review"
-    : exam.mode === "drill"
-      ? (exam.title || `Mistake Drill • ${totalCount} Items`)
-      : exam.mode === "subprofessional"
-        ? "Subprofessional • 165 Items"
-        : "Professional • 170 Items";
+    : exam.mode === "quick"
+      ? (exam.title || `Quick Practice • ${totalCount} Items`)
+      : exam.mode === "drill"
+        ? (exam.title || `Mistake Drill • ${totalCount} Items`)
+        : exam.mode === "subprofessional"
+          ? "Subprofessional • 165 Items"
+          : "Professional • 170 Items";
   const examStats = [
     { value: `${exam.currentIndex + 1}/${totalCount}`, label: "Question" },
     { value: answeredCount, label: "Answered" },
     { value: reviewCount, label: "Review" }
   ];
 
-  const finishExam = () => onUpdateExam((prev) => ({ ...prev, finished: true }));
+  const finishExam = () =>
+    onUpdateExam((prev) => ({
+      ...prev,
+      finished: true,
+      ...(prev.timed === false ? { timeSpentMs: Math.max(0, Date.now() - (prev.startedAt || Date.now())) } : {}),
+    }));
   const toggleReview = () => {
     if (!currentId || finished) return;
     onUpdateExam((prev) => {
@@ -268,7 +314,7 @@ export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit, onBac
               Exit
             </button>
           )}
-          <span className={`qb-exam-mode-badge${exam.isReviewSession ? " review" : exam.mode === "drill" ? " drill" : exam.mode === "subprofessional" ? " subpro" : " pro"}`}>
+          <span className={`qb-exam-mode-badge${exam.isReviewSession ? " review" : exam.mode === "drill" ? " drill" : exam.mode === "quick" ? " quick" : exam.mode === "subprofessional" ? " subpro" : " pro"}`}>
             {examLabel}
           </span>
         </div>
@@ -296,9 +342,11 @@ export default function MockExamRunner({ exam, qMap, onUpdateExam, onExit, onBac
     <div className="qb-exam-side">
       <div className="qb-exam-side-inner">
         <div className="qb-exam-timer-card">
-          <div className="qb-exam-timer-label">{finished ? "Time Used" : "Time Remaining"}</div>
-          <div className={`qb-exam-timer-big${!finished && remainingMs <= 5 * 60 * 1000 ? " qb-exam-timer-warn" : ""}`}>
-            {formatClock(finished ? metrics.timeSpentMs : remainingMs)}
+          <div className="qb-exam-timer-label">
+            {finished ? "Time Used" : isTimed ? "Time Remaining" : "Elapsed Time"}
+          </div>
+          <div className={`qb-exam-timer-big tabular-nums${!finished && isTimed && remainingMs <= 5 * 60 * 1000 ? " qb-exam-timer-warn" : ""}`}>
+            {formatClock(finished ? metrics.timeSpentMs : isTimed ? remainingMs : elapsedMs)}
           </div>
           <div className="qb-exam-timer-row">
             {!finished ? (

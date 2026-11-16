@@ -34,7 +34,21 @@ import { storageModel } from "./models/storageModel";
 import { tipsModel } from "./models/tipsModel";
 import { favoritesModel } from "./models/favoritesModel";
 import { rolesModel } from "./models/rolesModel";
-import { buildMockExamAttempt, buildReviewExamFromAttempt, buildMistakeDrillExam } from "./utils/mockExamAnalytics";
+import {
+  MASTERY_UPDATED_EVENT,
+  readMasteryMap,
+  recordQuestionOutcome,
+  recordBatchQuestionOutcomes,
+  getTodayAnsweredCount,
+  getMasterySummary,
+  getDaysUntilExam,
+} from "./models/masteryModel";
+import {
+  buildMockExamAttempt,
+  buildReviewExamFromAttempt,
+  buildMistakeDrillExam,
+  buildQuickPracticeExam,
+} from "./utils/mockExamAnalytics";
 import { Home, ClipboardList, Lightbulb, PlayCircle, ArrowRight, BookOpen, Plus, ShieldCheck } from "lucide-react";
 import { QUESTION_ADMIN_UIDS, QUESTION_ADMIN_EMAILS, EXAM_PRESETS } from "./constants/appConstants";
 
@@ -87,11 +101,32 @@ export default function App() {
   const { isDark, setThemeMode, toggleTheme } = useThemeController();
   const { settings, updateSettings, resetSettings } = useSettingsController();
   
+  const [masteryVersion, setMasteryVersion] = useState(0);
+  const [isOnline, setIsOnline] = useState(() =>
+    typeof navigator !== "undefined" ? navigator.onLine !== false : true
+  );
+  const [pendingSyncCount, setPendingSyncCount] = useState(0);
+
+  useEffect(() => {
+    const bumpMastery = () => setMasteryVersion((v) => v + 1);
+    window.addEventListener(MASTERY_UPDATED_EVENT, bumpMastery);
+    window.addEventListener("storage", bumpMastery);
+    return () => {
+      window.removeEventListener(MASTERY_UPDATED_EVENT, bumpMastery);
+      window.removeEventListener("storage", bumpMastery);
+    };
+  }, []);
+
+  const masteryMap = useMemo(() => {
+    void masteryVersion;
+    return readMasteryMap(user?.id);
+  }, [user?.id, masteryVersion]);
+
   const { 
     qs, loading, refreshing, search, setSearch, topicFilter, setTopicFilter, labelFilter, setLabelFilter,
-    favoriteOnly, setFavoriteOnly,
-    sortBy, setSortBy, saveQuestion, deleteQuestion, ensureSolutionDraw, toggleFavorite, counts, labelOptions, filteredQuestions 
-  } = useQuestionsController(user?.id, isAuthLoading);
+    favoriteOnly, setFavoriteOnly, masteryFilter, setMasteryFilter,
+    sortBy, setSortBy, saveQuestion, importQuestionsBulk, deleteQuestion, ensureSolutionDraw, toggleFavorite, counts, labelOptions, filteredQuestions 
+  } = useQuestionsController(user?.id, isAuthLoading, masteryMap);
 
   const {
     view,
@@ -214,6 +249,16 @@ export default function App() {
         (user?.email && QUESTION_ADMIN_EMAILS.includes(user.email.toLowerCase()))));
   const canManageQuestions = isQuestionAdmin;
   const favoriteCount = useMemo(() => qs.filter((q) => q.favorite).length, [qs]);
+  const masteryCounts = useMemo(() => getMasterySummary(qs, masteryMap), [qs, masteryMap]);
+  const todayAnsweredCount = useMemo(() => {
+    void masteryVersion;
+    return getTodayAnsweredCount(user?.id);
+  }, [user?.id, masteryVersion]);
+  const dailyStudyGoal = profile?.dailyStudyGoal || settings.dailyStudyGoal || 25;
+  const daysUntilExam = useMemo(
+    () => getDaysUntilExam(profile?.targetExamDate || settings.targetExamDate),
+    [profile?.targetExamDate, settings.targetExamDate]
+  );
   const proQuestionsCount = useMemo(() => qs.filter((q) => q.topic !== "clerical").length, [qs]);
   const subProQuestionsCount = useMemo(() => qs.filter((q) => q.topic !== "analytical").length, [qs]);
   const activeTopicCount = useMemo(
@@ -504,6 +549,55 @@ export default function App() {
     persistCompletedAttempt();
   }, [exam, isAuthenticated, qMap, user?.id]);
 
+  // Track online state & pending local sync queue for subtle Header status chip
+  useEffect(() => {
+    let active = true;
+    const refreshPendingSync = async () => {
+      try {
+        const count = await storageModel.getPendingSyncCount(user?.id);
+        if (active) setPendingSyncCount(count);
+      } catch {
+        // Ignore queue read failures
+      }
+    };
+    const handleOnline = () => {
+      setIsOnline(true);
+      void refreshPendingSync();
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      void refreshPendingSync();
+    };
+    const handleQueueUpdated = () => {
+      void refreshPendingSync();
+    };
+
+    void refreshPendingSync();
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    window.addEventListener("qbank-sync-queue-updated", handleQueueUpdated);
+    return () => {
+      active = false;
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+      window.removeEventListener("qbank-sync-queue-updated", handleQueueUpdated);
+    };
+  }, [user?.id, view]);
+
+  // Guard against accidental tab/window close during an active unfinished exam
+  useEffect(() => {
+    const isExamActive = view === "mockRun" && !!exam && !exam.finished && !exam.isReviewSession;
+    if (!isExamActive) return undefined;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+      return "";
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [view, exam]);
+
   const handleCancelEdit = () => {
     if (editId) goToQuestionDetail(editId);
     else handleGoHome();
@@ -551,7 +645,21 @@ export default function App() {
     setTopicFilter("all");
     setLabelFilter("all");
     setFavoriteOnly(false);
+    setMasteryFilter("all");
   };
+
+  const handleFilterMissed = useCallback(() => {
+    setSearch("");
+    setTopicFilter("all");
+    setLabelFilter("all");
+    setFavoriteOnly(false);
+    setMasteryFilter("missed");
+    handleGoHome();
+    setTimeout(() => {
+      const cards = document.getElementById("qb-question-cards") || document.getElementById("qb-question-feed");
+      if (cards) cards.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 60);
+  }, [handleGoHome, setLabelFilter, setFavoriteOnly, setMasteryFilter, setSearch, setTopicFilter]);
 
   const handleSelectTopic = (topicId) => {
     setTopicFilter(topicId);
@@ -601,6 +709,36 @@ export default function App() {
       });
     }
     window.history.pushState({}, "", `?page=mock-run&drill=1`);
+    setView("mockRun");
+  };
+
+  const handleStartQuickPractice = (opts: {
+    count: number;
+    scope: "all" | "unseen" | "missed";
+    topic: string;
+    timed: boolean;
+  }) => {
+    const quickExam = buildQuickPracticeExam({
+      questions: qs,
+      masteryMap,
+      scope: opts.scope,
+      topic: opts.topic,
+      count: opts.count,
+      timed: opts.timed,
+    });
+    if (!quickExam || quickExam.totalCount === 0) return;
+    setEditId(null);
+    setSelectedId(null);
+    setSelectedMockAttemptId(null);
+    setDeepLinkShowSol(false);
+    setExam(quickExam);
+    setSavedActiveMockExam(quickExam);
+    if (isAuthenticated && user?.id) {
+      storageModel.setActiveMockExam(quickExam, user.id).catch((e) => {
+        console.error("Failed to save active quick practice:", e);
+      });
+    }
+    window.history.pushState({}, "", `?page=mock-run&quick=1`);
     setView("mockRun");
   };
 
@@ -846,6 +984,15 @@ export default function App() {
           onMockExam={handleGoMockExam}
           onTips={handleGoTips}
           onNotes={handleGoNotes}
+          onFilterMissed={handleFilterMissed}
+          missedCount={masteryCounts.missed}
+          unseenCount={masteryCounts.unseen}
+          todayAnsweredCount={todayAnsweredCount}
+          dailyStudyGoal={dailyStudyGoal}
+          daysUntilExam={daysUntilExam}
+          hasResumableMock={hasResumableMock}
+          isOnline={isOnline}
+          pendingSyncCount={pendingSyncCount}
         />
 
         {/* Unified Overlay Navigation Drawer for Mobile & Tablet/Compact */}
@@ -947,6 +1094,21 @@ export default function App() {
                       <span><strong><CountUp end={activeTopicCount} duration={1000} /></strong> Subjects Active</span>
                       <span className="qb-hero-stats-sep" aria-hidden="true">·</span>
                       <span><strong><CountUp end={favoriteCount} duration={1000} /></strong> Starred Items</span>
+                      <span className="qb-hero-stats-sep" aria-hidden="true">·</span>
+                      <span>
+                        <strong className="tabular-nums">{todayAnsweredCount}/{dailyStudyGoal}</strong> Today
+                      </span>
+                      {daysUntilExam !== null && daysUntilExam >= 0 && (
+                        <>
+                          <span className="qb-hero-stats-sep" aria-hidden="true">·</span>
+                          <span>
+                            <strong className="tabular-nums">
+                              {daysUntilExam === 0 ? "Today" : `${daysUntilExam}d`}
+                            </strong>{" "}
+                            {daysUntilExam === 0 ? "Exam Day" : "to Exam"}
+                          </span>
+                        </>
+                      )}
                       {refreshing && (
                         <>
                           <span className="qb-hero-stats-sep" aria-hidden="true">·</span>
@@ -1070,6 +1232,9 @@ export default function App() {
                   favoriteCount={favoriteCount}
                   favoriteOnly={favoriteOnly}
                   onFavoriteOnlyChange={setFavoriteOnly}
+                  masteryFilter={masteryFilter}
+                  onMasteryChange={setMasteryFilter}
+                  masteryCounts={masteryCounts}
                   onResetFilters={handleResetFilters}
                 />
 
@@ -1080,12 +1245,13 @@ export default function App() {
                   totalInProject={qs.length} 
                   sortBy={sortBy}
                   onSortChange={setSortBy}
+                  masteryMap={masteryMap}
                   canManageQuestions={canManageQuestions}
                   authAvailable={authAvailable}
                   isAuthenticated={isAuthenticated}
                   onAddQuestion={handleAddQuestionAction}
                   onNavigateToTips={() => handleGoTips()}
-                  resetKey={`${search}|${topicFilter}|${labelFilter}|${favoriteOnly}|${sortBy}`}
+                  resetKey={`${search}|${topicFilter}|${labelFilter}|${favoriteOnly}|${masteryFilter}|${sortBy}`}
                 />
               </div>
             ) : view === "detail" && selectedQuestion ? (
@@ -1107,6 +1273,7 @@ export default function App() {
                 sessionResults={detailSessionResults}
                 onRecordResult={(id: string, isCorrect: boolean) => {
                   setDetailSessionResults((prev) => ({ ...prev, [id]: isCorrect ? "correct" : "wrong" }));
+                  recordQuestionOutcome(id, isCorrect, user?.id);
                 }}
                 onPrev={() => {
                   if (prevQuestion) handleSelectQuestion(prevQuestion.id);
@@ -1144,10 +1311,13 @@ export default function App() {
                   totalQuestions={Math.min(qs.length, PRO_EXAM_TOTAL)}
                   proQuestionsCount={proQuestionsCount}
                   subProQuestionsCount={subProQuestionsCount}
+                  questions={qs}
+                  masteryMap={masteryMap}
                   presets={EXAM_PRESETS}
                   onStartProfessional={handleStartProfessional}
                   onStartSubprofessional={handleStartSubprofessional}
                   onStartExam={handleStartExam}
+                  onStartQuickPractice={handleStartQuickPractice}
                   activeExam={savedActiveMockExam}
                   isActiveExamLoading={isActiveMockExamLoading}
                   onResumeActiveExam={handleResumeActiveMockExam}
@@ -1173,10 +1343,13 @@ export default function App() {
                   totalQuestions={Math.min(qs.length, PRO_EXAM_TOTAL)}
                   proQuestionsCount={proQuestionsCount}
                   subProQuestionsCount={subProQuestionsCount}
+                  questions={qs}
+                  masteryMap={masteryMap}
                   presets={EXAM_PRESETS}
                   onStartProfessional={handleStartProfessional}
                   onStartSubprofessional={handleStartSubprofessional}
                   onStartExam={handleStartExam}
+                  onStartQuickPractice={handleStartQuickPractice}
                   activeExam={savedActiveMockExam}
                   isActiveExamLoading={isActiveMockExamLoading}
                   onResumeActiveExam={handleResumeActiveMockExam}
@@ -1197,13 +1370,17 @@ export default function App() {
                   onExit={handleGoMockExam}
                   onBackToAttempt={handleBackToAttempt}
                   onStartDrillMistakes={handleStartDrillMistakes}
+                  onRecordBatchMastery={(outcomes) => recordBatchQuestionOutcomes(outcomes, user?.id)}
                 />
               ) : isActiveMockExamLoading ? (
                 <LoadingSpinner fullScreen text="Restoring active mock exam..." />
               ) : (
                 <MockExam
                   totalQuestions={qs.length}
+                  questions={qs}
+                  masteryMap={masteryMap}
                   onStartProfessional={handleStartProfessional}
+                  onStartQuickPractice={handleStartQuickPractice}
                   activeExam={savedActiveMockExam}
                   isActiveExamLoading={isActiveMockExamLoading}
                   onResumeActiveExam={handleResumeActiveMockExam}
@@ -1233,6 +1410,8 @@ export default function App() {
                 mockAttemptsCount={mockHistory.length}
                 favoritesCount={favoriteCount}
                 notesCount={0}
+                questions={qs}
+                onImportQuestions={importQuestionsBulk}
                 onBackToMain={handleGoHome}
               />
             ) : view === "add" ? (

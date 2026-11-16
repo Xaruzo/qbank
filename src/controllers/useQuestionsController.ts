@@ -3,6 +3,7 @@ import { KEY, SAMPLES, TOPICS } from "../constants/appConstants";
 import { storageModel } from "../models/storageModel";
 import { favoritesModel } from "../models/favoritesModel";
 import { supabase, isNetworkOrFetchError } from "../utils/supabaseClient";
+import type { MasteryFilter } from "../types";
 
 const getLabelValue = (q) => typeof q.label === "string" ? q.label.trim() : "";
 
@@ -46,7 +47,10 @@ const getSearchText = (q) => {
 
 // Pure filter+sort pipeline (module scope so it stays testable and free of
 // hook state). `search` must already be lowercased by the caller.
-const filterAndSortQuestions = (qs, { search, topicFilter, labelFilter, sortBy, favoriteOnly = false }) =>
+const filterAndSortQuestions = (
+  qs,
+  { search, topicFilter, labelFilter, sortBy, favoriteOnly = false, masteryFilter = "all", masteryMap = {} }
+) =>
   qs
     .map((q, index) => ({ q, index }))
     .filter(({ q }) => {
@@ -54,7 +58,14 @@ const filterAndSortQuestions = (qs, { search, topicFilter, labelFilter, sortBy, 
       const matchesLabel = labelFilter === "all" || getLabelValue(q) === labelFilter;
       const matchesSearch = !search || getSearchText(q).includes(search);
       const matchesFavorite = !favoriteOnly || Boolean(q.favorite);
-      return matchesTopic && matchesLabel && matchesSearch && matchesFavorite;
+      let matchesMastery = true;
+      if (masteryFilter !== "all") {
+        const record = masteryMap?.[q.id];
+        if (masteryFilter === "unseen") matchesMastery = !record || !record.attempts;
+        else if (masteryFilter === "missed") matchesMastery = record?.lastResult === "wrong";
+        else if (masteryFilter === "mastered") matchesMastery = !!record?.attempts && record.lastResult === "correct";
+      }
+      return matchesTopic && matchesLabel && matchesSearch && matchesFavorite && matchesMastery;
     })
     .sort((a, b) => {
       if (sortBy === "newest") return getSortTimestamp(b) - getSortTimestamp(a) || b.index - a.index;
@@ -67,7 +78,7 @@ const filterAndSortQuestions = (qs, { search, topicFilter, labelFilter, sortBy, 
     })
     .map(({ q }) => q);
 
-export function useQuestionsController(userId = null, isAuthLoading = false) {
+export function useQuestionsController(userId = null, isAuthLoading = false, masteryMap = {}) {
   const [qs, setQs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -75,6 +86,7 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
   const [topicFilter, setTopicFilter] = useState("all");
   const [labelFilter, setLabelFilter] = useState("all");
   const [favoriteOnly, setFavoriteOnly] = useState(false);
+  const [masteryFilter, setMasteryFilter] = useState<MasteryFilter>("all");
   const [sortBy, setSortBy] = useState("favorites");
   const initRequestRef = useRef(0);
   const qsRef = useRef([]);
@@ -387,6 +399,42 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
     await persist(nextQs);
   };
 
+  const importQuestionsBulk = async (items = []) => {
+    if (!Array.isArray(items) || items.length === 0) return { added: 0, synced: 0 };
+    const baseTime = Date.now();
+    let synced = 0;
+
+    const prepared = items.map((item, idx) => {
+      const iso = new Date(baseTime + idx).toISOString();
+      return normalizeQuestion({
+        id: `${baseTime}-${idx}-${Math.random().toString(36).slice(2, 6)}`,
+        topic: item.topic,
+        label: item.label || "",
+        question: item.question,
+        choices: item.choices,
+        correct: item.correct,
+        solution: item.solution || "",
+        dateAdded: iso,
+        updatedAt: iso,
+        favorite: false,
+      });
+    });
+
+    for (const q of prepared) {
+      try {
+        const result = await storageModel.syncQuestion(q);
+        await storageModel.dequeuePendingUpsert(q.id);
+        if (result?.status === "synced") synced += 1;
+      } catch {
+        await storageModel.enqueuePendingUpsert(q);
+      }
+    }
+
+    const nextQs = [...qsRef.current, ...prepared];
+    await persist(nextQs);
+    return { added: prepared.length, synced };
+  };
+
   const counts = TOPICS.reduce((a, t) => ({
     ...a,
     [t.id]: qs.filter(q => q.topic === t.id).length
@@ -419,8 +467,10 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
       labelFilter,
       sortBy,
       favoriteOnly,
+      masteryFilter,
+      masteryMap,
     }),
-    [qs, deferredSearch, topicFilter, labelFilter, sortBy, favoriteOnly]
+    [qs, deferredSearch, topicFilter, labelFilter, sortBy, favoriteOnly, masteryFilter, masteryMap]
   );
 
   return {
@@ -435,9 +485,12 @@ export function useQuestionsController(userId = null, isAuthLoading = false) {
     setLabelFilter,
     favoriteOnly,
     setFavoriteOnly,
+    masteryFilter,
+    setMasteryFilter,
     sortBy,
     setSortBy,
     saveQuestion,
+    importQuestionsBulk,
     deleteQuestion,
     ensureSolutionDraw,
     toggleFavorite,

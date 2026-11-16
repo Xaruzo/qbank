@@ -160,7 +160,7 @@
 
 /* Split Header + Scrollable List Container */
 .qb-settings-users-table-wrap {
-  --qb-roster-cols: minmax(200px, 1.85fr) minmax(114px, 0.9fr) minmax(145px, 1.1fr) minmax(205px, 1.45fr);
+  --qb-roster-cols: minmax(190px, 1.75fr) minmax(114px, 0.85fr) minmax(135px, 1fr) minmax(244px, 1.6fr);
   display: flex;
   flex-direction: column;
   border: 1px solid var(--border);
@@ -506,9 +506,9 @@
 }
 
 .qb-table-role-select {
-  flex: 1 1 124px;
-  min-width: 118px;
-  max-width: 168px;
+  flex: 1 1 156px;
+  min-width: 152px;
+  max-width: 210px;
 }
 
 .qb-table-role-select .qb-select-btn {
@@ -589,8 +589,8 @@
   }
 
   .qb-table-role-select {
-    flex: 0 1 160px;
-    min-width: 132px;
+    flex: 0 1 190px;
+    min-width: 162px;
   }
 }
 

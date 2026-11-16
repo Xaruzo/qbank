@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import {
   Bell,
   CheckCheck,
@@ -7,78 +8,46 @@ import {
   Timer,
   BookOpen,
   ShieldCheck,
-  Sparkles,
   ArrowRight,
   Inbox,
   CheckCircle2,
-  HardDriveDownload,
+  WifiOff,
+  Calendar,
 } from "lucide-react";
 
 export interface NotificationItem {
   id: string;
-  category: "exam" | "study" | "system" | "feature";
+  category: "exam" | "study" | "system";
   title: string;
   message: string;
   timestamp: string;
   read: boolean;
   actionLabel?: string;
-  actionType?: "mock" | "notes" | "tips" | "questions" | "info";
+  actionType?: "mock" | "notes" | "tips" | "questions" | "missed" | "storage";
 }
 
-const STORAGE_KEY = "cse-qbank-notifications-v1";
+interface NotificationPersistedState {
+  readIds: string[];
+  dismissedIds: string[];
+}
 
-const DEFAULT_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: "notif-csc-exam-alert",
-    category: "exam",
-    title: "Civil Service Exam Schedule Alert",
-    message: "CSC Career Service Examination (Professional & Subprofessional) applications are active. Practice with timed 170-item simulations to build speed and accuracy.",
-    timestamp: "10m ago",
-    read: false,
-    actionLabel: "Start Mock Exam",
-    actionType: "mock",
-  },
-  {
-    id: "notif-study-notes-update",
-    category: "study",
-    title: "High-Yield Reviewer Notes Updated",
-    message: "New quick-reference summaries for RA 6713 (Code of Conduct) and Standard Alphabetical Filing Rules have been updated in your Study Notes scratchpad.",
-    timestamp: "1h ago",
-    read: false,
-    actionLabel: "Open Study Notes",
-    actionType: "notes",
-  },
-  {
-    id: "notif-tips-visual-solutions",
-    category: "study",
-    title: "Interactive Whiteboard & Methods Ready",
-    message: "Master work problems, age algebra, and ratio grids by drawing visual diagrams directly on any question solution card.",
-    timestamp: "4h ago",
-    read: false,
-    actionLabel: "Explore Tips & Methods",
-    actionType: "tips",
-  },
-  {
-    id: "notif-offline-ready",
-    category: "system",
-    title: "Offline Reviewer Storage Active",
-    message: "All questions, notes, and previous mock exam attempts are cached securely in local storage so you can review without an active internet connection.",
-    timestamp: "1d ago",
-    read: true,
-    actionLabel: "View Question Bank",
-    actionType: "questions",
-  },
-  {
-    id: "notif-passing-standard",
-    category: "exam",
-    title: "80.00% General Passing Rating",
-    message: "Passing the Civil Service Exam requires at least 80.00% rating with no subject score lower than the minimum cutoff. Review your weakest subjects daily.",
-    timestamp: "2d ago",
-    read: true,
-    actionLabel: "Check Subject Focus",
-    actionType: "questions",
-  },
-];
+const NOTIF_STATE_KEY = "cse-qbank-notif-state-v1";
+
+const readPersistedState = (): NotificationPersistedState => {
+  try {
+    const raw = localStorage.getItem(NOTIF_STATE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return {
+        readIds: Array.isArray(parsed?.readIds) ? parsed.readIds : [],
+        dismissedIds: Array.isArray(parsed?.dismissedIds) ? parsed.dismissedIds : [],
+      };
+    }
+  } catch {
+    // Ignore storage read errors
+  }
+  return { readIds: [], dismissedIds: [] };
+};
 
 interface NotificationsModalProps {
   isOpen: boolean;
@@ -87,7 +56,18 @@ interface NotificationsModalProps {
   onNavigateToTips?: () => void;
   onNavigateToNotes?: () => void;
   onNavigateToQuestions?: () => void;
+  onFilterMissed?: () => void;
+  onOpenSettings?: (tab?: string) => void;
   onUnreadCountChange?: (count: number) => void;
+  missedCount?: number;
+  unseenCount?: number;
+  todayAnsweredCount?: number;
+  dailyStudyGoal?: number;
+  daysUntilExam?: number | null;
+  hasResumableMock?: boolean;
+  isOnline?: boolean;
+  pendingSyncCount?: number;
+  isAuthenticated?: boolean;
 }
 
 export default function NotificationsModal({
@@ -97,26 +77,190 @@ export default function NotificationsModal({
   onNavigateToTips,
   onNavigateToNotes,
   onNavigateToQuestions,
+  onFilterMissed,
+  onOpenSettings,
   onUnreadCountChange,
+  missedCount = 0,
+  unseenCount = 0,
+  todayAnsweredCount = 0,
+  dailyStudyGoal = 25,
+  daysUntilExam = null,
+  hasResumableMock = false,
+  isOnline = true,
+  pendingSyncCount = 0,
+  isAuthenticated = false,
 }: NotificationsModalProps) {
-  const [notifications, setNotifications] = useState<NotificationItem[]>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (_) {}
-    return DEFAULT_NOTIFICATIONS;
-  });
-
+  const [notifState, setNotifState] = useState<NotificationPersistedState>(() => readPersistedState());
   const [activeTab, setActiveTab] = useState<"all" | "unread" | "exam" | "study" | "system">("all");
   const [indicatorStyle, setIndicatorStyle] = useState<{ left: number; width: number }>({ left: 0, width: 0 });
+  const [portalCoords, setPortalCoords] = useState<{ top: number; left: number; width: number } | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const tabContainerRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
-  // Sync animated tab pill position
+  const computePortalCoords = useCallback(() => {
+    if (typeof window === "undefined") return;
+    const anchor = document.querySelector(".qb-hdr-notif-wrap");
+    const anchorRect = anchor?.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const top = Math.max(58, (anchorRect?.bottom ?? 56) + 10);
+
+    if (vw <= 640) {
+      setPortalCoords({
+        top,
+        left: 12,
+        width: Math.max(260, vw - 24),
+      });
+      return;
+    }
+
+    const width = Math.min(430, vw - 24);
+    const anchorRight = anchorRect ? anchorRect.right : vw - 16;
+    const left = Math.max(12, Math.min(anchorRight - width, vw - width - 12));
+    setPortalCoords({ top, left, width });
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    computePortalCoords();
+    window.addEventListener("resize", computePortalCoords);
+    return () => window.removeEventListener("resize", computePortalCoords);
+  }, [isOpen, computePortalCoords]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(NOTIF_STATE_KEY, JSON.stringify(notifState));
+    } catch {
+      // Ignore storage write errors
+    }
+  }, [notifState]);
+
+  const rawNotifications = useMemo<Omit<NotificationItem, "read">[]>(() => {
+    const items: Omit<NotificationItem, "read">[] = [];
+
+    if (!isOnline || pendingSyncCount > 0) {
+      items.push({
+        id: `notif-sync-${!isOnline ? "offline" : "queued"}`,
+        category: "system",
+        title: !isOnline ? "Offline Mode Active" : `${pendingSyncCount} Sync Change${pendingSyncCount === 1 ? "" : "s"} Pending`,
+        message: !isOnline
+          ? `Your browser is offline${pendingSyncCount > 0 ? ` with ${pendingSyncCount} queued update(s)` : ""}. Changes stay saved locally and will sync once reconnected.`
+          : `${pendingSyncCount} local update${pendingSyncCount === 1 ? " is" : "s are"} queued for synchronization.`,
+        timestamp: "Live",
+        actionLabel: "Open Sync & Storage",
+        actionType: "storage",
+      });
+    }
+
+    if (hasResumableMock) {
+      items.push({
+        id: "notif-resumable-mock",
+        category: "exam",
+        title: "Unfinished Mock Exam Paused",
+        message: "You have an active mock exam session waiting. Resume where you left off to record your final score.",
+        timestamp: "In progress",
+        actionLabel: "Resume Exam",
+        actionType: "mock",
+      });
+    }
+
+    if (missedCount > 0) {
+      items.push({
+        id: `notif-missed-pool`,
+        category: "study",
+        title: `${missedCount} Missed Question${missedCount === 1 ? "" : "s"} to Review`,
+        message: "Focus your practice on items you previously answered incorrectly until every one turns green.",
+        timestamp: "Recommended",
+        actionLabel: "Filter Missed Items",
+        actionType: "missed",
+      });
+    }
+
+    const goal = Math.max(1, dailyStudyGoal || 25);
+    const goalMet = todayAnsweredCount >= goal;
+    items.push({
+      id: "notif-daily-goal",
+      category: "study",
+      title: goalMet
+        ? `Daily Goal Reached (${todayAnsweredCount}/${goal})`
+        : `Daily Study Goal: ${todayAnsweredCount}/${goal} Today`,
+      message: goalMet
+        ? "Great consistency! You met today's question target. Keep momentum with a quick practice run."
+        : `Answer ${goal - todayAnsweredCount} more question${goal - todayAnsweredCount === 1 ? "" : "s"} today to complete your daily target.`,
+      timestamp: "Today",
+      actionLabel: "Practice Questions",
+      actionType: "questions",
+    });
+
+    if (daysUntilExam !== null && daysUntilExam >= 0) {
+      items.push({
+        id: "notif-exam-countdown",
+        category: "exam",
+        title: daysUntilExam === 0
+          ? "Target Exam Date is Today"
+          : `${daysUntilExam} Day${daysUntilExam === 1 ? "" : "s"} Until Target Exam`,
+        message: "Keep your pacing sharp with 80%+ accuracy on timed simulations matching CSC guidelines.",
+        timestamp: daysUntilExam === 0 ? "Today" : `D-${daysUntilExam}`,
+        actionLabel: "Open Mock Center",
+        actionType: "mock",
+      });
+    }
+
+    if (unseenCount > 0) {
+      items.push({
+        id: "notif-unseen-pool",
+        category: "study",
+        title: `${unseenCount} Unseen Question${unseenCount === 1 ? "" : "s"} Remaining`,
+        message: "Expand coverage across subjects by working through questions you have not attempted yet.",
+        timestamp: "Bank",
+        actionLabel: "Explore Bank",
+        actionType: "questions",
+      });
+    }
+
+    if (!isAuthenticated) {
+      items.push({
+        id: "notif-cloud-sync-tip",
+        category: "system",
+        title: "Local Storage Mode Active",
+        message: "Questions and study progress are saved locally on this device. Sign in to sync mock history and favorites.",
+        timestamp: "Account",
+        actionLabel: "View Settings",
+        actionType: "storage",
+      });
+    }
+
+    return items;
+  }, [
+    isOnline,
+    pendingSyncCount,
+    hasResumableMock,
+    missedCount,
+    todayAnsweredCount,
+    dailyStudyGoal,
+    daysUntilExam,
+    unseenCount,
+    isAuthenticated,
+  ]);
+
+  const notifications = useMemo<NotificationItem[]>(() => {
+    const dismissedSet = new Set(notifState.dismissedIds);
+    const readSet = new Set(notifState.readIds);
+    return rawNotifications
+      .filter((item) => !dismissedSet.has(item.id))
+      .map((item) => ({
+        ...item,
+        read: readSet.has(item.id),
+      }));
+  }, [rawNotifications, notifState]);
+
+  // Sync unread count to parent badge
+  useEffect(() => {
+    const unread = notifications.filter((n) => !n.read).length;
+    if (onUnreadCountChange) onUnreadCountChange(unread);
+  }, [notifications, onUnreadCountChange]);
+
+  // Sync animated tab indicator position
   useEffect(() => {
     if (!isOpen) return;
     const updateIndicator = () => {
@@ -140,15 +284,6 @@ export default function NotificationsModal({
     };
   }, [activeTab, notifications, isOpen]);
 
-  // Sync unread count to parent
-  useEffect(() => {
-    const unread = notifications.filter((n) => !n.read).length;
-    if (onUnreadCountChange) onUnreadCountChange(unread);
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications));
-    } catch (_) {}
-  }, [notifications, onUnreadCountChange]);
-
   // Click outside and escape handling
   useEffect(() => {
     if (!isOpen) return;
@@ -157,7 +292,6 @@ export default function NotificationsModal({
       const target = e.target as Node;
       if (modalRef.current?.contains(target)) return;
 
-      // Ignore clicks on header notification wrap so trigger button onClick can toggle properly
       const notifWrap = document.querySelector(".qb-hdr-notif-wrap");
       if (notifWrap?.contains(target)) return;
 
@@ -178,23 +312,35 @@ export default function NotificationsModal({
 
   if (!isOpen) return null;
 
-  const markAllAsRead = () => {
-    setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
-  };
-
-  const clearAllNotifications = () => {
-    setNotifications([]);
-  };
-
   const markAsRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, read: true } : item))
+    setNotifState((prev) =>
+      prev.readIds.includes(id) ? prev : { ...prev, readIds: [...prev.readIds, id] }
     );
+  };
+
+  const markAllAsRead = () => {
+    setNotifState((prev) => ({
+      ...prev,
+      readIds: Array.from(new Set([...prev.readIds, ...notifications.map((n) => n.id)])),
+    }));
   };
 
   const removeNotification = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setNotifications((prev) => prev.filter((item) => item.id !== id));
+    setNotifState((prev) =>
+      prev.dismissedIds.includes(id) ? prev : { ...prev, dismissedIds: [...prev.dismissedIds, id] }
+    );
+  };
+
+  const clearAllNotifications = () => {
+    setNotifState((prev) => ({
+      ...prev,
+      dismissedIds: Array.from(new Set([...prev.dismissedIds, ...notifications.map((n) => n.id)])),
+    }));
+  };
+
+  const restoreAllNotifications = () => {
+    setNotifState({ readIds: [], dismissedIds: [] });
   };
 
   const handleActionClick = (notif: NotificationItem) => {
@@ -203,18 +349,23 @@ export default function NotificationsModal({
 
     switch (notif.actionType) {
       case "mock":
-        if (onNavigateToMockExam) onNavigateToMockExam();
+        onNavigateToMockExam?.();
         break;
       case "notes":
-        if (onNavigateToNotes) onNavigateToNotes();
+        onNavigateToNotes?.();
         break;
       case "tips":
-        if (onNavigateToTips) onNavigateToTips();
+        onNavigateToTips?.();
+        break;
+      case "missed":
+        onFilterMissed?.();
+        break;
+      case "storage":
+        onOpenSettings?.("storage");
         break;
       case "questions":
-        if (onNavigateToQuestions) onNavigateToQuestions();
-        break;
       default:
+        onNavigateToQuestions?.();
         break;
     }
   };
@@ -223,29 +374,51 @@ export default function NotificationsModal({
     if (activeTab === "unread") return !n.read;
     if (activeTab === "exam") return n.category === "exam";
     if (activeTab === "study") return n.category === "study";
-    if (activeTab === "system") return n.category === "system" || n.category === "feature";
+    if (activeTab === "system") return n.category === "system";
     return true;
   });
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  const renderCategoryIcon = (category: NotificationItem["category"]) => {
-    switch (category) {
+  const renderCategoryIcon = (notif: NotificationItem) => {
+    if (notif.id.startsWith("notif-sync")) return <WifiOff size={16} className="qb-notif-icon-system" />;
+    if (notif.id === "notif-exam-countdown") return <Calendar size={16} className="qb-notif-icon-exam" />;
+    switch (notif.category) {
       case "exam":
         return <Timer size={16} className="qb-notif-icon-exam" />;
       case "study":
         return <BookOpen size={16} className="qb-notif-icon-study" />;
       case "system":
-        return <HardDriveDownload size={16} className="qb-notif-icon-system" />;
-      case "feature":
-        return <Sparkles size={16} className="qb-notif-icon-feature" />;
+        return <ShieldCheck size={16} className="qb-notif-icon-system" />;
       default:
         return <ShieldCheck size={16} className="qb-notif-icon-default" />;
     }
   };
 
-  return (
-    <div className="qb-notifications-dropdown" ref={modalRef} role="dialog" aria-label="Notifications Panel">
+  const portalTarget =
+    typeof document !== "undefined"
+      ? document.querySelector(".qb") || document.body
+      : null;
+
+  const panelNode = (
+    <div
+      className="qb-notifications-dropdown"
+      ref={modalRef}
+      role="dialog"
+      aria-label="Notifications Panel"
+      style={
+        portalCoords
+          ? {
+              position: "fixed",
+              top: `${portalCoords.top}px`,
+              left: `${portalCoords.left}px`,
+              right: "auto",
+              width: `${portalCoords.width}px`,
+              maxWidth: "calc(100vw - 24px)",
+            }
+          : undefined
+      }
+    >
       {/* Header */}
       <div className="qb-notif-header">
         <div className="qb-notif-title-row">
@@ -255,7 +428,7 @@ export default function NotificationsModal({
             </div>
             <h3 className="qb-notif-title">Notifications</h3>
             {unreadCount > 0 && (
-              <span className="qb-notif-badge-pill">{unreadCount} New</span>
+              <span className="qb-notif-badge-pill tabular-nums">{unreadCount} New</span>
             )}
           </div>
           <div className="qb-notif-head-actions">
@@ -275,7 +448,7 @@ export default function NotificationsModal({
                 type="button"
                 className="qb-notif-head-btn qb-notif-head-btn-danger"
                 onClick={clearAllNotifications}
-                title="Clear all notifications"
+                title="Dismiss visible notifications"
               >
                 <Trash2 size={13} />
               </button>
@@ -342,7 +515,7 @@ export default function NotificationsModal({
             className={`qb-notif-tab${activeTab === "study" ? " is-active" : ""}`}
             onClick={() => setActiveTab("study")}
           >
-            Study Notes
+            Study
           </button>
           <button
             type="button"
@@ -352,7 +525,7 @@ export default function NotificationsModal({
             className={`qb-notif-tab${activeTab === "system" ? " is-active" : ""}`}
             onClick={() => setActiveTab("system")}
           >
-            System
+            Sync
           </button>
         </div>
       </div>
@@ -367,8 +540,8 @@ export default function NotificationsModal({
             <p className="qb-notif-empty-title">All caught up!</p>
             <p className="qb-notif-empty-desc">
               {activeTab === "unread"
-                ? "You have no unread notifications."
-                : "No notifications found in this category."}
+                ? "You have no unread alerts."
+                : "No alerts right now in this category."}
             </p>
           </div>
         ) : (
@@ -379,7 +552,7 @@ export default function NotificationsModal({
               onClick={() => markAsRead(notif.id)}
             >
               <div className="qb-notif-item-icon-box">
-                {renderCategoryIcon(notif.category)}
+                {renderCategoryIcon(notif)}
               </div>
               <div className="qb-notif-item-body">
                 <div className="qb-notif-item-top">
@@ -424,19 +597,19 @@ export default function NotificationsModal({
       <div className="qb-notif-footer">
         <span className="qb-notif-footer-tag">
           <CheckCircle2 size={12} />
-          Civil Service Reviewer Alert Center
+          Live Study Alerts
         </span>
         <button
           type="button"
           className="qb-notif-footer-btn"
-          onClick={() => {
-            setNotifications(DEFAULT_NOTIFICATIONS);
-          }}
-          title="Reset to default updates"
+          onClick={restoreAllNotifications}
+          title="Restore dismissed alerts"
         >
-          Reset updates
+          Restore alerts
         </button>
       </div>
     </div>
   );
+
+  return portalTarget ? createPortal(panelNode, portalTarget) : panelNode;
 }

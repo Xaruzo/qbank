@@ -62,10 +62,13 @@ export const calculateExamMetrics = (exam: any, qMap: Map<string, any>, now = Da
   const answers = exam?.answers || {};
   const answeredCount = Object.keys(answers).length;
   const reviewCount = Object.keys(reviewMap).length;
+  const isTimed = exam?.timed !== false;
   const explicitRemainingMs = Number.isFinite(exam?.timeLeftMs) ? exam.timeLeftMs : null;
-  const remainingMs = explicitRemainingMs !== null
-    ? Math.max(0, explicitRemainingMs)
-    : Math.max(0, (exam?.startedAt || now) + (exam?.durationMs || 0) - now);
+  const remainingMs = !isTimed
+    ? 0
+    : explicitRemainingMs !== null
+      ? Math.max(0, explicitRemainingMs)
+      : Math.max(0, (exam?.startedAt || now) + (exam?.durationMs || 0) - now);
 
   let correctCount = 0;
   let wrongCount = 0;
@@ -101,7 +104,9 @@ export const calculateExamMetrics = (exam: any, qMap: Map<string, any>, now = Da
   const explicitTimeSpentMs = Number.isFinite(exam?.timeSpentMs) ? exam.timeSpentMs : null;
   const timeSpentMs = explicitTimeSpentMs !== null
     ? Math.max(0, explicitTimeSpentMs)
-    : Math.max(0, (exam?.durationMs || 0) - remainingMs);
+    : !isTimed
+      ? Math.max(0, now - (exam?.startedAt || now))
+      : Math.max(0, (exam?.durationMs || 0) - remainingMs);
   const topicStats = Array.from(topicBuckets.values())
     .map((bucket) => ({
       ...bucket,
@@ -151,6 +156,8 @@ export const buildMockExamAttempt = (exam: any, qMap: Map<string, any>, complete
     id: exam?.sessionId || `attempt-${completedAt}-${Math.random().toString(36).slice(2, 8)}`,
     sessionId: exam?.sessionId || null,
     mode: exam?.mode || "professional",
+    ...(exam?.title ? { title: exam.title } : {}),
+    timed: exam?.timed !== false,
     startedAt: exam?.startedAt || completedAt,
     completedAt: completedAtIso,
     durationMs: exam?.durationMs || 0,
@@ -197,6 +204,8 @@ export const buildReviewExamFromAttempt = (attempt: any, qMap: Map<string, any>,
 
   return {
     mode: attempt?.mode || "professional",
+    ...(attempt?.title ? { title: attempt.title } : {}),
+    timed: attempt?.timed !== false,
     sessionId: `review-${attempt?.id || Date.now()}`,
     startedAt: attempt?.startedAt || Date.now(),
     durationMs: attempt?.durationMs || 0,
@@ -234,6 +243,68 @@ export const buildMistakeDrillExam = (attempt: any, qMap: Map<string, any>) => {
     durationMs,
     totalCount: totalItems,
     targetCount: totalItems,
+    orderIds,
+    answers: {},
+    review: {},
+    currentIndex: 0,
+    finished: false,
+    isReviewSession: false,
+    historySaved: false,
+  };
+};
+
+export const getAttemptModeLabel = (mode?: string) => {
+  if (mode === "subprofessional") return "Subprofessional";
+  if (mode === "drill") return "Mistake Drill";
+  if (mode === "quick") return "Quick Practice";
+  return "Professional";
+};
+
+export const buildQuickPracticeExam = ({
+  questions = [],
+  masteryMap = {},
+  scope = "all",
+  topic = "all",
+  count = 10,
+  timed = true,
+}: {
+  questions: any[];
+  masteryMap?: Record<string, any>;
+  scope?: "all" | "unseen" | "missed";
+  topic?: string;
+  count?: number;
+  timed?: boolean;
+}) => {
+  const candidates = (questions || []).filter((q) => {
+    if (topic !== "all" && q?.topic !== topic) return false;
+    const record = masteryMap?.[q?.id];
+    if (scope === "unseen") return !record || !record.attempts;
+    if (scope === "missed") return record?.lastResult === "wrong";
+    return true;
+  });
+
+  const ids = candidates.map((q) => q.id);
+  for (let i = ids.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = ids[i];
+    ids[i] = ids[j];
+    ids[j] = tmp;
+  }
+
+  const targetCount = Math.max(1, count || 10);
+  const orderIds = ids.slice(0, targetCount);
+  const totalItems = orderIds.length;
+  const durationMs = timed ? Math.max(60 * 1000, totalItems * 60 * 1000) : 0;
+
+  return {
+    sessionId: `quick-${Date.now()}`,
+    mode: "quick" as const,
+    timed,
+    title: `Quick Practice • ${totalItems} Items`,
+    startedAt: Date.now(),
+    durationMs,
+    totalCount: totalItems,
+    targetCount,
     orderIds,
     answers: {},
     review: {},

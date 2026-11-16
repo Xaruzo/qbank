@@ -17,6 +17,7 @@ import {
   MousePointerClick,
   Pencil,
   Trash2,
+  MoreHorizontal,
 } from "lucide-react";
 import MarkdownText from "./MarkdownText";
 import usePlainTextCopy from "../../utils/usePlainTextCopy";
@@ -50,9 +51,11 @@ export default function QuestionDetail({
   const [answerMs, setAnswerMs] = useState(0);
   const [timerRunning, setTimerRunning] = useState(false);
   const [shareLabel, setShareLabel] = useState("Share");
+  const [overflowOpen, setOverflowOpen] = useState(false);
   const [scratchMap, setScratchMap] = useState<Record<string, string>>({});
   const timerStartRef = useRef(0);
   const timerIdRef = useRef(null);
+  const overflowRef = useRef<HTMLDivElement>(null);
   const copyAreaRef = useRef(null);
   const cardScrollRef = useRef(null);
   const navGridRef = useRef<HTMLDivElement>(null);
@@ -134,10 +137,28 @@ export default function QuestionDetail({
     setTimerRunning(true);
     setExpandedZoom(1);
     setShareLabel("Share");
+    setOverflowOpen(false);
     if (cardScrollRef.current) {
       cardScrollRef.current.scrollTop = 0;
     }
   }, [question.id, forceShowSolution]);
+
+  useEffect(() => {
+    if (!overflowOpen) return;
+    const handlePointerDown = (e: PointerEvent) => {
+      if (overflowRef.current?.contains(e.target as Node)) return;
+      setOverflowOpen(false);
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOverflowOpen(false);
+    };
+    window.addEventListener("pointerdown", handlePointerDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [overflowOpen]);
 
   useEffect(() => {
     if (!isDeleteModalOpen) return;
@@ -440,20 +461,21 @@ export default function QuestionDetail({
         </div>
 
         <div className="qb-det-actions">
-          {onTips && (
-            <button
-              type="button"
-              className="qb-det-action-btn qb-det-tips-btn"
-              aria-label="Open tips and methods for this question"
-              title="Open tips and methods"
-              onClick={onTips}
-            >
-              <Lightbulb size={14} />
-              <span>Tips</span>
-            </button>
-          )}
+          {/* Desktop inline actions (>=768px) */}
+          <div className="qb-det-actions-inline">
+            {onTips && (
+              <button
+                type="button"
+                className="qb-det-action-btn qb-det-tips-btn"
+                aria-label="Open tips and methods for this question"
+                title="Open tips and methods"
+                onClick={onTips}
+              >
+                <Lightbulb size={14} />
+                <span>Tips</span>
+              </button>
+            )}
 
-          <div className="qb-det-actions-group">
             <button
               type="button"
               className={`qb-det-action-btn qb-det-share-btn${shareLabel !== "Share" ? " is-copied" : ""}`}
@@ -463,16 +485,6 @@ export default function QuestionDetail({
             >
               {shareLabel === "Share" ? <Link2 size={14} /> : <Check size={14} />}
               <span>{shareLabel}</span>
-            </button>
-
-            <button
-              type="button"
-              className={`qb-det-fav-btn${question.favorite ? " on" : ""}`}
-              aria-label={question.favorite ? "Remove from favorites" : "Add to favorites"}
-              title={question.favorite ? "Unfavorite question" : "Favorite question"}
-              onClick={() => onToggleFavorite(question.id)}
-            >
-              <Star size={15} fill={question.favorite ? "currentColor" : "none"} />
             </button>
 
             {canManageQuestions && (
@@ -498,6 +510,90 @@ export default function QuestionDetail({
                   <Trash2 size={13} className="qb-btn-icon" />
                   <span>Delete</span>
                 </button>
+              </div>
+            )}
+          </div>
+
+          <button
+            type="button"
+            className={`qb-det-fav-btn${question.favorite ? " on" : ""}`}
+            aria-label={question.favorite ? "Remove from favorites" : "Add to favorites"}
+            title={question.favorite ? "Unfavorite question" : "Favorite question"}
+            onClick={() => onToggleFavorite(question.id)}
+          >
+            <Star size={15} fill={question.favorite ? "currentColor" : "none"} />
+          </button>
+
+          {/* Compact mobile/tablet overflow trigger (<768px) */}
+          <div className="qb-det-overflow-wrap" ref={overflowRef}>
+            <button
+              type="button"
+              className={`qb-det-overflow-btn${overflowOpen ? " is-active" : ""}`}
+              aria-label="More question actions"
+              aria-expanded={overflowOpen}
+              aria-haspopup="menu"
+              onClick={() => setOverflowOpen((prev) => !prev)}
+            >
+              <MoreHorizontal size={16} />
+            </button>
+
+            {overflowOpen && (
+              <div className="qb-det-overflow-menu" role="menu">
+                {onTips && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="qb-det-overflow-item"
+                    onClick={() => {
+                      setOverflowOpen(false);
+                      onTips();
+                    }}
+                  >
+                    <Lightbulb size={15} />
+                    <span>Tips & Methods</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="qb-det-overflow-item"
+                  onClick={() => {
+                    setOverflowOpen(false);
+                    handleShare();
+                  }}
+                >
+                  {shareLabel === "Share" ? <Link2 size={15} /> : <Check size={15} />}
+                  <span>{shareLabel === "Share" ? "Copy Share Link" : shareLabel}</span>
+                </button>
+                {canManageQuestions && (
+                  <>
+                    <div className="qb-det-overflow-divider" />
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="qb-det-overflow-item"
+                      onClick={() => {
+                        setOverflowOpen(false);
+                        onEdit(question);
+                      }}
+                    >
+                      <Pencil size={15} />
+                      <span>Edit Question</span>
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="qb-det-overflow-item is-danger"
+                      onClick={() => {
+                        setOverflowOpen(false);
+                        setIsDeleteModalOpen(true);
+                      }}
+                    >
+                      <Trash2 size={15} />
+                      <span>Delete Question</span>
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </div>
