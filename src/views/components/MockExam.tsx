@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useLayoutEffect, useEffect, useCallback, type ReactNode } from "react";
 import {
   ArrowUpRight,
   PlayCircle,
@@ -10,6 +10,11 @@ import {
   Briefcase,
   Sparkles,
   BookOpen,
+  Calculator,
+  Globe,
+  BrainCircuit,
+  ClipboardList,
+  Layers,
   Target,
   Activity,
   Trophy,
@@ -21,8 +26,106 @@ import { EXAM_PRESETS, TOPICS } from "../../constants/appConstants";
 import CustomSelect from "./CustomSelect";
 import LoadingSpinner from "./LoadingSpinner";
 
+const TOPIC_ICON_MAP: Record<string, typeof Calculator> = {
+  numerical: Calculator,
+  verbal: BookOpen,
+  general: Globe,
+  analytical: BrainCircuit,
+  clerical: ClipboardList,
+};
+
 // Solid tier color for score meters: red < 50, amber 50–74, green 75+.
 const scoreMeterClass = (pct) => (pct >= 75 ? " qb-mock-meter-high" : pct >= 50 ? " qb-mock-meter-mid" : " qb-mock-meter-low");
+
+interface QuickSegOption {
+  id: string;
+  label: ReactNode;
+}
+
+function QuickSegControl({
+  ariaLabel,
+  options,
+  activeId,
+  onSelect,
+}: {
+  ariaLabel: string;
+  options: QuickSegOption[];
+  activeId: string;
+  onSelect: (id: string) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const btnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [ready, setReady] = useState(false);
+  const [rect, setRect] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
+
+  const syncGlider = useCallback(() => {
+    const btn = btnRefs.current[activeId];
+    if (!btn || btn.offsetWidth === 0 || btn.offsetHeight === 0) return;
+    setRect({
+      left: btn.offsetLeft,
+      top: btn.offsetTop,
+      width: btn.offsetWidth,
+      height: btn.offsetHeight,
+    });
+  }, [activeId]);
+
+  useEffect(() => {
+    const rafId = requestAnimationFrame(() => setReady(true));
+    return () => cancelAnimationFrame(rafId);
+  }, []);
+
+  useLayoutEffect(() => {
+    syncGlider();
+    const el = containerRef.current;
+    const ro = typeof ResizeObserver !== "undefined" && el ? new ResizeObserver(syncGlider) : null;
+    if (ro && el) ro.observe(el);
+    window.addEventListener("resize", syncGlider);
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener("resize", syncGlider);
+    };
+  }, [syncGlider, options.length]);
+
+  useEffect(() => {
+    syncGlider();
+  }, [activeId, syncGlider]);
+
+  return (
+    <div
+      ref={containerRef}
+      className={`qb-quick-seg${rect ? " has-glider" : ""}${ready ? " is-ready" : ""}`}
+      role="group"
+      aria-label={ariaLabel}
+    >
+      {rect && (
+        <span
+          className="qb-quick-seg-glider"
+          aria-hidden="true"
+          style={{
+            width: `${rect.width}px`,
+            height: `${rect.height}px`,
+            transform: `translate3d(${rect.left}px, ${rect.top}px, 0)`,
+          }}
+        />
+      )}
+      {options.map((opt) => {
+        const isActive = opt.id === activeId;
+        return (
+          <button
+            key={opt.id}
+            ref={(el) => { btnRefs.current[opt.id] = el; }}
+            type="button"
+            className={`qb-quick-seg-btn${isActive ? " is-active" : ""}`}
+            aria-pressed={isActive}
+            onClick={() => onSelect(opt.id)}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function MockExam({
   totalQuestions,
@@ -112,8 +215,33 @@ export default function MockExam({
 
   const quickTopicOptions = useMemo(
     () => [
-      { value: "all", label: "All Subjects" },
-      ...TOPICS.map((t) => ({ value: t.id, label: t.label })),
+      {
+        value: "all",
+        label: "All Subjects",
+        icon: (
+          <Layers
+            size={15}
+            className="qb-topic-icon"
+            style={{ color: "#f5a623", flexShrink: 0 }}
+            data-colored="true"
+          />
+        ),
+      },
+      ...TOPICS.map((t) => {
+        const Icon = TOPIC_ICON_MAP[t.id] || BookOpen;
+        return {
+          value: t.id,
+          label: t.label,
+          icon: (
+            <Icon
+              size={15}
+              className="qb-topic-icon"
+              style={{ color: t.color, flexShrink: 0 }}
+              data-colored="true"
+            />
+          ),
+        };
+      }),
     ],
     []
   );
@@ -507,40 +635,30 @@ export default function MockExam({
           <div className="qb-quick-practice-grid">
             <div className="qb-quick-control-group">
               <span className="qb-quick-control-label">Questions</span>
-              <div className="qb-quick-seg" role="group" aria-label="Number of questions">
-                {([10, 20, 30] as const).map((cnt) => (
-                  <button
-                    key={cnt}
-                    type="button"
-                    className={`qb-quick-seg-btn${quickCount === cnt ? " is-active" : ""}`}
-                    onClick={() => setQuickCount(cnt)}
-                  >
-                    {cnt}
-                  </button>
-                ))}
-              </div>
+              <QuickSegControl
+                ariaLabel="Number of questions"
+                activeId={String(quickCount)}
+                onSelect={(id) => setQuickCount(Number(id) as 10 | 20 | 30)}
+                options={[
+                  { id: "10", label: "10" },
+                  { id: "20", label: "20" },
+                  { id: "30", label: "30" },
+                ]}
+              />
             </div>
 
             <div className="qb-quick-control-group">
               <span className="qb-quick-control-label">Pool</span>
-              <div className="qb-quick-seg" role="group" aria-label="Question pool">
-                {(
-                  [
-                    { id: "all", label: "All" },
-                    { id: "unseen", label: "Unseen" },
-                    { id: "missed", label: "Missed" },
-                  ] as const
-                ).map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className={`qb-quick-seg-btn${quickScope === item.id ? " is-active" : ""}`}
-                    onClick={() => setQuickScope(item.id)}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
+              <QuickSegControl
+                ariaLabel="Question pool"
+                activeId={quickScope}
+                onSelect={(id) => setQuickScope(id as "all" | "unseen" | "missed")}
+                options={[
+                  { id: "all", label: "All" },
+                  { id: "unseen", label: "Unseen" },
+                  { id: "missed", label: "Missed" },
+                ]}
+              />
             </div>
 
             <div className="qb-quick-control-group">
@@ -557,23 +675,23 @@ export default function MockExam({
 
             <div className="qb-quick-control-group">
               <span className="qb-quick-control-label">Pacing</span>
-              <div className="qb-quick-seg" role="group" aria-label="Timer option">
-                <button
-                  type="button"
-                  className={`qb-quick-seg-btn${quickTimed ? " is-active" : ""}`}
-                  onClick={() => setQuickTimed(true)}
-                >
-                  <Clock size={13} />
-                  <span>Timed</span>
-                </button>
-                <button
-                  type="button"
-                  className={`qb-quick-seg-btn${!quickTimed ? " is-active" : ""}`}
-                  onClick={() => setQuickTimed(false)}
-                >
-                  <span>Untimed</span>
-                </button>
-              </div>
+              <QuickSegControl
+                ariaLabel="Timer option"
+                activeId={quickTimed ? "timed" : "untimed"}
+                onSelect={(id) => setQuickTimed(id === "timed")}
+                options={[
+                  {
+                    id: "timed",
+                    label: (
+                      <>
+                        <Clock size={13} />
+                        <span>Timed</span>
+                      </>
+                    ),
+                  },
+                  { id: "untimed", label: <span>Untimed</span> },
+                ]}
+              />
             </div>
           </div>
 
