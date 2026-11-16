@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useLayoutEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, useCallback, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import {
   Search,
   SlidersHorizontal,
@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { TOPICS } from "../../constants/appConstants";
 import { computeSelectPlacement } from "../../utils/selectPlacement";
-import type { SearchAndFilterProps, TopicDef, TopicId } from "../../types";
+import type { MasteryFilter, SearchAndFilterProps, TopicDef, TopicId } from "../../types";
 
 const TOPIC_ICONS: Record<string, LucideIcon> = {
   all: Layers,
@@ -113,6 +113,163 @@ export default function SearchAndFilter({
     unseen: total,
     missed: 0,
     mastered: 0,
+  };
+
+  // Strictly disable segmented glider & motion when LITE / Power-Saver or reduced motion is enabled
+  const [isMotionDisabled, setIsMotionDisabled] = useState<boolean>(() => {
+    if (typeof document === "undefined" || typeof window === "undefined") return false;
+    const root = document.documentElement;
+    return (
+      root.classList.contains("qb-lite-mode") ||
+      root.classList.contains("qb-no-animations") ||
+      Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches)
+    );
+  });
+
+  useEffect(() => {
+    if (typeof document === "undefined" || typeof window === "undefined") return;
+    const root = document.documentElement;
+    const mq = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+
+    const checkMotionPref = () => {
+      setIsMotionDisabled(
+        root.classList.contains("qb-lite-mode") ||
+        root.classList.contains("qb-no-animations") ||
+        Boolean(mq?.matches)
+      );
+    };
+
+    checkMotionPref();
+    const observer = new MutationObserver(checkMotionPref);
+    observer.observe(root, { attributes: true, attributeFilter: ["class"] });
+    if (mq?.addEventListener) {
+      mq.addEventListener("change", checkMotionPref);
+    }
+    return () => {
+      observer.disconnect();
+      if (mq?.removeEventListener) {
+        mq.removeEventListener("change", checkMotionPref);
+      }
+    };
+  }, []);
+
+  const masteryBarRef = useRef<HTMLDivElement>(null);
+  const masteryBtnRefs = useRef<Partial<Record<MasteryFilter, HTMLButtonElement | null>>>({});
+  const gliderMountedRef = useRef(false);
+  const lastNavKeyboardRef = useRef(false);
+  const [gliderReady, setGliderReady] = useState(false);
+  const [focusedMastery, setFocusedMastery] = useState<MasteryFilter | null>(null);
+  const [gliderRect, setGliderRect] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
+  const [focusRect, setFocusRect] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
+
+  const measureButtonRect = useCallback((id: MasteryFilter) => {
+    const container = masteryBarRef.current;
+    const btn = masteryBtnRefs.current[id];
+    if (!container || !btn) return null;
+    const containerRect = container.getBoundingClientRect();
+    const btnRect = btn.getBoundingClientRect();
+    if (btnRect.width === 0 || btnRect.height === 0) return null;
+    return {
+      left: btnRect.left - containerRect.left + container.scrollLeft,
+      top: btnRect.top - containerRect.top + container.scrollTop,
+      width: btnRect.width,
+      height: btnRect.height,
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!onMasteryChange || isMotionDisabled) {
+      gliderMountedRef.current = false;
+      setGliderReady(false);
+      setGliderRect(null);
+      setFocusRect(null);
+      return;
+    }
+
+    const syncGliders = () => {
+      const nextActive = measureButtonRect(masteryFilter);
+      if (nextActive) setGliderRect(nextActive);
+      const nextFocus = focusedMastery ? measureButtonRect(focusedMastery) : null;
+      setFocusRect(nextFocus);
+    };
+
+    syncGliders();
+
+    let rafId = 0;
+    if (!gliderMountedRef.current) {
+      gliderMountedRef.current = true;
+      rafId = requestAnimationFrame(() => setGliderReady(true));
+    }
+
+    const container = masteryBarRef.current;
+    const resizeObserver =
+      typeof ResizeObserver !== "undefined" && container
+        ? new ResizeObserver(() => syncGliders())
+        : null;
+    if (resizeObserver && container) {
+      resizeObserver.observe(container);
+    }
+    window.addEventListener("resize", syncGliders);
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", syncGliders);
+    };
+  }, [
+    onMasteryChange,
+    isMotionDisabled,
+    masteryFilter,
+    focusedMastery,
+    resolvedMasteryCounts.all,
+    resolvedMasteryCounts.unseen,
+    resolvedMasteryCounts.missed,
+    resolvedMasteryCounts.mastered,
+    measureButtonRect,
+  ]);
+
+  const masteryOptions: ReadonlyArray<{ id: MasteryFilter; label: string; count: number }> = [
+    { id: "all", label: "All", count: resolvedMasteryCounts.all },
+    { id: "unseen", label: "Unseen", count: resolvedMasteryCounts.unseen },
+    { id: "missed", label: "Missed", count: resolvedMasteryCounts.missed },
+    { id: "mastered", label: "Mastered", count: resolvedMasteryCounts.mastered },
+  ];
+
+  const handleMasteryKeyDown = (e: ReactKeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
+    if (!onMasteryChange) return;
+    let nextIndex: number | null = null;
+    if (e.key === "ArrowRight") {
+      nextIndex = (currentIndex + 1) % masteryOptions.length;
+    } else if (e.key === "ArrowLeft") {
+      nextIndex = (currentIndex - 1 + masteryOptions.length) % masteryOptions.length;
+    } else if (e.key === "Home") {
+      nextIndex = 0;
+    } else if (e.key === "End") {
+      nextIndex = masteryOptions.length - 1;
+    }
+    if (nextIndex === null) return;
+    e.preventDefault();
+    lastNavKeyboardRef.current = true;
+    const nextOption = masteryOptions[nextIndex];
+    const nextBtn = masteryBtnRefs.current[nextOption.id];
+    onMasteryChange(nextOption.id);
+    if (nextBtn) {
+      nextBtn.focus({ preventScroll: true });
+      nextBtn.scrollIntoView({
+        block: "nearest",
+        inline: "nearest",
+        behavior: isMotionDisabled ? "auto" : "smooth",
+      });
+    }
   };
 
   return (
@@ -286,24 +443,80 @@ export default function SearchAndFilter({
       {onMasteryChange && (
         <div className="qb-mastery-filter-row">
           <span className="qb-mastery-filter-label">Progress</span>
-          <div className="qb-mastery-segmented" role="tablist" aria-label="Mastery status filter">
-            {(
-              [
-                { id: "all", label: "All", count: resolvedMasteryCounts.all },
-                { id: "unseen", label: "Unseen", count: resolvedMasteryCounts.unseen },
-                { id: "missed", label: "Missed", count: resolvedMasteryCounts.missed },
-                { id: "mastered", label: "Mastered", count: resolvedMasteryCounts.mastered },
-              ] as const
-            ).map((opt) => {
+          <div
+            ref={masteryBarRef}
+            className={`qb-mastery-segmented${!isMotionDisabled && gliderRect ? " has-glider" : ""}${gliderReady ? " is-ready" : ""}`}
+            role="tablist"
+            aria-label="Mastery status filter"
+            onPointerDown={() => {
+              lastNavKeyboardRef.current = false;
+              setFocusedMastery(null);
+            }}
+            onKeyDownCapture={() => {
+              lastNavKeyboardRef.current = true;
+            }}
+            onBlur={(e) => {
+              const nextTarget = e.relatedTarget as Node | null;
+              if (!masteryBarRef.current || !nextTarget || !masteryBarRef.current.contains(nextTarget)) {
+                setFocusedMastery(null);
+              }
+            }}
+          >
+            {!isMotionDisabled && gliderRect && (
+              <span
+                className={`qb-mastery-glider status-${masteryFilter}`}
+                aria-hidden="true"
+                style={{
+                  top: `${gliderRect.top}px`,
+                  width: `${gliderRect.width}px`,
+                  height: `${gliderRect.height}px`,
+                  transform: `translate3d(${gliderRect.left}px, 0, 0)`,
+                }}
+              />
+            )}
+            {!isMotionDisabled && focusRect && focusedMastery && (
+              <span
+                className={`qb-mastery-focus-glider status-${focusedMastery}`}
+                aria-hidden="true"
+                style={{
+                  top: `${focusRect.top}px`,
+                  width: `${focusRect.width}px`,
+                  height: `${focusRect.height}px`,
+                  transform: `translate3d(${focusRect.left}px, 0, 0)`,
+                }}
+              />
+            )}
+            {masteryOptions.map((opt, idx) => {
               const active = masteryFilter === opt.id;
               return (
                 <button
                   key={opt.id}
+                  ref={(el) => {
+                    masteryBtnRefs.current[opt.id] = el;
+                  }}
                   type="button"
                   role="tab"
                   aria-selected={active}
                   className={`qb-mastery-seg-btn status-${opt.id}${active ? " is-active" : ""}`}
-                  onClick={() => onMasteryChange(opt.id)}
+                  onClick={() => {
+                    lastNavKeyboardRef.current = false;
+                    setFocusedMastery(null);
+                    onMasteryChange(opt.id);
+                    masteryBtnRefs.current[opt.id]?.scrollIntoView({
+                      block: "nearest",
+                      inline: "nearest",
+                      behavior: isMotionDisabled ? "auto" : "smooth",
+                    });
+                  }}
+                  onFocus={(e) => {
+                    if (isMotionDisabled) return;
+                    const matchesFocusVisible =
+                      lastNavKeyboardRef.current || e.currentTarget.matches(":focus-visible");
+                    if (matchesFocusVisible) {
+                      setFocusedMastery(opt.id);
+                    }
+                  }}
+                  onKeyDown={(e) => handleMasteryKeyDown(e, idx)}
                 >
                   <span>{opt.label}</span>
                   <span className="qb-mastery-seg-count tabular-nums">{opt.count}</span>

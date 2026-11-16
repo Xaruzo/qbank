@@ -1403,6 +1403,8 @@ export default function SettingsPage({
                     options={ROLE_GRANT_OPTIONS}
                     className="qb-settings-role-select-wrap"
                     showCheckmark
+                    portal
+                    minMenuWidth={320}
                   />
                   <button type="submit" className="qb-settings-role-grant-btn">
                     <UserPlus size={16} />
