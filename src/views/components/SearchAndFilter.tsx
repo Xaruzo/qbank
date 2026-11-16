@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import {
   Search,
   SlidersHorizontal,
@@ -16,6 +16,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { TOPICS } from "../../constants/appConstants";
+import { computeSelectPlacement } from "../../utils/selectPlacement";
 import type { SearchAndFilterProps, TopicDef, TopicId } from "../../types";
 
 const TOPIC_ICONS: Record<string, LucideIcon> = {
@@ -57,6 +58,7 @@ export default function SearchAndFilter({
 
   const [labelFilterOpen, setLabelFilterOpen] = useState(false);
   const [labelFilterDir, setLabelFilterDir] = useState<"down" | "up">("down");
+  const [labelFilterMaxH, setLabelFilterMaxH] = useState(312);
   const labelFilterRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -78,6 +80,22 @@ export default function SearchAndFilter({
     };
     window.addEventListener("keydown", handle);
     return () => window.removeEventListener("keydown", handle);
+  }, [labelFilterOpen]);
+
+  useLayoutEffect(() => {
+    if (!labelFilterOpen) return;
+    const sync = () => {
+      const next = computeSelectPlacement(labelFilterRef.current);
+      setLabelFilterDir(next.dir);
+      setLabelFilterMaxH(next.maxHeight);
+    };
+    sync();
+    window.addEventListener("resize", sync);
+    window.addEventListener("scroll", sync, true);
+    return () => {
+      window.removeEventListener("resize", sync);
+      window.removeEventListener("scroll", sync, true);
+    };
   }, [labelFilterOpen]);
 
   return (
@@ -153,8 +171,9 @@ export default function SearchAndFilter({
                 type="button"
                 onClick={() => {
                   if (!labelFilterOpen && labelFilterRef.current) {
-                    const rect = labelFilterRef.current.getBoundingClientRect();
-                    setLabelFilterDir(window.innerHeight - rect.bottom < 220 ? "up" : "down");
+                    const next = computeSelectPlacement(labelFilterRef.current);
+                    setLabelFilterDir(next.dir);
+                    setLabelFilterMaxH(next.maxHeight);
                   }
                   setLabelFilterOpen((o) => !o);
                 }}
@@ -171,32 +190,34 @@ export default function SearchAndFilter({
                 <ChevronDown size={15} className={`qb-select-chevron${labelFilterOpen ? " is-open" : ""}`} />
               </button>
               <div className={`qb-select-menu${labelFilterOpen ? " open" : ""}`}>
-                <button
-                  type="button"
-                  className={`qb-select-item${labelFilter === "all" ? " on" : ""}`}
-                  onClick={() => {
-                    onLabelChange("all");
-                    setLabelFilterOpen(false);
-                  }}
-                >
-                  <Tag size={13} className="qb-select-item-icon" aria-hidden="true" />
-                  <span className="qb-select-item-label">All Labels</span>
-                </button>
-                {labelOptions.map((option) => (
+                <div className="qb-select-menu-scroll" style={{ maxHeight: `${labelFilterMaxH}px` }}>
                   <button
-                    key={option.value}
                     type="button"
-                    className={`qb-select-item${labelFilter === option.value ? " on" : ""}`}
+                    className={`qb-select-item${labelFilter === "all" ? " on" : ""}`}
                     onClick={() => {
-                      onLabelChange(option.value);
+                      onLabelChange("all");
                       setLabelFilterOpen(false);
                     }}
                   >
                     <Tag size={13} className="qb-select-item-icon" aria-hidden="true" />
-                    <span className="qb-select-item-label">{option.label}</span>
-                    <span className="qb-select-count tabular-nums">({option.count})</span>
+                    <span className="qb-select-item-label">All Labels</span>
                   </button>
-                ))}
+                  {labelOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={`qb-select-item${labelFilter === option.value ? " on" : ""}`}
+                      onClick={() => {
+                        onLabelChange(option.value);
+                        setLabelFilterOpen(false);
+                      }}
+                    >
+                      <Tag size={13} className="qb-select-item-icon" aria-hidden="true" />
+                      <span className="qb-select-item-label">{option.label}</span>
+                      <span className="qb-select-count tabular-nums">({option.count})</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

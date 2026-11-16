@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { TOPICS, LETTERS, PROBLEM_LABELS } from "../../constants/appConstants";
 import DrawCanvas from "./DrawCanvas";
 import SymbolToolbar from "./SymbolToolbar";
 import { handleSymbolShortcuts } from "../../utils/symbolShortcuts";
 import { uploadImageToSupabase, validateImageFile } from "../../utils/imageUpload";
+import { computeSelectPlacement } from "../../utils/selectPlacement";
 import { 
   ChevronLeft, ChevronDown, Pencil, Image, Loader,
   Trash2, Maximize2, Minimize2, Sparkles, Layers, X, Check, PenTool, ArrowLeft,
@@ -68,11 +69,13 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
   const [uploadError, setUploadError] = useState("");
   const [error, setError] = useState("");
   const [topicOpen, setTopicOpen] = useState(false);
-  const [topicDir, setTopicDir] = useState("down");
+  const [topicDir, setTopicDir] = useState<"down" | "up">("down");
+  const [topicMaxH, setTopicMaxH] = useState(312);
   const [labelOpen, setLabelOpen] = useState(false);
-  const [labelDir, setLabelDir] = useState("down");
-  const topicRef = useRef(null);
-  const labelRef = useRef(null);
+  const [labelDir, setLabelDir] = useState<"down" | "up">("down");
+  const [labelMaxH, setLabelMaxH] = useState(312);
+  const topicRef = useRef<HTMLDivElement>(null);
+  const labelRef = useRef<HTMLDivElement>(null);
   const questionRef = useRef(null);
   const choiceRefs = useRef([]);
   const activeChoiceRef = useRef(null);
@@ -346,6 +349,22 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
     return () => window.removeEventListener("keydown", handle);
   }, [topicOpen]);
 
+  useLayoutEffect(() => {
+    if (!topicOpen) return;
+    const sync = () => {
+      const next = computeSelectPlacement(topicRef.current);
+      setTopicDir(next.dir);
+      setTopicMaxH(next.maxHeight);
+    };
+    sync();
+    window.addEventListener("resize", sync);
+    window.addEventListener("scroll", sync, true);
+    return () => {
+      window.removeEventListener("resize", sync);
+      window.removeEventListener("scroll", sync, true);
+    };
+  }, [topicOpen]);
+
   useEffect(() => {
     if (!labelOpen) return;
     const handle = (e) => {
@@ -365,6 +384,22 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
     };
     window.addEventListener("keydown", handle);
     return () => window.removeEventListener("keydown", handle);
+  }, [labelOpen]);
+
+  useLayoutEffect(() => {
+    if (!labelOpen) return;
+    const sync = () => {
+      const next = computeSelectPlacement(labelRef.current);
+      setLabelDir(next.dir);
+      setLabelMaxH(next.maxHeight);
+    };
+    sync();
+    window.addEventListener("resize", sync);
+    window.addEventListener("scroll", sync, true);
+    return () => {
+      window.removeEventListener("resize", sync);
+      window.removeEventListener("scroll", sync, true);
+    };
   }, [labelOpen]);
 
   const handleSave = () => {
@@ -453,8 +488,9 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
                 type="button"
                 onClick={() => {
                   if (!topicOpen && topicRef.current) {
-                    const rect = topicRef.current.getBoundingClientRect();
-                    setTopicDir(window.innerHeight - rect.bottom < 220 ? "up" : "down");
+                    const next = computeSelectPlacement(topicRef.current);
+                    setTopicDir(next.dir);
+                    setTopicMaxH(next.maxHeight);
                   }
                   setTopicOpen(o => !o);
                 }}
@@ -489,57 +525,59 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
                 <ChevronDown size={16} className={`qb-select-chevron${topicOpen ? " is-open" : ""}`} />
               </button>
               <div className={`qb-select-menu${topicOpen ? " open" : ""}`}>
-                {TOPICS.map(t => {
-                  const Icon = TOPIC_ICON_MAP[t.id];
-                  const isSelected = t.id === form.topic;
-                  return (
-                    <button
-                      key={t.id}
-                      type="button"
-                      className={`qb-select-item qb-topic-select-item${isSelected ? " on" : ""}`}
-                      style={
-                        isSelected
-                          ? {
-                              color: t.color,
-                              backgroundColor: `${t.color}1c`,
-                              borderColor: `${t.color}40`,
-                            }
-                          : undefined
-                      }
-                      onClick={() => {
-                        setForm(f => ({ ...f, topic: t.id }));
-                        setTopicOpen(false);
-                      }}
-                    >
-                      {Icon && (
-                        <span
-                          className="qb-topic-icon-wrap"
-                          style={{ color: t.color, display: "inline-flex", alignItems: "center" }}
-                        >
-                          <Icon
-                            size={15}
-                            className="qb-topic-icon"
-                            style={{ color: t.color, flexShrink: 0 }}
-                            data-colored="true"
-                          />
-                        </span>
-                      )}
-                      <span
-                        className="qb-select-item-label"
-                        style={isSelected ? { color: t.color, fontWeight: 700 } : undefined}
+                <div className="qb-select-menu-scroll" style={{ maxHeight: `${topicMaxH}px` }}>
+                  {TOPICS.map(t => {
+                    const Icon = TOPIC_ICON_MAP[t.id];
+                    const isSelected = t.id === form.topic;
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        className={`qb-select-item qb-topic-select-item${isSelected ? " on" : ""}`}
+                        style={
+                          isSelected
+                            ? {
+                                color: t.color,
+                                backgroundColor: `${t.color}1c`,
+                                borderColor: `${t.color}40`,
+                              }
+                            : undefined
+                        }
+                        onClick={() => {
+                          setForm(f => ({ ...f, topic: t.id }));
+                          setTopicOpen(false);
+                        }}
                       >
-                        {t.label}
-                      </span>
-                      {isSelected && (
-                        <Check
-                          size={14}
-                          className="qb-select-item-check"
-                          style={{ color: t.color }}
-                        />
-                      )}
-                    </button>
-                  );
-                })}
+                        {Icon && (
+                          <span
+                            className="qb-topic-icon-wrap"
+                            style={{ color: t.color, display: "inline-flex", alignItems: "center" }}
+                          >
+                            <Icon
+                              size={15}
+                              className="qb-topic-icon"
+                              style={{ color: t.color, flexShrink: 0 }}
+                              data-colored="true"
+                            />
+                          </span>
+                        )}
+                        <span
+                          className="qb-select-item-label"
+                          style={isSelected ? { color: t.color, fontWeight: 700 } : undefined}
+                        >
+                          {t.label}
+                        </span>
+                        {isSelected && (
+                          <Check
+                            size={14}
+                            className="qb-select-item-check"
+                            style={{ color: t.color }}
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
@@ -554,8 +592,9 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
                 <div className="qb-select" ref={labelRef} data-dir={labelDir} data-open={labelOpen}>
                   <button className="qb-select-btn" type="button" onClick={() => {
                     if (!labelOpen && labelRef.current) {
-                      const rect = labelRef.current.getBoundingClientRect();
-                      setLabelDir(window.innerHeight - rect.bottom < 220 ? "up" : "down");
+                      const next = computeSelectPlacement(labelRef.current);
+                      setLabelDir(next.dir);
+                      setLabelMaxH(next.maxHeight);
                     }
                     setLabelOpen(o => !o);
                   }} aria-expanded={labelOpen}>
@@ -563,30 +602,32 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
                     <ChevronDown size={16} className={`qb-select-chevron${labelOpen ? " is-open" : ""}`} />
                   </button>
                   <div className={`qb-select-menu${labelOpen ? " open" : ""}`}>
-                    {PROBLEM_LABELS.map(label => (
+                    <div className="qb-select-menu-scroll" style={{ maxHeight: `${labelMaxH}px` }}>
+                      {PROBLEM_LABELS.map(label => (
+                        <button
+                          key={label}
+                          type="button"
+                          className={`qb-select-item${form.label === label ? " on" : ""}`}
+                          onClick={() => {
+                            setForm(f => ({ ...f, label }));
+                            setLabelOpen(false);
+                          }}
+                        >
+                          {label}
+                        </button>
+                      ))}
                       <button
-                        key={label}
                         type="button"
-                        className={`qb-select-item${form.label === label ? " on" : ""}`}
+                        className="qb-select-item"
                         onClick={() => {
-                          setForm(f => ({ ...f, label }));
+                          setUseCustomLabel(true);
+                          setForm(f => ({ ...f, label: "" }));
                           setLabelOpen(false);
                         }}
                       >
-                        {label}
+                        Other (custom)
                       </button>
-                    ))}
-                    <button
-                      type="button"
-                      className="qb-select-item"
-                      onClick={() => {
-                        setUseCustomLabel(true);
-                        setForm(f => ({ ...f, label: "" }));
-                        setLabelOpen(false);
-                      }}
-                    >
-                      Other (custom)
-                    </button>
+                    </div>
                   </div>
                 </div>
               ) : (

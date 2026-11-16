@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { TOPICS, SORT_OPTIONS } from "../../constants/appConstants";
 import {
@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import MarkdownText from "./MarkdownText";
 import usePlainTextCopy from "../../utils/usePlainTextCopy";
+import { computeSelectPlacement } from "../../utils/selectPlacement";
 import ModernAddIcon from "./ModernAddIcon";
 import type { QuestionListProps, TopicDef } from "../../types";
 
@@ -116,6 +117,7 @@ export default function QuestionList({
   const getTopic = (id: string): TopicDef => TOPICS.find((t: TopicDef) => t.id === id) || TOPICS[0];
   const [sortOpen, setSortOpen] = useState(false);
   const [sortDir, setSortDir] = useState<"down" | "up">("down");
+  const [sortMaxH, setSortMaxH] = useState(312);
   const sortRef = useRef<HTMLDivElement>(null);
   const copyAreaRef = useRef<HTMLElement>(null);
   usePlainTextCopy(copyAreaRef);
@@ -166,6 +168,22 @@ export default function QuestionList({
     return () => window.removeEventListener("keydown", handle);
   }, [sortOpen]);
 
+  useLayoutEffect(() => {
+    if (!sortOpen) return;
+    const sync = () => {
+      const next = computeSelectPlacement(sortRef.current);
+      setSortDir(next.dir);
+      setSortMaxH(next.maxHeight);
+    };
+    sync();
+    window.addEventListener("resize", sync);
+    window.addEventListener("scroll", sync, true);
+    return () => {
+      window.removeEventListener("resize", sync);
+      window.removeEventListener("scroll", sync, true);
+    };
+  }, [sortOpen]);
+
   return (
     <section className="qb-question-section" ref={copyAreaRef} id="qb-question-feed">
       <div className="qb-list-meta" ref={metaBarRef}>
@@ -202,8 +220,9 @@ export default function QuestionList({
                 type="button"
                 onClick={() => {
                   if (!sortOpen && sortRef.current) {
-                    const rect = sortRef.current.getBoundingClientRect();
-                    setSortDir(window.innerHeight - rect.bottom < 220 ? "up" : "down");
+                    const next = computeSelectPlacement(sortRef.current);
+                    setSortDir(next.dir);
+                    setSortMaxH(next.maxHeight);
                   }
                   setSortOpen((o) => !o);
                 }}
@@ -232,40 +251,42 @@ export default function QuestionList({
                 <ChevronDown size={15} className={`qb-select-chevron${sortOpen ? " is-open" : ""}`} />
               </button>
               <div className={`qb-select-menu${sortOpen ? " open" : ""}`}>
-                {SORT_OPTIONS.map((option: { value: string; label: string }) => {
-                  const meta = SORT_CONFIG[option.value] || { color: "var(--text-muted)", bg: "transparent" };
-                  const isSelected = sortBy === option.value;
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      className={`qb-select-item qb-sort-select-item${isSelected ? " on" : ""}`}
-                      style={
-                        isSelected
-                          ? { color: meta.color, backgroundColor: meta.bg }
-                          : undefined
-                      }
-                      onClick={() => {
-                        onSortChange(option.value);
-                        setSortOpen(false);
-                      }}
-                    >
-                      <span
-                        className="qb-select-item-icon-wrap qb-sort-item-icon-wrap"
-                        style={{ color: meta.color }}
-                        aria-hidden="true"
+                <div className="qb-select-menu-scroll" style={{ maxHeight: `${sortMaxH}px` }}>
+                  {SORT_OPTIONS.map((option: { value: string; label: string }) => {
+                    const meta = SORT_CONFIG[option.value] || { color: "var(--text-muted)", bg: "transparent" };
+                    const isSelected = sortBy === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className={`qb-select-item qb-sort-select-item${isSelected ? " on" : ""}`}
+                        style={
+                          isSelected
+                            ? { color: meta.color, backgroundColor: meta.bg }
+                            : undefined
+                        }
+                        onClick={() => {
+                          onSortChange(option.value);
+                          setSortOpen(false);
+                        }}
                       >
-                        {renderSortIcon(option.value, 14)}
-                      </span>
-                      <span
-                        className="qb-select-item-label"
-                        style={isSelected ? { color: meta.color, fontWeight: 600 } : undefined}
-                      >
-                        {option.label}
-                      </span>
-                    </button>
-                  );
-                })}
+                        <span
+                          className="qb-select-item-icon-wrap qb-sort-item-icon-wrap"
+                          style={{ color: meta.color }}
+                          aria-hidden="true"
+                        >
+                          {renderSortIcon(option.value, 14)}
+                        </span>
+                        <span
+                          className="qb-select-item-label"
+                          style={isSelected ? { color: meta.color, fontWeight: 600 } : undefined}
+                        >
+                          {option.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
