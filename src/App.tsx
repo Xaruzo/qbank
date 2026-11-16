@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Header from "./views/components/Header";
 import Stats from "./views/components/Stats";
 import SearchAndFilter from "./views/components/SearchAndFilter";
@@ -6,16 +6,17 @@ import QuestionList from "./views/components/QuestionList";
 import QuestionDetail from "./views/components/QuestionDetail";
 import SideNav from "./views/components/SideNav";
 import MobileTabBar from "./views/components/MobileTabBar";
+import { lazyWithRetry } from "./utils/lazyWithRetry";
 
 import QuestionForm from "./views/components/QuestionForm";
 // Route-level code splitting: heavy screens (mock exam runner,
 // tips with canvas) are fetched on demand so the question bank paints fast.
-const MockExam = lazy(() => import("./views/components/MockExam"));
-const MockAttemptDetail = lazy(() => import("./views/components/MockAttemptDetail"));
-const MockExamRunner = lazy(() => import("./views/components/MockExamRunner"));
-const TipsPage = lazy(() => import("./views/components/TipsPage"));
-const TipDetailPage = lazy(() => import("./views/components/TipDetailPage"));
-const NotesPage = lazy(() => import("./views/components/NotesPage"));
+const MockExam = lazyWithRetry(() => import("./views/components/MockExam"));
+const MockAttemptDetail = lazyWithRetry(() => import("./views/components/MockAttemptDetail"));
+const MockExamRunner = lazyWithRetry(() => import("./views/components/MockExamRunner"));
+const TipsPage = lazyWithRetry(() => import("./views/components/TipsPage"));
+const TipDetailPage = lazyWithRetry(() => import("./views/components/TipDetailPage"));
+const NotesPage = lazyWithRetry(() => import("./views/components/NotesPage"));
 import LoadingSpinner from "./views/components/LoadingSpinner";
 import SkeletonLoader, { MockSkeletonLoader, TipsSkeletonLoader } from "./views/components/SkeletonLoader";
 import HelpModal from "./views/components/HelpModal";

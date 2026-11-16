@@ -5,6 +5,7 @@ import { fileURLToPath } from "url";
 import fs from "fs";
 import nodemailer from "nodemailer";
 import { createClient } from "@supabase/supabase-js";
+import { isAssetLikePath } from "./src/utils/assetPath";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -825,9 +826,39 @@ async function startServer() {
   // Dev (Vite Middlewares) / Prod (Static dist)
   // -------------------------------------------------------------
   if (process.env.NODE_ENV === "production") {
-    app.use(express.static(path.resolve(__dirname, "dist")));
-    app.use((_req, res) => {
-      res.sendFile(path.resolve(__dirname, "dist", "index.html"));
+    const distDir = path.resolve(__dirname, "dist");
+    const indexHtmlPath = path.resolve(distDir, "index.html");
+
+    app.use(
+      "/assets",
+      express.static(path.resolve(distDir, "assets"), {
+        maxAge: "1y",
+        immutable: true,
+        fallthrough: true,
+      })
+    );
+
+    app.use(
+      express.static(distDir, {
+        setHeaders(res, filePath) {
+          const base = path.basename(filePath);
+          if (base === "index.html" || base === "sw.js") {
+            res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+          }
+        },
+      })
+    );
+
+    app.use((req, res) => {
+      if (req.path.startsWith("/api/")) {
+        return res.status(404).json({ error: "API route not found" });
+      }
+      if (isAssetLikePath(req.path)) {
+        res.setHeader("Cache-Control", "no-store");
+        return res.status(404).type("text/plain").send("Asset not found");
+      }
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      return res.sendFile(indexHtmlPath);
     });
   } else {
     let viteServer: Awaited<ReturnType<typeof createViteServer>> | null = null;

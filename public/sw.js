@@ -1,4 +1,4 @@
-const CACHE_VERSION = "qbank-sw-v2";
+const CACHE_VERSION = "qbank-sw-v3";
 const APP_SHELL_CACHE = `${CACHE_VERSION}:app-shell`;
 const RUNTIME_CACHE = `${CACHE_VERSION}:runtime`;
 
@@ -10,17 +10,47 @@ const MAX_RUNTIME_ENTRIES = 100;
 
 const APP_SHELL_URLS = ["/", "/index.html", "/manifest.webmanifest", "/icon-192.png"];
 
+const STATIC_ASSET_EXT_RE =
+  /\.(?:js|mjs|cjs|css|map|png|jpe?g|gif|webp|svg|ico|woff2?|ttf|eot|wasm|json|webmanifest)$/i;
+
+function isAssetRequest(pathname) {
+  return (
+    pathname.startsWith("/assets/") ||
+    pathname === "/sw.js" ||
+    pathname === "/manifest.webmanifest" ||
+    STATIC_ASSET_EXT_RE.test(pathname)
+  );
+}
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(APP_SHELL_CACHE).then((cache) => cache.addAll(APP_SHELL_URLS)).then(() => self.skipWaiting())
+    caches
+      .open(APP_SHELL_CACHE)
+      .then((cache) =>
+        Promise.all(
+          APP_SHELL_URLS.map((assetUrl) =>
+            fetch(new Request(assetUrl, { cache: "reload" }))
+              .then((res) => (res.ok ? cache.put(assetUrl, res) : undefined))
+              .catch(() => undefined)
+          )
+        )
+      )
+      .then(() => self.skipWaiting())
   );
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.map((k) => (k.startsWith("qbank-sw-") && !k.startsWith(CACHE_VERSION) ? caches.delete(k) : undefined)))
-    ).then(() => self.clients.claim())
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys.map((k) =>
+            k.startsWith("qbank-sw-") && !k.startsWith(CACHE_VERSION) ? caches.delete(k) : undefined
+          )
+        )
+      )
+      .then(() => self.clients.claim())
   );
 });
 
@@ -38,40 +68,68 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
+  if (url.pathname.startsWith("/api/") || url.pathname === "/sw.js") return;
 
-  const isNavigate = req.mode === "navigate" || (req.headers.get("accept") || "").includes("text/html");
+  const isAsset = isAssetRequest(url.pathname);
+  const acceptHeader = req.headers.get("accept") || "";
+  const isNavigate = !isAsset && (req.mode === "navigate" || acceptHeader.includes("text/html"));
 
   if (isNavigate) {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          // Only refresh the cached shell from a good response, so a 404/500
-          // page can't replace the working offline copy.
-          if (res.ok) {
+          const contentType = res.headers.get("content-type") || "";
+          // Only refresh the cached shell from a valid HTML response.
+          if (res.ok && contentType.includes("text/html")) {
             const copy = res.clone();
             caches.open(APP_SHELL_CACHE).then((c) => c.put("/index.html", copy));
           }
           return res;
         })
-        .catch(() => caches.match("/index.html"))
+        .catch(() =>
+          caches.match("/index.html").then(
+            (cached) =>
+              cached ||
+              new Response("Offline — unable to reach QBANK.", {
+                status: 503,
+                statusText: "Service Unavailable",
+                headers: { "Content-Type": "text/plain; charset=utf-8" },
+              })
+          )
+        )
     );
     return;
   }
 
   event.respondWith(
     caches.match(req).then((cached) => {
-      if (cached) return cached;
-      return fetch(req).then((res) => {
-        // Don't cache error responses (they would be served cache-first forever).
-        if (res.ok) {
-          const copy = res.clone();
-          caches.open(RUNTIME_CACHE).then((cache) => {
-            cache.put(req, copy).then(() => trimRuntimeCache(cache));
-          });
+      if (cached) {
+        const cachedType = cached.headers.get("content-type") || "";
+        if (!(isAsset && cachedType.includes("text/html"))) {
+          return cached;
         }
-        return res;
-      });
+        caches.open(RUNTIME_CACHE).then((cache) => cache.delete(req));
+      }
+
+      return fetch(req)
+        .then((res) => {
+          const contentType = res.headers.get("content-type") || "";
+          const isHtmlFallbackForAsset = isAsset && contentType.includes("text/html");
+          // Don't cache error responses or HTML fallbacks under JS/CSS/asset URLs.
+          if (res.ok && !isHtmlFallbackForAsset) {
+            const copy = res.clone();
+            caches.open(RUNTIME_CACHE).then((cache) => {
+              cache.put(req, copy).then(() => trimRuntimeCache(cache));
+            });
+          }
+          return res;
+        })
+        .catch(() => {
+          if (!isAsset) {
+            return caches.match("/index.html").then((fallback) => fallback || Response.error());
+          }
+          return Response.error();
+        });
     })
   );
 });
-

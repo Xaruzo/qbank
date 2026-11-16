@@ -1,5 +1,6 @@
 import React from "react";
 import { AlertTriangle, RotateCcw, Home } from "lucide-react";
+import { isChunkLoadError } from "../../utils/lazyWithRetry";
 
 /**
  * Top-level error boundary. Catches any render-time crash in the component
@@ -80,11 +81,12 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
             <AlertTriangle size={26} />
           </div>
           <h1 style={{ fontSize: 18, marginBottom: 8 }}>
-            Something went wrong
+            {isChunkLoadError(this.state.error) ? "Update required" : "Something went wrong"}
           </h1>
           <p style={{ fontSize: 13, color: "var(--text-muted, #9fb0c8)", marginBottom: 16, lineHeight: 1.5 }}>
-            The app hit an unexpected error. Your saved questions, tips, and mock exam
-            history are safe. Reload to continue studying.
+            {isChunkLoadError(this.state.error)
+              ? "A newer version of QBANK is available (or your connection interrupted while loading this page). Reload to fetch the latest files — your saved data is safe."
+              : "The app hit an unexpected error. Your saved questions, tips, and mock exam history are safe. Reload to continue studying."}
           </p>
 
           {this.state.error && (
