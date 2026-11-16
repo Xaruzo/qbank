@@ -322,3 +322,36 @@ export interface SignInPageProps {
   onGoNotes?: () => void;
 }
 
+export interface DrawCanvasValue {
+  state?: Record<string, any> | null;
+  dataURL?: string | null;
+  dataUrl?: string | null;
+  zoom?: number | null;
+  vpt?: number[] | null;
+  canvasHeight?: number;
+  json?: string | Record<string, any> | null;
+  svg?: string | null;
+  png?: string | null;
+  width?: number;
+  height?: number;
+}
+
+export interface DrawCanvasQuestionContext {
+  question?: string;
+  solution?: string;
+  choices?: string[];
+  correct?: number;
+  topic?: string;
+  topicLabel?: string;
+  label?: string;
+}
+
+export interface DrawCanvasProps {
+  value?: DrawCanvasValue | string | null;
+  onChange?: (val: DrawCanvasValue | null) => void;
+  layersHost?: HTMLElement | null;
+  isStudioModal?: boolean;
+  questionContext?: DrawCanvasQuestionContext | null;
+}
+
+

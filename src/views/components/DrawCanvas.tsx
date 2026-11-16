@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { fabric } from "fabric";
+import type { DrawCanvasProps } from "../../types";
 import {
   Pencil,
   MousePointer2,
@@ -383,7 +384,13 @@ const isObjectHitByEraser = (obj, px, py, r, parentMatrix = null) => {
   return false;
 };
 
-export default function DrawCanvas({ value, onChange, layersHost, isStudioModal = false, questionContext = null }) {
+export default function DrawCanvas({
+  value,
+  onChange,
+  layersHost,
+  isStudioModal = false,
+  questionContext = null,
+}: DrawCanvasProps) {
   const containerRef = useRef(null);
   const boardRef = useRef(null);
   const artboardFrameRef = useRef(null);
@@ -415,11 +422,12 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
   const [size, setSize] = useState(2);
   const sizeRef = useRef(size);
   useEffect(() => { sizeRef.current = size; }, [size]);
-  const [height, setHeight] = useState(() => clampCanvasHeight(value?.canvasHeight || 700, 500, 2400));
+  const initialValueHeight = typeof value === "object" && value !== null ? value.canvasHeight : undefined;
+  const [height, setHeight] = useState(() => clampCanvasHeight(initialValueHeight || 700, 500, 2400));
   const heightRef = useRef(height);
   useEffect(() => { heightRef.current = height; }, [height]);
   const [artboardSize, setArtboardSize] = useState(() =>
-    computeResponsiveBoardSize(820, 820, clampCanvasHeight(value?.canvasHeight || 700, 500, 2400))
+    computeResponsiveBoardSize(820, 820, clampCanvasHeight(initialValueHeight || 700, 500, 2400))
   );
   const [layersVersion, setLayersVersion] = useState(0);
   const [activeLayerIds, setActiveLayerIds] = useState([]);
@@ -967,7 +975,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       return { x: typeof cx === "number" ? cx : 0, y: typeof cy === "number" ? cy : 0 };
     };
 
-    const eraseAt = (p, directTarget) => {
+    const eraseAt = (p?: { x: number; y: number } | null, directTarget?: any) => {
       if (!p) return;
       const zoom = canvas.getZoom() || 1;
       const eraserRadius = Math.max(8, Math.min(48, (sizeRef.current || 2) * 4)) / zoom;
@@ -1424,7 +1432,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       });
     };
 
-    const updateFloatingCoords = (activeTarget) => {
+    const updateFloatingCoords = (activeTarget?: any) => {
       const active = activeTarget ?? canvas.getActiveObject();
       if (!active || active.isGuide) {
         setSelectionBounds(null);
@@ -1723,9 +1731,10 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     let loadingAsync = false;
     // Load initial value if exists
     if (value) {
-      const savedZoom = value.zoom || null;
-      const savedVpt = value.vpt || null;
-      const data = typeof value === "string" ? value : JSON.stringify(value.state || value);
+      const valueObj = typeof value === "object" && value !== null ? value : null;
+      const savedZoom = valueObj?.zoom || null;
+      const savedVpt = valueObj?.vpt || null;
+      const data = typeof value === "string" ? value : JSON.stringify(valueObj?.state || value);
       try {
         if (data.startsWith("data:image")) {
           loadingAsync = true;
@@ -1755,7 +1764,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
               return r ? Math.max(maxB, r.top + r.height) : maxB;
             }, 0);
             const fittedH = clampCanvasHeight(
-              Math.max(value?.canvasHeight || MIN_H, maxObjBottom ? maxObjBottom + 60 : MIN_H),
+              Math.max(valueObj?.canvasHeight || MIN_H, maxObjBottom ? maxObjBottom + 60 : MIN_H),
               MIN_H,
               MAX_H
             );
@@ -2046,7 +2055,18 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     const PAGE_MARGIN = 24;
     const guideObjects = [];
 
-    const createGuideLine = (type, pos, options = {}) => {
+    const createGuideLine = (
+      type: "v" | "h",
+      pos: number,
+      options: {
+        from?: number;
+        to?: number;
+        stroke?: string;
+        strokeWidth?: number;
+        dash?: number[] | null;
+        opacity?: number;
+      } = {}
+    ) => {
       const {
         from = 0,
         to = type === "v" ? canvas.height : canvas.width,
@@ -3468,7 +3488,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
       return true;
     };
 
-    const pasteSelection = (pointOverride) => {
+    const pasteSelection = (pointOverride?: { x: number; y: number } | null) => {
       const payload = clipboardData.current;
       if (payload?.objects?.length) {
         fabric.util.enlivenObjects(payload.objects, (enlivened) => {
@@ -5157,7 +5177,16 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     showToast("Elbow 90° step connector added! (↳)");
   }, [color, connectSelectedShapes, ensureLayerId, getNextInsertPoint, showToast]);
 
-  const modifyActiveArrow = useCallback(({ newKind, newBend, newHead, flipDirection, detach, snapToNearest, commit = true }) => {
+  const modifyActiveArrow = useCallback((opts: {
+    newKind?: string;
+    newBend?: number;
+    newHead?: string;
+    flipDirection?: boolean;
+    detach?: boolean;
+    snapToNearest?: boolean;
+    commit?: boolean;
+  } = {}) => {
+    const { newKind, newBend, newHead, flipDirection, detach, snapToNearest, commit = true } = opts;
     const canvas = fabricRef.current;
     const active = canvas?.getActiveObject();
     if (!canvas || !active) return;
@@ -5257,7 +5286,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     if (!commit) isInternalChange.current = true;
     const idx = canvas._objects.indexOf(active);
     canvas.remove(active);
-    const pathOptions = {
+    const pathOptions: Record<string, any> = {
       stroke: prevStroke,
       strokeWidth: prevStrokeWidth,
       strokeUniform: true,
@@ -6044,7 +6073,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
     }
   }, [configureTextObj, ensureLayerId, showToast]);
 
-  const addStepBadge = useCallback((customStepNum) => {
+  const addStepBadge = useCallback((customStepNum?: number) => {
     const canvas = fabricRef.current;
     if (!canvas) return;
     const existing = (canvas.getObjects?.() || []).filter(o => o && o.isStepBadge);
@@ -7282,7 +7311,7 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                   <div style={{ borderTop: "1px solid var(--border)", paddingTop: 6, marginTop: 6 }}>
                     <div className="draw-popover-section-title">Flowchart Nodes</div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
-                      <button type="button" className="draw-tb" onClick={addProcessStep} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 7px" }}>
+                      <button type="button" className="draw-tb" onClick={() => addProcessStep()} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 7px" }}>
                         <span style={{ display: "inline-block", width: 14, height: 10, border: "1.5px solid currentColor", borderRadius: 2 }} />
                         Process Card
                       </button>
@@ -7290,11 +7319,11 @@ export default function DrawCanvas({ value, onChange, layersHost, isStudioModal 
                         <span style={{ display: "inline-block", width: 10, height: 10, border: "1.5px solid #d97706", transform: "rotate(45deg)", margin: "0 2px" }} />
                         Decision
                       </button>
-                      <button type="button" className="draw-tb" onClick={addTerminator} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 7px" }}>
+                      <button type="button" className="draw-tb" onClick={() => addTerminator()} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 7px" }}>
                         <span style={{ display: "inline-block", width: 16, height: 9, border: "1.5px solid #22c55e", borderRadius: 999 }} />
                         Start / End
                       </button>
-                      <button type="button" className="draw-tb" onClick={addDataNode} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 7px" }}>
+                      <button type="button" className="draw-tb" onClick={() => addDataNode()} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 7px" }}>
                         <span style={{ display: "inline-block", width: 14, height: 10, border: "1.5px solid currentColor", transform: "skewX(-20deg)" }} />
                         Data Node
                       </button>
