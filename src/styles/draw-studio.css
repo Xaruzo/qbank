@@ -6,13 +6,15 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  container-type: inline-size;
+  container-name: draw-section;
 }
 
 /* Empty State Card (Prompt to Launch Canvas) */
 .qb-draw-empty-card {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: 16px;
   padding: 16px 20px;
   background: var(--surface-2, rgba(255, 255, 255, 0.025));
@@ -688,12 +690,20 @@ body.light .qb-draw-studio-btn-discard:hover {
     box-shadow: -10px 0 30px rgba(0, 0, 0, 0.45);
   }
   .qb-draw-empty-card {
-    flex-direction: column;
-    align-items: flex-start;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 14px;
+    padding: 16px;
+  }
+  .qb-draw-empty-icon-wrap {
+    width: 40px;
+    height: 40px;
   }
   .qb-draw-launch-btn {
+    grid-column: 1 / -1;
     width: 100%;
     justify-content: center;
+    min-height: 40px;
   }
   .qb-draw-preview-card {
     flex-direction: column;
@@ -717,3 +727,50 @@ body.light .qb-draw-studio-btn-discard:hover {
     justify-content: center;
   }
 }
+
+@container draw-section (max-width: 619px) {
+  .qb-draw-empty-card {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 14px;
+    padding: 16px;
+  }
+  .qb-draw-empty-icon-wrap {
+    width: 40px;
+    height: 40px;
+  }
+  .qb-draw-launch-btn {
+    grid-column: 1 / -1;
+    width: 100%;
+    justify-content: center;
+    min-height: 40px;
+    white-space: normal;
+    text-align: center;
+  }
+}
+
+@container draw-section (max-width: 580px) {
+  .qb-draw-preview-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .qb-draw-preview-media {
+    width: 100%;
+    height: 150px;
+  }
+  .qb-draw-preview-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    align-items: stretch;
+  }
+  .qb-draw-action-btn-edit {
+    flex: 1 1 auto;
+    justify-content: center;
+    align-self: stretch;
+  }
+  .qb-draw-action-btn-remove {
+    justify-content: center;
+    align-self: stretch;
+  }
+}
+
