@@ -263,7 +263,7 @@ export default function HelpModal({ isDark, onClose, onRestartTour }) {
           overscrollBehavior: "contain"
         }}>
           {activeTab === "main" ? (
-            <div style={{ display: "grid", gap: isMobile ? "10px" : "12px" }}>
+            <div style={{ display: "grid", gap: isMobile ? "10px" : "12px", padding: "4px 2px" }}>
               {/* Restart Guide Card */}
               <button
                 type="button"
