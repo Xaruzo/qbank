@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx server.ts",
     "start": "tsx server.ts",
-    "build": "NODE_OPTIONS='--max-old-space-size=450' vite build",
+    "build": "NODE_OPTIONS='--max-old-space-size=1024' vite build",
     "install:build": "npm ci --prefer-offline && npm run build",
     "preview": "vite preview",
     "lint": "eslint . --max-warnings 130",

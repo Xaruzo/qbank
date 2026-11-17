@@ -214,17 +214,51 @@ const inlineComponents = {
   },
 };
 
-function MarkdownText({ text, className = "", inline = false }) {
+interface MarkdownTextProps {
+  text: string;
+  className?: string;
+  inline?: boolean;
+  interactiveCheckboxes?: boolean;
+}
+
+const interactiveInputComponent = {
+  input({ disabled: _disabled, type, checked, className, ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
+    if (type === "checkbox") {
+      return (
+        <input
+          {...props}
+          type="checkbox"
+          checked={Boolean(checked)}
+          readOnly
+          className={mergeClassNames("md-task-checkbox is-interactive", className)}
+        />
+      );
+    }
+    return <input {...props} type={type} className={className} />;
+  },
+};
+
+function MarkdownText({
+  text,
+  className = "",
+  inline = false,
+  interactiveCheckboxes = false,
+}: MarkdownTextProps) {
   const raw = typeof text === "string" ? text : "";
   const source = inline ? raw : normalizeSingleLineDisplayMath(autoWrapLatex(raw));
   const RootTag = inline ? "span" : "div";
+  const resolvedComponents = inline
+    ? inlineComponents
+    : interactiveCheckboxes
+      ? { ...blockComponents, ...interactiveInputComponent }
+      : blockComponents;
 
   return (
     <RootTag className={mergeClassNames(inline ? "md md-inline-root" : "md md-root", className)}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkBreaks, remarkMath, remarkUnderline]}
         rehypePlugins={[rehypeKatex]}
-        components={inline ? inlineComponents : blockComponents}
+        components={resolvedComponents}
       >
         {source}
       </ReactMarkdown>

@@ -6,6 +6,7 @@ import {
   Pin,
   Trash2,
   Copy,
+  CopyPlus,
   Download,
   Check,
   Tag,
@@ -26,6 +27,9 @@ import {
   Columns,
   X,
   ArrowUpDown,
+  MoreVertical,
+  RotateCcw,
+  Heading3,
 } from "lucide-react";
 import { notesModel } from "../../models/notesModel";
 import { NOTE_TOPICS } from "../../constants/appConstants";
@@ -33,16 +37,12 @@ import type { StudyNote, TopicId, SelectOption } from "../../types";
 import MarkdownText from "./MarkdownText";
 import CustomSelect from "./CustomSelect";
 
-interface NoteColorOption {
-  id: "default" | "amber" | "purple" | "blue" | "emerald" | "rose";
-  label: string;
-  hex: string;
-}
+type NoteColorId = StudyNote["color"];
 
 const SORT_OPTIONS: SelectOption[] = [
   {
     value: "newest",
-    label: "Recently Updated",
+    label: "Newest",
     icon: (
       <Clock
         size={13}
@@ -54,7 +54,7 @@ const SORT_OPTIONS: SelectOption[] = [
   },
   {
     value: "oldest",
-    label: "Oldest First",
+    label: "Oldest",
     icon: (
       <History
         size={13}
@@ -66,7 +66,7 @@ const SORT_OPTIONS: SelectOption[] = [
   },
   {
     value: "title-az",
-    label: "Title (A - Z)",
+    label: "A - Z",
     icon: (
       <ArrowDownAZ
         size={13}
@@ -78,7 +78,7 @@ const SORT_OPTIONS: SelectOption[] = [
   },
   {
     value: "title-za",
-    label: "Title (Z - A)",
+    label: "Z - A",
     icon: (
       <ArrowUpZA
         size={13}
@@ -95,14 +95,6 @@ const TOPIC_SELECT_OPTIONS = NOTE_TOPICS.filter((t) => t.id !== "all").map((topi
   label: topic.label,
 }));
 
-const NOTE_COLORS: NoteColorOption[] = [
-  { id: "default", label: "Classic Slate", hex: "#64748b" },
-  { id: "amber", label: "Amber Gold", hex: "#f59e0b" },
-  { id: "purple", label: "Royal Purple", hex: "#a855f7" },
-  { id: "blue", label: "Cyber Blue", hex: "#0ea5e9" },
-  { id: "emerald", label: "Emerald Green", hex: "#10b981" },
-  { id: "rose", label: "Rose Crimson", hex: "#f43f5e" },
-];
 
 const SUGGESTED_TAGS = [
   "RA 6713",
@@ -115,49 +107,291 @@ const SUGGESTED_TAGS = [
   "Need to Review",
 ];
 
+function stripMarkdownForSnippet(content: string): string {
+  return content
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/<\/?u>/gi, "")
+    .replace(/^\s*[-*+]\s+\[[ xX]\]\s*/gm, "")
+    .replace(/^\s{0,3}(?:#{1,6}\s*|[-*+>]\s*|\d+\.\s*)/gm, "")
+    .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, "$1/$2")
+    .replace(/\\(?:rightarrow|to)\b/g, "→")
+    .replace(/\\times\b/g, "×")
+    .replace(/\\div\b/g, "÷")
+    .replace(/\\pm\b/g, "±")
+    .replace(/\\le\b/g, "≤")
+    .replace(/\\ge\b/g, "≥")
+    .replace(/\\approx\b/g, "≈")
+    .replace(/\\neq\b/g, "≠")
+    .replace(/\\cdot\b/g, "·")
+    .replace(/\\%/g, "%")
+    .replace(/\\[a-zA-Z]+/g, "")
+    .replace(/[*_`~${}\\]+/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120);
+}
+
 export interface NotesPageProps {
   userId: string | null;
   onBack?: () => void;
   initialNoteId?: string | null;
 }
 
-export default function NotesPage({ userId, onBack, initialNoteId = null }: NotesPageProps) {
+export default function NotesPage({ userId, initialNoteId = null }: NotesPageProps) {
   const [notes, setNotes] = useState<StudyNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedTopic, setSelectedTopic] = useState<string>("all");
   const [pinnedOnly, setPinnedOnly] = useState(false);
   const [activeTag, setActiveTag] = useState("all");
-  const [showAllTags, setShowAllTags] = useState(false);
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "title-az" | "title-za">("newest");
+
+  // Responsive viewport flags
+  const [isWideDesktop, setIsWideDesktop] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth >= 1180 : true
+  );
 
   // Selected note for editing/viewing
   const [activeNote, setActiveNote] = useState<StudyNote | null>(null);
-  const [editorMode, setEditorMode] = useState<"write" | "preview" | "split">("write");
+  const [editorMode, setEditorMode] = useState<"write" | "preview" | "split">(() =>
+    typeof window !== "undefined" && window.innerWidth >= 1180 ? "split" : "preview"
+  );
 
   // Editor form state
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
   const [editTopic, setEditTopic] = useState<TopicId>("general");
-  const [editColor, setEditColor] = useState<NoteColorOption["id"]>("default");
+  const [editColor, setEditColor] = useState<NoteColorId>("default");
   const [editTags, setEditTags] = useState<string[]>([]);
   const [editPinned, setEditPinned] = useState(false);
   const [tagInput, setTagInput] = useState("");
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [tagFocused, setTagFocused] = useState(false);
+  const [copiedNotice, setCopiedNotice] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"" | "saving" | "saved">("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+  const saveTimerRef = useRef<number | null>(null);
+  const statusClearTimerRef = useRef<number | null>(null);
+  const listTrackRef = useRef<HTMLDivElement>(null);
+  const listThumbRef = useRef<HTMLDivElement>(null);
+  const editorTrackRef = useRef<HTMLDivElement>(null);
+  const editorThumbRef = useRef<HTMLDivElement>(null);
+  const previewTrackRef = useRef<HTMLDivElement>(null);
+  const previewThumbRef = useRef<HTMLDivElement>(null);
+  const scrollTimersRef = useRef<WeakMap<HTMLElement, number>>(new WeakMap());
+  const scrollRafRef = useRef<WeakMap<HTMLElement, number>>(new WeakMap());
 
-  const openNote = useCallback((note: StudyNote) => {
-    setActiveNote(note);
-    setEditTitle(note.title);
-    setEditContent(note.content);
-    setEditTopic(note.topic || "general");
-    setEditColor(note.color || "default");
-    setEditTags(Array.isArray(note.tags) ? [...note.tags] : []);
-    setEditPinned(Boolean(note.pinned));
+  const handleMobileOverlayScroll = useCallback(
+    (
+      el: HTMLElement,
+      trackEl: HTMLDivElement | null,
+      thumbEl: HTMLDivElement | null
+    ) => {
+      if (typeof window === "undefined" || window.innerWidth > 600) {
+        trackEl?.classList.remove("is-scrolling");
+        return;
+      }
+      if (!trackEl || !thumbEl) return;
+
+      const prevRaf = scrollRafRef.current.get(el);
+      if (prevRaf) window.cancelAnimationFrame(prevRaf);
+
+      const rafId = window.requestAnimationFrame(() => {
+        const { scrollTop, scrollHeight, clientHeight } = el;
+        const maxScroll = scrollHeight - clientHeight;
+        if (maxScroll <= 2) {
+          trackEl.classList.remove("is-scrolling");
+          return;
+        }
+        const trackLen = Math.max(24, trackEl.clientHeight || clientHeight - 12);
+        const thumbH = Math.max(28, Math.min(trackLen, Math.round((clientHeight / scrollHeight) * trackLen)));
+        const thumbTop = Math.round((scrollTop / maxScroll) * Math.max(0, trackLen - thumbH));
+
+        thumbEl.style.height = `${thumbH}px`;
+        thumbEl.style.transform = `translate3d(0, ${thumbTop}px, 0)`;
+        trackEl.classList.add("is-scrolling");
+
+        const prevTimer = scrollTimersRef.current.get(trackEl);
+        if (prevTimer) window.clearTimeout(prevTimer);
+        const nextTimer = window.setTimeout(() => {
+          trackEl.classList.remove("is-scrolling");
+          scrollTimersRef.current.delete(trackEl);
+        }, 900);
+        scrollTimersRef.current.set(trackEl, nextTimer);
+      });
+
+      scrollRafRef.current.set(el, rafId);
+    },
+    []
+  );
+
+  const [isDesktopPane, setIsDesktopPane] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth >= 1025 : true
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      const wide = window.innerWidth >= 1180;
+      setIsWideDesktop(wide);
+      setIsDesktopPane(window.innerWidth >= 1025);
+      if (!wide) {
+        setEditorMode((prev) => (prev === "split" ? "write" : prev));
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  const isDirty = useMemo(() => {
+    if (!activeNote) return false;
+    const origTags = Array.isArray(activeNote.tags) ? activeNote.tags : [];
+    const tagsChanged =
+      origTags.length !== editTags.length || origTags.some((t, i) => t !== editTags[i]);
+    return (
+      editTitle !== (activeNote.title || "") ||
+      editContent !== (activeNote.content || "") ||
+      editTopic !== (activeNote.topic || "general") ||
+      editColor !== (activeNote.color || "default") ||
+      editPinned !== Boolean(activeNote.pinned) ||
+      tagsChanged
+    );
+  }, [activeNote, editTitle, editContent, editTopic, editColor, editPinned, editTags]);
+
+  const persistCurrentDraft = useCallback(async () => {
+    if (!activeNote) return null;
+    if (!editTitle.trim() && !editContent.trim()) return null;
+
+    setSaveStatus("saving");
+    const payload = {
+      id: activeNote.id || null,
+      title: editTitle.trim() || "Untitled Note",
+      content: editContent,
+      topic: editTopic,
+      color: editColor,
+      tags: editTags,
+      pinned: editPinned,
+    };
+
+    const saved = await notesModel.save(payload, userId);
+    const updatedAll = await notesModel.getAll(userId);
+    setNotes(updatedAll);
+    setActiveNote((curr) => {
+      if (!curr || curr.id !== activeNote.id) return curr;
+      return saved;
+    });
+    setSaveStatus("saved");
+    if (statusClearTimerRef.current) window.clearTimeout(statusClearTimerRef.current);
+    statusClearTimerRef.current = window.setTimeout(() => setSaveStatus(""), 1800);
+    return saved;
+  }, [activeNote, editTitle, editContent, editTopic, editColor, editTags, editPinned, userId]);
+
+  // Keep latest persist helper available for switching & silent unmount flush
+  const latestFlushRef = useRef({ isDirty: false, persist: persistCurrentDraft });
+  useEffect(() => {
+    latestFlushRef.current = { isDirty, persist: persistCurrentDraft };
+  }, [isDirty, persistCurrentDraft]);
+
+  const unmountSaveRef = useRef<{
+    shouldSave: boolean;
+    payload: {
+      id: string | null;
+      title: string;
+      content: string;
+      topic: TopicId;
+      color: NoteColorId;
+      tags: string[];
+      pinned: boolean;
+    } | null;
+    userId: string | null;
+  }>({ shouldSave: false, payload: null, userId: null });
+
+  useEffect(() => {
+    unmountSaveRef.current = {
+      shouldSave: Boolean(
+        isDirty && activeNote && (editTitle.trim() || editContent.trim())
+      ),
+      payload: activeNote
+        ? {
+            id: activeNote.id || null,
+            title: editTitle.trim() || "Untitled Note",
+            content: editContent,
+            topic: editTopic,
+            color: editColor,
+            tags: editTags,
+            pinned: editPinned,
+          }
+        : null,
+      userId,
+    };
+  }, [isDirty, activeNote, editTitle, editContent, editTopic, editColor, editTags, editPinned, userId]);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+      if (statusClearTimerRef.current) window.clearTimeout(statusClearTimerRef.current);
+      if (unmountSaveRef.current.shouldSave && unmountSaveRef.current.payload) {
+        void notesModel.save(unmountSaveRef.current.payload, unmountSaveRef.current.userId);
+      }
+    };
+  }, []);
+
+  // Debounced autosave
+  useEffect(() => {
+    if (!isDirty) return;
+    if (!activeNote?.id && !editTitle.trim() && !editContent.trim()) return;
+
+    if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = window.setTimeout(() => {
+      void persistCurrentDraft();
+    }, 750);
+
+    return () => {
+      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+    };
+  }, [isDirty, activeNote?.id, editTitle, editContent, persistCurrentDraft]);
+
+  const applyNoteToEditor = useCallback(
+    (note: StudyNote, forcedMode?: "write" | "preview" | "split") => {
+      setActiveNote(note);
+      setEditTitle(note.title);
+      setEditContent(note.content);
+      setEditTopic(note.topic || "general");
+      setEditColor(note.color || "default");
+      setEditTags(Array.isArray(note.tags) ? [...note.tags] : []);
+      setEditPinned(Boolean(note.pinned));
+      setTagInput("");
+      setMoreMenuOpen(false);
+      if (forcedMode) {
+        setEditorMode(forcedMode);
+      } else {
+        setEditorMode(
+          window.innerWidth >= 1180 ? "split" : note.id ? "preview" : "write"
+        );
+      }
+    },
+    []
+  );
+
+  const openNote = useCallback(
+    async (note: StudyNote) => {
+      if (activeNote && activeNote.id === note.id) return;
+      if (saveTimerRef.current) {
+        window.clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+      if (latestFlushRef.current.isDirty) {
+        await latestFlushRef.current.persist();
+      }
+      applyNoteToEditor(note);
+    },
+    [activeNote, applyNoteToEditor]
+  );
 
   // Load notes on mount
   useEffect(() => {
@@ -170,14 +404,63 @@ export default function NotesPage({ userId, onBack, initialNoteId = null }: Note
       if (initialNoteId) {
         const target = items.find((n) => n.id === initialNoteId);
         if (target) {
-          openNote(target);
+          applyNoteToEditor(target);
+          return;
         }
+      }
+
+      // On desktop master-detail, open the top note immediately so right pane isn't an empty void
+      if (typeof window !== "undefined" && window.innerWidth >= 1025 && items.length > 0) {
+        applyNoteToEditor(items[0]);
       }
     });
     return () => {
       active = false;
     };
-  }, [userId, initialNoteId, openNote]);
+  }, [userId, initialNoteId, applyNoteToEditor]);
+
+  // Keep desktop right pane populated if user resizes from tablet/mobile into desktop
+  useEffect(() => {
+    if (isDesktopPane && !loading && !activeNote && notes.length > 0) {
+      applyNoteToEditor(notes[0]);
+    }
+  }, [isDesktopPane, loading, activeNote, notes, applyNoteToEditor]);
+
+  // Keyboard Cmd/Ctrl + S
+  useEffect(() => {
+    if (!activeNote) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+        void persistCurrentDraft();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [activeNote, persistCurrentDraft]);
+
+  // Close overflow menu on outside click or Escape
+  useEffect(() => {
+    if (!moreMenuOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const target = e.target as Node;
+      if (moreMenuRef.current && !moreMenuRef.current.contains(target)) {
+        setMoreMenuOpen(false);
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMoreMenuOpen(false);
+      }
+    };
+    window.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [moreMenuOpen]);
 
   // All unique tags across notes
   const allTags = useMemo(() => {
@@ -187,18 +470,16 @@ export default function NotesPage({ userId, onBack, initialNoteId = null }: Note
         n.tags.forEach((t) => tagSet.add(t));
       }
     });
-    return Array.from(tagSet);
+    return Array.from(tagSet).sort((a, b) => a.localeCompare(b));
   }, [notes]);
 
-  // Clean, visible tag slice to prevent vertical scroll crowding
-  const visibleTags = useMemo(() => {
-    if (showAllTags || allTags.length <= 7) return allTags;
-    const firstSlice = allTags.slice(0, 7);
-    if (activeTag !== "all" && !firstSlice.includes(activeTag)) {
-      return [...firstSlice, activeTag];
-    }
-    return firstSlice;
-  }, [allTags, showAllTags, activeTag]);
+  const tagFilterOptions: SelectOption[] = useMemo(
+    () => [
+      { value: "all", label: "All Tags" },
+      ...allTags.map((tag) => ({ value: tag, label: `#${tag}` })),
+    ],
+    [allTags]
+  );
 
   // Filtered & sorted notes
   const filteredNotes = useMemo(() => {
@@ -238,11 +519,30 @@ export default function NotesPage({ userId, onBack, initialNoteId = null }: Note
       });
   }, [notes, search, selectedTopic, pinnedOnly, activeTag, sortBy]);
 
-  const startNewNote = (presetTopic: TopicId = "general") => {
+  const pinnedCount = useMemo(() => notes.filter((n) => n.pinned).length, [notes]);
+  const hasActiveFilters = Boolean(
+    search.trim() || selectedTopic !== "all" || pinnedOnly || activeTag !== "all"
+  );
+
+  const resetFilters = () => {
+    setSearch("");
+    setSelectedTopic("all");
+    setPinnedOnly(false);
+    setActiveTag("all");
+  };
+
+  const startNewNote = async (presetTopic: TopicId = "general", presetTitle = "", presetContent = "") => {
+    if (saveTimerRef.current) {
+      window.clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    if (latestFlushRef.current.isDirty) {
+      await latestFlushRef.current.persist();
+    }
     const fresh: StudyNote = {
       id: "",
-      title: "",
-      content: "",
+      title: presetTitle,
+      content: presetContent,
       topic: presetTopic,
       color: "default",
       tags: [],
@@ -250,50 +550,70 @@ export default function NotesPage({ userId, onBack, initialNoteId = null }: Note
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    setActiveNote(fresh);
-    setEditTitle("");
-    setEditContent("");
-    setEditTopic(presetTopic);
-    setEditColor("default");
-    setEditTags([]);
-    setEditPinned(false);
-    setEditorMode("write");
+    applyNoteToEditor(fresh, isWideDesktop ? "split" : "write");
   };
 
-  const handleSaveNote = async () => {
-    if (!editTitle.trim() && !editContent.trim()) return;
-
-    setSaveStatus("saving");
-    const payload = {
-      id: activeNote?.id || null,
-      title: editTitle.trim() || "Untitled Note",
-      content: editContent,
-      topic: editTopic,
-      color: editColor,
-      tags: editTags,
-      pinned: editPinned,
-    };
-
-    const saved = await notesModel.save(payload, userId);
-    const updatedAll = await notesModel.getAll(userId);
-    setNotes(updatedAll);
-    setActiveNote(saved);
-    setSaveStatus("saved");
-    setTimeout(() => setSaveStatus(""), 2000);
+  const handleCloseMobileEditor = async () => {
+    if (saveTimerRef.current) {
+      window.clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    if (latestFlushRef.current.isDirty) {
+      await latestFlushRef.current.persist();
+    }
+    setActiveNote(null);
   };
 
   const handleDeleteNote = async (noteId: string) => {
+    if (saveTimerRef.current) {
+      window.clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
     await notesModel.delete(noteId, userId);
     const updatedAll = await notesModel.getAll(userId);
     setNotes(updatedAll);
     setDeleteConfirmId(null);
+    setMoreMenuOpen(false);
     if (activeNote?.id === noteId) {
-      setActiveNote(null);
+      if (typeof window !== "undefined" && window.innerWidth >= 1025 && updatedAll.length > 0) {
+        applyNoteToEditor(updatedAll[0]);
+      } else {
+        setActiveNote(null);
+      }
     }
+  };
+
+  const handleDuplicateNote = async () => {
+    if (!activeNote) return;
+    if (saveTimerRef.current) {
+      window.clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    if (isDirty) {
+      await persistCurrentDraft();
+    }
+    const duplicated = await notesModel.save(
+      {
+        title: `${editTitle.trim() || "Untitled Note"} (Copy)`,
+        content: editContent,
+        topic: editTopic,
+        color: editColor,
+        tags: [...editTags],
+        pinned: false,
+      },
+      userId
+    );
+    const updatedAll = await notesModel.getAll(userId);
+    setNotes(updatedAll);
+    applyNoteToEditor(duplicated);
   };
 
   const handleTogglePin = async (noteId: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
+    if (!noteId) {
+      setEditPinned((prev) => !prev);
+      return;
+    }
     const updated = await notesModel.togglePin(noteId, userId);
     setNotes(updated);
     if (activeNote?.id === noteId) {
@@ -305,16 +625,15 @@ export default function NotesPage({ userId, onBack, initialNoteId = null }: Note
     }
   };
 
-  const handleCopyNote = (content: string, id: string, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
+  const handleCopyNote = (content: string) => {
     navigator.clipboard.writeText(content).then(() => {
-      setCopiedId(id);
-      setTimeout(() => setCopiedId(null), 2000);
+      setCopiedNotice(true);
+      setMoreMenuOpen(false);
+      window.setTimeout(() => setCopiedNotice(false), 1800);
     });
   };
 
-  const handleDownloadMarkdown = (note: { title: string; content: string }, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
+  const handleDownloadMarkdown = (note: { title: string; content: string }) => {
     const blob = new Blob([note.content], { type: "text/markdown;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -322,9 +641,11 @@ export default function NotesPage({ userId, onBack, initialNoteId = null }: Note
     a.download = `${note.title.replace(/[^a-zA-Z0-9_-]/g, "_") || "note"}.md`;
     a.click();
     URL.revokeObjectURL(url);
+    setMoreMenuOpen(false);
   };
 
   const handleExportAll = () => {
+    if (notes.length === 0) return;
     const md = notesModel.exportMarkdown(notes);
     const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -336,7 +657,7 @@ export default function NotesPage({ userId, onBack, initialNoteId = null }: Note
   };
 
   const handleAddTag = (tagToAdd?: string) => {
-    const trimmed = (tagToAdd || tagInput).trim();
+    const trimmed = (tagToAdd || tagInput).trim().replace(/^#+/, "");
     if (trimmed && !editTags.includes(trimmed)) {
       setEditTags([...editTags, trimmed]);
       setTagInput("");
@@ -348,6 +669,11 @@ export default function NotesPage({ userId, onBack, initialNoteId = null }: Note
   };
 
   const insertSyntax = (prefix: string, suffix = "") => {
+    if (editorMode === "preview") {
+      setEditorMode(isWideDesktop ? "split" : "write");
+      setTimeout(() => insertSyntax(prefix, suffix), 20);
+      return;
+    }
     const textarea = textareaRef.current;
     if (!textarea) return;
 
@@ -368,30 +694,63 @@ export default function NotesPage({ userId, onBack, initialNoteId = null }: Note
     }, 0);
   };
 
+  // Interactive task checkbox toggle inside Preview pane
+  const handlePreviewClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (!(target instanceof HTMLInputElement) || target.type !== "checkbox") return;
+    if (!previewRef.current) return;
+
+    const checkboxes = Array.from(
+      previewRef.current.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')
+    );
+    const clickedIndex = checkboxes.indexOf(target);
+    if (clickedIndex < 0) return;
+
+    const lines = editContent.split(/\r?\n/);
+    let taskCounter = 0;
+    let inFence = false;
+    let changed = false;
+
+    const updatedLines = lines.map((line) => {
+      if (/^\s*(```|~~~)/.test(line)) inFence = !inFence;
+      if (inFence) return line;
+      const match = line.match(/^(\s*(?:[-*+]|\d+\.)\s+)\[([ xX])\](\s+.*)$/);
+      if (!match) return line;
+      if (taskCounter === clickedIndex) {
+        changed = true;
+        const nextMark = match[2].toLowerCase() === "x" ? " " : "x";
+        taskCounter++;
+        return `${match[1]}[${nextMark}]${match[3]}`;
+      }
+      taskCounter++;
+      return line;
+    });
+
+    if (changed) {
+      setEditContent(updatedLines.join("\n"));
+    }
+  };
+
+  const wordCount = useMemo(
+    () => (editContent.trim() ? editContent.trim().split(/\s+/).length : 0),
+    [editContent]
+  );
+  const readMinutes = Math.max(1, Math.ceil(wordCount / 200));
+
   return (
     <div className="qb-notes-container">
-      {/* Top Banner / Breadcrumb */}
-      <div className="qb-notes-topbar">
-        <div className="qb-notes-breadcrumb">
-          {onBack && (
-            <button
-              type="button"
-              className="qb-notes-back-btn"
-              onClick={onBack}
-              aria-label="Back to Question Bank"
-            >
-              <ArrowLeft size={16} />
-              <span>Question Bank</span>
-            </button>
-          )}
-          <div className="qb-notes-title-group">
-            <h1 className="qb-notes-page-title">
-              <BookOpen size={20} className="qb-notes-page-icon" />
-              <span>Reviewer Study Notes</span>
-            </h1>
-            <p className="qb-notes-page-sub">
-              Formulas, laws, memory mnemonics, and exam preparation checklists.
-            </p>
+      {/* Compact Single-Row Top Bar */}
+      <header className="qb-notes-topbar">
+        <div className="qb-notes-title-group">
+          <h1 className="qb-notes-page-title">Study Notes</h1>
+          <div className="qb-notes-page-meta tabular-nums">
+            <span>{notes.length} {notes.length === 1 ? "note" : "notes"}</span>
+            {pinnedCount > 0 && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span>{pinnedCount} pinned</span>
+              </>
+            )}
           </div>
         </div>
 
@@ -400,68 +759,76 @@ export default function NotesPage({ userId, onBack, initialNoteId = null }: Note
             type="button"
             className="qb-notes-btn qb-notes-export-btn"
             onClick={handleExportAll}
-            title="Download all notes as a Markdown document"
+            disabled={notes.length === 0}
+            title="Export all notes as Markdown"
           >
             <Download size={15} />
-            <span className="qb-btn-label-desktop">Export (.md)</span>
+            <span className="qb-btn-label-desktop">Export</span>
           </button>
           <button
             type="button"
             className="qb-notes-btn qb-notes-new-btn"
-            onClick={() => startNewNote((selectedTopic !== "all" ? selectedTopic : "general") as TopicId)}
+            onClick={() =>
+              void startNewNote((selectedTopic !== "all" ? selectedTopic : "general") as TopicId)
+            }
           >
             <Plus size={16} />
             <span>New Note</span>
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* Main Dual-Column Workspace */}
+      {/* Main Dual-Pane Workspace */}
       <div className={`qb-notes-workspace${activeNote ? " has-active-note" : ""}`}>
-        {/* Left Column: Filter Bar & Notes List */}
-        <div className="qb-notes-sidebar">
-          {/* Search and Filters */}
+        {/* Left Sidebar: Search, Compact Filters, Scrollable Notes List */}
+        <aside className="qb-notes-sidebar" aria-label="Study notes list">
           <div className="qb-notes-controls">
-            <div className="qb-notes-search-wrap">
-              <Search size={15} className="qb-notes-search-icon" />
-              <input
-                type="text"
-                className="qb-notes-search-input"
-                placeholder="Search notes, formulas, tags..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-              {search && (
-                <button
-                  type="button"
-                  className="qb-notes-search-clear"
-                  onClick={() => setSearch("")}
-                  aria-label="Clear search"
-                >
-                  <X size={14} />
-                </button>
-              )}
+            <div className="qb-notes-search-row">
+              <div className="qb-notes-search-wrap">
+                <Search size={15} className="qb-notes-search-icon" />
+                <input
+                  type="text"
+                  className="qb-notes-search-input"
+                  placeholder="Search notes, tags..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+                {search && (
+                  <button
+                    type="button"
+                    className="qb-notes-search-clear"
+                    onClick={() => setSearch("")}
+                    aria-label="Clear search"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
+              <button
+                type="button"
+                className={`qb-notes-filter-toggle${pinnedOnly ? " is-active" : ""}`}
+                onClick={() => setPinnedOnly(!pinnedOnly)}
+                aria-pressed={pinnedOnly}
+                title={pinnedOnly ? "Show all notes" : "Show pinned notes only"}
+              >
+                <Pin size={13} />
+                <span className="qb-notes-pin-label">Pinned</span>
+              </button>
             </div>
 
-            {/* Modern Topic Segmented Filter Bar (Clean responsive wrap, zero scrollbars) */}
-            <div className="qb-notes-topic-bar" role="tablist" aria-label="Filter notes by topic">
+            {/* Wrapped Subject Filter Strip */}
+            <div className="qb-notes-topic-strip" role="tablist" aria-label="Filter notes by subject">
               {NOTE_TOPICS.map((topic) => {
                 const isSelected = selectedTopic === topic.id;
-                const countForTopic =
-                  topic.id === "all"
-                    ? notes.length
-                    : notes.filter((n) => n.topic === topic.id).length;
                 return (
                   <button
                     key={topic.id}
                     type="button"
-                    className={`qb-notes-topic-pill${isSelected ? " is-active" : ""}`}
+                    role="tab"
+                    aria-selected={isSelected}
+                    className={`qb-notes-topic-tab${isSelected ? " is-active" : ""}`}
                     onClick={() => setSelectedTopic(topic.id)}
-                    style={
-                      isSelected && topic.color
-                        ? { borderColor: topic.color, color: topic.color }
-                        : {}
-                    }
                     title={topic.label}
                   >
                     {topic.color && topic.id !== "all" && (
@@ -470,125 +837,99 @@ export default function NotesPage({ userId, onBack, initialNoteId = null }: Note
                         style={{ backgroundColor: topic.color }}
                       />
                     )}
-                    <span className="qb-notes-topic-title">{topic.short || topic.label}</span>
-                    <span className="qb-notes-topic-count tabular-nums">{countForTopic}</span>
+                    <span>{topic.short || "All"}</span>
                   </button>
                 );
               })}
             </div>
 
-            {/* Sub-Filters: Pinned toggle & Modern Custom Dropdown */}
+            {/* Sub-Filter Row: Sort & Tag Dropdowns with full legible labels */}
             <div className="qb-notes-subfilters">
-              <button
-                type="button"
-                className={`qb-notes-filter-toggle${pinnedOnly ? " is-active" : ""}`}
-                onClick={() => setPinnedOnly(!pinnedOnly)}
-                title={pinnedOnly ? "Show all notes" : "Filter by pinned notes only"}
-              >
-                <Pin size={13} className={pinnedOnly ? "text-amber-400" : ""} />
-                <span>Pinned</span>
-                <span className="qb-notes-pin-badge tabular-nums">
-                  {notes.filter((n) => n.pinned).length}
-                </span>
-              </button>
-
               <div className="qb-notes-sort-select-wrap">
                 <CustomSelect
                   value={sortBy}
-                  onChange={(val) => setSortBy(val as any)}
+                  onChange={(val) => setSortBy(val as typeof sortBy)}
                   options={SORT_OPTIONS}
                   leadIcon={<ArrowUpDown size={13} className="qb-notes-sort-icon" />}
                   className="qb-notes-sort-dropdown"
+                  portal
+                  minMenuWidth={170}
                 />
               </div>
-            </div>
 
-            {/* Tag Filter Section: non-cramped, clean tag cloud, zero tag-pushing */}
-            {allTags.length > 0 && (
-              <div className="qb-notes-tags-section">
-                <div className="qb-notes-tags-header">
-                  <div className="qb-notes-tags-header-left">
-                    <Tag size={12} className="qb-notes-tag-icon" />
-                    <span>Tags ({allTags.length})</span>
-                  </div>
-                  {activeTag !== "all" && (
-                    <button
-                      type="button"
-                      className="qb-notes-tag-clear"
-                      onClick={() => setActiveTag("all")}
-                      title="Clear active tag filter"
-                    >
-                      <X size={11} />
-                      <span>Clear: #{activeTag}</span>
-                    </button>
-                  )}
+              {allTags.length > 0 && (
+                <div className="qb-notes-tag-select-wrap">
+                  <CustomSelect
+                    value={activeTag}
+                    onChange={setActiveTag}
+                    options={tagFilterOptions}
+                    leadIcon={<Tag size={12} />}
+                    className="qb-notes-tag-dropdown"
+                    portal
+                    minMenuWidth={170}
+                  />
                 </div>
-                <div className="qb-notes-tag-cloud" aria-label="Filter notes by tag">
-                  <button
-                    type="button"
-                    className={`qb-notes-tag-pill${activeTag === "all" ? " is-active" : ""}`}
-                    onClick={() => setActiveTag("all")}
-                  >
-                    All Tags
-                  </button>
-                  {visibleTags.map((tag) => (
-                    <button
-                      key={tag}
-                      type="button"
-                      className={`qb-notes-tag-pill${activeTag === tag ? " is-active" : ""}`}
-                      onClick={() => setActiveTag(activeTag === tag ? "all" : tag)}
-                    >
-                      #{tag}
-                    </button>
-                  ))}
-                  {allTags.length > 7 && (
-                    <button
-                      type="button"
-                      className="qb-notes-tag-expand-btn"
-                      onClick={() => setShowAllTags((prev) => !prev)}
-                    >
-                      {showAllTags ? "Show less" : `+${allTags.length - 7} more`}
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
-          {/* Notes List / Cards Grid */}
-          <div className="qb-notes-list" role="list">
-            {loading ? (
-              <div className="qb-notes-loading">
-                <div className="qb-notes-spinner" />
-                <span>Loading notes...</span>
-              </div>
-            ) : filteredNotes.length === 0 ? (
+          {/* Notes Feed */}
+          <div className="qb-notes-list-shell">
+            <div
+              className="qb-notes-list"
+              role="list"
+              onScroll={(e) =>
+                handleMobileOverlayScroll(e.currentTarget, listTrackRef.current, listThumbRef.current)
+              }
+            >
+              {loading ? (
+                <div className="qb-notes-loading">
+                  <div className="qb-notes-spinner" />
+                  <span>Loading notes...</span>
+                </div>
+              ) : filteredNotes.length === 0 ? (
               <div className="qb-notes-empty">
-                <FileText size={36} className="qb-notes-empty-icon" />
-                <h3>No notes found</h3>
+                <FileText size={32} className="qb-notes-empty-icon" />
+                <h3>{hasActiveFilters ? "No matching notes" : "No study notes yet"}</h3>
                 <p>
-                  {search || selectedTopic !== "all" || pinnedOnly || activeTag !== "all"
-                    ? "Try adjusting your search query or tag filter."
-                    : "No notes here yet. Create your first reviewer note to get started!"}
+                  {hasActiveFilters
+                    ? "Adjust your search, subject, or tag filter to see more notes."
+                    : "Create concise study sheets, math formulas, or exam day checklists."}
                 </p>
-                <button
-                  type="button"
-                  className="qb-notes-btn qb-notes-new-btn"
-                  onClick={() => startNewNote((selectedTopic !== "all" ? selectedTopic : "general") as TopicId)}
-                >
-                  <Plus size={15} />
-                  <span>Create Note</span>
-                </button>
+                {hasActiveFilters ? (
+                  <button
+                    type="button"
+                    className="qb-notes-btn qb-notes-scratch-btn"
+                    onClick={resetFilters}
+                  >
+                    <RotateCcw size={14} />
+                    <span>Reset Filters</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="qb-notes-btn qb-notes-new-btn"
+                    onClick={() =>
+                      void startNewNote(
+                        (selectedTopic !== "all" ? selectedTopic : "general") as TopicId
+                      )
+                    }
+                  >
+                    <Plus size={15} />
+                    <span>Create Note</span>
+                  </button>
+                )}
               </div>
             ) : (
               filteredNotes.map((note) => {
                 const isSelected = activeNote?.id === note.id;
                 const topicDef = NOTE_TOPICS.find((t) => t.id === note.topic) || NOTE_TOPICS[1];
-                const colorDef = NOTE_COLORS.find((c) => c.id === note.color) || NOTE_COLORS[0];
+                const accentHex = topicDef.color;
                 const updatedDate = new Date(note.updatedAt || note.createdAt).toLocaleDateString(
                   undefined,
                   { month: "short", day: "numeric" }
                 );
+                const snippet = stripMarkdownForSnippet(note.content);
 
                 return (
                   <div
@@ -598,169 +939,184 @@ export default function NotesPage({ userId, onBack, initialNoteId = null }: Note
                     className={`qb-note-card${isSelected ? " is-selected" : ""}${
                       note.pinned ? " is-pinned" : ""
                     }`}
-                    onClick={() => openNote(note)}
+                    onClick={() => void openNote(note)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
-                        openNote(note);
+                        void openNote(note);
                       }
                     }}
-                    style={{
-                      "--note-accent": colorDef.hex !== "#64748b" ? colorDef.hex : topicDef.color,
-                    } as React.CSSProperties}
+                    style={{ "--note-accent": accentHex } as React.CSSProperties}
                   >
                     <div className="qb-note-card-head">
-                      <div className="qb-note-card-meta">
-                        <span
-                          className="qb-note-topic-badge"
-                          style={{ color: topicDef.color }}
-                        >
-                          {topicDef.short || topicDef.label}
-                        </span>
-                        <span className="qb-note-date">
-                          <Clock size={11} />
-                          {updatedDate}
-                        </span>
-                      </div>
-
-                      <div className="qb-note-card-actions">
-                        <button
-                          type="button"
-                          className={`qb-note-action-btn${note.pinned ? " is-pinned" : ""}`}
-                          onClick={(e) => handleTogglePin(note.id, e)}
-                          title={note.pinned ? "Unpin note" : "Pin note to top"}
-                          aria-label={note.pinned ? "Unpin note" : "Pin note to top"}
-                        >
-                          <Pin size={13} />
-                        </button>
-                      </div>
+                      <h4 className="qb-note-card-title">{note.title || "Untitled Note"}</h4>
+                      <button
+                        type="button"
+                        className={`qb-note-action-btn${note.pinned ? " is-pinned" : ""}`}
+                        onClick={(e) => void handleTogglePin(note.id, e)}
+                        title={note.pinned ? "Unpin note" : "Pin note to top"}
+                        aria-label={note.pinned ? "Unpin note" : "Pin note to top"}
+                      >
+                        <Pin size={13} />
+                      </button>
                     </div>
 
-                    <h4 className="qb-note-card-title">{note.title || "Untitled Note"}</h4>
-
                     <p className="qb-note-card-snippet">
-                      {note.content.replace(/[#*`$\-\\[\]]/g, "").slice(0, 110) || "No content..."}
+                      {snippet || "Empty note — tap to add content..."}
                     </p>
 
-                    {Array.isArray(note.tags) && note.tags.length > 0 && (
-                      <div className="qb-note-card-tags">
-                        {note.tags.slice(0, 3).map((t) => (
-                          <span key={t} className="qb-note-mini-tag">
-                            #{t}
+                    <div className="qb-note-card-meta-line">
+                      <span
+                        className="qb-note-topic-label"
+                        style={{ color: topicDef.color }}
+                      >
+                        {topicDef.short || topicDef.label}
+                      </span>
+                      <span aria-hidden="true">·</span>
+                      <span className="qb-note-date tabular-nums">{updatedDate}</span>
+                      {Array.isArray(note.tags) && note.tags.length > 0 && (
+                        <>
+                          <span aria-hidden="true">·</span>
+                          <span className="qb-note-card-inline-tags">
+                            {note.tags.slice(0, 2).map((t) => `#${t}`).join(" ")}
+                            {note.tags.length > 2 ? ` +${note.tags.length - 2}` : ""}
                           </span>
-                        ))}
-                        {note.tags.length > 3 && (
-                          <span className="qb-note-mini-tag-more">+{note.tags.length - 3}</span>
-                        )}
-                      </div>
-                    )}
+                        </>
+                      )}
+                    </div>
                   </div>
                 );
               })
             )}
+            </div>
+            <div ref={listTrackRef} className="qb-mobile-scroll-track" aria-hidden="true">
+              <div ref={listThumbRef} className="qb-mobile-scroll-thumb" />
+            </div>
           </div>
-        </div>
+        </aside>
 
-        {/* Right Column: Note Viewer / Editor */}
-        <div className="qb-notes-main">
+        {/* Right Main Pane: Reader & Markdown/Math Editor */}
+        <section className="qb-notes-main" aria-label="Note workspace">
           {activeNote ? (
             <div className="qb-notes-editor-pane">
-              {/* Note Editor Header Bar */}
+              {/* Top Editor Bar */}
               <div className="qb-note-editor-bar">
                 <div className="qb-note-editor-left">
                   <button
                     type="button"
                     className="qb-note-mobile-close"
-                    onClick={() => setActiveNote(null)}
-                    title="Return to notes list"
+                    onClick={() => void handleCloseMobileEditor()}
+                    title="Back to notes list"
                   >
-                    <ArrowLeft size={16} />
-                    <span>Back to Notes</span>
+                    <ArrowLeft size={15} />
+                    <span>Notes</span>
                   </button>
 
-                  <div className="qb-note-topic-select-wrap">
+                  <div className="qb-note-topic-select-wrap qb-note-topic-desktop">
                     <CustomSelect
                       value={editTopic}
                       onChange={(val) => setEditTopic(val as TopicId)}
                       options={TOPIC_SELECT_OPTIONS}
                       className="qb-note-topic-dropdown"
+                      portal
+                      minMenuWidth={185}
                     />
-                  </div>
-
-                  {/* Accent Color Picker */}
-                  <div className="qb-note-color-picker" title="Card accent theme">
-                    {NOTE_COLORS.map((c) => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        className={`qb-note-color-dot${editColor === c.id ? " is-active" : ""}`}
-                        style={{ backgroundColor: c.hex }}
-                        onClick={() => setEditColor(c.id)}
-                        aria-label={c.label}
-                        title={c.label}
-                      />
-                    ))}
                   </div>
                 </div>
 
                 <div className="qb-note-editor-right">
-                  {saveStatus === "saved" && (
-                    <span className="qb-note-saved-badge">
+                  {saveStatus === "saving" && (
+                    <span className="qb-note-status-text is-saving">Saving...</span>
+                  )}
+                  {saveStatus === "saved" && !isDirty && (
+                    <span className="qb-note-status-text is-saved">
                       <Check size={13} /> Saved
                     </span>
                   )}
-                  {saveStatus === "saving" && (
-                    <span className="qb-note-saving-badge">Saving...</span>
+                  {copiedNotice && (
+                    <span className="qb-note-status-text is-saved">
+                      <Check size={13} /> Copied
+                    </span>
                   )}
 
                   <button
                     type="button"
                     className={`qb-note-tool-btn${editPinned ? " is-active" : ""}`}
-                    onClick={() => setEditPinned(!editPinned)}
+                    onClick={() => void handleTogglePin(activeNote.id)}
                     title={editPinned ? "Unpin note" : "Pin note"}
-                    aria-label="Pin note"
+                    aria-label={editPinned ? "Unpin note" : "Pin note"}
+                    aria-pressed={editPinned}
                   >
                     <Pin size={15} />
                   </button>
 
-                  <button
-                    type="button"
-                    className="qb-note-tool-btn"
-                    onClick={(e) => handleCopyNote(editContent, activeNote.id, e)}
-                    title="Copy note content"
-                    aria-label="Copy note content"
-                  >
-                    {copiedId === activeNote.id ? <Check size={15} /> : <Copy size={15} />}
-                  </button>
-
-                  <button
-                    type="button"
-                    className="qb-note-tool-btn"
-                    onClick={(e) =>
-                      handleDownloadMarkdown({ title: editTitle, content: editContent }, e)
-                    }
-                    title="Download this note as Markdown"
-                    aria-label="Download note"
-                  >
-                    <Download size={15} />
-                  </button>
-
-                  {activeNote.id && (
+                  {/* Kebab Overflow Actions Menu */}
+                  <div className="qb-note-more-wrap" ref={moreMenuRef}>
                     <button
                       type="button"
-                      className="qb-note-tool-btn qb-note-del-btn"
-                      onClick={() => setDeleteConfirmId(activeNote.id)}
-                      title="Delete note"
-                      aria-label="Delete note"
+                      className={`qb-note-tool-btn${moreMenuOpen ? " is-active" : ""}`}
+                      onClick={() => setMoreMenuOpen((prev) => !prev)}
+                      aria-expanded={moreMenuOpen}
+                      aria-label="More note actions"
+                      title="More actions"
                     >
-                      <Trash2 size={15} />
+                      <MoreVertical size={16} />
                     </button>
-                  )}
+
+                    {moreMenuOpen && (
+                      <div className="qb-note-more-menu" role="menu">
+                        <button
+                          type="button"
+                          className="qb-note-more-item"
+                          onClick={() => handleCopyNote(editContent)}
+                        >
+                          <Copy size={14} />
+                          <span>Copy Markdown</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="qb-note-more-item"
+                          onClick={() => void handleDuplicateNote()}
+                        >
+                          <CopyPlus size={14} />
+                          <span>Duplicate Note</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="qb-note-more-item"
+                          onClick={() =>
+                            handleDownloadMarkdown({ title: editTitle, content: editContent })
+                          }
+                        >
+                          <Download size={14} />
+                          <span>Download (.md)</span>
+                        </button>
+                        {activeNote.id && (
+                          <>
+                            <div className="qb-note-more-divider" />
+                            <button
+                              type="button"
+                              className="qb-note-more-item is-danger"
+                              onClick={() => {
+                                setMoreMenuOpen(false);
+                                setDeleteConfirmId(activeNote.id);
+                              }}
+                            >
+                              <Trash2 size={14} />
+                              <span>Delete Note</span>
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
 
                   <button
                     type="button"
-                    className="qb-notes-btn qb-notes-save-btn"
-                    onClick={handleSaveNote}
+                    className={`qb-notes-btn qb-notes-save-btn${isDirty ? " is-dirty" : ""}`}
+                    onClick={() => void persistCurrentDraft()}
+                    disabled={!editTitle.trim() && !editContent.trim()}
+                    title="Save note (Ctrl/Cmd + S)"
                   >
                     <Check size={15} />
                     <span>Save</span>
@@ -768,20 +1124,28 @@ export default function NotesPage({ userId, onBack, initialNoteId = null }: Note
                 </div>
               </div>
 
-              {/* Title Input */}
-              <div className="qb-note-title-row">
+              {/* Document Title, Mobile Topic Selector & Compact Inline Tags */}
+              <div className="qb-note-doc-header">
+                <div className="qb-note-topic-mobile-row">
+                  <CustomSelect
+                    value={editTopic}
+                    onChange={(val) => setEditTopic(val as TopicId)}
+                    options={TOPIC_SELECT_OPTIONS}
+                    className="qb-note-topic-dropdown"
+                    portal
+                    minMenuWidth={185}
+                  />
+                </div>
+
                 <input
                   type="text"
                   className="qb-note-title-input"
-                  placeholder="Note Title (e.g., RA 6713 Norms of Conduct, Work Problem Shortcuts...)"
+                  placeholder="Note title..."
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
                 />
-              </div>
 
-              {/* Tag Editor Row */}
-              <div className="qb-note-tags-row">
-                <div className="qb-note-tags-list">
+                <div className="qb-note-tags-inline">
                   {editTags.map((t) => (
                     <span key={t} className="qb-note-tag-chip">
                       #{t}
@@ -796,12 +1160,14 @@ export default function NotesPage({ userId, onBack, initialNoteId = null }: Note
                     </span>
                   ))}
                   <div className="qb-note-tag-input-wrap">
-                    <Tag size={13} className="qb-note-tag-icon" />
+                    <Tag size={12} className="qb-note-tag-icon" />
                     <input
                       type="text"
                       className="qb-note-tag-input"
-                      placeholder="Add tag and press Enter..."
+                      placeholder="Add tag..."
                       value={tagInput}
+                      onFocus={() => setTagFocused(true)}
+                      onBlur={() => setTagFocused(false)}
                       onChange={(e) => setTagInput(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === ",") {
@@ -813,221 +1179,271 @@ export default function NotesPage({ userId, onBack, initialNoteId = null }: Note
                   </div>
                 </div>
 
-                {/* Suggested Tag Quick Clicks */}
-                <div className="qb-note-suggested-tags">
-                  <span className="qb-note-suggested-title">Suggestions:</span>
-                  {SUGGESTED_TAGS.filter((t) => !editTags.includes(t))
-                    .slice(0, 5)
-                    .map((t) => (
+                {tagFocused && (
+                  <div className="qb-note-suggested-tags">
+                    <span className="qb-note-suggested-title">Quick tags:</span>
+                    {SUGGESTED_TAGS.filter((t) => !editTags.includes(t))
+                      .slice(0, 5)
+                      .map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          className="qb-note-suggested-tag-btn"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            handleAddTag(t);
+                          }}
+                        >
+                          +{t}
+                        </button>
+                      ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Formatting Bar + View Switcher */}
+              <div className={`qb-note-formatting-bar is-mode-${editorMode}`}>
+                <div className="qb-note-fmt-tools" aria-label="Markdown formatting tools">
+                  <div className="qb-note-fmt-group">
+                    <button
+                      type="button"
+                      className="qb-note-fmt-btn"
+                      onClick={() => insertSyntax("**", "**")}
+                      title="Bold (**text**)"
+                      aria-label="Bold"
+                    >
+                      <Bold size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      className="qb-note-fmt-btn"
+                      onClick={() => insertSyntax("*", "*")}
+                      title="Italic (*text*)"
+                      aria-label="Italic"
+                    >
+                      <Italic size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      className="qb-note-fmt-btn"
+                      onClick={() => insertSyntax("<u>", "</u>")}
+                      title="Underline (<u>text</u>)"
+                      aria-label="Underline"
+                    >
+                      <Underline size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      className="qb-note-fmt-btn"
+                      onClick={() => insertSyntax("### ")}
+                      title="Heading (### Header)"
+                      aria-label="Heading 3"
+                    >
+                      <Heading3 size={15} />
+                    </button>
+                  </div>
+
+                  <div className="qb-note-fmt-sep" />
+
+                  <div className="qb-note-fmt-group">
+                    <button
+                      type="button"
+                      className="qb-note-fmt-btn"
+                      onClick={() => insertSyntax("- ")}
+                      title="Bullet list (- item)"
+                      aria-label="Bullet list"
+                    >
+                      <List size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      className="qb-note-fmt-btn"
+                      onClick={() => insertSyntax("- [ ] ")}
+                      title="Checklist (- [ ] item)"
+                      aria-label="Checklist"
+                    >
+                      <CheckSquare size={15} />
+                    </button>
+                  </div>
+
+                  <div className="qb-note-fmt-sep" />
+
+                  <div className="qb-note-fmt-group">
+                    <button
+                      type="button"
+                      className="qb-note-fmt-btn qb-note-fmt-math"
+                      onClick={() => insertSyntax("$", "$")}
+                      title="Inline math ($formula$)"
+                      aria-label="Inline math"
+                    >
+                      $x$
+                    </button>
+                    <button
+                      type="button"
+                      className="qb-note-fmt-btn qb-note-fmt-math"
+                      onClick={() => insertSyntax("$$\n", "\n$$")}
+                      title="Display math block ($$...$$)"
+                      aria-label="Display math block"
+                    >
+                      $$
+                    </button>
+                    <button
+                      type="button"
+                      className="qb-note-fmt-btn qb-note-fmt-math"
+                      onClick={() => insertSyntax("\\frac{a}{b}")}
+                      title="Fraction (\frac{a}{b})"
+                      aria-label="Fraction"
+                    >
+                      ½
+                    </button>
+                  </div>
+                </div>
+
+                {/* Mode Switcher Bar */}
+                <div className="qb-note-mode-row">
+                  <span className="qb-note-mode-label">
+                    {editorMode === "preview" ? "Reading View" : "Markdown"}
+                  </span>
+                  <div className="qb-note-view-switcher" role="tablist" aria-label="Editor view mode">
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={editorMode === "write"}
+                      className={`qb-note-view-tab${editorMode === "write" ? " is-active" : ""}`}
+                      onClick={() => setEditorMode("write")}
+                    >
+                      <Code size={13} />
+                      <span>Write</span>
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={editorMode === "preview"}
+                      className={`qb-note-view-tab${editorMode === "preview" ? " is-active" : ""}`}
+                      onClick={() => setEditorMode("preview")}
+                    >
+                      <Eye size={13} />
+                      <span>Preview</span>
+                    </button>
+                    {isWideDesktop && (
                       <button
-                        key={t}
                         type="button"
-                        className="qb-note-suggested-tag-btn"
-                        onClick={() => handleAddTag(t)}
+                        role="tab"
+                        aria-selected={editorMode === "split"}
+                        className={`qb-note-view-tab${editorMode === "split" ? " is-active" : ""}`}
+                        onClick={() => setEditorMode("split")}
                       >
-                        +{t}
+                        <Columns size={13} />
+                        <span>Split</span>
                       </button>
-                    ))}
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* Formatting & Math Toolbar */}
-              <div className="qb-note-formatting-bar">
-                <div className="qb-note-fmt-group">
-                  <button
-                    type="button"
-                    className="qb-note-fmt-btn"
-                    onClick={() => insertSyntax("**", "**")}
-                    title="Bold (**text**)"
-                  >
-                    <Bold size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    className="qb-note-fmt-btn"
-                    onClick={() => insertSyntax("*", "*")}
-                    title="Italic (*text*)"
-                  >
-                    <Italic size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    className="qb-note-fmt-btn"
-                    onClick={() => insertSyntax("<u>", "</u>")}
-                    title="Underline (<u>text</u>)"
-                  >
-                    <Underline size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    className="qb-note-fmt-btn"
-                    onClick={() => insertSyntax("### ")}
-                    title="Heading (### Header)"
-                  >
-                    H3
-                  </button>
-                </div>
-
-                <div className="qb-note-fmt-sep" />
-
-                <div className="qb-note-fmt-group">
-                  <button
-                    type="button"
-                    className="qb-note-fmt-btn"
-                    onClick={() => insertSyntax("- ")}
-                    title="Bullet list (- item)"
-                  >
-                    <List size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    className="qb-note-fmt-btn"
-                    onClick={() => insertSyntax("- [ ] ")}
-                    title="Task checkbox (- [ ] item)"
-                  >
-                    <CheckSquare size={14} />
-                  </button>
-                </div>
-
-                <div className="qb-note-fmt-sep" />
-
-                <div className="qb-note-fmt-group">
-                  <button
-                    type="button"
-                    className="qb-note-fmt-btn qb-note-fmt-math"
-                    onClick={() => insertSyntax("$", "$")}
-                    title="Inline math ($formula$)"
-                  >
-                    $f(x)$
-                  </button>
-                  <button
-                    type="button"
-                    className="qb-note-fmt-btn qb-note-fmt-math"
-                    onClick={() => insertSyntax("$$\n", "\n$$")}
-                    title="Display math block ($$...$$)"
-                  >
-                    $$\Sigma$$
-                  </button>
-                  <button
-                    type="button"
-                    className="qb-note-fmt-btn qb-note-fmt-math"
-                    onClick={() => insertSyntax("\\frac{a}{b}")}
-                    title="Fraction (\\frac{a}{b})"
-                  >
-                    ½
-                  </button>
-                </div>
-
-                {/* View Switcher: Write vs Preview vs Split */}
-                <div className="qb-note-view-switcher">
-                  <button
-                    type="button"
-                    className={`qb-note-view-tab${editorMode === "write" ? " is-active" : ""}`}
-                    onClick={() => setEditorMode("write")}
-                  >
-                    <Code size={13} />
-                    <span>Write</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`qb-note-view-tab${editorMode === "preview" ? " is-active" : ""}`}
-                    onClick={() => setEditorMode("preview")}
-                  >
-                    <Eye size={13} />
-                    <span>Preview</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`qb-note-view-tab qb-desktop-only${
-                      editorMode === "split" ? " is-active" : ""
-                    }`}
-                    onClick={() => setEditorMode("split")}
-                  >
-                    <Columns size={13} />
-                    <span>Split</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Editor Content Area */}
+              {/* Editor / Preview Content Area */}
               <div className={`qb-note-content-area is-${editorMode}`}>
                 {(editorMode === "write" || editorMode === "split") && (
                   <div className="qb-note-editor-wrapper">
                     <textarea
                       ref={textareaRef}
                       className="qb-note-textarea"
-                      placeholder="Write your study notes, formulas, memory tricks, or checklist here. Markdown and LaTeX math ($...$) are supported..."
+                      placeholder="Write your notes, math formulas ($a^2 + b^2 = c^2$), or checklists (- [ ] item)..."
                       value={editContent}
                       onChange={(e) => setEditContent(e.target.value)}
+                      onScroll={(e) =>
+                        handleMobileOverlayScroll(
+                          e.currentTarget,
+                          editorTrackRef.current,
+                          editorThumbRef.current
+                        )
+                      }
                     />
+                    <div ref={editorTrackRef} className="qb-mobile-scroll-track" aria-hidden="true">
+                      <div ref={editorThumbRef} className="qb-mobile-scroll-thumb" />
+                    </div>
                   </div>
                 )}
 
                 {(editorMode === "preview" || editorMode === "split") && (
-                  <div className="qb-note-preview-wrapper">
-                    {editContent.trim() ? (
-                      <MarkdownText text={editContent} />
-                    ) : (
-                      <div className="qb-note-preview-empty">
-                        <Sparkles size={28} />
-                        <p>Preview will appear here as you write Markdown and math formulas.</p>
-                      </div>
-                    )}
+                  <div className="qb-note-preview-shell">
+                    <div
+                      ref={previewRef}
+                      className="qb-note-preview-wrapper"
+                      onClick={handlePreviewClick}
+                      onScroll={(e) =>
+                        handleMobileOverlayScroll(
+                          e.currentTarget,
+                          previewTrackRef.current,
+                          previewThumbRef.current
+                        )
+                      }
+                    >
+                      {editContent.trim() ? (
+                        <MarkdownText text={editContent} interactiveCheckboxes />
+                      ) : (
+                        <div className="qb-note-preview-empty">
+                          <Sparkles size={24} />
+                          <p>Live formatted preview & interactive checklists appear here.</p>
+                        </div>
+                      )}
+                    </div>
+                    <div ref={previewTrackRef} className="qb-mobile-scroll-track" aria-hidden="true">
+                      <div ref={previewThumbRef} className="qb-mobile-scroll-thumb" />
+                    </div>
                   </div>
                 )}
               </div>
 
-              {/* Editor Footer: Word Count & Help */}
+              {/* Minimal Quiet Footer */}
               <div className="qb-note-editor-footer">
-                <span className="qb-note-stats-text">
-                  {editContent.trim() ? editContent.trim().split(/\s+/).length : 0} words ·{" "}
-                  {editContent.length} characters
+                <span className="qb-note-stats-text tabular-nums">
+                  {wordCount} {wordCount === 1 ? "word" : "words"} · {readMinutes} min read
                 </span>
                 <span className="qb-note-math-hint">
-                  Tip: Use <code>$a^2 + b^2 = c^2$</code> for math and <code>- [ ]</code> for checklists.
+                  Markdown & KaTeX <code>$...$</code> enabled · Autosaves automatically
                 </span>
               </div>
             </div>
           ) : (
-            /* No Active Note Selected Placeholder */
             <div className="qb-notes-no-selection">
               <div className="qb-notes-no-sel-card">
                 <div className="qb-notes-no-sel-icon-wrap">
-                  <BookOpen size={36} />
+                  <BookOpen size={30} />
                 </div>
-                <h2>Select a Note or Start a New One</h2>
+                <h2>Select a Note or Start Writing</h2>
                 <p>
-                  Keep all your Civil Service reviewer provisions, mnemonics, math shortcuts, and
-                  study plans organized in one fast, responsive place.
+                  Organize formulas, RA 6713 summaries, grammar rules, and exam checklists in one
+                  workspace.
                 </p>
                 <div className="qb-notes-no-sel-actions">
                   <button
                     type="button"
                     className="qb-notes-btn qb-notes-new-btn"
-                    onClick={() => startNewNote("general")}
+                    onClick={() => void startNewNote("general")}
                   >
                     <Plus size={16} />
-                    <span>Create New Note</span>
+                    <span>New Blank Note</span>
                   </button>
                   <button
                     type="button"
                     className="qb-notes-btn qb-notes-scratch-btn"
-                    onClick={() => {
-                      startNewNote("strategy");
-                      setEditTitle("Exam Day Reminders & Plan");
-                      setEditContent(
-                        "### Priority Topics to Review Tonight\n- [ ] Philippine Constitution Executive & Legislative powers\n- [ ] Ratio & Proportion formula review\n- [ ] Alphabetical filing with prefixes\n- [ ] RA 6713 gift and outside employment prohibitions"
-                      );
-                    }}
+                    onClick={() =>
+                      void startNewNote(
+                        "strategy",
+                        "Exam Day Reminders & Checklist",
+                        "### Priority Topics to Review\n- [ ] Philippine Constitution Executive & Legislative powers\n- [ ] Ratio & Proportion shortcuts\n- [ ] Alphabetical filing prefixes\n- [ ] RA 6713 Norms of Conduct"
+                      )
+                    }
                   >
                     <CheckSquare size={15} />
-                    <span>Quick Exam Checklist Template</span>
+                    <span>Checklist Template</span>
                   </button>
                 </div>
               </div>
             </div>
           )}
-        </div>
+        </section>
       </div>
 
       {/* Delete Confirmation Modal */}
@@ -1057,7 +1473,7 @@ export default function NotesPage({ userId, onBack, initialNoteId = null }: Note
               <button
                 type="button"
                 className="qb-modal-btn qb-modal-btn-danger"
-                onClick={() => handleDeleteNote(deleteConfirmId)}
+                onClick={() => void handleDeleteNote(deleteConfirmId)}
               >
                 Delete Note
               </button>

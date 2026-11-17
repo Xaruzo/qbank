@@ -1052,7 +1052,7 @@ export default function App() {
               userRole={userRole}
             />
           )}
-          <main ref={mainRef} className={`qb-main${view === "mockRun" ? " qb-main-exam" : view === "detail" ? " qb-main-detail" : ""}`}>
+          <main ref={mainRef} className={`qb-main${view === "mockRun" ? " qb-main-exam" : view === "detail" ? " qb-main-detail" : view === "notes" ? " qb-main-notes" : ""}`}>
             <div
               className={`qb-main-inner${
                 view === "add"

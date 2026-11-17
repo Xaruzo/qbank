@@ -1343,52 +1343,48 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
    REVIEWER STUDY NOTES PAGE THEME CONTRAST ENHANCEMENTS
    ══════════════════════════════════════════════════════════════════════════ */
 
-/* 1. Topic Pill Badge Counts */
-.qb:not(.light) .qb-notes-topic-count {
-  color: #f1f5f9 !important;
-  background: rgba(255, 255, 255, 0.14) !important;
-  opacity: 1 !important;
-  font-weight: 700 !important;
+/* 1. Subject Strip Tabs */
+.qb:not(.light) .qb-notes-topic-tab {
+  color: #cbd5e1 !important;
 }
 
-.light .qb-notes-topic-count,
-.qb.light .qb-notes-topic-count {
-  color: #0f172a !important;
-  background: rgba(15, 23, 42, 0.08) !important;
-  opacity: 1 !important;
-  font-weight: 700 !important;
-}
-
-.qb:not(.light) .qb-notes-topic-pill.is-active .qb-notes-topic-count {
-  background: rgba(56, 189, 248, 0.28) !important;
+.qb:not(.light) .qb-notes-topic-tab:hover {
   color: #ffffff !important;
 }
 
-.light .qb-notes-topic-pill.is-active .qb-notes-topic-count,
-.qb.light .qb-notes-topic-pill.is-active .qb-notes-topic-count {
-  background: rgba(2, 132, 199, 0.16) !important;
-  color: #0369a1 !important;
+.qb:not(.light) .qb-notes-topic-tab.is-active {
+  color: #38bdf8 !important;
+  background: rgba(56, 189, 248, 0.14) !important;
+  border-color: rgba(56, 189, 248, 0.45) !important;
 }
 
-/* 2. Pinned Badge Count */
-.qb:not(.light) .qb-notes-pin-badge {
-  color: #f1f5f9 !important;
-  background: rgba(255, 255, 255, 0.14) !important;
-  opacity: 1 !important;
-  font-weight: 700 !important;
+.light .qb-notes-topic-tab,
+.qb.light .qb-notes-topic-tab {
+  color: #334155 !important;
 }
 
-.light .qb-notes-pin-badge,
-.qb.light .qb-notes-pin-badge {
+.light .qb-notes-topic-tab:hover,
+.qb.light .qb-notes-topic-tab:hover {
   color: #0f172a !important;
-  background: rgba(15, 23, 42, 0.08) !important;
-  opacity: 1 !important;
-  font-weight: 700 !important;
 }
 
+.light .qb-notes-topic-tab.is-active,
+.qb.light .qb-notes-topic-tab.is-active {
+  color: #0284c7 !important;
+  background: rgba(2, 132, 199, 0.1) !important;
+  border-color: rgba(2, 132, 199, 0.4) !important;
+}
+
+/* 2. Pinned Toggle */
 .qb:not(.light) .qb-notes-filter-toggle {
   color: #e2e8f0 !important;
   border-color: var(--border) !important;
+}
+
+.qb:not(.light) .qb-notes-filter-toggle.is-active {
+  color: #fbbf24 !important;
+  border-color: #f59e0b !important;
+  background: rgba(245, 158, 11, 0.16) !important;
 }
 
 .light .qb-notes-filter-toggle,
@@ -1398,111 +1394,81 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   background: #ffffff !important;
 }
 
-/* 3. Tags Section Header & Icon */
-.qb:not(.light) .qb-notes-tags-header {
-  color: #cbd5e1 !important;
-  opacity: 1 !important;
-  font-weight: 700 !important;
+.light .qb-notes-filter-toggle.is-active,
+.qb.light .qb-notes-filter-toggle.is-active {
+  color: #b45309 !important;
+  border-color: #d97706 !important;
+  background: rgba(217, 119, 6, 0.12) !important;
 }
 
-.qb:not(.light) .qb-notes-tag-icon {
-  color: #cbd5e1 !important;
-  opacity: 1 !important;
-}
-
-.light .qb-notes-tags-header,
-.qb.light .qb-notes-tags-header {
-  color: #0f172a !important;
-  opacity: 1 !important;
-  font-weight: 700 !important;
-}
-
-.light .qb-notes-tag-icon,
-.qb.light .qb-notes-tag-icon {
-  color: #0f172a !important;
-  opacity: 1 !important;
-}
-
-/* 4. Notes Sort Dropdown Button & Chevron */
-.qb:not(.light) .qb-notes-sort-dropdown .qb-select-btn {
+/* 3. Notes Sort & Tag Dropdown Buttons & Chevrons */
+.qb:not(.light) .qb-notes-sort-dropdown .qb-select-btn,
+.qb:not(.light) .qb-notes-tag-dropdown .qb-select-btn {
   color: #e2e8f0 !important;
   background: var(--input-bg) !important;
   border-color: var(--border) !important;
 }
 
-.qb:not(.light) .qb-notes-sort-dropdown .qb-select-chevron {
+.qb:not(.light) .qb-notes-sort-dropdown .qb-select-chevron,
+.qb:not(.light) .qb-notes-tag-dropdown .qb-select-chevron {
   color: #cbd5e1 !important;
 }
 
 .light .qb-notes-sort-dropdown .qb-select-btn,
-.qb.light .qb-notes-sort-dropdown .qb-select-btn {
+.qb.light .qb-notes-sort-dropdown .qb-select-btn,
+.light .qb-notes-tag-dropdown .qb-select-btn,
+.qb.light .qb-notes-tag-dropdown .qb-select-btn {
   color: #0f172a !important;
   background: #ffffff !important;
   border-color: #cbd5e1 !important;
 }
 
 .light .qb-notes-sort-dropdown .qb-select-chevron,
-.qb.light .qb-notes-sort-dropdown .qb-select-chevron {
+.qb.light .qb-notes-sort-dropdown .qb-select-chevron,
+.light .qb-notes-tag-dropdown .qb-select-chevron,
+.qb.light .qb-notes-tag-dropdown .qb-select-chevron {
   color: #0f172a !important;
 }
 
-/* 5. Note Card Date Timestamp */
+/* 4. Tag Input Icon */
+.qb:not(.light) .qb-note-tag-icon {
+  color: #cbd5e1 !important;
+}
+
+.light .qb-note-tag-icon,
+.qb.light .qb-note-tag-icon {
+  color: #334155 !important;
+}
+
+/* 5. Note Card Metadata & Snippet Contrast */
+.qb:not(.light) .qb-note-card-meta-line,
 .qb:not(.light) .qb-note-date {
   color: #cbd5e1 !important;
-  font-weight: 600 !important;
 }
 
-.qb:not(.light) .qb-note-date svg {
-  color: #cbd5e1 !important;
-}
-
+.light .qb-note-card-meta-line,
+.qb.light .qb-note-card-meta-line,
 .light .qb-note-date,
 .qb.light .qb-note-date {
   color: #475569 !important;
-  font-weight: 600 !important;
 }
 
-.light .qb-note-date svg,
-.qb.light .qb-note-date svg {
-  color: #475569 !important;
-}
-
-/* 6. Note Card Snippet / Preview Text */
 .qb:not(.light) .qb-note-card-snippet {
   color: #cbd5e1 !important;
-  line-height: 1.5 !important;
 }
 
 .light .qb-note-card-snippet,
 .qb.light .qb-note-card-snippet {
   color: #334155 !important;
-  line-height: 1.5 !important;
 }
 
-/* 7. Note Card Mini Tag Pills */
-.qb:not(.light) .qb-note-mini-tag {
+.qb:not(.light) .qb-note-card-inline-tags {
   color: #93c5fd !important;
-  background: rgba(255, 255, 255, 0.08) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  font-weight: 600 !important;
 }
 
-.light .qb-note-mini-tag,
-.qb.light .qb-note-mini-tag {
+.light .qb-note-card-inline-tags,
+.qb.light .qb-note-card-inline-tags {
   color: #0369a1 !important;
-  background: rgba(15, 23, 42, 0.06) !important;
-  border: 1px solid rgba(15, 23, 42, 0.1) !important;
-  font-weight: 600 !important;
-}
-
-/* Tag filter pills */
-.qb:not(.light) .qb-notes-tag-pill:not(.is-active) {
-  color: #cbd5e1 !important;
-}
-
-.light .qb-notes-tag-pill:not(.is-active),
-.qb.light .qb-notes-tag-pill:not(.is-active) {
-  color: #0f172a !important;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
