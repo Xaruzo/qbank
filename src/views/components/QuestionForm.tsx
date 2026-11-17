@@ -583,11 +583,30 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
           </div>
 
           <div>
-            <label className="qb-flabel">
-              <Tag size={13} className="qb-flabel-icon" />
-              <span>Label</span> <span className="qb-flabel-sub">(optional)</span>
-            </label>
-            <div>
+            <div className="qb-flabel-row">
+              <label className="qb-flabel" htmlFor={useCustomLabel ? "qb-custom-label-input" : undefined}>
+                <Tag size={13} className="qb-flabel-icon" />
+                <span>Label</span> <span className="qb-flabel-sub">(optional)</span>
+              </label>
+              <button
+                type="button"
+                className="qb-label-mode-btn"
+                onClick={() => {
+                  if (useCustomLabel) {
+                    setUseCustomLabel(false);
+                    if (form.label && !PROBLEM_LABELS.includes(form.label)) {
+                      setForm(f => ({ ...f, label: "" }));
+                    }
+                  } else {
+                    setUseCustomLabel(true);
+                    setLabelOpen(false);
+                  }
+                }}
+              >
+                {useCustomLabel ? "Use preset" : "Custom input"}
+              </button>
+            </div>
+            <div className="qb-label-control">
               {!useCustomLabel ? (
                 <div className="qb-select" ref={labelRef} data-dir={labelDir} data-open={labelOpen}>
                   <button className="qb-select-btn" type="button" onClick={() => {
@@ -598,7 +617,7 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
                     }
                     setLabelOpen(o => !o);
                   }} aria-expanded={labelOpen}>
-                    <span>{form.label || "Select a label..."}</span>
+                    <span className="qb-select-btn-text">{form.label || "Select a label..."}</span>
                     <ChevronDown size={16} className={`qb-select-chevron${labelOpen ? " is-open" : ""}`} />
                   </button>
                   <div className={`qb-select-menu${labelOpen ? " open" : ""}`}>
@@ -631,26 +650,13 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
                   </div>
                 </div>
               ) : (
-                <>
-                  <input
-                    className="qb-finput"
-                    placeholder="e.g. Age Problem, Sentence Error"
-                    value={form.label}
-                    onChange={e => setForm(f => ({ ...f, label: e.target.value }))}
-                  />
-                  <button
-                    type="button"
-                    className="qb-fcancel"
-                    style={{ marginTop: 8, padding: "6px 12px", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6 }}
-                    onClick={() => {
-                      setUseCustomLabel(false);
-                      setForm(f => ({ ...f, label: "" }));
-                    }}
-                  >
-                    <Tag size={13} className="qb-btn-icon" />
-                    <span>Use preset label</span>
-                  </button>
-                </>
+                <input
+                  id="qb-custom-label-input"
+                  className="qb-finput"
+                  placeholder="e.g. Age Problem, Sentence Error"
+                  value={form.label}
+                  onChange={e => setForm(f => ({ ...f, label: e.target.value }))}
+                />
               )}
             </div>
           </div>
