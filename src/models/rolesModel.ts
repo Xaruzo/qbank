@@ -1,6 +1,6 @@
 import { SUPERADMIN_EMAILS, SUPERADMIN_UIDS, QUESTION_ADMIN_EMAILS } from "../constants/appConstants";
 import { supabase, isNetworkOrFetchError } from "../utils/supabaseClient";
-import type { UserRole, UserRoleRecord } from "../types";
+import type { UserAccountStatus, UserRole, UserRoleRecord } from "../types";
 
 export const USER_ROLES_STORAGE_KEY = "cse-qbank-user-roles-v1";
 const USER_ROLES_TABLE = "user_roles";
@@ -10,8 +10,28 @@ const LOCAL_CREDENTIALS_STORAGE_KEY = "cse-qbank-local-credentials-v1";
 const roleWeight = (role: UserRole) =>
   role === "superadmin" ? 3 : role === "admin" ? 2 : role === "moderator" ? 1 : 0;
 
+const normalizeStatus = (raw?: unknown): UserAccountStatus => {
+  if (raw === "banned" || raw === "deleted") return raw;
+  return "active";
+};
+
+const isProtectedRootEmail = (email: string) =>
+  SUPERADMIN_EMAILS.some((e) => e.toLowerCase() === email.toLowerCase());
+
+const isMissingColumnError = (err: any) => {
+  const code = String(err?.code || "");
+  const msg = String(err?.message || err?.details || "").toLowerCase();
+  return code === "42703" || (msg.includes("column") && msg.includes("does not exist"));
+};
+
 const sortUserRecords = (records: UserRoleRecord[]) =>
   records.sort((a, b) => {
+    const aStatus = normalizeStatus(a.status);
+    const bStatus = normalizeStatus(b.status);
+    if (aStatus !== bStatus) {
+      const order: Record<UserAccountStatus, number> = { active: 0, banned: 1, deleted: 2 };
+      return order[aStatus] - order[bStatus];
+    }
     const diff = roleWeight(b.role) - roleWeight(a.role);
     if (diff !== 0) return diff;
     return a.email.localeCompare(b.email);
@@ -23,6 +43,7 @@ const DEFAULT_SUPERADMINS: Record<string, UserRoleRecord> = {
     email: "xaruzowarlord@gmail.com",
     fullName: "xaruzowarlord",
     role: "superadmin",
+    status: "active",
     assignedAt: new Date("2026-01-01").toISOString(),
     assignedBy: "System Root",
     notes: "Primary System Superadministrator",
@@ -36,6 +57,42 @@ const safeParse = (raw: string | null, fallback: any) => {
   } catch {
     return fallback;
   }
+};
+
+const getAccessToken = async (): Promise<string | null> => {
+  if (!supabase) return null;
+  try {
+    const { data } = await supabase.auth.getSession();
+    return data?.session?.access_token || null;
+  } catch {
+    return null;
+  }
+};
+
+const clearLocalUserArtifacts = (cleanEmail: string) => {
+  try {
+    const rawCreds = localStorage.getItem(LOCAL_CREDENTIALS_STORAGE_KEY);
+    const parsedCreds = safeParse(rawCreds, {});
+    if (cleanEmail in parsedCreds) {
+      delete parsedCreds[cleanEmail];
+      localStorage.setItem(LOCAL_CREDENTIALS_STORAGE_KEY, JSON.stringify(parsedCreds));
+    }
+  } catch {}
+
+  try {
+    const toDelete: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("cse-qbank-profile-user-")) {
+        const raw = localStorage.getItem(key);
+        const profile = safeParse(raw, null);
+        if (profile?.email && String(profile.email).trim().toLowerCase() === cleanEmail) {
+          toDelete.push(key);
+        }
+      }
+    }
+    toDelete.forEach((key) => localStorage.removeItem(key));
+  } catch {}
 };
 
 export const rolesModel = {
@@ -63,6 +120,85 @@ export const rolesModel = {
     }
   },
 
+  getAccountRestriction(
+    identifier: { id?: string | null; email?: string | null } | null
+  ): { restricted: boolean; status: UserAccountStatus; reason?: string } {
+    if (!identifier) return { restricted: false, status: "active" };
+
+    const cleanEmail = (identifier.email || "").trim().toLowerCase();
+    const userId = identifier.id || "";
+
+    if (cleanEmail && isProtectedRootEmail(cleanEmail)) {
+      return { restricted: false, status: "active" };
+    }
+    if (userId && SUPERADMIN_UIDS.includes(userId)) {
+      return { restricted: false, status: "active" };
+    }
+
+    const roles = this.getStoredRoles();
+    const rec =
+      (cleanEmail && roles[cleanEmail]) ||
+      (userId && (Object.values(roles) as UserRoleRecord[]).find((r) => r?.id === userId)) ||
+      null;
+
+    const status = normalizeStatus(rec?.status);
+    return {
+      restricted: status === "banned" || status === "deleted",
+      status,
+      reason: rec?.statusReason,
+    };
+  },
+
+  async fetchRemoteAccountRestriction(
+    email?: string | null
+  ): Promise<{ restricted: boolean; status: UserAccountStatus; reason?: string }> {
+    const cleanEmail = (email || "").trim().toLowerCase();
+    const local = this.getAccountRestriction({ email: cleanEmail });
+    if (!cleanEmail || isProtectedRootEmail(cleanEmail)) {
+      return { restricted: false, status: "active" };
+    }
+    if (!supabase) return local;
+
+    try {
+      const { data, error } = await supabase
+        .from(USER_ROLES_TABLE)
+        .select("email,role,status,status_reason,status_updated_at,status_updated_by,deleted_at")
+        .eq("email", cleanEmail)
+        .maybeSingle();
+
+      if (error || !data) return local;
+
+      const status = normalizeStatus(data.status);
+      const roles = this.getStoredRoles();
+      const existing = roles[cleanEmail];
+      if (!existing || existing.status !== status || existing.statusReason !== data.status_reason) {
+        roles[cleanEmail] = {
+          ...(existing || {
+            id: `role-${cleanEmail}`,
+            email: cleanEmail,
+            fullName: cleanEmail.split("@")[0],
+            role: (data.role as UserRole) || "reviewer",
+            assignedAt: new Date().toISOString(),
+          }),
+          status,
+          statusReason: data.status_reason || undefined,
+          statusUpdatedAt: data.status_updated_at || undefined,
+          statusUpdatedBy: data.status_updated_by || undefined,
+          deletedAt: data.deleted_at || null,
+        };
+        this.saveStoredRoles(roles);
+      }
+
+      return {
+        restricted: status === "banned" || status === "deleted",
+        status,
+        reason: data.status_reason || undefined,
+      };
+    } catch {
+      return local;
+    }
+  },
+
   getUserRole(identifier: { id?: string | null; email?: string | null } | null): UserRole {
     if (!identifier) return "reviewer";
 
@@ -78,11 +214,15 @@ export const rolesModel = {
     }
 
     const roles = this.getStoredRoles();
-    if (cleanEmail && roles[cleanEmail]?.role) {
-      return roles[cleanEmail].role;
-    }
-    if (userId && roles[userId]?.role) {
-      return roles[userId].role;
+    const rec =
+      (cleanEmail && roles[cleanEmail]) ||
+      (userId && roles[userId]) ||
+      null;
+    if (rec) {
+      if (normalizeStatus(rec.status) !== "active") {
+        return "reviewer";
+      }
+      if (rec.role) return rec.role;
     }
 
     // Legacy Question Admins default to admin
@@ -105,27 +245,38 @@ export const rolesModel = {
     }
 
     // Safety guardrail: cannot demote primary root superadmin
-    if (cleanEmail === "xaruzowarlord@gmail.com" && role !== "superadmin") {
+    if (isProtectedRootEmail(cleanEmail) && role !== "superadmin") {
       return { success: false, error: "The primary root Superadmin role cannot be revoked or altered." };
     }
 
     const roles = this.getStoredRoles();
     const existing = roles[cleanEmail];
+    if (existing && normalizeStatus(existing.status) !== "active") {
+      return {
+        success: false,
+        error: "Restore this account to Active status before assigning administrative roles.",
+      };
+    }
 
     const record: UserRoleRecord = {
       id: existing?.id || `role-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       email: cleanEmail,
       fullName: targetName || existing?.fullName || cleanEmail.split("@")[0],
       role,
+      status: "active",
       assignedAt: new Date().toISOString(),
       assignedBy: assignerInfo?.email || assignerInfo?.fullName || "Superadmin",
-      notes: role === "superadmin" ? "Superadministrator permissions" : role === "admin" ? "Question Bank Administrator" : "Civil Service Reviewer",
+      notes:
+        role === "superadmin"
+          ? "Superadministrator permissions"
+          : role === "admin"
+            ? "Question Bank Administrator"
+            : "Civil Service Reviewer",
     };
 
     roles[cleanEmail] = record;
     this.saveStoredRoles(roles);
 
-    // If Supabase table exists, try to sync in background
     if (supabase) {
       try {
         await supabase.from(USER_ROLES_TABLE).upsert(
@@ -154,13 +305,12 @@ export const rolesModel = {
     const cleanEmail = (targetEmail || "").trim().toLowerCase();
     if (!cleanEmail) return { success: false, error: "Invalid email." };
 
-    if (cleanEmail === "xaruzowarlord@gmail.com") {
+    if (isProtectedRootEmail(cleanEmail)) {
       return { success: false, error: "Cannot revoke permissions from the primary root Superadmin." };
     }
 
     const roles = this.getStoredRoles();
     if (roles[cleanEmail]) {
-      // Revert to standard reviewer
       roles[cleanEmail].role = "reviewer";
       roles[cleanEmail].assignedAt = new Date().toISOString();
       roles[cleanEmail].notes = "Role revoked; standard reviewer permissions.";
@@ -176,9 +326,182 @@ export const rolesModel = {
     return { success: true };
   },
 
+  async setUserStatus(
+    targetEmail: string,
+    status: UserAccountStatus,
+    actorInfo?: { email?: string; fullName?: string },
+    reason?: string,
+    targetName?: string
+  ): Promise<{ success: boolean; record?: UserRoleRecord; serverSynced?: boolean; error?: string }> {
+    const cleanEmail = (targetEmail || "").trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes("@")) {
+      return { success: false, error: "Please provide a valid user email address." };
+    }
+
+    if (isProtectedRootEmail(cleanEmail)) {
+      return {
+        success: false,
+        error: "The primary root Superadmin account is protected and cannot be suspended or removed.",
+      };
+    }
+
+    const actorEmail = (actorInfo?.email || "").trim().toLowerCase();
+    if (actorEmail && actorEmail === cleanEmail && status !== "active") {
+      return {
+        success: false,
+        error: "You cannot ban or remove your own currently signed-in account.",
+      };
+    }
+
+    const roles = this.getStoredRoles();
+    const existing = roles[cleanEmail];
+    const nowIso = new Date().toISOString();
+    const cleanReason = (reason || "").trim() || undefined;
+    // Security rule: automatically strip elevated roles when suspending or soft-deleting
+    const nextRole: UserRole = status === "active" ? existing?.role || "reviewer" : "reviewer";
+
+    const record: UserRoleRecord = {
+      id: existing?.id || `user-${cleanEmail}`,
+      email: cleanEmail,
+      fullName: targetName || existing?.fullName || cleanEmail.split("@")[0],
+      role: nextRole,
+      status,
+      statusReason: status === "active" ? undefined : cleanReason,
+      statusUpdatedAt: nowIso,
+      statusUpdatedBy: actorInfo?.email || actorInfo?.fullName || "Superadmin",
+      deletedAt: status === "deleted" ? nowIso : null,
+      assignedAt: nowIso,
+      assignedBy: actorInfo?.email || actorInfo?.fullName || existing?.assignedBy || "Superadmin",
+      avatarUrl: existing?.avatarUrl || null,
+      notes:
+        status === "banned"
+          ? "Account suspended by administrator"
+          : status === "deleted"
+            ? "Account soft-deleted (archived)"
+            : "Account active",
+    };
+
+    roles[cleanEmail] = record;
+    this.saveStoredRoles(roles);
+
+    let serverSynced = false;
+    const token = await getAccessToken();
+    if (token) {
+      try {
+        const res = await fetch("/api/admin/user-status", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            email: cleanEmail,
+            status,
+            reason: cleanReason,
+            fullName: record.fullName,
+          }),
+        });
+        if (res.ok) {
+          serverSynced = true;
+        }
+      } catch {}
+    }
+
+    if (supabase && !serverSynced) {
+      try {
+        const extendedPayload = {
+          email: cleanEmail,
+          role: record.role,
+          full_name: record.fullName,
+          assigned_at: record.assignedAt,
+          assigned_by: record.assignedBy,
+          status,
+          status_reason: cleanReason || null,
+          status_updated_at: nowIso,
+          status_updated_by: record.statusUpdatedBy,
+          deleted_at: record.deletedAt,
+        };
+        const { error } = await supabase
+          .from(USER_ROLES_TABLE)
+          .upsert(extendedPayload, { onConflict: "email" });
+
+        if (error && isMissingColumnError(error)) {
+          await supabase.from(USER_ROLES_TABLE).upsert(
+            {
+              email: cleanEmail,
+              role: record.role,
+              full_name: record.fullName,
+              assigned_at: record.assignedAt,
+              assigned_by: record.assignedBy,
+            },
+            { onConflict: "email" }
+          );
+        }
+      } catch {}
+    }
+
+    return { success: true, record, serverSynced };
+  },
+
+  async permanentlyDeleteUser(
+    targetEmail: string,
+    actorInfo?: { email?: string; fullName?: string }
+  ): Promise<{ success: boolean; serverDeleted?: boolean; error?: string }> {
+    const cleanEmail = (targetEmail || "").trim().toLowerCase();
+    if (!cleanEmail) return { success: false, error: "Invalid user email." };
+
+    if (isProtectedRootEmail(cleanEmail)) {
+      return {
+        success: false,
+        error: "The primary root Superadmin account cannot be permanently deleted.",
+      };
+    }
+
+    const actorEmail = (actorInfo?.email || "").trim().toLowerCase();
+    if (actorEmail && actorEmail === cleanEmail) {
+      return {
+        success: false,
+        error: "You cannot permanently delete your own currently signed-in account.",
+      };
+    }
+
+    const roles = this.getStoredRoles();
+    if (roles[cleanEmail]) {
+      delete roles[cleanEmail];
+      this.saveStoredRoles(roles);
+    }
+    clearLocalUserArtifacts(cleanEmail);
+
+    let serverDeleted = false;
+    const token = await getAccessToken();
+    if (token) {
+      try {
+        const res = await fetch("/api/admin/user-delete", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ email: cleanEmail }),
+        });
+        if (res.ok) {
+          serverDeleted = true;
+        }
+      } catch {}
+    }
+
+    if (supabase && !serverDeleted) {
+      try {
+        await supabase.from(USER_ROLES_TABLE).delete().eq("email", cleanEmail);
+      } catch {}
+    }
+
+    return { success: true, serverDeleted };
+  },
+
   /**
    * Aggregates all registered users, profiles, and assigned roles
-   * so the Superadmin can view and pick users easily.
+   * so the Superadmin can view and manage accounts easily.
    */
   getAllUsers(): UserRoleRecord[] {
     const roles = this.getStoredRoles();
@@ -187,7 +510,10 @@ export const rolesModel = {
     // 1. Seed from stored roles
     (Object.values(roles) as UserRoleRecord[]).forEach((r) => {
       if (r?.email) {
-        usersMap.set(r.email.toLowerCase(), { ...r });
+        usersMap.set(r.email.toLowerCase(), {
+          ...r,
+          status: normalizeStatus(r.status),
+        });
       }
     });
 
@@ -205,6 +531,7 @@ export const rolesModel = {
               email: cleanEmail,
               fullName: cleanEmail.split("@")[0],
               role,
+              status: "active",
               assignedAt: parsedCreds[email]?.createdAt || new Date().toISOString(),
               assignedBy: "Registration",
             });
@@ -231,6 +558,7 @@ export const rolesModel = {
                 email,
                 fullName: profile.fullName || email.split("@")[0],
                 role: this.getUserRole({ email }),
+                status: "active",
                 assignedAt: new Date().toISOString(),
                 assignedBy: "Profile",
               });
@@ -251,23 +579,39 @@ export const rolesModel = {
   /**
    * Loads the full account roster from Supabase (profiles + user_roles)
    * and merges it with anything cached locally. Falls back gracefully to
-   * local data when Supabase is unavailable or the request is blocked.
+   * local data when Supabase is unavailable or columns aren't migrated yet.
    */
   async loadAllUsers(): Promise<UserRoleRecord[]> {
     const usersMap = new Map<string, UserRoleRecord>();
     this.getAllUsers().forEach((record) => {
-      if (record?.email) usersMap.set(record.email.toLowerCase(), { ...record });
+      if (record?.email) {
+        usersMap.set(record.email.toLowerCase(), {
+          ...record,
+          status: normalizeStatus(record.status),
+        });
+      }
     });
 
     if (!supabase) return sortUserRecords(Array.from(usersMap.values()));
 
     try {
-      const [profilesRes, rolesRes] = await Promise.all([
-        supabase.from(PROFILES_TABLE).select("id,email,full_name,avatar_url"),
-        supabase
+      const profilesPromise = supabase
+        .from(PROFILES_TABLE)
+        .select("id,email,full_name,avatar_url");
+
+      let rolesRes: any = await supabase
+        .from(USER_ROLES_TABLE)
+        .select(
+          "email,role,full_name,assigned_at,assigned_by,status,status_reason,status_updated_at,status_updated_by,deleted_at"
+        );
+
+      if (rolesRes.error && isMissingColumnError(rolesRes.error)) {
+        rolesRes = await supabase
           .from(USER_ROLES_TABLE)
-          .select("email,role,full_name,assigned_at,assigned_by"),
-      ]);
+          .select("email,role,full_name,assigned_at,assigned_by");
+      }
+
+      const profilesRes = await profilesPromise;
 
       const stored = this.getStoredRoles();
       let rolesChanged = false;
@@ -277,11 +621,28 @@ export const rolesModel = {
         const email = (row?.email || "").trim().toLowerCase();
         if (!email) return;
 
+        const remoteStatus: UserAccountStatus =
+          "status" in row
+            ? normalizeStatus(row.status)
+            : normalizeStatus(stored[email]?.status);
+
         const record: UserRoleRecord = {
           id: stored[email]?.id || `role-${email}`,
           email,
           fullName: row.full_name || stored[email]?.fullName || email.split("@")[0],
           role: (row.role as UserRole) || "reviewer",
+          status: remoteStatus,
+          statusReason:
+            "status_reason" in row ? row.status_reason || undefined : stored[email]?.statusReason,
+          statusUpdatedAt:
+            "status_updated_at" in row
+              ? row.status_updated_at || undefined
+              : stored[email]?.statusUpdatedAt,
+          statusUpdatedBy:
+            "status_updated_by" in row
+              ? row.status_updated_by || undefined
+              : stored[email]?.statusUpdatedBy,
+          deletedAt: "deleted_at" in row ? row.deleted_at || null : stored[email]?.deletedAt ?? null,
           assignedAt: row.assigned_at || stored[email]?.assignedAt || new Date().toISOString(),
           assignedBy: row.assigned_by || stored[email]?.assignedBy || "Supabase",
           notes: stored[email]?.notes,
@@ -290,7 +651,8 @@ export const rolesModel = {
         if (
           !stored[email] ||
           stored[email].role !== record.role ||
-          stored[email].fullName !== record.fullName
+          stored[email].fullName !== record.fullName ||
+          normalizeStatus(stored[email].status) !== record.status
         ) {
           stored[email] = record;
           rolesChanged = true;
@@ -319,6 +681,7 @@ export const rolesModel = {
           email,
           fullName: row.full_name || email.split("@")[0],
           role: stored[email]?.role || this.getUserRole({ email }),
+          status: normalizeStatus(stored[email]?.status),
           assignedAt: stored[email]?.assignedAt || new Date().toISOString(),
           assignedBy: stored[email]?.assignedBy || "Registration",
           notes: stored[email]?.notes,

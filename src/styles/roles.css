@@ -106,7 +106,7 @@
   border: 1px solid var(--border);
   border-radius: 9px;
   padding: 8px 12px;
-  flex: 1 1 240px;
+  flex: 1 1 250px;
   min-width: 0;
 }
 
@@ -130,17 +130,21 @@
 
 .qb-settings-roster-filters {
   display: flex;
-  gap: 6px;
+  align-items: center;
+  gap: 7px;
   flex-wrap: wrap;
 }
 
 .qb-settings-roster-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   background: var(--input-bg);
   border: 1px solid var(--border);
   color: var(--text-muted);
-  border-radius: 7px;
+  border-radius: 8px;
   padding: 6px 11px;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
@@ -158,9 +162,36 @@
   color: var(--accent);
 }
 
+.qb-settings-roster-filter-chip.has-warning:not(.active) {
+  border-color: rgba(244, 63, 94, 0.3);
+  color: #fb7185;
+}
+
+.light .qb-settings-roster-filter-chip.has-warning:not(.active) {
+  color: #be123c;
+}
+
+.qb-filter-chip-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  background: rgba(148, 163, 184, 0.16);
+  color: inherit;
+}
+
+.qb-settings-roster-filter-chip.active .qb-filter-chip-count {
+  background: rgba(245, 166, 35, 0.2);
+}
+
 /* Split Header + Scrollable List Container */
 .qb-settings-users-table-wrap {
-  --qb-roster-cols: minmax(190px, 1.75fr) minmax(114px, 0.85fr) minmax(135px, 1fr) minmax(244px, 1.6fr);
+  --qb-roster-cols: minmax(210px, 1.85fr) minmax(136px, 0.95fr) minmax(145px, 1fr) minmax(216px, 1.15fr);
   display: flex;
   flex-direction: column;
   border: 1px solid var(--border);
@@ -228,8 +259,16 @@
   transition: background 0.14s ease;
 }
 
+.qb-roster-row.is-banned {
+  background: rgba(244, 63, 94, 0.035);
+}
+
+.qb-roster-row.is-deleted {
+  background: rgba(148, 163, 184, 0.04);
+}
+
 .qb-roster-row:hover {
-  background: rgba(255, 255, 255, 0.025);
+  background: rgba(255, 255, 255, 0.028);
 }
 
 .light .qb-roster-row:hover {
@@ -241,7 +280,7 @@
 }
 
 .qb-roster-cell {
-  padding: 11px 14px;
+  padding: 13px 14px;
   min-width: 0;
 }
 
@@ -399,9 +438,22 @@
   color: #7c3aed;
 }
 
+.qb-user-cell-avatar.is-muted {
+  opacity: 0.6;
+  filter: grayscale(0.45);
+}
+
 .qb-user-cell-info {
   display: flex;
   flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.qb-user-cell-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   min-width: 0;
 }
 
@@ -413,12 +465,45 @@
   white-space: nowrap;
 }
 
+.qb-user-you-tag {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  color: var(--accent);
+}
+
 .qb-user-cell-email {
-  font-size: 11px;
+  font-size: 11.5px;
   color: var(--text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.qb-user-status-reason {
+  margin-top: 2px;
+  font-size: 11px;
+  color: #fb7185;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.light .qb-user-status-reason {
+  color: #be123c;
+}
+
+.qb-role-status-stack {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .qb-role-pill {
@@ -431,6 +516,39 @@
   font-weight: 700;
   letter-spacing: 0.03em;
   white-space: nowrap;
+}
+
+.qb-role-pill.is-muted {
+  opacity: 0.62;
+}
+
+.qb-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.qb-status-pill.is-banned {
+  background: rgba(244, 63, 94, 0.14);
+  border: 1px solid rgba(244, 63, 94, 0.35);
+  color: #fb7185;
+}
+
+.light .qb-status-pill.is-banned {
+  color: #be123c;
+}
+
+.qb-status-pill.is-deleted {
+  background: rgba(148, 163, 184, 0.14);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  color: var(--text-muted);
 }
 
 .qb-role-pill.role-superadmin {
@@ -481,12 +599,19 @@
   white-space: nowrap;
 }
 
+.qb-roster-cell-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
 .qb-root-superadmin-label {
   display: inline-block;
   font-size: 12px;
   color: #f5a623;
   font-weight: 600;
   font-style: italic;
+  text-align: left;
 }
 
 .light .qb-root-superadmin-label {
@@ -496,6 +621,8 @@
 .qb-user-role-actions {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
+  width: 100%;
   gap: 8px;
   min-width: 0;
 }
@@ -506,44 +633,332 @@
 }
 
 .qb-table-role-select {
-  flex: 1 1 156px;
-  min-width: 152px;
-  max-width: 210px;
+  flex: 1 1 136px;
+  min-width: 132px;
+  max-width: 172px;
 }
 
 .qb-table-role-select .qb-select-btn {
   padding: 5px 10px;
   font-size: 12px;
-  border-radius: 7px;
-  min-height: 32px;
+  border-radius: 8px;
+  min-height: 34px;
 }
 
 .qb-table-role-select .qb-select-btn-text {
   font-size: 12px;
 }
 
-.qb-user-revoke-btn {
-  background: rgba(244, 63, 94, 0.12);
-  border: 1px solid rgba(244, 63, 94, 0.25);
-  color: #fb7185;
-  border-radius: 7px;
-  padding: 5px 10px;
-  min-height: 32px;
-  font-size: 11.5px;
+.qb-user-kebab-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.qb-user-kebab-btn:hover,
+.qb-user-kebab-btn.is-open {
+  background: var(--surface-h);
+  border-color: var(--border-h);
+  color: var(--text-heading);
+}
+
+.qb-user-restore-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #34d399;
+  border-radius: 8px;
+  padding: 6px 12px;
+  min-height: 34px;
+  font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
   flex-shrink: 0;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.light .qb-user-revoke-btn {
+.light .qb-user-restore-btn {
+  color: #047857;
+}
+
+.qb-user-restore-btn:hover {
+  background: rgba(16, 185, 129, 0.22);
+  border-color: #10b981;
+}
+
+.qb-roster-archived-hint {
+  color: var(--text-muted);
+  opacity: 0.85;
+}
+
+/* Portaled Row Action Menu */
+.qb-user-action-menu {
+  position: fixed;
+  z-index: 950;
+  width: 228px;
+  padding: 6px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border-h);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.38), 0 4px 12px rgba(0, 0, 0, 0.22);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: qb-action-menu-in 0.14s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.qb-user-action-menu.is-above {
+  transform: translateY(-100%);
+}
+
+@keyframes qb-action-menu-in {
+  from {
+    opacity: 0;
+    scale: 0.97;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+.light .qb-user-action-menu {
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.14), 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+.qb-user-action-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.qb-user-action-item:hover {
+  background: var(--surface-h);
+  color: var(--text-heading);
+}
+
+.qb-user-action-item.is-success {
+  color: #34d399;
+}
+
+.light .qb-user-action-item.is-success {
+  color: #047857;
+}
+
+.qb-user-action-item.is-success:hover {
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.qb-user-action-item.is-warning {
+  color: #fbbf24;
+}
+
+.light .qb-user-action-item.is-warning {
+  color: #b45309;
+}
+
+.qb-user-action-item.is-warning:hover {
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.qb-user-action-item.is-danger {
+  color: #fb7185;
+}
+
+.light .qb-user-action-item.is-danger {
   color: #be123c;
 }
 
-.qb-user-revoke-btn:hover {
-  background: rgba(244, 63, 94, 0.22);
-  border-color: #f43f5e;
+.qb-user-action-item.is-danger:hover {
+  background: rgba(244, 63, 94, 0.12);
+}
+
+.qb-user-action-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 6px;
+}
+
+/* Account Moderation Confirmation Modal */
+.qb-mod-modal-card {
+  width: min(100%, 468px);
+  background: var(--surface);
+  border: 1px solid var(--border-h);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.qb-mod-modal-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.qb-mod-modal-icon {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qb-mod-modal-icon.is-ban {
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.32);
+  color: #fbbf24;
+}
+
+.light .qb-mod-modal-icon.is-ban {
+  color: #b45309;
+}
+
+.qb-mod-modal-icon.is-soft-delete,
+.qb-mod-modal-icon.is-permanent-delete {
+  background: rgba(244, 63, 94, 0.14);
+  border: 1px solid rgba(244, 63, 94, 0.32);
+  color: #fb7185;
+}
+
+.light .qb-mod-modal-icon.is-soft-delete,
+.light .qb-mod-modal-icon.is-permanent-delete {
+  color: #be123c;
+}
+
+.qb-mod-modal-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.qb-mod-modal-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-heading);
+  line-height: 1.3;
+}
+
+.qb-mod-modal-desc {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+.qb-mod-user-strip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: 10px;
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  min-width: 0;
+}
+
+.qb-mod-reason-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.qb-mod-reason-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-heading);
+}
+
+.qb-mod-reason-input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.qb-mod-reason-input:focus {
+  border-color: var(--accent);
+}
+
+.qb-mod-reason-input::placeholder {
+  color: var(--text-muted);
+}
+
+.qb-mod-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 2px;
+}
+
+.qb-mod-confirm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 9px;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.qb-mod-confirm-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.qb-mod-confirm-btn.is-ban {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #0f172a;
+}
+
+.qb-mod-confirm-btn.is-soft-delete,
+.qb-mod-confirm-btn.is-permanent-delete {
+  background: #e11d48;
+  color: #ffffff;
+}
+
+.qb-mod-confirm-btn:not(:disabled):hover {
+  opacity: 0.92;
 }
 
 /* Tablet & Reduced-Width Viewports: Structured 2-Row Card-List (Zero Horizontal Overflow) */
@@ -586,6 +1001,15 @@
   .qb-roster-cell-actions {
     grid-area: actions;
     justify-self: end;
+    justify-content: flex-end;
+  }
+
+  .qb-root-superadmin-label {
+    text-align: right;
+  }
+
+  .qb-user-role-actions {
+    justify-content: flex-end;
   }
 
   .qb-table-role-select {
@@ -623,6 +1047,7 @@
 
   .qb-settings-roster-filter-chip {
     flex: 1 1 auto;
+    justify-content: center;
     text-align: center;
     padding: 7px 10px;
   }
@@ -637,8 +1062,8 @@
       "user role"
       "assigned assigned"
       "actions actions";
-    gap: 8px 10px;
-    padding: 13px 14px;
+    gap: 10px 10px;
+    padding: 14px;
   }
 
   .qb-user-assigned-cell {
@@ -662,12 +1087,18 @@
 
   .qb-roster-cell-actions {
     justify-self: stretch;
+    justify-content: flex-start;
     width: 100%;
     padding-top: 2px;
   }
 
+  .qb-root-superadmin-label {
+    text-align: left;
+  }
+
   .qb-user-role-actions {
     width: 100%;
+    justify-content: flex-start;
   }
 
   .qb-table-role-select {
@@ -681,8 +1112,29 @@
     min-height: 38px;
   }
 
-  .qb-user-revoke-btn {
+  .qb-user-kebab-btn {
+    width: 38px;
+    height: 38px;
+  }
+
+  .qb-user-restore-btn {
+    flex: 1 1 auto;
     min-height: 38px;
     padding: 6px 14px;
+  }
+
+  .qb-mod-modal-card {
+    padding: 20px;
+    gap: 16px;
+  }
+
+  .qb-mod-modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .qb-mod-modal-actions .qb-modal-btn,
+  .qb-mod-modal-actions .qb-mod-confirm-btn {
+    width: 100%;
+    min-height: 40px;
   }
 }

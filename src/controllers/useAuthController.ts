@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase, isValidUuid, isNetworkOrFetchError } from "../utils/supabaseClient";
 import { SYSTEM_AUTH_STORAGE_KEY } from "../constants/appConstants";
+import { rolesModel } from "../models/rolesModel";
 
 export const emailToDeterministicUuid = (email) => {
   const clean = (email || "").trim().toLowerCase();
@@ -107,10 +108,31 @@ const toAuthError = (error, fallback) => {
     lower.includes("security purposes")
   ) {
     message = "Too many attempts. For security, Supabase limits instant login links to once every 60 seconds. Please check your inbox/spam folder for the email already sent, wait 60 seconds to resend, or switch to Password login / Google sign-in to enter immediately.";
+  } else if (lower.includes("user is banned") || lower.includes("account is banned")) {
+    message = "This account has been suspended by an administrator.";
   } else if (isNetworkOrFetchError(error)) {
     message = "Could not reach the authentication service. The Supabase cloud project may be paused, or an ad-blocker/shield (like Brave Shields) may be blocking the request. You can also sign in using a password.";
   }
   return new Error(message);
+};
+
+const formatAccountRestrictionError = (
+  status: "active" | "banned" | "deleted",
+  reason?: string
+) => {
+  const cleanReason = (reason || "").trim();
+  if (status === "banned") {
+    return new Error(
+      cleanReason
+        ? `This account has been suspended by an administrator (${cleanReason}).`
+        : "This account has been suspended by an administrator. Please contact support for assistance."
+    );
+  }
+  return new Error(
+    cleanReason
+      ? `This account has been removed (${cleanReason}). Contact an administrator to restore access.`
+      : "This account has been removed. Contact an administrator to restore access."
+  );
 };
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -347,25 +369,61 @@ export function useAuthController() {
     };
   }, [session?.user?.id]);
 
+  const forceRestrictedSignOut = async () => {
+    try {
+      localStorage.removeItem(SYSTEM_AUTH_STORAGE_KEY);
+    } catch {}
+    setSystemUser(null);
+    setUserProfile(null);
+    setSession(null);
+    if (supabase) {
+      try {
+        await supabase.auth.signOut();
+      } catch {}
+    }
+  };
+
   useEffect(() => {
     let active = true;
+
+    const verifySessionAllowed = async (candidateSession: any) => {
+      if (!candidateSession?.user) {
+        if (active) setSession(null);
+        return;
+      }
+      const localCheck = rolesModel.getAccountRestriction({
+        id: candidateSession.user.id,
+        email: candidateSession.user.email,
+      });
+      if (localCheck.restricted) {
+        await forceRestrictedSignOut();
+        return;
+      }
+      const remoteCheck = await rolesModel.fetchRemoteAccountRestriction(candidateSession.user.email);
+      if (!active) return;
+      if (remoteCheck.restricted) {
+        await forceRestrictedSignOut();
+        return;
+      }
+      setSession(candidateSession);
+    };
 
     if (!supabase) {
       setIsAuthLoading(false);
       return undefined;
     }
 
-    supabase.auth.getSession().then(({ data, error }) => {
+    supabase.auth.getSession().then(async ({ data, error }) => {
       if (!active) return;
       if (error) console.error("Failed to get auth session:", error);
       if (data?.session) {
-        setSession(data.session);
+        await verifySessionAllowed(data.session);
       }
-      setIsAuthLoading(false);
+      if (active) setIsAuthLoading(false);
     });
 
     const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession || null);
+      void verifySessionAllowed(nextSession || null);
       setIsAuthLoading(false);
     });
 
@@ -374,6 +432,43 @@ export function useAuthController() {
       data.subscription.unsubscribe();
     };
   }, []);
+
+  // Enforce immediate sign-out if the current signed-in user is suspended or removed
+  useEffect(() => {
+    const activeEmail = user?.email || null;
+    const activeId = user?.id || null;
+    if (!activeEmail && !activeId) return undefined;
+
+    let cancelled = false;
+    const checkCurrentAccount = async () => {
+      const local = rolesModel.getAccountRestriction({ id: activeId, email: activeEmail });
+      if (local.restricted) {
+        if (!cancelled) await forceRestrictedSignOut();
+        return;
+      }
+      if (activeEmail) {
+        const remote = await rolesModel.fetchRemoteAccountRestriction(activeEmail);
+        if (!cancelled && remote.restricted) {
+          await forceRestrictedSignOut();
+        }
+      }
+    };
+
+    void checkCurrentAccount();
+
+    const handleRolesUpdated = () => {
+      const local = rolesModel.getAccountRestriction({ id: activeId, email: activeEmail });
+      if (local.restricted) {
+        void forceRestrictedSignOut();
+      }
+    };
+
+    window.addEventListener("qbank-roles-updated", handleRolesUpdated);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("qbank-roles-updated", handleRolesUpdated);
+    };
+  }, [user?.email, user?.id]);
 
   const profile = useMemo(() => {
     if (!user) {
@@ -405,6 +500,11 @@ export function useAuthController() {
     const cleanEmail = (email || "").trim().toLowerCase();
     if (!cleanEmail || !EMAIL_PATTERN.test(cleanEmail)) {
       return { error: new Error("Please enter a valid email address.") };
+    }
+
+    const preCheck = await rolesModel.fetchRemoteAccountRestriction(cleanEmail);
+    if (preCheck.restricted) {
+      return { error: formatAccountRestrictionError(preCheck.status, preCheck.reason) };
     }
 
     const isSignUp = options.mode === "signup";
@@ -475,6 +575,12 @@ export function useAuthController() {
           }
           if (!data?.session) {
             return { error: new Error("Unable to start a session. Please try again.") };
+          }
+          const postCheck = await rolesModel.fetchRemoteAccountRestriction(cleanEmail);
+          if (postCheck.restricted) {
+            await supabase.auth.signOut();
+            setSession(null);
+            return { error: formatAccountRestrictionError(postCheck.status, postCheck.reason) };
           }
           setSession(data.session);
           return { error: null, mode: "remote" };

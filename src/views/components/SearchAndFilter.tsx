@@ -119,9 +119,12 @@ export default function SearchAndFilter({
   const [isMotionDisabled, setIsMotionDisabled] = useState<boolean>(() => {
     if (typeof document === "undefined" || typeof window === "undefined") return false;
     const root = document.documentElement;
+    const body = document.body;
     return (
       root.classList.contains("qb-lite-mode") ||
       root.classList.contains("qb-no-animations") ||
+      Boolean(body?.classList.contains("qb-lite-mode")) ||
+      Boolean(body?.classList.contains("qb-no-animations")) ||
       Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches)
     );
   });
@@ -129,12 +132,15 @@ export default function SearchAndFilter({
   useEffect(() => {
     if (typeof document === "undefined" || typeof window === "undefined") return;
     const root = document.documentElement;
+    const body = document.body;
     const mq = window.matchMedia?.("(prefers-reduced-motion: reduce)");
 
     const checkMotionPref = () => {
       setIsMotionDisabled(
         root.classList.contains("qb-lite-mode") ||
         root.classList.contains("qb-no-animations") ||
+        Boolean(body?.classList.contains("qb-lite-mode")) ||
+        Boolean(body?.classList.contains("qb-no-animations")) ||
         Boolean(mq?.matches)
       );
     };
@@ -142,6 +148,9 @@ export default function SearchAndFilter({
     checkMotionPref();
     const observer = new MutationObserver(checkMotionPref);
     observer.observe(root, { attributes: true, attributeFilter: ["class"] });
+    if (body) {
+      observer.observe(body, { attributes: true, attributeFilter: ["class"] });
+    }
     if (mq?.addEventListener) {
       mq.addEventListener("change", checkMotionPref);
     }
@@ -155,7 +164,6 @@ export default function SearchAndFilter({
 
   const masteryBarRef = useRef<HTMLDivElement>(null);
   const masteryBtnRefs = useRef<Partial<Record<MasteryFilter, HTMLButtonElement | null>>>({});
-  const gliderMountedRef = useRef(false);
   const lastNavKeyboardRef = useRef(false);
   const [gliderReady, setGliderReady] = useState(false);
   const [focusedMastery, setFocusedMastery] = useState<MasteryFilter | null>(null);
@@ -176,21 +184,36 @@ export default function SearchAndFilter({
     const container = masteryBarRef.current;
     const btn = masteryBtnRefs.current[id];
     if (!container || !btn) return null;
-    const containerRect = container.getBoundingClientRect();
-    const btnRect = btn.getBoundingClientRect();
-    if (btnRect.width === 0 || btnRect.height === 0) return null;
+    const width = btn.offsetWidth;
+    const height = btn.offsetHeight;
+    if (width === 0 || height === 0) return null;
     return {
-      left: btnRect.left - containerRect.left + container.scrollLeft,
-      top: btnRect.top - containerRect.top + container.scrollTop,
-      width: btnRect.width,
-      height: btnRect.height,
+      left: btn.offsetLeft,
+      top: btn.offsetTop,
+      width,
+      height,
     };
   }, []);
 
+  // StrictMode-safe readiness toggle: enables CSS transitions after initial paint,
+  // and cleanly disables them when switching to LITE / Power-Saver.
+  useEffect(() => {
+    if (!onMasteryChange || isMotionDisabled) {
+      setGliderReady(false);
+      return;
+    }
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => setGliderReady(true));
+    });
+    return () => {
+      cancelAnimationFrame(raf1);
+      if (raf2) cancelAnimationFrame(raf2);
+    };
+  }, [onMasteryChange, isMotionDisabled]);
+
   useLayoutEffect(() => {
     if (!onMasteryChange || isMotionDisabled) {
-      gliderMountedRef.current = false;
-      setGliderReady(false);
       setGliderRect(null);
       setFocusRect(null);
       return;
@@ -203,12 +226,11 @@ export default function SearchAndFilter({
       setFocusRect(nextFocus);
     };
 
-    syncGliders();
-
-    let rafId = 0;
-    if (!gliderMountedRef.current) {
-      gliderMountedRef.current = true;
-      rafId = requestAnimationFrame(() => setGliderReady(true));
+    let moveRaf = 0;
+    if (!gliderReady) {
+      syncGliders();
+    } else {
+      moveRaf = requestAnimationFrame(syncGliders);
     }
 
     const container = masteryBarRef.current;
@@ -221,13 +243,14 @@ export default function SearchAndFilter({
     }
     window.addEventListener("resize", syncGliders);
     return () => {
-      if (rafId) cancelAnimationFrame(rafId);
+      if (moveRaf) cancelAnimationFrame(moveRaf);
       resizeObserver?.disconnect();
       window.removeEventListener("resize", syncGliders);
     };
   }, [
     onMasteryChange,
     isMotionDisabled,
+    gliderReady,
     masteryFilter,
     focusedMastery,
     resolvedMasteryCounts.all,
@@ -467,10 +490,11 @@ export default function SearchAndFilter({
                 className={`qb-mastery-glider status-${masteryFilter}`}
                 aria-hidden="true"
                 style={{
-                  top: `${gliderRect.top}px`,
+                  top: 0,
+                  left: 0,
                   width: `${gliderRect.width}px`,
                   height: `${gliderRect.height}px`,
-                  transform: `translate3d(${gliderRect.left}px, 0, 0)`,
+                  transform: `translate3d(${gliderRect.left}px, ${gliderRect.top}px, 0)`,
                 }}
               />
             )}
@@ -479,10 +503,11 @@ export default function SearchAndFilter({
                 className={`qb-mastery-focus-glider status-${focusedMastery}`}
                 aria-hidden="true"
                 style={{
-                  top: `${focusRect.top}px`,
+                  top: 0,
+                  left: 0,
                   width: `${focusRect.width}px`,
                   height: `${focusRect.height}px`,
-                  transform: `translate3d(${focusRect.left}px, 0, 0)`,
+                  transform: `translate3d(${focusRect.left}px, ${focusRect.top}px, 0)`,
                 }}
               />
             )}

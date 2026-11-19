@@ -39,6 +39,77 @@ interface OtpRecord {
 }
 
 const otpStore = new Map<string, OtpRecord>();
+const restrictedEmailStore = new Map<string, { status: "banned" | "deleted"; reason?: string }>();
+const PROTECTED_ROOT_EMAILS = new Set(["xaruzowarlord@gmail.com"]);
+
+function getSupabaseAdminClient() {
+  const supabaseUrl = process.env.VITE_SUPABASE_URL;
+  const serviceRoleKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceRoleKey) return null;
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
+
+async function getEmailRestrictionStatus(email: string): Promise<{ restricted: boolean; status?: string; reason?: string }> {
+  const cleanEmail = email.trim().toLowerCase();
+  if (!cleanEmail || PROTECTED_ROOT_EMAILS.has(cleanEmail)) return { restricted: false };
+
+  const localEntry = restrictedEmailStore.get(cleanEmail);
+  if (localEntry) {
+    return { restricted: true, status: localEntry.status, reason: localEntry.reason };
+  }
+
+  const supabaseAdmin = getSupabaseAdminClient();
+  if (!supabaseAdmin) return { restricted: false };
+
+  try {
+    const { data } = await supabaseAdmin
+      .from("user_roles")
+      .select("status,status_reason")
+      .eq("email", cleanEmail)
+      .maybeSingle();
+    if (data?.status === "banned" || data?.status === "deleted") {
+      return { restricted: true, status: data.status, reason: data.status_reason || undefined };
+    }
+  } catch {}
+  return { restricted: false };
+}
+
+async function verifyAdminCaller(req: express.Request): Promise<{ ok: boolean; email?: string; error?: string; statusCode?: number }> {
+  const authHeader = String(req.headers.authorization || "");
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+  if (!token) {
+    return { ok: false, statusCode: 401, error: "Authentication token required." };
+  }
+  const supabaseAdmin = getSupabaseAdminClient();
+  if (!supabaseAdmin) {
+    return { ok: false, statusCode: 503, error: "Server admin credentials are not configured." };
+  }
+  const { data: userData, error } = await supabaseAdmin.auth.getUser(token);
+  const callerEmail = userData?.user?.email?.trim().toLowerCase() || "";
+  if (error || !callerEmail) {
+    return { ok: false, statusCode: 401, error: "Invalid or expired session token." };
+  }
+  if (PROTECTED_ROOT_EMAILS.has(callerEmail)) {
+    return { ok: true, email: callerEmail };
+  }
+  const { data: roleRow } = await supabaseAdmin
+    .from("user_roles")
+    .select("role,status")
+    .eq("email", callerEmail)
+    .maybeSingle();
+  const isAuthorized =
+    roleRow &&
+    roleRow.status !== "banned" &&
+    roleRow.status !== "deleted" &&
+    (roleRow.role === "superadmin" || roleRow.role === "admin");
+  if (!isAuthorized) {
+    return { ok: false, statusCode: 403, error: "Administrator privileges required." };
+  }
+  return { ok: true, email: callerEmail };
+}
 
 // Helper to clean up expired OTPs periodically
 setInterval(() => {
@@ -361,6 +432,16 @@ async function startServer() {
         return res.status(400).json({ error: "Please provide a valid email address." });
       }
 
+      const restriction = await getEmailRestrictionStatus(email);
+      if (restriction.restricted) {
+        return res.status(403).json({
+          error:
+            restriction.status === "banned"
+              ? "This account has been suspended by an administrator."
+              : "This account has been removed. Contact an administrator to restore access.",
+        });
+      }
+
       // Generate 6-digit cryptographically strong code
       const code = Math.floor(100000 + Math.random() * 900000).toString();
       const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
@@ -675,6 +756,16 @@ async function startServer() {
         return res.status(400).json({ error: "Please provide a valid email address." });
       }
 
+      const restriction = await getEmailRestrictionStatus(email);
+      if (restriction.restricted) {
+        return res.status(403).json({
+          error:
+            restriction.status === "banned"
+              ? "This email address has been suspended and cannot register a new account."
+              : "This account was previously removed. Contact an administrator if you need access restored.",
+        });
+      }
+
       // Check if user already exists in Supabase
       const supabaseUrl = process.env.VITE_SUPABASE_URL;
       const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
@@ -814,6 +905,126 @@ async function startServer() {
       });
     } catch (err: any) {
       return res.status(500).json({ error: err?.message || "Failed to verify signup code." });
+    }
+  });
+
+  // -------------------------------------------------------------
+  // API: Admin Moderation — Ban / Soft Delete / Restore Account
+  // -------------------------------------------------------------
+  app.post("/api/admin/user-status", async (req, res) => {
+    try {
+      const auth = await verifyAdminCaller(req);
+      if (!auth.ok) {
+        return res.status(auth.statusCode || 403).json({ error: auth.error });
+      }
+
+      const targetEmail = String(req.body?.email || "").trim().toLowerCase();
+      const status = String(req.body?.status || "").trim() as "active" | "banned" | "deleted";
+      const reason = String(req.body?.reason || "").trim() || undefined;
+      const fullName = String(req.body?.fullName || "").trim() || targetEmail.split("@")[0];
+
+      if (!targetEmail || !targetEmail.includes("@")) {
+        return res.status(400).json({ error: "Valid target email is required." });
+      }
+      if (!["active", "banned", "deleted"].includes(status)) {
+        return res.status(400).json({ error: "Invalid account status." });
+      }
+      if (PROTECTED_ROOT_EMAILS.has(targetEmail)) {
+        return res.status(403).json({ error: "Primary root Superadmin account cannot be restricted." });
+      }
+      if (auth.email === targetEmail && status !== "active") {
+        return res.status(400).json({ error: "Cannot ban or remove your own signed-in account." });
+      }
+
+      if (status === "active") {
+        restrictedEmailStore.delete(targetEmail);
+      } else {
+        restrictedEmailStore.set(targetEmail, { status, reason });
+      }
+
+      const supabaseAdmin = getSupabaseAdminClient();
+      if (supabaseAdmin) {
+        const nowIso = new Date().toISOString();
+        const { error: upsertErr } = await supabaseAdmin.from("user_roles").upsert(
+          {
+            email: targetEmail,
+            role: "reviewer",
+            full_name: fullName,
+            assigned_at: nowIso,
+            assigned_by: auth.email,
+            status,
+            status_reason: status === "active" ? null : reason || null,
+            status_updated_at: nowIso,
+            status_updated_by: auth.email,
+            deleted_at: status === "deleted" ? nowIso : null,
+          },
+          { onConflict: "email" }
+        );
+        if (upsertErr) {
+          console.warn("[Admin Moderation] user_roles upsert note:", upsertErr.message);
+        }
+
+        try {
+          const { data: usersData } = await supabaseAdmin.auth.admin.listUsers();
+          const match = usersData?.users?.find((u: any) => u.email?.toLowerCase() === targetEmail);
+          if (match) {
+            await supabaseAdmin.auth.admin.updateUserById(match.id, {
+              ban_duration: status === "active" ? "none" : "876000h",
+            });
+          }
+        } catch (authErr: any) {
+          console.warn("[Admin Moderation] auth ban_duration note:", authErr?.message);
+        }
+      }
+
+      return res.json({ success: true, email: targetEmail, status });
+    } catch (err: any) {
+      return res.status(500).json({ error: err?.message || "Failed to update account status." });
+    }
+  });
+
+  // -------------------------------------------------------------
+  // API: Admin Moderation — Permanent Account Deletion
+  // -------------------------------------------------------------
+  app.post("/api/admin/user-delete", async (req, res) => {
+    try {
+      const auth = await verifyAdminCaller(req);
+      if (!auth.ok) {
+        return res.status(auth.statusCode || 403).json({ error: auth.error });
+      }
+
+      const targetEmail = String(req.body?.email || "").trim().toLowerCase();
+      if (!targetEmail || !targetEmail.includes("@")) {
+        return res.status(400).json({ error: "Valid target email is required." });
+      }
+      if (PROTECTED_ROOT_EMAILS.has(targetEmail)) {
+        return res.status(403).json({ error: "Primary root Superadmin account cannot be deleted." });
+      }
+      if (auth.email === targetEmail) {
+        return res.status(400).json({ error: "Cannot delete your own signed-in account." });
+      }
+
+      restrictedEmailStore.delete(targetEmail);
+
+      const supabaseAdmin = getSupabaseAdminClient();
+      if (supabaseAdmin) {
+        await supabaseAdmin.from("user_roles").delete().eq("email", targetEmail);
+        await supabaseAdmin.from("profiles").delete().eq("email", targetEmail);
+
+        try {
+          const { data: usersData } = await supabaseAdmin.auth.admin.listUsers();
+          const match = usersData?.users?.find((u: any) => u.email?.toLowerCase() === targetEmail);
+          if (match) {
+            await supabaseAdmin.auth.admin.deleteUser(match.id);
+          }
+        } catch (delErr: any) {
+          console.warn("[Admin Moderation] auth.admin.deleteUser note:", delErr?.message);
+        }
+      }
+
+      return res.json({ success: true, email: targetEmail });
+    } catch (err: any) {
+      return res.status(500).json({ error: err?.message || "Failed to permanently delete user." });
     }
   });
 

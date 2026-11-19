@@ -1924,6 +1924,7 @@ body.light .qb-timer-icon {
 .qb-mastery-glider,
 .qb-mastery-focus-glider {
   position: absolute;
+  top: 0;
   left: 0;
   border-radius: 8px;
   pointer-events: none;
@@ -1940,8 +1941,8 @@ body.light .qb-timer-icon {
 
 .qb-mastery-segmented.is-ready .qb-mastery-glider {
   transition:
-    transform 0.26s cubic-bezier(0.22, 1, 0.36, 1),
-    width 0.26s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+    width 0.24s cubic-bezier(0.16, 1, 0.3, 1),
     background-color 0.2s ease,
     border-color 0.2s ease,
     box-shadow 0.2s ease;
@@ -1992,8 +1993,8 @@ body.light .qb-timer-icon {
 
 .qb-mastery-segmented.is-ready .qb-mastery-focus-glider {
   transition:
-    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
-    width 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+    width 0.24s cubic-bezier(0.16, 1, 0.3, 1),
     border-color 0.18s ease,
     box-shadow 0.18s ease;
 }

@@ -30,6 +30,12 @@ import {
   Loader2,
   Upload,
   FileJson,
+  EllipsisVertical,
+  Ban,
+  UserX,
+  Trash,
+  ShieldOff,
+  Archive,
 } from "lucide-react";
 import type { SettingsPageProps, UserRole, UserRoleRecord, SelectOption } from "../../types";
 import { useOverlayDialogA11y } from "../../controllers/useOverlayDialogA11y";
@@ -191,11 +197,100 @@ export default function SettingsPage({
   // User Roles Management State
   const [usersList, setUsersList] = useState<UserRoleRecord[]>(() => rolesModel.getAllUsers());
   const [roleSearch, setRoleSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState<"all" | "superadmin" | "admin" | "reviewer">("all");
+  const [roleFilter, setRoleFilter] = useState<
+    "all" | "superadmin" | "admin" | "reviewer" | "banned" | "deleted"
+  >("all");
   const [newRoleEmail, setNewRoleEmail] = useState("");
   const [newRoleSelect, setNewRoleSelect] = useState<UserRole>("admin");
   const [roleNotice, setRoleNotice] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [isUsersLoading, setIsUsersLoading] = useState(false);
+
+  // Portaled Row Action Menu & Account Moderation Modal State
+  const rosterScrollRef = useRef<HTMLDivElement>(null);
+  const actionMenuRef = useRef<HTMLDivElement>(null);
+  const actionTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const moderationDialogRef = useRef<HTMLDivElement>(null);
+  const [openActionMenu, setOpenActionMenu] = useState<{
+    record: UserRoleRecord;
+    top: number;
+    left: number;
+    placeAbove: boolean;
+  } | null>(null);
+  const [moderationTarget, setModerationTarget] = useState<{
+    record: UserRoleRecord;
+    action: "ban" | "soft-delete" | "permanent-delete";
+  } | null>(null);
+  const [moderationReason, setModerationReason] = useState("");
+  const [isModerating, setIsModerating] = useState(false);
+
+  const closeModerationModal = () => {
+    if (isModerating) return;
+    setModerationTarget(null);
+    setModerationReason("");
+  };
+
+  useOverlayDialogA11y(!!moderationTarget, closeModerationModal, moderationDialogRef);
+
+  useEffect(() => {
+    if (!openActionMenu) return;
+
+    const handlePointerDown = (e: PointerEvent) => {
+      const target = e.target as Node;
+      if (
+        actionMenuRef.current?.contains(target) ||
+        actionTriggerRef.current?.contains(target)
+      ) {
+        return;
+      }
+      setOpenActionMenu(null);
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpenActionMenu(null);
+        actionTriggerRef.current?.focus();
+      }
+    };
+
+    const handleDismiss = () => setOpenActionMenu(null);
+    const scrollEl = rosterScrollRef.current;
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("resize", handleDismiss);
+    scrollEl?.addEventListener("scroll", handleDismiss, { passive: true });
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("resize", handleDismiss);
+      scrollEl?.removeEventListener("scroll", handleDismiss);
+    };
+  }, [openActionMenu]);
+
+  const handleToggleActionMenu = (
+    e: React.MouseEvent<HTMLButtonElement>,
+    record: UserRoleRecord
+  ) => {
+    e.stopPropagation();
+    const trigger = e.currentTarget;
+    if (openActionMenu?.record.email === record.email) {
+      setOpenActionMenu(null);
+      return;
+    }
+
+    actionTriggerRef.current = trigger;
+    const rect = trigger.getBoundingClientRect();
+    const menuWidth = 228;
+    const estimatedHeight = 176;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const placeAbove = spaceBelow < estimatedHeight && rect.top > estimatedHeight;
+    const rawLeft = rect.right - menuWidth;
+    const left = Math.max(12, Math.min(rawLeft, window.innerWidth - menuWidth - 12));
+    const top = placeAbove ? rect.top - 6 : rect.bottom + 6;
+
+    setOpenActionMenu({ record, top, left, placeAbove });
+  };
 
   const refreshUsersList = async () => {
     setIsUsersLoading(true);
@@ -246,6 +341,7 @@ export default function SettingsPage({
 
   const handleRevokeRole = async (targetEmail: string) => {
     setRoleNotice(null);
+    setOpenActionMenu(null);
     const res = await rolesModel.revokeRole(targetEmail);
     if (res.success) {
       setRoleNotice({
@@ -259,11 +355,103 @@ export default function SettingsPage({
     }
   };
 
+  const handleRestoreUser = async (record: UserRoleRecord) => {
+    setRoleNotice(null);
+    setOpenActionMenu(null);
+    const res = await rolesModel.setUserStatus(
+      record.email,
+      "active",
+      { email: profile?.email, fullName: profile?.fullName },
+      undefined,
+      record.fullName
+    );
+    if (res.success) {
+      setRoleNotice({
+        type: "success",
+        message: `Account restored for ${record.email}. Standard Reviewer access is active.`,
+      });
+      await refreshUsersList();
+      setTimeout(() => setRoleNotice(null), 4000);
+    } else {
+      setRoleNotice({ type: "error", message: res.error || "Failed to restore account." });
+    }
+  };
+
+  const handleConfirmModeration = async () => {
+    if (!moderationTarget || isModerating) return;
+    setIsModerating(true);
+    setRoleNotice(null);
+    const { record, action } = moderationTarget;
+    const actor = { email: profile?.email, fullName: profile?.fullName };
+
+    try {
+      if (action === "permanent-delete") {
+        const res = await rolesModel.permanentlyDeleteUser(record.email, actor);
+        if (res.success) {
+          setRoleNotice({
+            type: "success",
+            message: `Account ${record.email} has been permanently deleted.`,
+          });
+          await refreshUsersList();
+          setModerationTarget(null);
+          setModerationReason("");
+          setTimeout(() => setRoleNotice(null), 4500);
+        } else {
+          setRoleNotice({ type: "error", message: res.error || "Failed to permanently delete user." });
+        }
+        return;
+      }
+
+      const nextStatus = action === "ban" ? "banned" : "deleted";
+      const res = await rolesModel.setUserStatus(
+        record.email,
+        nextStatus,
+        actor,
+        moderationReason,
+        record.fullName
+      );
+      if (res.success) {
+        setRoleNotice({
+          type: "success",
+          message:
+            action === "ban"
+              ? `Account ${record.email} has been suspended and blocked from signing in.`
+              : `Account ${record.email} was moved to Removed and can be restored anytime.`,
+        });
+        await refreshUsersList();
+        setModerationTarget(null);
+        setModerationReason("");
+        setTimeout(() => setRoleNotice(null), 4500);
+      } else {
+        setRoleNotice({ type: "error", message: res.error || "Failed to update account status." });
+      }
+    } finally {
+      setIsModerating(false);
+    }
+  };
+
+  const bannedCount = usersList.filter((u) => (u.status || "active") === "banned").length;
+  const removedCount = usersList.filter((u) => (u.status || "active") === "deleted").length;
+  const activeOrBannedCount = usersList.length - removedCount;
+
   const filteredUsers = usersList.filter((u) => {
-    if (roleFilter !== "all" && u.role !== roleFilter) return false;
+    const status = u.status || "active";
+    if (roleFilter === "banned") {
+      if (status !== "banned") return false;
+    } else if (roleFilter === "deleted") {
+      if (status !== "deleted") return false;
+    } else {
+      if (status === "deleted") return false;
+      if (roleFilter !== "all" && u.role !== roleFilter) return false;
+    }
     if (roleSearch.trim()) {
       const q = roleSearch.toLowerCase();
-      return u.email.toLowerCase().includes(q) || u.fullName.toLowerCase().includes(q) || u.role.toLowerCase().includes(q);
+      return (
+        u.email.toLowerCase().includes(q) ||
+        u.fullName.toLowerCase().includes(q) ||
+        u.role.toLowerCase().includes(q) ||
+        status.toLowerCase().includes(q)
+      );
     }
     return true;
   });
@@ -1429,18 +1617,32 @@ export default function SettingsPage({
                   <div
                     className="qb-settings-roster-filters"
                     role="tablist"
-                    aria-label="Filter accounts by role"
+                    aria-label="Filter accounts by role or status"
                   >
-                    {(["all", "superadmin", "admin", "reviewer"] as const).map((rFilter) => (
+                    {(
+                      [
+                        { id: "all", label: "All Accounts" },
+                        { id: "superadmin", label: "Superadmin" },
+                        { id: "admin", label: "Admin" },
+                        { id: "reviewer", label: "Reviewer" },
+                        { id: "banned", label: "Banned", count: bannedCount },
+                        { id: "deleted", label: "Removed", count: removedCount },
+                      ] as const
+                    ).map((tab) => (
                       <button
-                        key={rFilter}
+                        key={tab.id}
                         type="button"
                         role="tab"
-                        aria-selected={roleFilter === rFilter}
-                        className={`qb-settings-roster-filter-chip${roleFilter === rFilter ? " active" : ""}`}
-                        onClick={() => setRoleFilter(rFilter)}
+                        aria-selected={roleFilter === tab.id}
+                        className={`qb-settings-roster-filter-chip${roleFilter === tab.id ? " active" : ""}${
+                          tab.id === "banned" && tab.count > 0 ? " has-warning" : ""
+                        }`}
+                        onClick={() => setRoleFilter(tab.id)}
                       >
-                        {rFilter === "all" ? "All Accounts" : rFilter.toUpperCase()}
+                        <span>{tab.label}</span>
+                        {"count" in tab && tab.count > 0 && (
+                          <span className="qb-filter-chip-count tabular-nums">{tab.count}</span>
+                        )}
                       </button>
                     ))}
                   </div>
@@ -1455,24 +1657,42 @@ export default function SettingsPage({
                   <div className="qb-roster-head" role="rowgroup">
                     <div className="qb-roster-head-row" role="row">
                       <div className="qb-roster-th" role="columnheader">USER ACCOUNT</div>
-                      <div className="qb-roster-th" role="columnheader">CURRENT ROLE</div>
-                      <div className="qb-roster-th" role="columnheader">ASSIGNED DATE</div>
+                      <div className="qb-roster-th" role="columnheader">ROLE &amp; STATUS</div>
+                      <div className="qb-roster-th" role="columnheader">UPDATED</div>
                       <div className="qb-roster-th" role="columnheader">ACTIONS</div>
                     </div>
                   </div>
 
                   {/* Scrollable List Body (ONLY this region scrolls vertically) */}
-                  <div className="qb-roster-list-scroll" role="rowgroup">
+                  <div ref={rosterScrollRef} className="qb-roster-list-scroll" role="rowgroup">
                     {!isUsersLoading &&
                       filteredUsers.map((uRecord) => {
+                        const status = uRecord.status || "active";
+                        const isRestricted = status === "banned" || status === "deleted";
                         const isRootSuper = uRecord.email.toLowerCase() === "xaruzowarlord@gmail.com";
-                        const assignedDateText = new Date(uRecord.assignedAt).toLocaleDateString();
-                        const assignedByText = `by ${uRecord.assignedBy || "System"}`;
+                        const isCurrentUser =
+                          !!profile?.email &&
+                          uRecord.email.toLowerCase() === profile.email.trim().toLowerCase();
+                        const hasKebabActions =
+                          !isRootSuper && (!isCurrentUser || uRecord.role !== "reviewer");
+                        const dateIso = uRecord.statusUpdatedAt || uRecord.assignedAt;
+                        const assignedDateText = new Date(dateIso).toLocaleDateString();
+                        const assignedByText = `by ${
+                          uRecord.statusUpdatedBy || uRecord.assignedBy || "System"
+                        }`;
                         return (
-                          <div key={uRecord.email} className="qb-roster-row" role="row">
+                          <div
+                            key={uRecord.email}
+                            className={`qb-roster-row${isRestricted ? ` is-${status}` : ""}`}
+                            role="row"
+                          >
                             <div className="qb-roster-cell qb-roster-cell-user" role="cell">
                               <div className="qb-user-cell">
-                                <div className={`qb-user-cell-avatar role-${uRecord.role}`}>
+                                <div
+                                  className={`qb-user-cell-avatar role-${uRecord.role}${
+                                    isRestricted ? " is-muted" : ""
+                                  }`}
+                                >
                                   <span>{uRecord.fullName.slice(0, 2).toUpperCase()}</span>
                                   {uRecord.avatarUrl && (
                                     <img
@@ -1488,27 +1708,58 @@ export default function SettingsPage({
                                   )}
                                 </div>
                                 <div className="qb-user-cell-info">
-                                  <span className="qb-user-cell-name" title={uRecord.fullName}>
-                                    {uRecord.fullName}
-                                  </span>
+                                  <div className="qb-user-cell-name-row">
+                                    <span className="qb-user-cell-name" title={uRecord.fullName}>
+                                      {uRecord.fullName}
+                                    </span>
+                                    {isCurrentUser && <span className="qb-user-you-tag">You</span>}
+                                  </div>
                                   <span className="qb-user-cell-email" title={uRecord.email}>
                                     {uRecord.email}
                                   </span>
+                                  {isRestricted && uRecord.statusReason && (
+                                    <span
+                                      className="qb-user-status-reason"
+                                      title={uRecord.statusReason}
+                                    >
+                                      Reason: {uRecord.statusReason}
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                             </div>
 
                             <div className="qb-roster-cell qb-roster-cell-role" role="cell">
-                              <span className={`qb-role-pill role-${uRecord.role}`}>
-                                {uRecord.role === "superadmin" && <Crown size={12} />}
-                                {uRecord.role === "admin" && <ShieldCheck size={12} />}
-                                <span>{uRecord.role.toUpperCase()}</span>
-                              </span>
+                              <div className="qb-role-status-stack">
+                                <span
+                                  className={`qb-role-pill role-${uRecord.role}${
+                                    isRestricted ? " is-muted" : ""
+                                  }`}
+                                >
+                                  {uRecord.role === "superadmin" && <Crown size={12} />}
+                                  {uRecord.role === "admin" && <ShieldCheck size={12} />}
+                                  <span>{uRecord.role.toUpperCase()}</span>
+                                </span>
+                                {status === "banned" && (
+                                  <span className="qb-status-pill is-banned">
+                                    <Ban size={11} />
+                                    <span>Banned</span>
+                                  </span>
+                                )}
+                                {status === "deleted" && (
+                                  <span className="qb-status-pill is-deleted">
+                                    <Archive size={11} />
+                                    <span>Removed</span>
+                                  </span>
+                                )}
+                              </div>
                             </div>
 
                             <div className="qb-roster-cell qb-roster-cell-assigned" role="cell">
                               <div className="qb-user-assigned-cell">
-                                <span className="qb-user-assigned-date tabular-nums">{assignedDateText}</span>
+                                <span className="qb-user-assigned-date tabular-nums">
+                                  {assignedDateText}
+                                </span>
                                 <span className="qb-user-assigned-by" title={assignedByText}>
                                   {assignedByText}
                                 </span>
@@ -1520,27 +1771,56 @@ export default function SettingsPage({
                                 <span className="qb-root-superadmin-label">
                                   Primary Root Superadmin
                                 </span>
-                              ) : (
+                              ) : isRestricted ? (
                                 <div className="qb-user-role-actions">
-                                    <CustomSelect
-                                      value={uRecord.role}
-                                      onChange={(val) =>
-                                        handleAssignRole(uRecord.email, val as UserRole, uRecord.fullName)
-                                      }
-                                      options={QUICK_ROLE_OPTIONS}
-                                      className="qb-table-role-select"
-                                      showCheckmark
-                                      portal
-                                      minMenuWidth={196}
-                                    />
-                                  {uRecord.role !== "reviewer" && (
+                                  <button
+                                    type="button"
+                                    className="qb-user-restore-btn"
+                                    onClick={() => handleRestoreUser(uRecord)}
+                                  >
+                                    <RotateCcw size={13} />
+                                    <span>Restore</span>
+                                  </button>
+                                  {hasKebabActions && (
                                     <button
                                       type="button"
-                                      className="qb-user-revoke-btn"
-                                      title="Revoke admin privileges"
-                                      onClick={() => handleRevokeRole(uRecord.email)}
+                                      className={`qb-user-kebab-btn${
+                                        openActionMenu?.record.email === uRecord.email ? " is-open" : ""
+                                      }`}
+                                      aria-label={`More actions for ${uRecord.email}`}
+                                      aria-haspopup="menu"
+                                      aria-expanded={openActionMenu?.record.email === uRecord.email}
+                                      onClick={(e) => handleToggleActionMenu(e, uRecord)}
                                     >
-                                      Revoke
+                                      <EllipsisVertical size={15} />
+                                    </button>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="qb-user-role-actions">
+                                  <CustomSelect
+                                    value={uRecord.role}
+                                    onChange={(val) =>
+                                      handleAssignRole(uRecord.email, val as UserRole, uRecord.fullName)
+                                    }
+                                    options={QUICK_ROLE_OPTIONS}
+                                    className="qb-table-role-select"
+                                    showCheckmark
+                                    portal
+                                    minMenuWidth={196}
+                                  />
+                                  {hasKebabActions && (
+                                    <button
+                                      type="button"
+                                      className={`qb-user-kebab-btn${
+                                        openActionMenu?.record.email === uRecord.email ? " is-open" : ""
+                                      }`}
+                                      aria-label={`Account actions for ${uRecord.email}`}
+                                      aria-haspopup="menu"
+                                      aria-expanded={openActionMenu?.record.email === uRecord.email}
+                                      onClick={(e) => handleToggleActionMenu(e, uRecord)}
+                                    >
+                                      <EllipsisVertical size={15} />
                                     </button>
                                   )}
                                 </div>
@@ -1563,14 +1843,22 @@ export default function SettingsPage({
                           <Users size={22} />
                         </div>
                         <p className="qb-roster-state-title">
-                          {roleFilter !== "all" && !roleSearch.trim()
-                            ? `No ${roleFilter.toUpperCase()} accounts found`
-                            : "No matching accounts"}
+                          {roleFilter === "banned" && !roleSearch.trim()
+                            ? "No suspended accounts"
+                            : roleFilter === "deleted" && !roleSearch.trim()
+                              ? "No removed accounts"
+                              : roleFilter !== "all" && !roleSearch.trim()
+                                ? `No ${roleFilter.toUpperCase()} accounts found`
+                                : "No matching accounts"}
                         </p>
                         <p className="qb-roster-state-desc">
-                          {roleFilter !== "all" || roleSearch.trim()
-                            ? "Try adjusting your role filter or search query to see other registered accounts."
-                            : "Registered user accounts will appear here once signed in."}
+                          {roleFilter === "banned"
+                            ? "Accounts suspended via the account actions menu will appear here."
+                            : roleFilter === "deleted"
+                              ? "Soft-deleted accounts are archived here and can be restored anytime."
+                              : roleFilter !== "all" || roleSearch.trim()
+                                ? "Try adjusting your filter or search query to view other registered accounts."
+                                : "Registered user accounts will appear here once signed in."}
                         </p>
                         {(roleFilter !== "all" || roleSearch.trim()) && (
                           <button
@@ -1591,8 +1879,18 @@ export default function SettingsPage({
 
                 <div className="qb-settings-roster-footer">
                   <span className="qb-settings-roster-count tabular-nums">
-                    Showing {filteredUsers.length} of {usersList.length}{" "}
-                    {usersList.length === 1 ? "account" : "accounts"}
+                    Showing {filteredUsers.length} of{" "}
+                    {roleFilter === "deleted" ? removedCount : activeOrBannedCount}{" "}
+                    {roleFilter === "deleted"
+                      ? removedCount === 1
+                        ? "removed account"
+                        : "removed accounts"
+                      : activeOrBannedCount === 1
+                        ? "account"
+                        : "accounts"}
+                    {roleFilter !== "deleted" && removedCount > 0 && (
+                      <span className="qb-roster-archived-hint"> · {removedCount} removed</span>
+                    )}
                   </span>
                   {(roleFilter !== "all" || roleSearch.trim()) && (
                     <button
@@ -1689,6 +1987,245 @@ export default function SettingsPage({
                   }}
                 >
                   Discard Changes
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {/* Portaled Row Kebab Action Menu */}
+      {openActionMenu &&
+        createPortal(
+          <div
+            ref={actionMenuRef}
+            role="menu"
+            aria-label={`Actions for ${openActionMenu.record.email}`}
+            className={`qb-user-action-menu${openActionMenu.placeAbove ? " is-above" : ""}`}
+            style={{
+              top: openActionMenu.top,
+              left: openActionMenu.left,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {(() => {
+              const target = openActionMenu.record;
+              const status = target.status || "active";
+              const isSelf =
+                !!profile?.email &&
+                target.email.toLowerCase() === profile.email.trim().toLowerCase();
+
+              if (status === "active") {
+                return (
+                  <>
+                    {target.role !== "reviewer" && (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="qb-user-action-item"
+                        onClick={() => handleRevokeRole(target.email)}
+                      >
+                        <ShieldOff size={14} />
+                        <span>Revoke Admin Access</span>
+                      </button>
+                    )}
+                    {!isSelf && target.role !== "reviewer" && (
+                      <div className="qb-user-action-divider" />
+                    )}
+                    {!isSelf && (
+                      <>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className="qb-user-action-item is-warning"
+                          onClick={() => {
+                            setOpenActionMenu(null);
+                            setModerationReason("");
+                            setModerationTarget({ record: target, action: "ban" });
+                          }}
+                        >
+                          <Ban size={14} />
+                          <span>Suspend / Ban Account</span>
+                        </button>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className="qb-user-action-item is-danger"
+                          onClick={() => {
+                            setOpenActionMenu(null);
+                            setModerationReason("");
+                            setModerationTarget({ record: target, action: "soft-delete" });
+                          }}
+                        >
+                          <UserX size={14} />
+                          <span>Remove Account</span>
+                        </button>
+                      </>
+                    )}
+                  </>
+                );
+              }
+
+              return (
+                <>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="qb-user-action-item is-success"
+                    onClick={() => handleRestoreUser(target)}
+                  >
+                    <RotateCcw size={14} />
+                    <span>Restore Account</span>
+                  </button>
+                  {!isSelf && status === "banned" && (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="qb-user-action-item"
+                      onClick={() => {
+                        setOpenActionMenu(null);
+                        setModerationReason(target.statusReason || "");
+                        setModerationTarget({ record: target, action: "soft-delete" });
+                      }}
+                    >
+                      <Archive size={14} />
+                      <span>Move to Removed</span>
+                    </button>
+                  )}
+                  {!isSelf && status === "deleted" && (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="qb-user-action-item is-warning"
+                      onClick={() => {
+                        setOpenActionMenu(null);
+                        setModerationReason(target.statusReason || "");
+                        setModerationTarget({ record: target, action: "ban" });
+                      }}
+                    >
+                      <Ban size={14} />
+                      <span>Suspend / Ban Email</span>
+                    </button>
+                  )}
+                  {!isSelf && (
+                    <>
+                      <div className="qb-user-action-divider" />
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="qb-user-action-item is-danger"
+                        onClick={() => {
+                          setOpenActionMenu(null);
+                          setModerationReason("");
+                          setModerationTarget({ record: target, action: "permanent-delete" });
+                        }}
+                      >
+                        <Trash size={14} />
+                        <span>Delete Permanently</span>
+                      </button>
+                    </>
+                  )}
+                </>
+              );
+            })()}
+          </div>,
+          document.body
+        )}
+
+      {/* Account Moderation Confirmation Modal */}
+      {moderationTarget &&
+        createPortal(
+          <div className="qb-modal-backdrop" onClick={closeModerationModal}>
+            <div
+              ref={moderationDialogRef}
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="moderation-dialog-title"
+              className="qb-mod-modal-card"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="qb-mod-modal-head">
+                <div className={`qb-mod-modal-icon is-${moderationTarget.action}`}>
+                  {moderationTarget.action === "ban" && <Ban size={20} />}
+                  {moderationTarget.action === "soft-delete" && <UserX size={20} />}
+                  {moderationTarget.action === "permanent-delete" && <Trash size={20} />}
+                </div>
+                <div className="qb-mod-modal-copy">
+                  <h3 id="moderation-dialog-title" className="qb-mod-modal-title">
+                    {moderationTarget.action === "ban"
+                      ? "Suspend & Ban Account?"
+                      : moderationTarget.action === "soft-delete"
+                        ? "Remove Account?"
+                        : "Permanently Delete Account?"}
+                  </h3>
+                  <p className="qb-mod-modal-desc">
+                    {moderationTarget.action === "ban"
+                      ? "This user will be signed out immediately and blocked from signing in or re-registering with this email. You can restore access anytime."
+                      : moderationTarget.action === "soft-delete"
+                        ? "This account will be archived to the Removed tab, stripped of admin roles, and blocked from signing in. You can restore it later if needed."
+                        : "This permanently deletes the user's role record, local credentials, and server auth profile when configured. This action cannot be undone."}
+                  </p>
+                </div>
+              </div>
+
+              <div className="qb-mod-user-strip">
+                <div className="qb-user-cell-avatar">
+                  <span>{moderationTarget.record.fullName.slice(0, 2).toUpperCase()}</span>
+                </div>
+                <div className="qb-user-cell-info">
+                  <span className="qb-user-cell-name">{moderationTarget.record.fullName}</span>
+                  <span className="qb-user-cell-email">{moderationTarget.record.email}</span>
+                </div>
+              </div>
+
+              {moderationTarget.action !== "permanent-delete" && (
+                <div className="qb-mod-reason-field">
+                  <label htmlFor="qb-mod-reason-input" className="qb-mod-reason-label">
+                    Reason (optional)
+                  </label>
+                  <input
+                    id="qb-mod-reason-input"
+                    type="text"
+                    className="qb-mod-reason-input"
+                    placeholder={
+                      moderationTarget.action === "ban"
+                        ? "e.g. Policy violation or suspicious activity"
+                        : "e.g. Offboarded staff or inactive account"
+                    }
+                    value={moderationReason}
+                    maxLength={140}
+                    onChange={(e) => setModerationReason(e.target.value)}
+                  />
+                </div>
+              )}
+
+              <div className="qb-mod-modal-actions">
+                <button
+                  type="button"
+                  className="qb-modal-btn qb-modal-btn-cancel"
+                  onClick={closeModerationModal}
+                  disabled={isModerating}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className={`qb-mod-confirm-btn is-${moderationTarget.action}`}
+                  onClick={handleConfirmModeration}
+                  disabled={isModerating}
+                >
+                  {isModerating ? (
+                    <>
+                      <Loader2 size={14} className="qb-roster-spinner" />
+                      <span>Processing...</span>
+                    </>
+                  ) : moderationTarget.action === "ban" ? (
+                    <span>Suspend Account</span>
+                  ) : moderationTarget.action === "soft-delete" ? (
+                    <span>Remove Account</span>
+                  ) : (
+                    <span>Delete Permanently</span>
+                  )}
                 </button>
               </div>
             </div>

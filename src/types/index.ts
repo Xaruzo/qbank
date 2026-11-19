@@ -112,6 +112,7 @@ export interface AppSettings {
 }
 
 export type UserRole = "superadmin" | "admin" | "moderator" | "reviewer";
+export type UserAccountStatus = "active" | "banned" | "deleted";
 
 export interface UserRoleRecord {
   id: string;
@@ -122,6 +123,11 @@ export interface UserRoleRecord {
   assignedBy?: string;
   notes?: string;
   avatarUrl?: string | null;
+  status?: UserAccountStatus;
+  statusReason?: string;
+  statusUpdatedAt?: string;
+  statusUpdatedBy?: string;
+  deletedAt?: string | null;
 }
 
 export interface UserProfile {
