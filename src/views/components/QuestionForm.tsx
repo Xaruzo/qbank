@@ -5,13 +5,14 @@ import DrawCanvas from "./DrawCanvas";
 import SymbolToolbar from "./SymbolToolbar";
 import { handleSymbolShortcuts } from "../../utils/symbolShortcuts";
 import { uploadImageToSupabase, validateImageFile } from "../../utils/imageUpload";
+import { fileToImagePayload } from "../../utils/questionImageImport";
 import { computeSelectPlacement } from "../../utils/selectPlacement";
 import { 
   ChevronLeft, ChevronDown, Pencil, Image, Loader,
   Trash2, Maximize2, Minimize2, Sparkles, Layers, X, Check, PenTool, ArrowLeft,
   Calculator, BookOpen, Globe, BrainCircuit, ClipboardList, AlertTriangle, RotateCcw,
   Tag, Save, Plus, CheckCircle2, AlertCircle,
-  ListOrdered, Lightbulb, HelpCircle, SlidersHorizontal, BarChart2
+  ListOrdered, Lightbulb, HelpCircle, SlidersHorizontal, BarChart2, Upload, RefreshCw
 } from "lucide-react";
 
 const TOPIC_ICON_MAP: Record<string, typeof Calculator> = {
@@ -82,6 +83,13 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
   const solutionRef = useRef(null);
   const [activeChoice, setActiveChoice] = useState(null);
   const [useCustomLabel, setUseCustomLabel] = useState(!initialData?.label || !PROBLEM_LABELS.includes(initialData.label));
+  const [importImage, setImportImage] = useState<{ base64: string; mimeType: string; previewUrl: string; name: string } | null>(null);
+  const [includeAiSolution, setIncludeAiSolution] = useState(true);
+  const [extractingImage, setExtractingImage] = useState(false);
+  const [extractError, setExtractError] = useState("");
+  const [extractSuccess, setExtractSuccess] = useState("");
+  const [isDragOverImport, setIsDragOverImport] = useState(false);
+  const importFileInputRef = useRef<HTMLInputElement | null>(null);
 
   // The drawing is fetched after the question list loads, so the edit form can
   // mount before it arrives. Adopt it unless the user already touched visuals.
@@ -413,6 +421,117 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
     onSave(data);
   };
 
+  const handleSelectImportFile = async (file: File) => {
+    const validation = validateImageFile(file);
+    if (!validation.valid) {
+      setExtractError(validation.error || "Invalid image file.");
+      return;
+    }
+    setExtractError("");
+    setExtractSuccess("");
+    try {
+      const payload = await fileToImagePayload(file);
+      setImportImage({
+        ...payload,
+        name: file.name || "pasted-question.png",
+      });
+    } catch (err: any) {
+      setExtractError(err?.message || "Could not read the selected image.");
+    }
+  };
+
+  const handleExtractFromImage = async () => {
+    if (!importImage || extractingImage) return;
+    setExtractingImage(true);
+    setExtractError("");
+    setExtractSuccess("");
+
+    try {
+      const response = await fetch("/api/questions/extract-from-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imageBase64: importImage.base64,
+          mimeType: importImage.mimeType,
+          includeSolution: includeAiSolution,
+        }),
+      });
+      const rawBody = await response.text();
+      let data: any = {};
+      try {
+        data = rawBody ? JSON.parse(rawBody) : {};
+      } catch {
+        data = {};
+      }
+      if (!response.ok || !data?.extracted) {
+        const fallbackDetail =
+          typeof data?.error === "string" && data.error.trim()
+            ? data.error.trim()
+            : `Image scan request failed (HTTP ${response.status || 500}).`;
+        throw new Error(fallbackDetail);
+      }
+
+      const ext = data.extracted;
+      pushUndo("question", null, form.question);
+      if (includeAiSolution && ext.solution) {
+        pushUndo("solution", null, form.solution);
+      }
+      form.choices.forEach((prevChoice, idx) => {
+        pushUndo("choices", idx, prevChoice);
+      });
+
+      if (ext.label) {
+        setUseCustomLabel(!PROBLEM_LABELS.includes(ext.label));
+      }
+
+      setForm((prev) => {
+        const nextChoices =
+          Array.isArray(ext.choices) && ext.choices.length >= 4 ? ext.choices : prev.choices;
+        return {
+          ...prev,
+          question: ext.question || prev.question,
+          choices: nextChoices,
+          topic: ext.topic || prev.topic,
+          label: ext.label || prev.label,
+          correct:
+            typeof ext.correctIndex === "number"
+              ? ext.correctIndex
+              : Math.min(prev.correct, Math.max(0, nextChoices.length - 1)),
+          solution: includeAiSolution && ext.solution ? ext.solution : prev.solution,
+        };
+      });
+      setError("");
+
+      const choiceCount = Array.isArray(ext.choices)
+        ? ext.choices.filter((c: string) => String(c || "").trim().length > 0).length
+        : 0;
+      const filledParts = [
+        "Question",
+        `${choiceCount} choice${choiceCount === 1 ? "" : "s"}`,
+        `Topic (${TOPICS.find(t => t.id === ext.topic)?.label || ext.topic})`,
+      ];
+      if (ext.label) filledParts.push(`Label (${ext.label})`);
+      if (typeof ext.correctIndex === "number") filledParts.push(`Answer Key (${LETTERS[ext.correctIndex]})`);
+      if (includeAiSolution && ext.solution) filledParts.push("Solution");
+
+      setExtractSuccess(`Auto-filled ${filledParts.join(", ")}. Review the fields below before saving.`);
+    } catch (err: any) {
+      setExtractError(err?.message || "Failed to extract question from image.");
+    } finally {
+      setExtractingImage(false);
+    }
+  };
+
+  const handleWorkspacePaste = async (e: React.ClipboardEvent<HTMLDivElement>) => {
+    const items = Array.from(e.clipboardData?.items || []);
+    const imgItem = items.find((item) => item.type && item.type.startsWith("image/"));
+    if (!imgItem) return;
+    const file = imgItem.getAsFile();
+    if (!file) return;
+    e.preventDefault();
+    await handleSelectImportFile(file);
+  };
+
   const valid = form.question.trim() && form.choices.slice(0, 4).every(c => c.trim());
   const filledChoices = form.choices.filter(choice => choice.trim()).length;
   const hasQuestion = !!form.question.trim();
@@ -703,7 +822,7 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
   );
 
   return (
-    <div className="fu qb-form-workspace">
+    <div className="fu qb-form-workspace" onPaste={handleWorkspacePaste}>
       <div className="qb-form-hero">
         <div className="qb-form-hero-main">
           <span className="qb-section-kicker">Editing Studio</span>
@@ -742,6 +861,148 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
             </div>
           </div>
         </div>
+      </div>
+
+      <div
+        className={`qb-fsec qb-import-sec${isDragOverImport ? " is-drag-over" : ""}`}
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (!isDragOverImport) setIsDragOverImport(true);
+        }}
+        onDragLeave={() => setIsDragOverImport(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setIsDragOverImport(false);
+          const file = e.dataTransfer?.files?.[0];
+          if (file) void handleSelectImportFile(file);
+        }}
+      >
+        <div className="qb-import-head">
+          <div className="qb-import-title-group">
+            <label className="qb-flabel" style={{ marginBottom: 4 }}>
+              <Sparkles size={14} className="qb-flabel-icon" />
+              <span>Scan Question from Image</span>
+              <span className="qb-flabel-sub">(optional AI auto-fill)</span>
+            </label>
+            <p className="qb-import-desc">
+              Upload, drag &amp; drop, or paste (<kbd>Ctrl+V</kbd>) a reviewer screenshot or exam graphic to populate the question, choices, topic, and label automatically — no manual typing required first.
+            </p>
+          </div>
+        </div>
+
+        <input
+          ref={importFileInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+          style={{ display: "none" }}
+          disabled={extractingImage}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (file) void handleSelectImportFile(file);
+          }}
+        />
+
+        {!importImage ? (
+          <div className="qb-import-dropzone">
+            <button
+              type="button"
+              className="qb-import-pick-btn"
+              onClick={() => importFileInputRef.current?.click()}
+            >
+              <Upload size={16} />
+              <span>Upload or Drop Image (PNG, JPG, WEBP)</span>
+            </button>
+            <label className="qb-import-toggle">
+              <input
+                type="checkbox"
+                checked={includeAiSolution}
+                onChange={(e) => setIncludeAiSolution(e.target.checked)}
+              />
+              <span>Also auto-fill answer key &amp; step-by-step solution</span>
+            </label>
+          </div>
+        ) : (
+          <div className="qb-import-preview-card">
+            <div className="qb-import-thumb-wrap">
+              <img src={importImage.previewUrl} alt="Question source preview" className="qb-import-thumb" />
+              <button
+                type="button"
+                className="qb-import-clear-btn"
+                onClick={() => {
+                  setImportImage(null);
+                  setExtractError("");
+                  setExtractSuccess("");
+                }}
+                disabled={extractingImage}
+                title="Remove image"
+                aria-label="Remove imported image"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <div className="qb-import-controls">
+              <div className="qb-import-file-meta">
+                <Image size={14} />
+                <span className="qb-import-filename">{importImage.name}</span>
+              </div>
+
+              <label className="qb-import-toggle">
+                <input
+                  type="checkbox"
+                  checked={includeAiSolution}
+                  onChange={(e) => setIncludeAiSolution(e.target.checked)}
+                  disabled={extractingImage}
+                />
+                <span>Also auto-fill answer key &amp; step-by-step solution</span>
+              </label>
+
+              <div className="qb-import-actions">
+                <button
+                  type="button"
+                  className="qb-import-run-btn"
+                  onClick={handleExtractFromImage}
+                  disabled={extractingImage}
+                >
+                  {extractingImage ? (
+                    <>
+                      <Loader size={15} className="qb-spinner" />
+                      <span>{includeAiSolution ? "Scanning & solving..." : "Scanning image..."}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={15} />
+                      <span>{extractSuccess ? "Re-scan & Auto-Fill" : "Auto-Fill Question & Choices"}</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="qb-import-replace-btn"
+                  onClick={() => importFileInputRef.current?.click()}
+                  disabled={extractingImage}
+                >
+                  <RefreshCw size={14} />
+                  <span>Replace</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {extractError && (
+          <div className="qb-import-feedback is-error" role="alert">
+            <AlertCircle size={15} />
+            <span>{extractError}</span>
+          </div>
+        )}
+        {extractSuccess && (
+          <div className="qb-import-feedback is-success" role="status">
+            <CheckCircle2 size={15} />
+            <span>{extractSuccess}</span>
+          </div>
+        )}
       </div>
 
       <div className="qb-fsec">

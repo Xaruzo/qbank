@@ -6,6 +6,7 @@ import fs from "fs";
 import nodemailer from "nodemailer";
 import { createClient } from "@supabase/supabase-js";
 import { isAssetLikePath } from "./src/utils/assetPath";
+import { extractQuestionFromImage } from "./server/geminiExtract";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -473,7 +474,7 @@ async function startServer() {
   const app = express();
   const PORT = Number(process.env.APP_PORT) || 3000;
 
-  app.use(express.json());
+  app.use(express.json({ limit: "15mb" }));
 
   // -------------------------------------------------------------
   // API: Request Password Reset Code
@@ -1133,6 +1134,37 @@ async function startServer() {
       });
     } catch (err: any) {
       return res.status(500).json({ error: err?.message || "Failed to permanently delete user." });
+    }
+  });
+
+  // -------------------------------------------------------------
+  // API: AI Image-to-Question Extraction (Gemini Vision)
+  // -------------------------------------------------------------
+  app.post("/api/questions/extract-from-image", async (req, res) => {
+    try {
+      const imageBase64 = typeof req.body?.imageBase64 === "string" ? req.body.imageBase64 : "";
+      const mimeType = typeof req.body?.mimeType === "string" ? req.body.mimeType : "image/png";
+      const includeSolution = req.body?.includeSolution !== false;
+
+      if (!imageBase64.trim()) {
+        return res.status(400).json({ error: "Please attach or paste an image first." });
+      }
+
+      const extracted = await extractQuestionFromImage({
+        imageBase64,
+        mimeType,
+        includeSolution,
+      });
+
+      return res.json({
+        success: true,
+        extracted,
+      });
+    } catch (err: any) {
+      const statusCode = Number(err?.statusCode) || 500;
+      return res.status(statusCode).json({
+        error: err?.message || "Failed to extract question from image.",
+      });
     }
   });
 

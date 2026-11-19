@@ -536,8 +536,8 @@ export default function DrawCanvas({
   const HR_LINE_THICKNESS = 2;
   const FONT_SIZE_MIN = 8;
   const FONT_SIZE_MAX = 120;
-  const LONG_DIVISION_PRESET_WIDTH = 58;
-  const LONG_DIVISION_PRESET_HEIGHT = 66;
+  const LONG_DIVISION_PRESET_WIDTH = 68;
+  const LONG_DIVISION_PRESET_HEIGHT = 38;
   const LONG_DIVISION_DEFAULT_WIDTH = 50;
   const LONG_DIVISION_DEFAULT_HEIGHT = 36;
   const LONG_DIVISION_MIN_AUTO_WIDTH = 50;
@@ -3261,22 +3261,47 @@ export default function DrawCanvas({
       const divisor = parts.find(p => p.longDivisionRole === "divisor");
       const dividend = parts.find(p => p.longDivisionRole === "dividend");
       const bracket = parts.find(p => p.longDivisionRole === "bracket");
+      const quotient = parts.find(p => p.longDivisionRole === "quotient");
+      const sub = parts.find(p => p.longDivisionRole === "sub");
+      const subLine = parts.find(p => p.longDivisionRole === "subLine");
+      const remainder = parts.find(p => p.longDivisionRole === "remainder");
 
       if (!divisor || !dividend || !bracket) return;
 
       const divisorH = divisor.height || 24;
-      const dividendW = dividend.width || 36;
+      const dividendW = dividend.width || 28;
       const dividendH = dividend.height || 24;
+      const quotientW = quotient ? (quotient.width || 16) : 0;
+      const quotientH = quotient ? (quotient.height || 24) : 0;
+      const subW = sub ? (sub.width || 36) : 0;
+      const subH = sub ? (sub.height || 24) : 0;
+      const remainderW = remainder ? (remainder.width || 16) : 0;
+
       const currentBracketWidth = bracket.longDivisionWidth || bracket.width || LONG_DIVISION_PRESET_WIDTH;
       const currentBracketHeight = bracket.longDivisionHeight || bracket.height || LONG_DIVISION_PRESET_HEIGHT;
-      const contentWidth = Math.max(dividendW + 12, LONG_DIVISION_MIN_AUTO_WIDTH);
-      const contentHeight = Math.max(dividendH + 8, divisorH + 10, LONG_DIVISION_MIN_AUTO_HEIGHT);
-      const divisorGap = -4;
-      const dividendOffsetY = 1;
+      const innerW = Math.max(dividendW, quotientW, remainderW, Math.max(0, subW - 14), 28);
+      const contentWidth = Math.max(innerW + 42, LONG_DIVISION_MIN_AUTO_WIDTH);
+      const contentHeight = Math.max(dividendH + 10, divisorH + 10, LONG_DIVISION_MIN_AUTO_HEIGHT);
+      const divisorGap = 3;
+      const dividendOffsetY = 4;
+      const divisorOffsetY = dividendOffsetY + Math.round((dividendH - divisorH) / 2);
+      const quotientOffsetY = -(quotientH + 2);
+      const subOffsetY = dividendOffsetY + dividendH + 3;
+      const subLineOffsetY = subOffsetY + subH + 3;
+      const remainderOffsetY = subOffsetY + subH + 8;
+
+      const getLayoutMetrics = (nextBracketWidth) => {
+        const dividendInset = Math.max(12, Math.min(16, nextBracketWidth * 0.14));
+        const contentRightOffset = dividendInset + innerW;
+        const subLeftOffset = sub ? contentRightOffset - subW : dividendInset;
+        const subLineLeftOffset = Math.min(dividendInset - 4, subLeftOffset - 4);
+        const subLineWidth = Math.max(36, contentRightOffset + 6 - subLineLeftOffset);
+        return { dividendInset, contentRightOffset, subLineLeftOffset, subLineWidth };
+      };
 
       const placeFromBracket = (bracketLeft, bracketTop, nextBracketWidth, nextBracketHeight) => {
-        const dividendInset = Math.max(10, Math.min(16, nextBracketWidth * 0.14));
-        const divisorOffsetY = dividendOffsetY + Math.round((dividendH - divisorH) / 2);
+        const { dividendInset, contentRightOffset, subLineLeftOffset, subLineWidth } = getLayoutMetrics(nextBracketWidth);
+        const contentRight = bracketLeft + contentRightOffset;
         applyLongDivisionGeometry(bracket, nextBracketWidth, nextBracketHeight, {
           point: new fabric.Point(bracketLeft, bracketTop),
           originX: "left",
@@ -3287,50 +3312,140 @@ export default function DrawCanvas({
           top: bracketTop + divisorOffsetY,
         });
         dividend.set({
-          left: bracketLeft + dividendInset,
+          left: dividend.originX === "right" ? contentRight : bracketLeft + dividendInset,
           top: bracketTop + dividendOffsetY,
         });
+        if (quotient) {
+          quotient.set({
+            left: quotient.originX === "right" ? contentRight : bracketLeft + dividendInset,
+            top: bracketTop + quotientOffsetY,
+          });
+        }
+        if (sub) {
+          sub.set({
+            left: sub.originX === "right" ? contentRight : bracketLeft + dividendInset,
+            top: bracketTop + subOffsetY,
+          });
+        }
+        if (subLine) {
+          const lineStrokeH = subLine.strokeWidth || HR_LINE_THICKNESS;
+          const lineTop = subLine.originY === "center"
+            ? bracketTop + subLineOffsetY
+            : bracketTop + subLineOffsetY - lineStrokeH / 2;
+          if (subLine.type === "line") {
+            subLine.set({
+              x1: 0,
+              y1: 0,
+              x2: subLineWidth,
+              y2: 0,
+              scaleX: 1,
+              scaleY: 1,
+              left: bracketLeft + subLineLeftOffset,
+              top: lineTop,
+            });
+          } else {
+            subLine.set({
+              width: subLineWidth,
+              left: bracketLeft + subLineLeftOffset,
+              top: lineTop,
+            });
+          }
+        }
+        if (remainder) {
+          remainder.set({
+            left: remainder.originX === "right" ? contentRight : bracketLeft + dividendInset,
+            top: bracketTop + remainderOffsetY,
+          });
+        }
+      };
+
+      const getBracketOriginFromTarget = (src, nextBracketWidth) => {
+        const { dividendInset, contentRightOffset, subLineLeftOffset } = getLayoutMetrics(nextBracketWidth);
+        if (src === divisor) {
+          return {
+            left: divisor.left + divisorGap,
+            top: divisor.top - divisorOffsetY,
+          };
+        }
+        if (src === dividend) {
+          return {
+            left: dividend.originX === "right"
+              ? dividend.left - contentRightOffset
+              : dividend.left - dividendInset,
+            top: dividend.top - dividendOffsetY,
+          };
+        }
+        if (src === quotient && quotient) {
+          return {
+            left: quotient.originX === "right"
+              ? quotient.left - contentRightOffset
+              : quotient.left - dividendInset,
+            top: quotient.top - quotientOffsetY,
+          };
+        }
+        if (src === sub && sub) {
+          return {
+            left: sub.originX === "right"
+              ? sub.left - contentRightOffset
+              : sub.left - dividendInset,
+            top: sub.top - subOffsetY,
+          };
+        }
+        if (src === subLine && subLine) {
+          const lineStrokeH = subLine.strokeWidth || HR_LINE_THICKNESS;
+          const lineCenterY = subLine.originY === "center"
+            ? subLine.top
+            : subLine.top + lineStrokeH / 2;
+          return {
+            left: subLine.left - subLineLeftOffset,
+            top: lineCenterY - subLineOffsetY,
+          };
+        }
+        if (src === remainder && remainder) {
+          return {
+            left: remainder.originX === "right"
+              ? remainder.left - contentRightOffset
+              : remainder.left - dividendInset,
+            top: remainder.top - remainderOffsetY,
+          };
+        }
+        return {
+          left: Number.isFinite(bracket.left) ? bracket.left : bracket.getBoundingRect().left,
+          top: Number.isFinite(bracket.top) ? bracket.top : bracket.getBoundingRect().top,
+        };
       };
 
       if (target.type === "i-text") {
         const nextBracketWidth = contentWidth;
         const nextBracketHeight = contentHeight;
-        if (target === divisor) {
-          const bracketLeft = divisor.left + divisorGap;
-          const divisorOffsetY = dividendOffsetY + Math.round((dividendH - divisorH) / 2);
-          const bracketTop = divisor.top - divisorOffsetY;
-          placeFromBracket(bracketLeft, bracketTop, nextBracketWidth, nextBracketHeight);
-        } else if (target === dividend) {
-          const bracketLeft = dividend.left - Math.max(10, Math.min(16, nextBracketWidth * 0.14));
-          const bracketTop = dividend.top - dividendOffsetY;
-          placeFromBracket(bracketLeft, bracketTop, nextBracketWidth, nextBracketHeight);
-        }
-      } else if (target === divisor || target === dividend || target === bracket) {
+        const origin = getBracketOriginFromTarget(target, nextBracketWidth);
+        placeFromBracket(origin.left, origin.top, nextBracketWidth, nextBracketHeight);
+      } else if (
+        target === divisor ||
+        target === dividend ||
+        target === bracket ||
+        target === quotient ||
+        target === sub ||
+        target === subLine ||
+        target === remainder
+      ) {
         const nextBracketWidth = target === bracket
           ? Math.max(currentBracketWidth, contentWidth)
           : contentWidth;
         const nextBracketHeight = target === bracket
           ? Math.max(currentBracketHeight, contentHeight)
           : contentHeight;
-        if (target === divisor) {
-          const bracketLeft = divisor.left + divisorGap;
-          const divisorOffsetY = dividendOffsetY + Math.round((dividendH - divisorH) / 2);
-          const bracketTop = divisor.top - divisorOffsetY;
-          placeFromBracket(bracketLeft, bracketTop, nextBracketWidth, nextBracketHeight);
-        } else if (target === dividend) {
-          const bracketLeft = dividend.left - Math.max(10, Math.min(16, nextBracketWidth * 0.14));
-          const bracketTop = dividend.top - dividendOffsetY;
-          placeFromBracket(bracketLeft, bracketTop, nextBracketWidth, nextBracketHeight);
-        } else {
-          const bracketLeft = Number.isFinite(bracket.left) ? bracket.left : bracket.getBoundingRect().left;
-          const bracketTop = Number.isFinite(bracket.top) ? bracket.top : bracket.getBoundingRect().top;
-          placeFromBracket(bracketLeft, bracketTop, nextBracketWidth, nextBracketHeight);
-        }
+        const origin = getBracketOriginFromTarget(target, nextBracketWidth);
+        placeFromBracket(origin.left, origin.top, nextBracketWidth, nextBracketHeight);
       }
 
       divisor.setCoords?.();
       dividend.setCoords?.();
       bracket.setCoords?.();
+      quotient?.setCoords?.();
+      sub?.setCoords?.();
+      subLine?.setCoords?.();
+      remainder?.setCoords?.();
       canvas.requestRenderAll();
     }
 
@@ -6578,12 +6693,26 @@ export default function DrawCanvas({
     const canvas = fabricRef.current;
     const longDivisionId = `long-division-${Date.now()}`;
     const pt = getNextInsertPoint();
-    const bracketLeft = Math.max(48, pt.x - 16);
-    const bracketTop = Math.max(24, pt.y - 30);
+    const bracketLeft = Math.max(52, pt.x - 28);
+    const bracketTop = Math.max(40, pt.y - 24);
     const geometry = buildLongDivisionPath(LONG_DIVISION_PRESET_WIDTH, LONG_DIVISION_PRESET_HEIGHT);
+
+    const quotient = new fabric.IText("6", {
+      left: bracketLeft + 42,
+      top: bracketTop - 29,
+      fontFamily: "DM Sans",
+      fontSize: 24,
+      fill: color,
+      textAlign: "right",
+      originX: "right",
+      originY: "top",
+      longDivisionId,
+      longDivisionRole: "quotient",
+      hasControls: false,
+    });
     const divisor = new fabric.IText("2", {
-      left: bracketLeft + 4,
-      top: bracketTop + 1,
+      left: bracketLeft - 3,
+      top: bracketTop + 4,
       fontFamily: "DM Sans",
       fontSize: 24,
       fill: color,
@@ -6595,13 +6724,13 @@ export default function DrawCanvas({
       hasControls: false,
     });
     const dividend = new fabric.IText("12", {
-      left: bracketLeft + 10,
-      top: bracketTop + 1,
+      left: bracketLeft + 42,
+      top: bracketTop + 4,
       fontFamily: "DM Sans",
       fontSize: 24,
       fill: color,
-      textAlign: "left",
-      originX: "left",
+      textAlign: "right",
+      originX: "right",
       originY: "top",
       longDivisionId,
       longDivisionRole: "dividend",
@@ -6626,7 +6755,51 @@ export default function DrawCanvas({
     bracket.longDivisionHeight = geometry.height;
     configureLongDivisionBracket(bracket);
 
-    canvas.add(bracket, divisor, dividend);
+    const sub = new fabric.IText("- 12", {
+      left: bracketLeft + 42,
+      top: bracketTop + 34,
+      fontFamily: "DM Sans",
+      fontSize: 24,
+      fill: color,
+      textAlign: "right",
+      originX: "right",
+      originY: "top",
+      longDivisionId,
+      longDivisionRole: "sub",
+      hasControls: false,
+    });
+    const subLine = new fabric.Line([0, 0, 48, 0], {
+      left: bracketLeft,
+      top: bracketTop + 64,
+      stroke: color,
+      strokeWidth: HR_LINE_THICKNESS,
+      strokeUniform: true,
+      originX: "left",
+      originY: "center",
+      longDivisionId,
+      longDivisionRole: "subLine",
+      selectable: true,
+      hasControls: true,
+      objectCaching: false,
+    });
+    subLine.shapeKind = "hrLine";
+    configureHrLine(subLine);
+
+    const remainder = new fabric.IText("0", {
+      left: bracketLeft + 42,
+      top: bracketTop + 69,
+      fontFamily: "DM Sans",
+      fontSize: 24,
+      fill: color,
+      textAlign: "right",
+      originX: "right",
+      originY: "top",
+      longDivisionId,
+      longDivisionRole: "remainder",
+      hasControls: false,
+    });
+
+    canvas.add(bracket, divisor, dividend, quotient, sub, subLine, remainder);
     canvas.setActiveObject(dividend);
     canvas.fire("text:changed", { target: dividend });
     dividend.enterEditing();
@@ -7403,13 +7576,16 @@ export default function DrawCanvas({
               type="button"
               className="draw-tb"
               onClick={addLongDivisionPreset}
-              title="Add Long Division Preset (Auto-layout)"
+              title="Add Complete Long Division Preset (Auto-layout)"
               aria-label="Add Long Division Preset"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <text x="3.5" y="14.2" fontSize="7" fill="currentColor" fontFamily="Arial, sans-serif">2</text>
-                <text x="11" y="10.5" fontSize="6" fill="currentColor" fontFamily="Arial, sans-serif">12</text>
-                <path d="M9 6H21M9 6C11.8 8.4 11.8 14.8 9 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                <text x="13" y="5.5" fontSize="5.5" fill="currentColor" fontFamily="Arial, sans-serif">6</text>
+                <text x="2.5" y="13.8" fontSize="6.5" fill="currentColor" fontFamily="Arial, sans-serif">2</text>
+                <text x="11.2" y="12.5" fontSize="5.5" fill="currentColor" fontFamily="Arial, sans-serif">12</text>
+                <path d="M9 7.5H20.5M9 7.5C11.4 9.5 11.4 13.5 9 15.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M9 18.5H20.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <text x="13.5" y="23.2" fontSize="5.5" fill="currentColor" fontFamily="Arial, sans-serif">0</text>
               </svg>
             </button>
 
@@ -7426,7 +7602,7 @@ export default function DrawCanvas({
                 <span className="draw-tb-caret">▾</span>
               </button>
               {mathMenuOpen && (
-                <div className="draw-popover-menu draw-popover-right" style={{ width: 224 }}>
+                <div className="draw-popover-menu draw-popover-right" style={{ width: 264 }}>
                   <div className="draw-popover-section-title">Math & Logic Symbols</div>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 4, marginBottom: 8 }}>
                     {[
@@ -7459,7 +7635,7 @@ export default function DrawCanvas({
                       <Divide size={13} /> Editable Fraction (a / b)
                     </button>
                     <button type="button" className="draw-tb" onClick={() => { addLongDivisionPreset(); setMathMenuOpen(false); }} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 8px" }}>
-                      <span>⟌</span> Long Division (Auto-layout)
+                      <span>⟌</span> Complete Long Division (Auto-layout)
                     </button>
                     <button type="button" className="draw-tb" onClick={() => { addLongDivision(); setMathMenuOpen(false); }} style={{ justifyContent: "flex-start", gap: 6, fontSize: 11, padding: "5px 8px" }}>
                       <span>⌈</span> Long Division Bracket Only
