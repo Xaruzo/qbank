@@ -15,6 +15,12 @@
   color: #34d399;
 }
 
+.qb-settings-role-notice.warning {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.32);
+  color: #fbbf24;
+}
+
 .qb-settings-role-notice.error {
   background: rgba(244, 63, 94, 0.12);
   border: 1px solid rgba(244, 63, 94, 0.3);
@@ -23,6 +29,10 @@
 
 .light .qb-settings-role-notice.success {
   color: #047857;
+}
+
+.light .qb-settings-role-notice.warning {
+  color: #b45309;
 }
 
 .light .qb-settings-role-notice.error {
@@ -676,6 +686,9 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
+  flex: 1 1 136px;
+  min-width: 132px;
+  max-width: 172px;
   background: rgba(16, 185, 129, 0.12);
   border: 1px solid rgba(16, 185, 129, 0.3);
   color: #34d399;
@@ -685,7 +698,6 @@
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
-  flex-shrink: 0;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
@@ -1012,9 +1024,11 @@
     justify-content: flex-end;
   }
 
-  .qb-table-role-select {
+  .qb-table-role-select,
+  .qb-user-restore-btn {
     flex: 0 1 190px;
     min-width: 162px;
+    max-width: 190px;
   }
 }
 
@@ -1119,6 +1133,8 @@
 
   .qb-user-restore-btn {
     flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
     min-height: 38px;
     padding: 6px 14px;
   }

@@ -332,7 +332,13 @@ export const rolesModel = {
     actorInfo?: { email?: string; fullName?: string },
     reason?: string,
     targetName?: string
-  ): Promise<{ success: boolean; record?: UserRoleRecord; serverSynced?: boolean; error?: string }> {
+  ): Promise<{
+    success: boolean;
+    record?: UserRoleRecord;
+    serverSynced?: boolean;
+    warning?: string;
+    error?: string;
+  }> {
     const cleanEmail = (targetEmail || "").trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes("@")) {
       return { success: false, error: "Please provide a valid user email address." };
@@ -381,10 +387,8 @@ export const rolesModel = {
             : "Account active",
     };
 
-    roles[cleanEmail] = record;
-    this.saveStoredRoles(roles);
-
     let serverSynced = false;
+    let warning: string | undefined;
     const token = await getAccessToken();
     if (token) {
       try {
@@ -401,11 +405,39 @@ export const rolesModel = {
             fullName: record.fullName,
           }),
         });
+        const payload = await res.json().catch(() => null);
         if (res.ok) {
           serverSynced = true;
+          if (payload?.authUserFound && !payload?.authUpdated) {
+            warning =
+              payload?.authError ||
+              "Supabase Auth account ban status could not be updated automatically.";
+          } else if (payload?.schemaMigrated === false) {
+            warning =
+              payload?.authUpdated
+                ? "Supabase Auth was updated, but public.user_roles is missing moderation columns (status, deleted_at, etc.)."
+                : "public.user_roles is missing moderation columns (status, deleted_at, etc.) for cross-device sync.";
+          }
+        } else if (res.status === 401 || res.status === 403) {
+          return {
+            success: false,
+            error: payload?.error || "Administrator privileges required to update account status.",
+          };
+        } else {
+          warning =
+            payload?.error ||
+            "Server could not update Supabase Auth status (check SUPABASE_SERVICE_ROLE_KEY).";
         }
-      } catch {}
+      } catch {
+        warning = "Could not reach backend admin endpoint to update Supabase Auth.";
+      }
+    } else if (supabase) {
+      warning =
+        "Signed in via local fallback session; sign in with Supabase password or Google so Supabase Auth can also be updated.";
     }
+
+    roles[cleanEmail] = record;
+    this.saveStoredRoles(roles);
 
     if (supabase && !serverSynced) {
       try {
@@ -426,6 +458,10 @@ export const rolesModel = {
           .upsert(extendedPayload, { onConflict: "email" });
 
         if (error && isMissingColumnError(error)) {
+          if (!warning) {
+            warning =
+              "public.user_roles is missing moderation columns (status, deleted_at, etc.).";
+          }
           await supabase.from(USER_ROLES_TABLE).upsert(
             {
               email: cleanEmail,
@@ -440,13 +476,13 @@ export const rolesModel = {
       } catch {}
     }
 
-    return { success: true, record, serverSynced };
+    return { success: true, record, serverSynced, warning };
   },
 
   async permanentlyDeleteUser(
     targetEmail: string,
     actorInfo?: { email?: string; fullName?: string }
-  ): Promise<{ success: boolean; serverDeleted?: boolean; error?: string }> {
+  ): Promise<{ success: boolean; serverDeleted?: boolean; warning?: string; error?: string }> {
     const cleanEmail = (targetEmail || "").trim().toLowerCase();
     if (!cleanEmail) return { success: false, error: "Invalid user email." };
 
@@ -465,14 +501,8 @@ export const rolesModel = {
       };
     }
 
-    const roles = this.getStoredRoles();
-    if (roles[cleanEmail]) {
-      delete roles[cleanEmail];
-      this.saveStoredRoles(roles);
-    }
-    clearLocalUserArtifacts(cleanEmail);
-
     let serverDeleted = false;
+    let warning: string | undefined;
     const token = await getAccessToken();
     if (token) {
       try {
@@ -484,11 +514,33 @@ export const rolesModel = {
           },
           body: JSON.stringify({ email: cleanEmail }),
         });
+        const payload = await res.json().catch(() => null);
         if (res.ok) {
           serverDeleted = true;
+          if (payload?.authUserFound && !payload?.authDeleted) {
+            warning = payload?.authError || "Supabase Auth user could not be deleted.";
+          }
+        } else if (res.status === 401 || res.status === 403) {
+          return {
+            success: false,
+            error: payload?.error || "Administrator privileges required to delete accounts.",
+          };
+        } else {
+          warning = payload?.error || "Server could not delete the Supabase Auth user.";
         }
-      } catch {}
+      } catch {
+        warning = "Could not reach backend admin endpoint to delete Supabase Auth user.";
+      }
+    } else if (supabase) {
+      warning = "Local session active; Supabase Auth user must be removed with an active Supabase admin session.";
     }
+
+    const roles = this.getStoredRoles();
+    if (roles[cleanEmail]) {
+      delete roles[cleanEmail];
+      this.saveStoredRoles(roles);
+    }
+    clearLocalUserArtifacts(cleanEmail);
 
     if (supabase && !serverDeleted) {
       try {
@@ -496,7 +548,7 @@ export const rolesModel = {
       } catch {}
     }
 
-    return { success: true, serverDeleted };
+    return { success: true, serverDeleted, warning };
   },
 
   /**

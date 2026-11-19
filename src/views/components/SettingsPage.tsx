@@ -202,7 +202,10 @@ export default function SettingsPage({
   >("all");
   const [newRoleEmail, setNewRoleEmail] = useState("");
   const [newRoleSelect, setNewRoleSelect] = useState<UserRole>("admin");
-  const [roleNotice, setRoleNotice] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [roleNotice, setRoleNotice] = useState<{
+    type: "success" | "warning" | "error";
+    message: string;
+  } | null>(null);
   const [isUsersLoading, setIsUsersLoading] = useState(false);
 
   // Portaled Row Action Menu & Account Moderation Modal State
@@ -367,11 +370,13 @@ export default function SettingsPage({
     );
     if (res.success) {
       setRoleNotice({
-        type: "success",
-        message: `Account restored for ${record.email}. Standard Reviewer access is active.`,
+        type: res.warning ? "warning" : "success",
+        message: res.warning
+          ? `Account restored for ${record.email} (${res.warning})`
+          : `Account restored for ${record.email}. Standard Reviewer access is active.`,
       });
       await refreshUsersList();
-      setTimeout(() => setRoleNotice(null), 4000);
+      setTimeout(() => setRoleNotice(null), res.warning ? 9000 : 4000);
     } else {
       setRoleNotice({ type: "error", message: res.error || "Failed to restore account." });
     }
@@ -389,13 +394,15 @@ export default function SettingsPage({
         const res = await rolesModel.permanentlyDeleteUser(record.email, actor);
         if (res.success) {
           setRoleNotice({
-            type: "success",
-            message: `Account ${record.email} has been permanently deleted.`,
+            type: res.warning ? "warning" : "success",
+            message: res.warning
+              ? `Account ${record.email} removed locally (${res.warning})`
+              : `Account ${record.email} has been permanently deleted.`,
           });
           await refreshUsersList();
           setModerationTarget(null);
           setModerationReason("");
-          setTimeout(() => setRoleNotice(null), 4500);
+          setTimeout(() => setRoleNotice(null), res.warning ? 9000 : 4500);
         } else {
           setRoleNotice({ type: "error", message: res.error || "Failed to permanently delete user." });
         }
@@ -411,17 +418,18 @@ export default function SettingsPage({
         record.fullName
       );
       if (res.success) {
+        const baseMsg =
+          action === "ban"
+            ? `Account ${record.email} has been suspended and blocked from signing in.`
+            : `Account ${record.email} was moved to Removed and can be restored anytime.`;
         setRoleNotice({
-          type: "success",
-          message:
-            action === "ban"
-              ? `Account ${record.email} has been suspended and blocked from signing in.`
-              : `Account ${record.email} was moved to Removed and can be restored anytime.`,
+          type: res.warning ? "warning" : "success",
+          message: res.warning ? `${baseMsg} (${res.warning})` : baseMsg,
         });
         await refreshUsersList();
         setModerationTarget(null);
         setModerationReason("");
-        setTimeout(() => setRoleNotice(null), 4500);
+        setTimeout(() => setRoleNotice(null), res.warning ? 9000 : 4500);
       } else {
         setRoleNotice({ type: "error", message: res.error || "Failed to update account status." });
       }

@@ -52,6 +52,45 @@ function getSupabaseAdminClient() {
   });
 }
 
+function isMissingColumnError(err: any): boolean {
+  if (!err) return false;
+  const code = String(err?.code || "");
+  const msg = String(err?.message || err?.details || "").toLowerCase();
+  return code === "42703" || (msg.includes("column") && msg.includes("does not exist"));
+}
+
+async function findAuthUserIdByEmail(
+  supabaseAdmin: NonNullable<ReturnType<typeof getSupabaseAdminClient>>,
+  email: string
+): Promise<string | null> {
+  const cleanEmail = email.trim().toLowerCase();
+  if (!cleanEmail) return null;
+
+  try {
+    const { data: profileRow } = await supabaseAdmin
+      .from("profiles")
+      .select("id")
+      .ilike("email", cleanEmail)
+      .maybeSingle();
+    if (profileRow?.id) {
+      return profileRow.id;
+    }
+  } catch {}
+
+  try {
+    const perPage = 1000;
+    for (let page = 1; page <= 20; page += 1) {
+      const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+      if (error || !data?.users?.length) break;
+      const match = data.users.find((u: any) => u.email?.toLowerCase() === cleanEmail);
+      if (match?.id) return match.id;
+      if (data.users.length < perPage) break;
+    }
+  } catch {}
+
+  return null;
+}
+
 async function getEmailRestrictionStatus(email: string): Promise<{ restricted: boolean; status?: string; reason?: string }> {
   const cleanEmail = email.trim().toLowerCase();
   if (!cleanEmail || PROTECTED_ROOT_EMAILS.has(cleanEmail)) return { restricted: false };
@@ -65,11 +104,14 @@ async function getEmailRestrictionStatus(email: string): Promise<{ restricted: b
   if (!supabaseAdmin) return { restricted: false };
 
   try {
-    const { data } = await supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from("user_roles")
       .select("status,status_reason")
       .eq("email", cleanEmail)
       .maybeSingle();
+    if (error && isMissingColumnError(error)) {
+      return { restricted: false };
+    }
     if (data?.status === "banned" || data?.status === "deleted") {
       return { restricted: true, status: data.status, reason: data.status_reason || undefined };
     }
@@ -95,11 +137,22 @@ async function verifyAdminCaller(req: express.Request): Promise<{ ok: boolean; e
   if (PROTECTED_ROOT_EMAILS.has(callerEmail)) {
     return { ok: true, email: callerEmail };
   }
-  const { data: roleRow } = await supabaseAdmin
+
+  let roleRes: any = await supabaseAdmin
     .from("user_roles")
     .select("role,status")
     .eq("email", callerEmail)
     .maybeSingle();
+
+  if (roleRes.error && isMissingColumnError(roleRes.error)) {
+    roleRes = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("email", callerEmail)
+      .maybeSingle();
+  }
+
+  const roleRow = roleRes.data;
   const isAuthorized =
     roleRow &&
     roleRow.status !== "banned" &&
@@ -942,16 +995,25 @@ async function startServer() {
         restrictedEmailStore.set(targetEmail, { status, reason });
       }
 
+      let dbUpdated = false;
+      let schemaMigrated = true;
+      let authUserFound = false;
+      let authUpdated = false;
+      let authError: string | undefined;
+
       const supabaseAdmin = getSupabaseAdminClient();
       if (supabaseAdmin) {
         const nowIso = new Date().toISOString();
+        const basePayload = {
+          email: targetEmail,
+          role: "reviewer",
+          full_name: fullName,
+          assigned_at: nowIso,
+          assigned_by: auth.email,
+        };
         const { error: upsertErr } = await supabaseAdmin.from("user_roles").upsert(
           {
-            email: targetEmail,
-            role: "reviewer",
-            full_name: fullName,
-            assigned_at: nowIso,
-            assigned_by: auth.email,
+            ...basePayload,
             status,
             status_reason: status === "active" ? null : reason || null,
             status_updated_at: nowIso,
@@ -960,24 +1022,53 @@ async function startServer() {
           },
           { onConflict: "email" }
         );
-        if (upsertErr) {
+
+        if (!upsertErr) {
+          dbUpdated = true;
+        } else if (isMissingColumnError(upsertErr)) {
+          schemaMigrated = false;
+          const { error: fallbackErr } = await supabaseAdmin
+            .from("user_roles")
+            .upsert(basePayload, { onConflict: "email" });
+          if (!fallbackErr) {
+            dbUpdated = true;
+          } else {
+            console.warn("[Admin Moderation] user_roles fallback upsert note:", fallbackErr.message);
+          }
+        } else {
           console.warn("[Admin Moderation] user_roles upsert note:", upsertErr.message);
         }
 
         try {
-          const { data: usersData } = await supabaseAdmin.auth.admin.listUsers();
-          const match = usersData?.users?.find((u: any) => u.email?.toLowerCase() === targetEmail);
-          if (match) {
-            await supabaseAdmin.auth.admin.updateUserById(match.id, {
+          const authUserId = await findAuthUserIdByEmail(supabaseAdmin, targetEmail);
+          if (authUserId) {
+            authUserFound = true;
+            const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(authUserId, {
               ban_duration: status === "active" ? "none" : "876000h",
             });
+            if (!updateErr) {
+              authUpdated = true;
+            } else {
+              authError = updateErr.message;
+              console.warn("[Admin Moderation] auth ban_duration error:", updateErr.message);
+            }
           }
         } catch (authErr: any) {
-          console.warn("[Admin Moderation] auth ban_duration note:", authErr?.message);
+          authError = authErr?.message || "Failed to update Supabase Auth user.";
+          console.warn("[Admin Moderation] auth ban_duration note:", authError);
         }
       }
 
-      return res.json({ success: true, email: targetEmail, status });
+      return res.json({
+        success: true,
+        email: targetEmail,
+        status,
+        dbUpdated,
+        schemaMigrated,
+        authUserFound,
+        authUpdated,
+        authError,
+      });
     } catch (err: any) {
       return res.status(500).json({ error: err?.message || "Failed to update account status." });
     }
@@ -1006,23 +1097,40 @@ async function startServer() {
 
       restrictedEmailStore.delete(targetEmail);
 
+      let authUserFound = false;
+      let authDeleted = false;
+      let authError: string | undefined;
+
       const supabaseAdmin = getSupabaseAdminClient();
       if (supabaseAdmin) {
         await supabaseAdmin.from("user_roles").delete().eq("email", targetEmail);
         await supabaseAdmin.from("profiles").delete().eq("email", targetEmail);
 
         try {
-          const { data: usersData } = await supabaseAdmin.auth.admin.listUsers();
-          const match = usersData?.users?.find((u: any) => u.email?.toLowerCase() === targetEmail);
-          if (match) {
-            await supabaseAdmin.auth.admin.deleteUser(match.id);
+          const authUserId = await findAuthUserIdByEmail(supabaseAdmin, targetEmail);
+          if (authUserId) {
+            authUserFound = true;
+            const { error: delErr } = await supabaseAdmin.auth.admin.deleteUser(authUserId);
+            if (!delErr) {
+              authDeleted = true;
+            } else {
+              authError = delErr.message;
+              console.warn("[Admin Moderation] auth.admin.deleteUser error:", delErr.message);
+            }
           }
         } catch (delErr: any) {
-          console.warn("[Admin Moderation] auth.admin.deleteUser note:", delErr?.message);
+          authError = delErr?.message || "Failed to delete Supabase Auth user.";
+          console.warn("[Admin Moderation] auth.admin.deleteUser note:", authError);
         }
       }
 
-      return res.json({ success: true, email: targetEmail });
+      return res.json({
+        success: true,
+        email: targetEmail,
+        authUserFound,
+        authDeleted,
+        authError,
+      });
     } catch (err: any) {
       return res.status(500).json({ error: err?.message || "Failed to permanently delete user." });
     }
