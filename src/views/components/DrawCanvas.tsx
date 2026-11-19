@@ -86,7 +86,39 @@ import {
   computeResponsiveBoardSize,
   computeFloatingBarPosition,
   computeViewportInsertPoint,
+  computePasteTargetPoint,
 } from "../../utils/canvas/canvasMath";
+
+const INLINE_ARITHMETIC_PRIMARY = [
+  { sym: "+", title: "Plus (+)" },
+  { sym: "−", title: "Minus (−)" },
+  { sym: "×", title: "Multiply (×)" },
+  { sym: "÷", title: "Divide (÷)" },
+  { sym: "=", title: "Equals (=)" },
+  { sym: "(", title: "Left Parenthesis" },
+  { sym: ")", title: "Right Parenthesis" },
+  { sym: "±", title: "Plus or Minus (±)" },
+  { sym: "%", title: "Percent (%)" },
+  { sym: ":", title: "Ratio (:)" },
+];
+
+const INLINE_ARITHMETIC_EXTRA = [
+  { sym: "≠", title: "Not Equal" },
+  { sym: "≈", title: "Approximately Equal" },
+  { sym: "≤", title: "Less Than or Equal" },
+  { sym: "≥", title: "Greater Than or Equal" },
+  { sym: "√", title: "Square Root" },
+  { sym: "²", title: "Squared (²)" },
+  { sym: "³", title: "Cubed (³)" },
+  { sym: "½", title: "One Half" },
+  { sym: "¼", title: "One Quarter" },
+  { sym: "¾", title: "Three Quarters" },
+  { sym: "π", title: "Pi" },
+  { sym: "°", title: "Degree" },
+  { sym: "₱", title: "Peso" },
+  { sym: "∴", title: "Therefore" },
+  { sym: "∵", title: "Because" },
+];
 
 const hasVisibleFill = (obj) => {
   const f = obj?.fill;
@@ -402,6 +434,12 @@ export default function DrawCanvas({
   const insertSeqRef = useRef(0);
   const pasteCascadeRef = useRef({ key: null, count: 0 });
   const lastPointer = useRef(null);
+  const pointerInsideCanvasRef = useRef(false);
+  const lastCursorPasteRef = useRef<{ x: number | null; y: number | null; count: number }>({
+    x: null,
+    y: null,
+    count: 0,
+  });
   const toolRef = useRef("move");
   const spaceDownRef = useRef(false);
   const isPanningRef = useRef(false);
@@ -1132,15 +1170,31 @@ export default function DrawCanvas({
       } else {
         activeDragOrigin = null;
       }
-      lastPointer.current = canvas.getPointer(ev);
+      const nextPtr = canvas.getPointer(ev);
+      pointerInsideCanvasRef.current = true;
+      lastPointer.current = nextPtr;
     });
+    const recordHoverPointer = (ev) => {
+      try {
+        const p = canvas.getPointer(ev);
+        pointerInsideCanvasRef.current = true;
+        if (
+          lastCursorPasteRef.current.x !== null &&
+          lastCursorPasteRef.current.y !== null &&
+          Math.hypot(p.x - lastCursorPasteRef.current.x, p.y - lastCursorPasteRef.current.y) > 2
+        ) {
+          lastCursorPasteRef.current = { x: null, y: null, count: 0 };
+        }
+        lastPointer.current = p;
+      } catch {}
+    };
     canvas.on("mouse:move", (opt) => {
       const ev = opt?.e;
       if (!ev) return;
       lastAltEvent = ev;
       if (typeof ev.buttons === "number" && ev.buttons === 0 && !ev.touches && ev.pointerType !== "touch") {
         stopStuckInteractions(ev);
-        lastPointer.current = canvas.getPointer(ev);
+        recordHoverPointer(ev);
         if (ev.altKey) {
           renderAltHoverGuides(ev, opt?.target);
         } else if (altMeasureActive) {
@@ -1176,7 +1230,7 @@ export default function DrawCanvas({
         } catch {}
         return;
       }
-      lastPointer.current = canvas.getPointer(ev);
+      recordHoverPointer(ev);
     });
     canvas.on("mouse:out", () => {
       lastAltEvent = null;
@@ -1240,9 +1294,11 @@ export default function DrawCanvas({
     canvas.on("mouse:wheel", handleWheelZoom);
 
     const openContextMenuAt = (clientX, clientY, sourceEv) => {
+      let scenePoint = null;
       try {
         const p = canvas.getPointer(sourceEv);
         lastPointer.current = p;
+        scenePoint = { x: p.x, y: p.y };
       } catch {}
       let target = null;
       try {
@@ -1271,6 +1327,7 @@ export default function DrawCanvas({
       setCtxMenu({
         x: Math.min(Math.max(8, rawX), maxX),
         y: Math.min(Math.max(8, rawY), maxY),
+        scenePoint,
       });
     };
 
@@ -1286,10 +1343,20 @@ export default function DrawCanvas({
     const ctxEl = canvas.upperCanvasEl || canvasEl;
     ctxEl?.addEventListener?.("contextmenu", handleContextMenu);
 
+    const handleCanvasMouseEnter = (ev) => {
+      pointerInsideCanvasRef.current = true;
+      recordHoverPointer(ev);
+    };
+    const handleCanvasMouseLeave = () => {
+      pointerInsideCanvasRef.current = false;
+    };
+
     // Prevent ghost drawing when mouse moves over canvas without buttons pressed
     const handleMouseMoveCapture = (ev) => {
+      pointerInsideCanvasRef.current = true;
       if (typeof ev.buttons === "number" && ev.buttons === 0 && !ev.touches && ev.pointerType !== "touch") {
         stopStuckInteractions(ev);
+        recordHoverPointer(ev);
       }
     };
     const handleNativeDragStart = (ev) => {
@@ -1301,6 +1368,8 @@ export default function DrawCanvas({
     const handleGlobalMouseUp = (ev) => {
       stopStuckInteractions(ev);
     };
+    ctxEl?.addEventListener?.("mouseenter", handleCanvasMouseEnter);
+    ctxEl?.addEventListener?.("mouseleave", handleCanvasMouseLeave);
     ctxEl?.addEventListener?.("mousemove", handleMouseMoveCapture, { capture: true });
     ctxEl?.addEventListener?.("dragstart", handleNativeDragStart);
     window.addEventListener("mouseup", handleGlobalMouseUp);
@@ -3601,6 +3670,7 @@ export default function DrawCanvas({
         key: `${Date.now()}-${objs.length}`,
         count: 0,
       };
+      lastCursorPasteRef.current = { x: null, y: null, count: 0 };
       clipboard.current = active;
       clipboardMeta.current = { type: active.type };
       clipboardClone.current = null;
@@ -3608,6 +3678,48 @@ export default function DrawCanvas({
         clipboardClone.current = cloned;
       }, [...CUSTOM_FABRIC_PROPS]);
       return true;
+    };
+
+    const resolvePasteCenter = (base, pointOverride?: { x: number; y: number } | null) => {
+      const canvasW = canvas.getWidth() || 820;
+      const canvasH = canvas.getHeight() || 700;
+      const hasExplicit = !!(pointOverride && Number.isFinite(pointOverride.x) && Number.isFinite(pointOverride.y));
+      const hoverPt = pointerInsideCanvasRef.current ? lastPointer.current : null;
+      const useHover = !hasExplicit && !!(hoverPt && Number.isFinite(hoverPt.x) && Number.isFinite(hoverPt.y));
+
+      let cursorPasteCount = 0;
+      if (useHover && hoverPt) {
+        const sameSpot =
+          lastCursorPasteRef.current.x !== null &&
+          lastCursorPasteRef.current.y !== null &&
+          Math.hypot(hoverPt.x - lastCursorPasteRef.current.x, hoverPt.y - lastCursorPasteRef.current.y) <= 2;
+        cursorPasteCount = sameSpot ? lastCursorPasteRef.current.count : 0;
+        lastCursorPasteRef.current = {
+          x: hoverPt.x,
+          y: hoverPt.y,
+          count: cursorPasteCount + 1,
+        };
+      }
+
+      let cascadeOffset = 20;
+      if (!hasExplicit && !useHover) {
+        pasteCascadeRef.current.count = (pasteCascadeRef.current.count || 0) + 1;
+        cascadeOffset = 20 * pasteCascadeRef.current.count;
+      }
+
+      const fallbackCenter = getCanvasCenter();
+      const targetPt = computePasteTargetPoint({
+        explicitPoint: hasExplicit ? pointOverride : null,
+        pointerInsideCanvas: useHover,
+        lastPointer: hoverPt,
+        lastCursorPasteCount: cursorPasteCount,
+        baseCenter: clipboardData.current?.baseCenter || base || null,
+        fallbackCenter: { x: fallbackCenter.x, y: fallbackCenter.y },
+        cascadeOffset,
+        canvasWidth: canvasW,
+        canvasHeight: canvasH,
+      });
+      return new fabric.Point(targetPt.x, targetPt.y);
     };
 
     const pasteSelection = (pointOverride?: { x: number; y: number } | null) => {
@@ -3621,26 +3733,10 @@ export default function DrawCanvas({
           if (changeCommitTimer.current) window.clearTimeout(changeCommitTimer.current);
           changeCommitTimer.current = null;
 
-          let cascadeOffset = 20;
-          if (!pointOverride) {
-            pasteCascadeRef.current.count = (pasteCascadeRef.current.count || 0) + 1;
-            cascadeOffset = 20 * pasteCascadeRef.current.count;
-          }
-
-          const pickTarget = (base) => {
-            if (pointOverride && Number.isFinite(pointOverride.x) && Number.isFinite(pointOverride.y)) {
-              return new fabric.Point(pointOverride.x, pointOverride.y);
-            }
-            const origin = payload.baseCenter || base || getCanvasCenter();
-            if (Number.isFinite(origin?.x) && Number.isFinite(origin?.y)) {
-              const canvasW = canvas.getWidth() || 820;
-              const canvasH = canvas.getHeight() || 700;
-              const tx = Math.min(canvasW - 40, origin.x + cascadeOffset);
-              const ty = Math.min(canvasH - 40, origin.y + cascadeOffset);
-              return new fabric.Point(tx, ty);
-            }
-            return new fabric.Point(80, 80);
-          };
+          const hasBracket = objects.some(
+            (o) => o.longDivisionRole === "bracket" || (o.type === "path" && o.shapeKind === "longDivision")
+          );
+          const hasFractionLine = objects.some((o) => o.fractionRole === "line");
 
           const idMap = new Map();
           const fractionIdMap = new Map();
@@ -3651,18 +3747,28 @@ export default function DrawCanvas({
               idMap.set(obj.layerId, nextId);
               obj.layerId = nextId;
             }
-            if (obj.fractionId && !fractionIdMap.has(obj.fractionId)) {
+            if (hasFractionLine && obj.fractionId && !fractionIdMap.has(obj.fractionId)) {
               fractionIdMap.set(obj.fractionId, `fraction-${Date.now()}-${Math.floor(Math.random() * 1000)}`);
             }
-            if (obj.longDivisionId && !longDivIdMap.has(obj.longDivisionId)) {
+            if (hasBracket && obj.longDivisionId && !longDivIdMap.has(obj.longDivisionId)) {
               longDivIdMap.set(obj.longDivisionId, `long-division-${Date.now()}-${Math.floor(Math.random() * 1000)}`);
             }
           });
 
           const cleanObj = (obj) => {
             if (obj.type === "line" && obj.fractionRole === "line" && !obj.shapeKind) obj.shapeKind = "hrLine";
-            if (obj.fractionId) obj.fractionId = fractionIdMap.get(obj.fractionId) || undefined;
-            if (obj.longDivisionId) obj.longDivisionId = longDivIdMap.get(obj.longDivisionId) || undefined;
+            if (hasFractionLine && obj.fractionId) {
+              obj.fractionId = fractionIdMap.get(obj.fractionId) || undefined;
+            } else {
+              delete obj.fractionId;
+              delete obj.fractionRole;
+            }
+            if (hasBracket && obj.longDivisionId) {
+              obj.longDivisionId = longDivIdMap.get(obj.longDivisionId) || undefined;
+            } else {
+              delete obj.longDivisionId;
+              delete obj.longDivisionRole;
+            }
             if (obj.connectedFromId || obj.connectedToId) {
               const mappedFrom = obj.connectedFromId ? idMap.get(obj.connectedFromId) : null;
               const mappedTo = obj.connectedToId ? idMap.get(obj.connectedToId) : null;
@@ -3705,14 +3811,14 @@ export default function DrawCanvas({
           if (objects.length > 1) {
             const selection = new fabric.ActiveSelection(objects, { canvas });
             const baseCenter = getRectCenter(selection);
-            const targetCenter = pickTarget(baseCenter);
+            const targetCenter = resolvePasteCenter(baseCenter, pointOverride);
             selection.setPositionByOrigin(targetCenter, "center", "center");
             selection.setCoords();
             canvas.setActiveObject(selection);
           } else {
             const obj = objects[0];
             const baseCenter = getRectCenter(obj);
-            const targetCenter = pickTarget(baseCenter);
+            const targetCenter = resolvePasteCenter(baseCenter, pointOverride);
             obj.setPositionByOrigin(targetCenter, "center", "center");
             obj.setCoords?.();
             canvas.setActiveObject(obj);
@@ -3734,18 +3840,7 @@ export default function DrawCanvas({
         if (changeCommitTimer.current) window.clearTimeout(changeCommitTimer.current);
         changeCommitTimer.current = null;
 
-        let cascadeOffset = 20;
-        if (!pointOverride) {
-          pasteCascadeRef.current.count = (pasteCascadeRef.current.count || 0) + 1;
-          cascadeOffset = 20 * pasteCascadeRef.current.count;
-        }
-
-        const pickTarget = (base) => {
-          if (pointOverride && Number.isFinite(pointOverride.x) && Number.isFinite(pointOverride.y)) return new fabric.Point(pointOverride.x, pointOverride.y);
-          const c = base || getCanvasCenter();
-          if (Number.isFinite(c.x) && Number.isFinite(c.y)) return new fabric.Point(c.x + cascadeOffset, c.y + cascadeOffset);
-          return new fabric.Point(80, 80);
-        };
+        const pickTarget = (base) => resolvePasteCenter(base, pointOverride);
 
         const cleanObj = (obj) => {
           if (obj.type === "line" && obj.fractionRole === "line" && !obj.shapeKind) obj.shapeKind = "hrLine";
@@ -4424,6 +4519,8 @@ export default function DrawCanvas({
       window.removeEventListener("blur", handleWindowBlur);
       window.removeEventListener("mouseup", handleGlobalMouseUp);
       window.removeEventListener("dragend", handleGlobalMouseUp);
+      ctxEl?.removeEventListener?.("mouseenter", handleCanvasMouseEnter);
+      ctxEl?.removeEventListener?.("mouseleave", handleCanvasMouseLeave);
       ctxEl?.removeEventListener?.("mousemove", handleMouseMoveCapture, { capture: true });
       ctxEl?.removeEventListener?.("dragstart", handleNativeDragStart);
       ctxEl?.removeEventListener?.("contextmenu", handleContextMenu);
@@ -4479,7 +4576,7 @@ export default function DrawCanvas({
     const clampedX = Math.min(Math.max(8, ctxMenu.x), maxHostX);
     const clampedY = Math.min(Math.max(8, ctxMenu.y), Math.min(maxHostY, maxViewportBottomY));
     if (Math.abs(clampedX - ctxMenu.x) > 1 || Math.abs(clampedY - ctxMenu.y) > 1) {
-      setCtxMenu({ x: clampedX, y: clampedY });
+      setCtxMenu(prev => (prev ? { ...prev, x: clampedX, y: clampedY } : null));
     }
   }, [ctxMenu]);
 
@@ -6808,8 +6905,72 @@ export default function DrawCanvas({
     setTool("move");
   };
 
+  const insertSymbolIntoText = useCallback((sym: string) => {
+    const canvas = fabricRef.current;
+    if (!canvas || !sym) return false;
+    const active = canvas.getActiveObject();
+    if (!isTextObj(active)) return false;
+
+    if (!active.isEditing && typeof active.enterEditing === "function") {
+      active.enterEditing();
+      const len = (active.text || "").length;
+      active.selectionStart = len;
+      active.selectionEnd = len;
+      if (active.hiddenTextarea) {
+        active.hiddenTextarea.value = active.text || "";
+        active.hiddenTextarea.selectionStart = len;
+        active.hiddenTextarea.selectionEnd = len;
+      }
+    }
+
+    const curText = active.text || "";
+    const ta = active.hiddenTextarea;
+    const strSel =
+      typeof active.fromGraphemeToStringSelection === "function" && Array.isArray(active._text)
+        ? active.fromGraphemeToStringSelection(
+            active.selectionStart ?? 0,
+            active.selectionEnd ?? active.selectionStart ?? 0,
+            active._text
+          )
+        : {
+            selectionStart: ta ? ta.selectionStart : curText.length,
+            selectionEnd: ta ? ta.selectionEnd : curText.length,
+          };
+    const startIdx = Math.max(0, Math.min(curText.length, strSel.selectionStart ?? curText.length));
+    const endIdx = Math.max(startIdx, Math.min(curText.length, strSel.selectionEnd ?? startIdx));
+    const nextText = curText.slice(0, startIdx) + sym + curText.slice(endIdx);
+    const nextCaret = startIdx + sym.length;
+
+    if (ta) {
+      ta.value = nextText;
+      ta.selectionStart = nextCaret;
+      ta.selectionEnd = nextCaret;
+      active.updateFromTextArea?.();
+      try {
+        ta.focus({ preventScroll: true });
+      } catch {}
+    } else {
+      active.set("text", nextText);
+      active.selectionStart = nextCaret;
+      active.selectionEnd = nextCaret;
+    }
+
+    active.dirty = true;
+    active.initDimensions?.();
+    active.setCoords?.();
+    canvas.requestRenderAll();
+    canvas.fire("text:changed", { target: active });
+    canvas.refreshUI?.();
+    return true;
+  }, []);
+
   const addSymbol = (sym) => {
     if (!fabricRef.current) return;
+    const active = fabricRef.current.getActiveObject();
+    if (isTextObj(active) && active.isEditing) {
+      insertSymbolIntoText(sym);
+      return;
+    }
     const pt = getNextInsertPoint();
     const text = new fabric.IText(sym, {
       left: pt.x,
@@ -7593,6 +7754,7 @@ export default function DrawCanvas({
               <button
                 type="button"
                 className={`draw-tb draw-tb-pill${mathMenuOpen ? " draw-on" : ""}`}
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => toggleToolbarMenu("math")}
                 title="Math & Logic Operators, Roots, Pi, Therefore"
                 aria-expanded={mathMenuOpen}
@@ -7607,7 +7769,7 @@ export default function DrawCanvas({
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 4, marginBottom: 8 }}>
                     {[
                       { sym: "+", title: "Plus" },
-                      { sym: "-", title: "Minus" },
+                      { sym: "−", title: "Minus" },
                       { sym: "×", title: "Multiply" },
                       { sym: "÷", title: "Divide" },
                       { sym: "=", title: "Equal" },
@@ -7619,6 +7781,7 @@ export default function DrawCanvas({
                         key={item.sym}
                         type="button"
                         className="draw-tb draw-tb-symbol"
+                        onMouseDown={(e) => e.preventDefault()}
                         onClick={() => { addSymbol(item.sym); setMathMenuOpen(false); }}
                         title={item.title || `Insert ${item.sym}`}
                         style={{ height: 30, fontSize: 13, fontWeight: 700 }}
@@ -8329,6 +8492,101 @@ export default function DrawCanvas({
                       )}
                     </button>
                   </div>
+
+                  {/* Inline Arithmetic & Math Input */}
+                  <div className="draw-floating-anchor">
+                    <button
+                      type="button"
+                      className={`draw-canva-pill-btn${floatingPopover === "arithmetic" ? " draw-on" : ""}`}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => setFloatingPopover(p => p === "arithmetic" ? null : "arithmetic")}
+                      title="Insert Arithmetic & Math Symbols into Text"
+                      aria-expanded={floatingPopover === "arithmetic"}
+                    >
+                      <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: -0.3 }}>±×</span>
+                      <span style={{ fontSize: 11, fontWeight: 600 }}>Math</span>
+                    </button>
+                    {floatingPopover === "arithmetic" && (
+                      <div
+                        className={`draw-floating-popover${selectionBounds.openPopoverUpward ? " is-upward" : ""}`}
+                        style={{ width: 228 }}
+                        onMouseDown={(e) => e.preventDefault()}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                          <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--text-muted)" }}>
+                            Arithmetic Operators
+                          </span>
+                          <button
+                            type="button"
+                            className="draw-tb"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => setFloatingPopover(null)}
+                            title="Close Math Palette"
+                            style={{ width: 20, height: 20, minWidth: 20, padding: 0 }}
+                          >
+                            <X size={11} />
+                          </button>
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 4, marginBottom: 8 }}>
+                          {INLINE_ARITHMETIC_PRIMARY.map((item) => (
+                            <button
+                              key={item.sym}
+                              type="button"
+                              className="draw-tb draw-tb-symbol"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => insertSymbolIntoText(item.sym)}
+                              title={item.title}
+                              style={{ height: 28, fontSize: 14, fontWeight: 700 }}
+                            >
+                              {item.sym}
+                            </button>
+                          ))}
+                        </div>
+                        <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 5, color: "var(--text-muted)" }}>
+                          Powers, Fractions & Logic
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 4, marginBottom: 8 }}>
+                          {INLINE_ARITHMETIC_EXTRA.map((item) => (
+                            <button
+                              key={item.sym}
+                              type="button"
+                              className="draw-tb draw-tb-symbol"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => insertSymbolIntoText(item.sym)}
+                              title={item.title}
+                              style={{ height: 27, fontSize: 12, fontWeight: 600 }}
+                            >
+                              {item.sym}
+                            </button>
+                          ))}
+                        </div>
+                        <div style={{ borderTop: "1px solid var(--border)", paddingTop: 6, display: "flex", gap: 4 }}>
+                          <button
+                            type="button"
+                            className="draw-tb"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => { addFraction(); setFloatingPopover(null); }}
+                            style={{ flex: 1, fontSize: 11, gap: 4, height: 26 }}
+                            title="Add Editable Fraction (a / b)"
+                          >
+                            <Divide size={12} />
+                            <span>Fraction</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="draw-tb"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => { addLongDivisionPreset(); setFloatingPopover(null); }}
+                            style={{ flex: 1, fontSize: 11, gap: 4, height: 26 }}
+                            title="Add Complete Long Division Preset"
+                          >
+                            <span>⟌</span>
+                            <span>Long Div</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </>
               )}
 
@@ -8677,7 +8935,7 @@ export default function DrawCanvas({
               className="draw-tb draw-ctx-menu-item"
               style={{ width: "100%", justifyContent: "flex-start", textAlign: "left", marginBottom: 3, padding: "5px 10px", fontSize: 12, display: "flex", alignItems: "center", gap: 9 }}
               disabled={!canPaste}
-              onClick={() => { fabricRef.current?.pasteSelection?.(); setCtxMenu(null); }}
+              onClick={() => { fabricRef.current?.pasteSelection?.(ctxMenu.scenePoint || null); setCtxMenu(null); }}
             >
               <ClipboardPaste size={14} style={{ flexShrink: 0 }} />
               <span>Paste</span>

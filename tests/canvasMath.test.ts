@@ -4,6 +4,7 @@ import {
   computeResponsiveBoardSize,
   computeFloatingBarPosition,
   computeViewportInsertPoint,
+  computePasteTargetPoint,
   clampCanvasHeight,
   findBestConnection,
   buildStraightArrowPath,
@@ -126,4 +127,65 @@ describe("canvasMath", () => {
     expect(distToSegment(5, 3, 0, 0, 10, 0)).toBeCloseTo(3, 5);
     expect(distToSegment(14, 0, 0, 0, 10, 0)).toBeCloseTo(4, 5);
   });
+
+  it("pastes at hovered mouse cursor on desktop and falls back cleanly outside canvas", () => {
+    // 1. Hovering inside canvas pastes right under cursor
+    expect(
+      computePasteTargetPoint({
+        pointerInsideCanvas: true,
+        lastPointer: { x: 245, y: 410 },
+        lastCursorPasteCount: 0,
+        baseCenter: { x: 520, y: 120 },
+        cascadeOffset: 20,
+        canvasWidth: 820,
+        canvasHeight: 700,
+      })
+    ).toEqual({ x: 245, y: 410 });
+
+    // 2. Repeated Ctrl+V without moving cursor nudges cleanly so copies don't stack invisibly
+    expect(
+      computePasteTargetPoint({
+        pointerInsideCanvas: true,
+        lastPointer: { x: 245, y: 410 },
+        lastCursorPasteCount: 2,
+        baseCenter: { x: 520, y: 120 },
+        canvasWidth: 820,
+        canvasHeight: 700,
+      })
+    ).toEqual({ x: 281, y: 446 });
+
+    // 3. Cursor outside canvas falls back to source center + cascade offset
+    expect(
+      computePasteTargetPoint({
+        pointerInsideCanvas: false,
+        lastPointer: { x: 245, y: 410 },
+        baseCenter: { x: 520, y: 120 },
+        cascadeOffset: 20,
+        canvasWidth: 820,
+        canvasHeight: 700,
+      })
+    ).toEqual({ x: 540, y: 140 });
+
+    // 4. Explicit override (context menu Paste / Duplicate) takes precedence
+    expect(
+      computePasteTargetPoint({
+        explicitPoint: { x: 600, y: 300 },
+        pointerInsideCanvas: true,
+        lastPointer: { x: 100, y: 100 },
+        canvasWidth: 820,
+        canvasHeight: 700,
+      })
+    ).toEqual({ x: 600, y: 300 });
+
+    // 5. Clamps near canvas edges
+    expect(
+      computePasteTargetPoint({
+        pointerInsideCanvas: true,
+        lastPointer: { x: 818, y: 4 },
+        canvasWidth: 820,
+        canvasHeight: 700,
+      })
+    ).toEqual({ x: 796, y: 24 });
+  });
 });
+

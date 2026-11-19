@@ -455,3 +455,67 @@ export const computeViewportInsertPoint = (
     y: Math.round(Math.max(40, Math.min((canvasHeight || 700) - 40, sceneY + step * 14))),
   };
 };
+
+export interface PasteTargetInput {
+  explicitPoint?: Point2D | null;
+  pointerInsideCanvas?: boolean;
+  lastPointer?: Point2D | null;
+  lastCursorPasteCount?: number;
+  baseCenter?: Point2D | null;
+  fallbackCenter?: Point2D | null;
+  cascadeOffset?: number;
+  canvasWidth: number;
+  canvasHeight: number;
+  edgeMargin?: number;
+}
+
+export const computePasteTargetPoint = ({
+  explicitPoint,
+  pointerInsideCanvas = false,
+  lastPointer,
+  lastCursorPasteCount = 0,
+  baseCenter,
+  fallbackCenter,
+  cascadeOffset = 20,
+  canvasWidth,
+  canvasHeight,
+  edgeMargin = 24,
+}: PasteTargetInput): Point2D => {
+  const safeW = canvasWidth || 820;
+  const safeH = canvasHeight || 700;
+  const margin = Math.max(8, Math.min(edgeMargin, Math.floor(Math.min(safeW, safeH) / 4)));
+  const clampPoint = (pt: Point2D): Point2D => ({
+    x: Math.round(Math.max(margin, Math.min(safeW - margin, pt.x))),
+    y: Math.round(Math.max(margin, Math.min(safeH - margin, pt.y))),
+  });
+
+  if (explicitPoint && Number.isFinite(explicitPoint.x) && Number.isFinite(explicitPoint.y)) {
+    return clampPoint(explicitPoint);
+  }
+
+  if (
+    pointerInsideCanvas &&
+    lastPointer &&
+    Number.isFinite(lastPointer.x) &&
+    Number.isFinite(lastPointer.y)
+  ) {
+    const repeatStep = Math.max(0, lastCursorPasteCount) * 18;
+    return clampPoint({
+      x: lastPointer.x + repeatStep,
+      y: lastPointer.y + repeatStep,
+    });
+  }
+
+  const origin =
+    baseCenter && Number.isFinite(baseCenter.x) && Number.isFinite(baseCenter.y)
+      ? baseCenter
+      : fallbackCenter && Number.isFinite(fallbackCenter.x) && Number.isFinite(fallbackCenter.y)
+        ? fallbackCenter
+        : { x: 80, y: 80 };
+
+  return clampPoint({
+    x: origin.x + cascadeOffset,
+    y: origin.y + cascadeOffset,
+  });
+};
+
