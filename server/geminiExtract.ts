@@ -11,12 +11,19 @@ const ALLOWED_MIME_TYPES = new Set([
   "image/gif",
 ]);
 
+let cachedClientKey = "";
+let cachedClient: GoogleGenAI | null = null;
+
 function getGeminiClient(): GoogleGenAI | null {
   const apiKey = (process.env.GEMINI_API_KEY || "")
     .trim()
     .replace(/^["']|["']$/g, "");
   if (!apiKey) return null;
-  return new GoogleGenAI({
+  if (cachedClient && cachedClientKey === apiKey) {
+    return cachedClient;
+  }
+  cachedClientKey = apiKey;
+  cachedClient = new GoogleGenAI({
     apiKey,
     httpOptions: {
       headers: {
@@ -24,6 +31,7 @@ function getGeminiClient(): GoogleGenAI | null {
       },
     },
   });
+  return cachedClient;
 }
 
 function normalizeMimeType(rawMime: unknown): string {
@@ -152,22 +160,22 @@ export async function extractQuestionFromImage(
   const includeSolution = input.includeSolution !== false;
 
   const systemInstruction = [
-    "You are an expert Philippine Civil Service Exam (CSE) question transcriber and solver.",
-    "Given an image (such as a reviewer graphic, exam screenshot, worksheet, or textbook photo), extract the multiple-choice question cleanly into structured JSON.",
+    "You are a fast, accurate Philippine Civil Service Exam (CSE) question transcriber and solver.",
+    "Given an image, extract the multiple-choice question cleanly into JSON.",
     "Rules:",
-    "1. question: Extract the exact question stem cleanly. Do NOT include decorative headers/banners like 'CIVIL SERVICE EXAM REVIEW', page numbers, or watermarks. If the question depends on a table/chart/equation inside the image, include all necessary numbers/details cleanly in text.",
-    "2. choices: Extract all answer choices in order (up to 5 choices A through E). Strip choice letter prefixes like 'A.', 'B)', '(C)', 'D:' so only the option text remains.",
-    "3. topic: Pick the single best CSE category ID from strictly: 'numerical', 'verbal', 'general', 'analytical', 'clerical'. Use visual subject headers (e.g. 'Numerical Ability' -> 'numerical') or content to classify.",
-    "4. label: Extract the short sub-topic/problem tag if shown or obvious (e.g. 'Ratio Problem', 'Age Problem', 'Percentage', 'Number Series', 'Vocabulary', 'Alphabetical Filing', 'Government Term'), or '' if unclear.",
+    "1. question: Exact question stem only. Omit decorative banners ('CIVIL SERVICE EXAM REVIEW'), icons, page numbers, or watermarks. Include any numbers/details needed from embedded tables/charts.",
+    "2. choices: Up to 5 options in order (A–E), stripping letter prefixes like 'A.', 'B)', '(C)'.",
+    "3. topic: Strictly one of: 'numerical', 'verbal', 'general', 'analytical', 'clerical'.",
+    "4. label: Short problem tag (e.g. 'Ratio Problem', 'Age Problem', 'Percentage', 'Number Series', 'Vocabulary', 'Alphabetical Filing', 'Government Term'), or '' if unclear.",
     includeSolution
-      ? "5. correctIndex & solution: Carefully solve the question step by step, verify your final result against the extracted choices, set correctIndex to the 0-based index (0=A, 1=B, 2=C, 3=D, 4=E) of the matching option, and write a clear, concise step-by-step solution ending with 'Answer: <LETTER>. <OPTION_TEXT>'. Use clean symbols (÷, ×, −, =, %)."
-      : "5. correctIndex & solution: The user chose NOT to auto-generate a solution. Set solution to '' (empty string). Set correctIndex to -1 unless the uploaded image explicitly highlights, circles, or marks the answer key.",
-    "If the image does not contain a readable question, return empty question and empty choices.",
+      ? "5. correctIndex & solution: Solve quickly and accurately, set correctIndex (0=A..4=E), and write a brief, crisp step-by-step solution (2–4 short lines) ending with 'Answer: <LETTER>. <OPTION_TEXT>' using ÷, ×, −, =, %."
+      : "5. correctIndex & solution: Do NOT generate a solution; set solution to '' and set correctIndex to -1 unless the answer is visibly marked in the image.",
+    "If no readable question exists, return empty question and empty choices.",
   ].join("\n");
 
   const promptText = includeSolution
-    ? "Extract the question, choices, topic, and label from this image, then solve it to fill correctIndex and a step-by-step solution."
-    : "Extract only the question, choices, topic, and label from this image (do not generate a solution).";
+    ? "Extract the question, choices, topic, and label, then provide correctIndex and a brief step-by-step solution."
+    : "Extract only the question, choices, topic, and label (no solution).";
 
   const imagePart = {
     inlineData: {
@@ -186,7 +194,7 @@ export async function extractQuestionFromImage(
         config: {
           systemInstruction,
           thinkingConfig: {
-            thinkingLevel: includeSolution ? ThinkingLevel.HIGH : ThinkingLevel.LOW,
+            thinkingLevel: ThinkingLevel.LOW,
           },
           responseMimeType: "application/json",
           responseSchema: {
@@ -215,7 +223,7 @@ export async function extractQuestionFromImage(
               },
               solution: {
                 type: Type.STRING,
-                description: "Step-by-step explanation if requested, otherwise empty string.",
+                description: "Brief step-by-step explanation if requested, otherwise empty string.",
               },
             },
             required: ["question", "choices", "topic", "label", "correctIndex", "solution"],

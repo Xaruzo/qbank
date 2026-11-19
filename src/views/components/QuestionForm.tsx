@@ -86,10 +86,29 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
   const [importImage, setImportImage] = useState<{ base64: string; mimeType: string; previewUrl: string; name: string } | null>(null);
   const [includeAiSolution, setIncludeAiSolution] = useState(true);
   const [extractingImage, setExtractingImage] = useState(false);
+  const [extractElapsedSec, setExtractElapsedSec] = useState(0);
   const [extractError, setExtractError] = useState("");
   const [extractSuccess, setExtractSuccess] = useState("");
   const [isDragOverImport, setIsDragOverImport] = useState(false);
   const importFileInputRef = useRef<HTMLInputElement | null>(null);
+  const extractAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    if (!extractingImage) {
+      setExtractElapsedSec(0);
+      return;
+    }
+    const timer = window.setInterval(() => {
+      setExtractElapsedSec((s) => s + 1);
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [extractingImage]);
+
+  useEffect(() => {
+    return () => {
+      extractAbortRef.current?.abort();
+    };
+  }, []);
 
   // The drawing is fetched after the question list loads, so the edit form can
   // mount before it arrives. Adopt it unless the user already touched visuals.
@@ -440,9 +459,23 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
     }
   };
 
+  const handleCancelExtract = () => {
+    extractAbortRef.current?.abort("user_cancel");
+  };
+
   const handleExtractFromImage = async () => {
     if (!importImage || extractingImage) return;
+    extractAbortRef.current?.abort("superseded");
+    const controller = new AbortController();
+    extractAbortRef.current = controller;
+    let timedOut = false;
+    const timeoutId = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort("timeout");
+    }, 45000);
+
     setExtractingImage(true);
+    setExtractElapsedSec(0);
     setExtractError("");
     setExtractSuccess("");
 
@@ -450,6 +483,7 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
       const response = await fetch("/api/questions/extract-from-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           imageBase64: importImage.base64,
           mimeType: importImage.mimeType,
@@ -516,8 +550,18 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
 
       setExtractSuccess(`Auto-filled ${filledParts.join(", ")}. Review the fields below before saving.`);
     } catch (err: any) {
-      setExtractError(err?.message || "Failed to extract question from image.");
+      if (timedOut) {
+        setExtractError("Image scan timed out after 45s. Please try again or uncheck auto-solve.");
+      } else if (err?.name === "AbortError" || controller.signal.aborted) {
+        setExtractError("Image scan cancelled.");
+      } else {
+        setExtractError(err?.message || "Failed to extract question from image.");
+      }
     } finally {
+      window.clearTimeout(timeoutId);
+      if (extractAbortRef.current === controller) {
+        extractAbortRef.current = null;
+      }
       setExtractingImage(false);
     }
   };
@@ -968,7 +1012,10 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
                   {extractingImage ? (
                     <>
                       <Loader size={15} className="qb-spinner" />
-                      <span>{includeAiSolution ? "Scanning & solving..." : "Scanning image..."}</span>
+                      <span>
+                        {includeAiSolution ? "Scanning & solving..." : "Scanning image..."}
+                        {extractElapsedSec > 0 ? ` (${extractElapsedSec}s)` : ""}
+                      </span>
                     </>
                   ) : (
                     <>
@@ -977,15 +1024,25 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
                     </>
                   )}
                 </button>
-                <button
-                  type="button"
-                  className="qb-import-replace-btn"
-                  onClick={() => importFileInputRef.current?.click()}
-                  disabled={extractingImage}
-                >
-                  <RefreshCw size={14} />
-                  <span>Replace</span>
-                </button>
+                {extractingImage ? (
+                  <button
+                    type="button"
+                    className="qb-import-replace-btn"
+                    onClick={handleCancelExtract}
+                  >
+                    <X size={14} />
+                    <span>Cancel</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="qb-import-replace-btn"
+                    onClick={() => importFileInputRef.current?.click()}
+                  >
+                    <RefreshCw size={14} />
+                    <span>Replace</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>

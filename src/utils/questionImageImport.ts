@@ -109,9 +109,9 @@ export async function fileToImagePayload(
   const dataUrl = await readAsDataUrl(file);
   const rawMime = file.type === "image/jpg" ? "image/jpeg" : (file.type || "image/png");
 
-  // Downscale oversized screenshots client-side (keeping crisp text legibility) so
-  // uploads stay fast and well below request body limits.
-  if (file.size > 2.5 * 1024 * 1024 && rawMime !== "image/gif") {
+  // Compress screenshots and large photos above 350KB or 1400px down to crisp JPEG
+  // so uploads and multimodal vision tokenization stay fast.
+  if (rawMime !== "image/gif") {
     try {
       const img = await new Promise<HTMLImageElement>((resolve, reject) => {
         const el = new window.Image();
@@ -119,21 +119,29 @@ export async function fileToImagePayload(
         el.onerror = () => reject(new Error("Image decode failed"));
         el.src = dataUrl;
       });
-      const maxDim = 2048;
-      const scale = Math.min(1, maxDim / Math.max(img.width || 1, img.height || 1));
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.max(1, Math.round(img.width * scale));
-      canvas.height = Math.max(1, Math.round(img.height * scale));
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        const compressedUrl = canvas.toDataURL("image/jpeg", 0.9);
-        const commaIdx = compressedUrl.indexOf(",");
-        return {
-          base64: commaIdx >= 0 ? compressedUrl.slice(commaIdx + 1) : compressedUrl,
-          mimeType: "image/jpeg",
-          previewUrl: compressedUrl,
-        };
+      const maxDim = 1400;
+      const largestSide = Math.max(img.width || 1, img.height || 1);
+      const shouldOptimize = file.size > 350 * 1024 || largestSide > maxDim;
+
+      if (shouldOptimize) {
+        const scale = Math.min(1, maxDim / largestSide);
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          // Fill white behind transparent PNGs before converting to JPEG
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          const compressedUrl = canvas.toDataURL("image/jpeg", 0.86);
+          const commaIdx = compressedUrl.indexOf(",");
+          return {
+            base64: commaIdx >= 0 ? compressedUrl.slice(commaIdx + 1) : compressedUrl,
+            mimeType: "image/jpeg",
+            previewUrl: compressedUrl,
+          };
+        }
       }
     } catch {
       // Fallback to original dataUrl if canvas resize fails
