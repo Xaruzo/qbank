@@ -883,9 +883,26 @@ export default function NotesPage({ userId, initialNoteId = null }: NotesPagePro
               }
             >
               {loading ? (
-                <div className="qb-notes-loading">
-                  <div className="qb-notes-spinner" />
-                  <span>Loading notes...</span>
+                <div className="qb-notes-loading" style={{ width: "100%", padding: "12px", display: "flex", flexDirection: "column", gap: 10 }}>
+                  {[0, 1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className="qb-note-card qb-skel-card"
+                      style={{ opacity: 1 - i * 0.18, pointerEvents: "none" }}
+                    >
+                      <div className="qb-note-card-head">
+                        <div className="qb-skel-bar" style={{ width: "68%", height: 14, borderRadius: 6 }} />
+                        <div className="qb-skel-bar" style={{ width: 16, height: 16, borderRadius: 4 }} />
+                      </div>
+                      <div className="qb-skel-bar" style={{ width: "92%", height: 12, borderRadius: 4, marginTop: 4 }} />
+                      <div className="qb-skel-bar" style={{ width: "54%", height: 12, borderRadius: 4, marginTop: 2 }} />
+                      <div className="qb-note-card-meta-line" style={{ marginTop: 6 }}>
+                        <div className="qb-skel-bar" style={{ width: 48, height: 10, borderRadius: 4 }} />
+                        <span aria-hidden="true">·</span>
+                        <div className="qb-skel-bar" style={{ width: 60, height: 10, borderRadius: 4 }} />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : filteredNotes.length === 0 ? (
               <div className="qb-notes-empty">

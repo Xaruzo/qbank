@@ -120,6 +120,8 @@ const blockComponents = {
   strong: createRenderer("strong", "md-strong"),
   em: createRenderer("em", "md-em"),
   u: createRenderer("u", "md-u"),
+  mark: createRenderer("mark", "md-mark"),
+  span: createRenderer("span", "md-span"),
   del: createRenderer("del", "md-del"),
   a({ children, className, ...props }) {
     return (
@@ -183,6 +185,8 @@ const inlineComponents = {
   strong: createRenderer("strong", "md-strong"),
   em: createRenderer("em", "md-em"),
   u: createRenderer("u", "md-u"),
+  mark: createRenderer("mark", "md-mark"),
+  span: createRenderer("span", "md-span"),
   del: createRenderer("del", "md-del"),
   a({ children, className, ...props }) {
     return (
