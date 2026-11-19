@@ -674,7 +674,11 @@ export const tipsModel = {
           }))
         : [];
     } catch (error) {
-      console.error("Failed to fetch tips for question:", error);
+      if (isNetworkOrFetchError(error)) {
+        console.warn("Supabase tips fetch offline/unreachable for question:", (error as any)?.message || error);
+      } else {
+        console.error("Failed to fetch tips for question:", error);
+      }
       return [];
     }
   },

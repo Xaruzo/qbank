@@ -504,7 +504,9 @@ export const storageModel = {
         await this.syncMockExamAttempt(attempt, userId);
         syncedAny = true;
       } catch (e) {
-        if (!isUuidOrSyntaxError(e)) {
+        if (isNetworkOrFetchError(e)) {
+          console.warn("Network offline/unreachable while syncing pending mock exam attempt:", (e as any)?.message || e);
+        } else if (!isUuidOrSyntaxError(e)) {
           console.error("Failed to sync pending mock exam attempt:", e);
         }
         failed.push(attempt);
@@ -562,7 +564,9 @@ export const storageModel = {
         localStorage.removeItem(MOCK_EXAM_HISTORY_KEY);
         return mergedHistory;
       } catch (e) {
-        if (!isUuidOrSyntaxError(e)) {
+        if (isNetworkOrFetchError(e)) {
+          console.warn("Supabase network offline/unreachable while loading mock exam history, using local cache:", (e as any)?.message || e);
+        } else if (!isUuidOrSyntaxError(e)) {
           console.error("Failed to load mock exam history from Supabase:", e);
         }
       }
@@ -600,7 +604,11 @@ export const storageModel = {
     try {
       await this.flushPendingMockExamAttempts(userId);
     } catch (e) {
-      console.error("Failed to save mock exam history to Supabase:", e);
+      if (isNetworkOrFetchError(e)) {
+        console.warn("Supabase network offline/unreachable while saving mock exam history, kept in pending queue:", (e as any)?.message || e);
+      } else {
+        console.error("Failed to save mock exam history to Supabase:", e);
+      }
     }
   },
 
@@ -914,7 +922,11 @@ export const storageModel = {
       await this.clearRemoteDeleted(q.id);
       return { status: "synced" };
     } catch (e) {
-      console.error("Supabase sync failed:", e);
+      if (isNetworkOrFetchError(e)) {
+        console.warn("Supabase network offline/unreachable during question sync:", (e as any)?.message || e);
+      } else {
+        console.error("Supabase sync failed:", e);
+      }
       throw e;
     }
   },
@@ -933,7 +945,11 @@ export const storageModel = {
       await this.markSyncedOnce(id);
       await this.markRemoteDeleted(id);
     } catch (e) {
-      console.error("Supabase soft delete failed:", e);
+      if (isNetworkOrFetchError(e)) {
+        console.warn("Supabase network offline/unreachable during question delete:", (e as any)?.message || e);
+      } else {
+        console.error("Supabase soft delete failed:", e);
+      }
       throw e;
     }
   },

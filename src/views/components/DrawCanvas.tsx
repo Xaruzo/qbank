@@ -1261,10 +1261,17 @@ export default function DrawCanvas({
         canvas.requestRenderAll();
         refreshUI();
       }
+      setFloatingPopover(null);
+      closeAllToolbarMenus();
       const rect = menuHostRef.current?.getBoundingClientRect?.();
-      const x = rect ? clientX - rect.left : clientX;
-      const y = rect ? clientY - rect.top : clientY;
-      setCtxMenu({ x: Math.max(8, x), y: Math.max(8, y) });
+      const rawX = rect ? clientX - rect.left : clientX;
+      const rawY = rect ? clientY - rect.top : clientY;
+      const maxX = rect ? Math.max(8, rect.width - 156) : Math.max(8, window.innerWidth - 156);
+      const maxY = rect ? Math.max(8, rect.height - 24) : Math.max(8, window.innerHeight - 24);
+      setCtxMenu({
+        x: Math.min(Math.max(8, rawX), maxX),
+        y: Math.min(Math.max(8, rawY), maxY),
+      });
     };
 
     const handleContextMenu = (ev) => {
@@ -4342,6 +4349,23 @@ export default function DrawCanvas({
       window.removeEventListener("touchstart", onTouchStart);
       window.removeEventListener("keydown", onKeyDown);
     };
+  }, [ctxMenu]);
+
+  useEffect(() => {
+    if (!ctxMenu) return;
+    const menuEl = ctxMenuRef.current;
+    const hostEl = menuHostRef.current;
+    if (!menuEl || !hostEl) return;
+    const hostRect = hostEl.getBoundingClientRect();
+    const menuRect = menuEl.getBoundingClientRect();
+    const maxHostX = Math.max(8, hostRect.width - menuRect.width - 8);
+    const maxHostY = Math.max(8, hostRect.height - menuRect.height - 8);
+    const maxViewportBottomY = Math.max(8, window.innerHeight - hostRect.top - menuRect.height - 8);
+    const clampedX = Math.min(Math.max(8, ctxMenu.x), maxHostX);
+    const clampedY = Math.min(Math.max(8, ctxMenu.y), Math.min(maxHostY, maxViewportBottomY));
+    if (Math.abs(clampedX - ctxMenu.x) > 1 || Math.abs(clampedY - ctxMenu.y) > 1) {
+      setCtxMenu({ x: clampedX, y: clampedY });
+    }
   }, [ctxMenu]);
 
   useEffect(() => {
@@ -7756,7 +7780,7 @@ export default function DrawCanvas({
         )}
 
         {/* ── Canva Floating Selection Bar ── */}
-        {selectionBounds && activeObjProps && (
+        {selectionBounds && activeObjProps && !ctxMenu && (
           <div
             className="draw-canva-floating-bar-wrap"
             style={{
@@ -8454,7 +8478,7 @@ export default function DrawCanvas({
               position: "absolute",
               left: ctxMenu.x,
               top: ctxMenu.y,
-              zIndex: 14,
+              zIndex: 120,
               background: "var(--surface)",
               border: "1px solid var(--border)",
               borderRadius: 10,

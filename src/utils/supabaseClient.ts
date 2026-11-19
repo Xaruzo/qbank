@@ -24,11 +24,21 @@ export const supabase = (isValidUrl(supabaseUrl) && supabaseAnonKey)
  */
 export const isNetworkOrFetchError = (err) => {
   if (!err) return false;
-  const msg = (err.message || err.details || (typeof err === "string" ? err : "") || "").toLowerCase();
+  const msg = (
+    err.message ||
+    err.details ||
+    err?.cause?.message ||
+    (typeof err === "string" ? err : "") ||
+    ""
+  ).toLowerCase();
   return (
     msg.includes("failed to fetch") ||
+    msg.includes("fetch failed") ||
     msg.includes("networkerror") ||
+    msg.includes("network error") ||
     msg.includes("network request failed") ||
+    msg.includes("err_network") ||
+    msg.includes("econnrefused") ||
     msg.includes("load failed") ||
     msg.includes("aborted") ||
     msg.includes("timeout") ||

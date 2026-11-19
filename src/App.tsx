@@ -35,6 +35,7 @@ import { storageModel } from "./models/storageModel";
 import { tipsModel } from "./models/tipsModel";
 import { favoritesModel } from "./models/favoritesModel";
 import { rolesModel } from "./models/rolesModel";
+import { isNetworkOrFetchError } from "./utils/supabaseClient";
 import {
   MASTERY_UPDATED_EVENT,
   readMasteryMap,
@@ -428,7 +429,11 @@ export default function App() {
         const history = await storageModel.getMockExamHistory(user.id);
         if (active) setMockHistory(Array.isArray(history) ? history : []);
       } catch (e) {
-        console.error("Failed to load mock exam history:", e);
+        if (isNetworkOrFetchError(e)) {
+          console.warn("Could not load mock exam history (offline or network unreachable):", (e as any)?.message || e);
+        } else {
+          console.error("Failed to load mock exam history:", e);
+        }
       } finally {
         if (active) setIsMockHistoryLoading(false);
       }
@@ -450,7 +455,11 @@ export default function App() {
         const history = await storageModel.getMockExamHistory(user.id);
         setMockHistory(Array.isArray(history) ? history : []);
       } catch (e) {
-        console.error("Failed to sync pending mock exam attempts:", e);
+        if (isNetworkOrFetchError(e)) {
+          console.warn("Could not sync pending mock exam attempts (offline or network unreachable):", (e as any)?.message || e);
+        } else {
+          console.error("Failed to sync pending mock exam attempts:", e);
+        }
       }
     };
 
@@ -469,7 +478,11 @@ export default function App() {
       try {
         await tipsModel.flushPending(user.id);
       } catch (e) {
-        console.error("Failed to sync pending tips:", e);
+        if (isNetworkOrFetchError(e)) {
+          console.warn("Could not sync pending tips (offline or network unreachable):", (e as any)?.message || e);
+        } else {
+          console.error("Failed to sync pending tips:", e);
+        }
       }
     };
 
@@ -485,7 +498,11 @@ export default function App() {
       try {
         await favoritesModel.flushPending(user.id);
       } catch (e) {
-        console.error("Failed to sync pending favorites:", e);
+        if (isNetworkOrFetchError(e)) {
+          console.warn("Could not sync pending favorites (offline or network unreachable):", (e as any)?.message || e);
+        } else {
+          console.error("Failed to sync pending favorites:", e);
+        }
       }
     };
 
@@ -543,7 +560,11 @@ export default function App() {
         ));
       } catch (e) {
         savedExamSessionsRef.current.delete(exam.sessionId);
-        console.error("Failed to persist completed mock exam:", e);
+        if (isNetworkOrFetchError(e)) {
+          console.warn("Could not persist completed mock exam remotely (offline or network unreachable):", (e as any)?.message || e);
+        } else {
+          console.error("Failed to persist completed mock exam:", e);
+        }
       }
     };
 
