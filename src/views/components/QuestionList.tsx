@@ -192,29 +192,34 @@ export default function QuestionList({
       {/* Structured Question Feed Header Toolbar */}
       <div
         ref={metaBarRef}
-        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-qb-border bg-qb-surface px-4 py-3.5"
+        className="grid grid-cols-[minmax(0,1fr)_auto] sm:flex sm:flex-row sm:items-center sm:justify-between items-center gap-x-3 gap-y-2.5 rounded-2xl border border-qb-border bg-qb-surface px-3.5 py-3 sm:px-4 sm:py-3.5"
       >
-        <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+        <div className="col-start-1 row-start-1 flex flex-col sm:flex-row sm:flex-wrap sm:items-baseline gap-x-2.5 gap-y-0.5 min-w-0">
           <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-qb-accent">
             Question Feed
           </span>
-          <span className="text-qb-muted" aria-hidden="true">·</span>
-          <span className="text-sm font-semibold text-qb-heading tabular-nums">
+          <span className="hidden sm:inline text-qb-muted" aria-hidden="true">·</span>
+          <span className="text-sm font-semibold text-qb-heading tabular-nums truncate">
             {visibleCount < questions.length
               ? `${visibleCount} of ${questions.length} shown`
               : `${questions.length} ${questions.length === 1 ? "item" : "items"} shown`}
           </span>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2.5">
-          <div className="qb-sort-wrap flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-[0.06em] text-qb-muted">
+        <div className="col-span-2 row-start-2 sm:col-span-1 sm:row-start-auto sm:ml-auto flex items-center sm:justify-end gap-2.5 min-w-0">
+          <div className="qb-sort-wrap flex items-center gap-2 w-full sm:w-auto min-w-0">
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-[0.06em] text-qb-muted shrink-0">
               <ArrowUpDown size={12} aria-hidden="true" />
               <span>Sort</span>
             </span>
-            <div className="qb-select" ref={sortRef} data-dir={sortDir} data-open={sortOpen}>
+            <div
+              className="qb-select flex-1 min-w-0 sm:flex-initial sm:!min-w-[230px]"
+              ref={sortRef}
+              data-dir={sortDir}
+              data-open={sortOpen}
+            >
               <button
-                className="qb-select-btn qb-sort-select-btn !min-h-[38px] !rounded-xl"
+                className="qb-select-btn qb-sort-select-btn !min-h-[38px] !w-full !min-w-0 sm:!min-w-[230px] !rounded-xl"
                 type="button"
                 onClick={() => {
                   if (!sortOpen && sortRef.current) {
@@ -290,19 +295,19 @@ export default function QuestionList({
               </div>
             </div>
           </div>
-
-          {canManageQuestions && onAddQuestion && (
-            <button
-              type="button"
-              onClick={onAddQuestion}
-              title="Add Question to Reviewer Bank"
-              className="inline-flex h-[38px] items-center gap-2 rounded-xl bg-amber-500 px-3.5 text-xs font-bold text-[#070c18] transition-colors hover:bg-amber-400 cursor-pointer shrink-0"
-            >
-              <ModernAddIcon size={15} className="shrink-0" />
-              <span>Add Question</span>
-            </button>
-          )}
         </div>
+
+        {canManageQuestions && onAddQuestion && (
+          <button
+            type="button"
+            onClick={onAddQuestion}
+            title="Add Question to Reviewer Bank"
+            className="col-start-2 row-start-1 sm:col-start-auto sm:row-start-auto inline-flex h-[36px] sm:h-[38px] items-center gap-1.5 sm:gap-2 rounded-xl bg-amber-500 px-3 sm:px-3.5 text-xs font-bold text-[#070c18] transition-colors hover:bg-amber-400 cursor-pointer shrink-0 justify-self-end"
+          >
+            <ModernAddIcon size={15} className="shrink-0" />
+            <span>Add Question</span>
+          </button>
+        )}
       </div>
 
       {/* Compact Study Notes & Visual Diagrams Callout */}

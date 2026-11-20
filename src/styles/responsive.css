@@ -2498,3 +2498,26 @@ body.light .qb-timer-icon {
     font-size: 9.5px;
   }
 }
+
+@media (max-width: 639px) {
+  .qb-sort-wrap {
+    width: 100%;
+    min-width: 0;
+    justify-content: flex-start;
+  }
+
+  .qb-sort-wrap .qb-select,
+  .qb-sort-wrap .qb-select-btn {
+    min-width: 0 !important;
+    width: 100%;
+  }
+
+  .qb-sort-wrap .qb-select-menu {
+    min-width: 100%;
+    width: 100%;
+    max-width: calc(100vw - 32px);
+    left: 0;
+    right: 0;
+  }
+}
+

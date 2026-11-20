@@ -190,10 +190,11 @@ export async function extractQuestionFromImage(
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-4-hydrogen",
         contents: { parts: [imagePart, textPart] },
         config: {
           systemInstruction,
+          thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
           responseMimeType: "application/json",
           responseSchema: {
             type: Type.OBJECT,
