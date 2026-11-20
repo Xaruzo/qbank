@@ -709,7 +709,11 @@ export default function QuestionDetail({
       </div>
 
       {/* Sticky Bottom Controls Dock (zero vertical target drift across questions) */}
-      <div className="qb-det-footer sm:!py-2 sm:!px-4 sm:!rounded-xl">
+      <div
+        className={`qb-det-footer sm:!py-2 sm:!px-4 sm:!rounded-xl${
+          canRevealSolution && hasSolution ? " has-reveal" : ""
+        }`}
+      >
         <div className="qb-det-footer-left">
           {canRevealSolution && hasSolution && (
             <button
