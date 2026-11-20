@@ -13,6 +13,7 @@ export type ViewType =
   | "tips"
   | "tipDetail"
   | "notes"
+  | "my-questions"
   | "settings";
 
 interface UseViewRouterOptions {
@@ -171,6 +172,17 @@ export function useViewRouter({
         return;
       }
 
+      if (page === "my-questions") {
+        setSelectedMockAttemptId(null);
+        setDeepLinkShowSol(false);
+        setEditId(null);
+        setExam(null);
+        setSelectedId(null);
+        setSelectedNoteId(null);
+        setView("my-questions");
+        return;
+      }
+
       if (page === "settings") {
         const tab = params.get("tab") || "identity";
         setSelectedMockAttemptId(null);
@@ -315,6 +327,17 @@ export function useViewRouter({
     setView("notes");
   }, []);
 
+  const navigateMyQuestions = useCallback(() => {
+    setEditId(null);
+    setSelectedId(null);
+    setSelectedMockAttemptId(null);
+    setSelectedNoteId(null);
+    setDeepLinkShowSol(false);
+    setExam(null);
+    window.history.pushState({}, "", `?page=my-questions`);
+    setView("my-questions");
+  }, []);
+
   const navigateSettings = useCallback((tab: string = "identity") => {
     setEditId(null);
     setSelectedId(null);
@@ -398,6 +421,7 @@ export function useViewRouter({
     navigateMockExam,
     navigateTips,
     navigateNotes,
+    navigateMyQuestions,
     navigateSettings,
     navigateQuestionDetail,
     navigateAddQuestion,

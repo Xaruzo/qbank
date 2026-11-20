@@ -189,6 +189,7 @@ export interface SideNavProps {
   onMockExam?: () => void;
   onTips?: () => void;
   onNotes?: () => void;
+  onMyQuestions?: () => void;
   onSettings?: (tab?: string) => void;
   onClose?: () => void;
   totalQuestions?: number;

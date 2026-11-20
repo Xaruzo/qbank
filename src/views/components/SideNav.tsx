@@ -18,13 +18,14 @@ import {
   Settings,
   Crown,
   ShieldCheck,
+  FileEdit,
   type LucideIcon,
 } from "lucide-react";
 import brandLogo from "../../assets/logo.png";
 import type { SideNavProps } from "../../types";
 
 interface NavItemDef {
-  id: "home" | "mock" | "tips" | "notes";
+  id: "home" | "mock" | "tips" | "notes" | "my-questions";
   label: string;
   shortLabel: string;
   railLabel?: string;
@@ -256,6 +257,7 @@ export default function SideNav({
   onMockExam,
   onTips,
   onNotes,
+  onMyQuestions,
   onClose,
   totalQuestions = 0,
   starredCount = 0,
@@ -434,6 +436,7 @@ export default function SideNav({
     mock: onMockExam,
     tips: onTips,
     notes: onNotes,
+    "my-questions": onMyQuestions,
   };
 
   const navItems: NavItemDef[] = [
@@ -458,6 +461,13 @@ export default function SideNav({
       shortLabel: "Notes",
       title: "Study Notes & Reviewer Scratchpad",
       icon: NotebookPen,
+    },
+    {
+      id: "my-questions",
+      label: "My Questions",
+      shortLabel: "My Qs",
+      title: "My Personal Question Bank & Community Sharing",
+      icon: FileEdit,
     },
     {
       id: "tips",

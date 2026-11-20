@@ -17,6 +17,7 @@ const MockExamRunner = lazyWithRetry(() => import("./views/components/MockExamRu
 const TipsPage = lazyWithRetry(() => import("./views/components/TipsPage"));
 const TipDetailPage = lazyWithRetry(() => import("./views/components/TipDetailPage"));
 const NotesPage = lazyWithRetry(() => import("./views/components/NotesPage"));
+import { MyQuestionsView } from "./views/MyQuestionsView";
 import LoadingSpinner from "./views/components/LoadingSpinner";
 import SkeletonLoader, { MockSkeletonLoader, TipsSkeletonLoader } from "./views/components/SkeletonLoader";
 import HelpModal from "./views/components/HelpModal";
@@ -51,7 +52,7 @@ import {
   buildMistakeDrillExam,
   buildQuickPracticeExam,
 } from "./utils/mockExamAnalytics";
-import { Home, ClipboardList, Lightbulb, PlayCircle, ArrowRight, BookOpen, Plus, ShieldCheck } from "lucide-react";
+import { Home, ClipboardList, Lightbulb, PlayCircle, ArrowRight, BookOpen, Plus, ShieldCheck, FileEdit } from "lucide-react";
 import { QUESTION_ADMIN_UIDS, QUESTION_ADMIN_EMAILS, EXAM_PRESETS } from "./constants/appConstants";
 
 const PageLoader = ({ view }) => {
@@ -151,6 +152,7 @@ export default function App() {
     navigateMockExam: handleGoMockExam,
     navigateTips: handleGoTips,
     navigateNotes: handleGoNotes,
+    navigateMyQuestions: handleGoMyQuestions,
     navigateSettings,
     navigateQuestionDetail: goToQuestionDetail,
     navigateAddQuestion: handleGoAdd,
@@ -842,7 +844,9 @@ export default function App() {
       ? "tips"
       : view === "notes"
         ? "notes"
-        : "home";
+        : view === "my-questions"
+          ? "my-questions"
+          : "home";
   const SEEN_QUESTIONS_KEY = "qbank-seen-questions-total";
   const [seenQuestionsTotal, setSeenQuestionsTotal] = useState<number | null>(() => {
     try {
@@ -927,6 +931,16 @@ export default function App() {
       onClick: () => {
         if (view === "notes") scrollMainToTop();
         else handleGoNotes();
+      },
+    },
+    {
+      id: "my-questions",
+      label: "My Questions",
+      shortLabel: "My Qs",
+      icon: FileEdit,
+      onClick: () => {
+        if (view === "my-questions") scrollMainToTop();
+        else handleGoMyQuestions();
       },
     },
   ];
@@ -1028,6 +1042,7 @@ export default function App() {
             onMockExam={handleGoMockExam}
             onTips={handleGoTips}
             onNotes={handleGoNotes}
+            onMyQuestions={handleGoMyQuestions}
             onClose={() => setNavOpen(false)}
             totalQuestions={qs.length}
             starredCount={favoriteCount}
@@ -1057,6 +1072,7 @@ export default function App() {
               onMockExam={handleGoMockExam}
               onTips={handleGoTips}
               onNotes={handleGoNotes}
+              onMyQuestions={handleGoMyQuestions}
               totalQuestions={qs.length}
               starredCount={favoriteCount}
               onOpenHelp={handleOpenHelp}
@@ -1318,6 +1334,11 @@ export default function App() {
                 userId={user?.id || null}
                 onBack={handleGoTips}
                 onOpenQuestion={handleSelectQuestion}
+              />
+            ) : view === "my-questions" ? (
+              <MyQuestionsView
+                currentUser={user}
+                onNavigateHome={handleGoHome}
               />
             ) : view === "notes" ? (
               <NotesPage
