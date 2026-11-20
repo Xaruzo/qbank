@@ -25,6 +25,7 @@ function getGeminiClient(): GoogleGenAI | null {
   cachedClientKey = apiKey;
   cachedClient = new GoogleGenAI({
     apiKey,
+    apiVersion: "v1beta",
     httpOptions: {
       headers: {
         "User-Agent": "aistudio-build",
@@ -189,13 +190,10 @@ export async function extractQuestionFromImage(
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
       const response = await ai.models.generateContent({
-        model: "gemini-4-hydrogen",
+        model: "gemini-2.5-flash",
         contents: { parts: [imagePart, textPart] },
         config: {
           systemInstruction,
-          thinkingConfig: {
-            thinkingLevel: ThinkingLevel.LOW,
-          },
           responseMimeType: "application/json",
           responseSchema: {
             type: Type.OBJECT,
@@ -245,6 +243,7 @@ export async function extractQuestionFromImage(
 
       return normalized;
     } catch (err: any) {
+      console.error("[Gemini Extract Error Details]", err);
       lastErr = err;
       if (err?.statusCode === 422 || err?.statusCode === 400) {
         throw err;

@@ -472,7 +472,7 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
     const timeoutId = window.setTimeout(() => {
       timedOut = true;
       controller.abort("timeout");
-    }, 45000);
+    }, 60000);
 
     setExtractingImage(true);
     setExtractElapsedSec(0);
@@ -551,7 +551,7 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
       setExtractSuccess(`Auto-filled ${filledParts.join(", ")}. Review the fields below before saving.`);
     } catch (err: any) {
       if (timedOut) {
-        setExtractError("Image scan timed out after 45s. Please try again or uncheck auto-solve.");
+        setExtractError("Image scan timed out after 60s. Please try again or uncheck auto-solve.");
       } else if (err?.name === "AbortError" || controller.signal.aborted) {
         setExtractError("Image scan cancelled.");
       } else {
