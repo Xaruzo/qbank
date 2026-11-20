@@ -305,23 +305,23 @@
   border: 1px solid rgba(148, 163, 184, 0.3);
 }
 
-@media (max-width: 600px) {
-  .qb-exam-review-filter-bar {
-    grid-template-columns: repeat(2, 1fr);
-  
-  }
+@media (max-width: 1080px) {
   .qb-exam-nav-mistakes {
     flex-wrap: wrap;
     justify-content: center;
     width: 100%;
     order: -1;
-    margin-bottom: 8px;
-  
+    margin-bottom: 6px;
   }
   .qb-exam-nav {
     flex-wrap: wrap;
     gap: 8px;
-  
+  }
+}
+
+@media (max-width: 600px) {
+  .qb-exam-review-filter-bar {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 

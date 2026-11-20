@@ -1,3 +1,7 @@
+// NOTE: Always design and style front-end UI in TypeScript (.tsx) with Tailwind CSS
+// utility classes rather than writing new CSS files. Use CSS only when necessary for
+// shared theme color tokens (dark mode / .light mode), global resets, or third-party styles.
+
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Header from "./views/components/Header";
 import Stats from "./views/components/Stats";
@@ -141,6 +145,7 @@ export default function App() {
     selectedMockAttemptId,
     setSelectedMockAttemptId,
     selectedNoteId,
+    selectedMiniMockId,
     settingsTab,
     deepLinkShowSol,
     setDeepLinkShowSol,
@@ -766,6 +771,23 @@ export default function App() {
     setView("mockRun");
   };
 
+  const handleStartMiniMock = useCallback((miniExam: any) => {
+    if (!miniExam || !miniExam.totalCount) return;
+    setEditId(null);
+    setSelectedId(null);
+    setSelectedMockAttemptId(null);
+    setDeepLinkShowSol(false);
+    setExam(miniExam);
+    setSavedActiveMockExam(miniExam);
+    if (isAuthenticated && user?.id) {
+      storageModel.setActiveMockExam(miniExam, user.id).catch((e) => {
+        console.error("Failed to save active mini mock:", e);
+      });
+    }
+    window.history.pushState({}, "", `?page=mock-run&mini=1`);
+    setView("mockRun");
+  }, [isAuthenticated, setDeepLinkShowSol, setEditId, setExam, setSelectedId, setSelectedMockAttemptId, setView, user?.id]);
+
   const handleBackToAttempt = (attemptId?: string) => {
     const targetId = attemptId || selectedMockAttemptId;
     if (targetId) {
@@ -1102,7 +1124,7 @@ export default function App() {
                   ? " qb-main-inner-mock-attempt"
                   : view === "detail"
                   ? " qb-main-inner-detail"
-                  : view === "settings"
+                  : view === "settings" || view === "my-questions"
                   ? " qb-main-inner-settings"
                   : ""
               }`}
@@ -1338,7 +1360,10 @@ export default function App() {
             ) : view === "my-questions" ? (
               <MyQuestionsView
                 currentUser={user}
+                isAdmin={isQuestionAdmin}
                 onNavigateHome={handleGoHome}
+                onStartMiniMock={handleStartMiniMock}
+                initialMiniMockId={selectedMiniMockId}
               />
             ) : view === "notes" ? (
               <NotesPage
@@ -1410,10 +1435,15 @@ export default function App() {
                   exam={exam}
                   qMap={qMap}
                   onUpdateExam={setExam}
-                  onExit={handleGoMockExam}
+                  onExit={exam?.returnView === "my-questions" ? () => handleGoMyQuestions() : handleGoMockExam}
                   onBackToAttempt={handleBackToAttempt}
                   onStartDrillMistakes={handleStartDrillMistakes}
-                  onRecordBatchMastery={(outcomes) => recordBatchQuestionOutcomes(outcomes, user?.id)}
+                  onRecordBatchMastery={(outcomes) => {
+                    const bankOutcomes = outcomes.filter((o) => qMap.has(o.id));
+                    if (bankOutcomes.length > 0) {
+                      recordBatchQuestionOutcomes(bankOutcomes, user?.id);
+                    }
+                  }}
                 />
               ) : isActiveMockExamLoading ? (
                 <LoadingSpinner fullScreen text="Restoring active mock exam..." />

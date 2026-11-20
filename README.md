@@ -88,6 +88,8 @@ npm run test:watch # Vitest in watch mode
 npm run build      # Production build to dist/
 ```
 
+> **Front-End Styling Note:** Build and style front-end UI in TypeScript (`.tsx`) with Tailwind CSS utilities rather than adding new `.css` stylesheets. Reserve CSS files for shared theme color tokens (dark mode and `.light` mode), base resets, or third-party overrides.
+
 ## 🔗 Access QBANK
 
 **Live Site**: [https://qbank-vr5s.onrender.com](https://qbank-vr5s.onrender.com)

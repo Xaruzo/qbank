@@ -975,13 +975,21 @@ body.light .qb-timer-icon {
 }
 
 @media (min-width: 601px) {
-  .qb-det-hdr {
+  .qb-det-hdr:not(.qb-det-hdr-exam) {
     position: sticky;
     top: 0;
     z-index: 24;
     background: var(--bg);
     padding: 18px 0 8px;
     margin-bottom: 0;
+  }
+
+  .qb-det-hdr.qb-det-hdr-exam {
+    position: static;
+    background: transparent;
+    padding: 0;
+    margin-bottom: 0;
+    width: auto;
   }
 
   .qb-det-meta-left .qb-back-btn {

@@ -1,27 +1,29 @@
-*,
-*::before,
-*::after { box-sizing: border-box; margin: 0; padding: 0; }
+@layer base {
+  *,
+  *::before,
+  *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html,
-body { height: 100%; }
+  html,
+  body { height: 100%; }
 
-html.qb-theme-switching,
-html.qb-theme-switching *,
-html.qb-theme-switching *::before,
-html.qb-theme-switching *::after {
-  transition: none !important;
-  transition-duration: 0s !important;
-  transition-delay: 0s !important;
-}
+  html.qb-theme-switching,
+  html.qb-theme-switching *,
+  html.qb-theme-switching *::before,
+  html.qb-theme-switching *::after {
+    transition: none !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+  }
 
-button,
-a,
-[role="button"],
-input,
-select,
-textarea {
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
+  button,
+  a,
+  [role="button"],
+  input,
+  select,
+  textarea {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
 }
 
 :root {
@@ -59,11 +61,13 @@ textarea {
   --surface-grad:linear-gradient(180deg, rgba(255,255,255,.98), rgba(244,247,255,.92));
 }
 
-body {
-  font-family: var(--font-sans);
-  background: var(--bg);
-  color: var(--text);
-  overflow: hidden;
+@layer base {
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════════════════

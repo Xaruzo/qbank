@@ -1,3 +1,13 @@
+/*
+ * NOTE FOR AI / DEVELOPERS:
+ * Always design and style new front-end UI in TypeScript (.tsx) using Tailwind CSS
+ * utility classes (and the @theme inline tokens / light: & dark: variants below),
+ * rather than adding new standalone CSS files or custom CSS rules.
+ * Feel free to use CSS when necessary for shared theme colors (dark mode & .light
+ * mode CSS variables), @layer base resets, or third-party library overrides.
+ */
+
+@import "tailwindcss";
 @import "./base.css";
 @import "./header.css";
 @import "./navigation-overlays.css";
@@ -34,3 +44,23 @@
 @import "./solution-estimator.css";
 @import "./canvas-status.css";
 @import "./responsive.css";
+
+@custom-variant light (&:where(.light, .light *));
+@custom-variant dark (&:where(:not(.light), :not(.light) *));
+
+@theme inline {
+  --color-qb-bg: var(--bg);
+  --color-qb-surface: var(--surface);
+  --color-qb-surface-hover: var(--surface-h);
+  --color-qb-border: var(--border);
+  --color-qb-border-hover: var(--border-h);
+  --color-qb-text: var(--text);
+  --color-qb-heading: var(--text-heading);
+  --color-qb-mid: var(--text-mid);
+  --color-qb-muted: var(--text-low);
+  --color-qb-input: var(--input-bg);
+  --color-qb-accent: var(--accent);
+  --color-qb-accent-strong: var(--accent-strong);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+}

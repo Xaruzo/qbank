@@ -491,21 +491,32 @@ function serializeListElement(listEl: HTMLElement, depth: number): string {
     const inlineParts: string[] = [];
     const nestedBlocks: string[] = [];
 
-    for (const child of Array.from(li.childNodes)) {
+    const visitLiChild = (child: Node) => {
       if (child.nodeType === Node.ELEMENT_NODE) {
         const childEl = child as HTMLElement;
         const cTag = childEl.tagName.toLowerCase();
+        if (cTag === "label") {
+          return;
+        }
+        if (cTag === "div") {
+          Array.from(childEl.childNodes).forEach(visitLiChild);
+          return;
+        }
         if (cTag === "ul" || cTag === "ol") {
           nestedBlocks.push(serializeListElement(childEl, depth + 1));
-          continue;
+          return;
         }
         if (cTag === "p") {
-          inlineParts.push(Array.from(childEl.childNodes).map(serializeInlineNodes).join(""));
-          continue;
+          const pText = Array.from(childEl.childNodes).map(serializeInlineNodes).join("");
+          if (pText) inlineParts.push(pText);
+          return;
         }
       }
-      inlineParts.push(serializeInlineNodes(child));
-    }
+      const rawText = serializeInlineNodes(child);
+      if (rawText) inlineParts.push(rawText);
+    };
+
+    Array.from(li.childNodes).forEach(visitLiChild);
 
     const textLine = inlineParts.join(" ").trim();
     let prefix = "- ";

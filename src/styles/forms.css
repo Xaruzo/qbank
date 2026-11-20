@@ -355,7 +355,24 @@
       "side";
     height: auto;
     overflow: visible;
-  
+  }
+  .qb-exam-layout {
+    height: auto;
+  }
+  .qb-exam-main {
+    height: auto;
+    overflow: visible;
+    padding-right: 0;
+  }
+  .qb-exam-main .qb-det-card {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+  .qb-exam-card-scroll {
+    overflow: visible;
+    padding: 0;
+    flex: none;
   }
   .qb-list-hero-side,
 .qb-form-hero-meta,
@@ -385,7 +402,7 @@
   .qb-exam-side-inner {
     max-height: none;
     height: auto;
-  
+    overflow: visible;
   }
   .qb-main.qb-main-exam {
     overflow: auto;
@@ -396,6 +413,15 @@
     overflow: visible;
     padding-right: 18px;
   
+  }
+}
+
+@media (min-width: 601px) and (max-width: 960px) {
+  .qb-exam-side-inner {
+    display: grid;
+    grid-template-columns: minmax(220px, 270px) minmax(0, 1fr);
+    align-items: start;
+    gap: 14px;
   }
 }
 

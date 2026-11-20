@@ -173,6 +173,10 @@ export const buildMockExamAttempt = (exam: any, qMap: Map<string, any>, complete
     topicStats: metrics.topicStats,
     strongestTopic: metrics.strongestTopic,
     weakestTopic: metrics.weakestTopic,
+    ...(exam?.miniMockId ? { miniMockId: exam.miniMockId } : {}),
+    ...(exam?.mode === "mini-mock" && exam?.questionSnapshots
+      ? { questionSnapshots: exam.questionSnapshots }
+      : {}),
     questions,
   };
 };
@@ -181,7 +185,7 @@ export const buildReviewExamFromAttempt = (attempt: any, qMap: Map<string, any>,
   const orderIds = (attempt?.questions || []).map((question) => question.id);
   const answers = {};
   const questionSnapshots = {};
-  const questionLookup = buildQuestionLookup(qMap);
+  const questionLookup = buildQuestionLookup(qMap, attempt?.questionSnapshots);
 
   (attempt?.questions || []).forEach((question) => {
     if (question?.userAnswer !== null && question?.userAnswer !== undefined) {
@@ -224,11 +228,20 @@ export const buildReviewExamFromAttempt = (attempt: any, qMap: Map<string, any>,
 };
 
 export const buildMistakeDrillExam = (attempt: any, qMap: Map<string, any>) => {
-  const questionLookup = buildQuestionLookup(qMap);
+  const questionLookup = buildQuestionLookup(qMap, attempt?.questionSnapshots);
   const missedQuestions = (attempt?.questions || []).filter((q) => !q.isCorrect);
   const orderIds = missedQuestions
     .map((q) => q.id)
     .filter((id) => questionLookup.has(id));
+
+  const questionSnapshots: Record<string, any> = {};
+  if (attempt?.questionSnapshots) {
+    orderIds.forEach((id) => {
+      if (attempt.questionSnapshots[id]) {
+        questionSnapshots[id] = attempt.questionSnapshots[id];
+      }
+    });
+  }
 
   const totalItems = orderIds.length;
   // 60s per question, minimum 3 minutes
@@ -250,6 +263,85 @@ export const buildMistakeDrillExam = (attempt: any, qMap: Map<string, any>) => {
     finished: false,
     isReviewSession: false,
     historySaved: false,
+    ...(Object.keys(questionSnapshots).length > 0 ? { questionSnapshots } : {}),
+  };
+};
+
+export const buildMiniMockExamSession = ({
+  miniMockId = null,
+  title,
+  questions = [],
+  timed = true,
+  durationMinutes = 10,
+  shuffle = false,
+}: {
+  miniMockId?: string | null;
+  title: string;
+  questions: Array<{
+    id: string;
+    topic: string;
+    label?: string;
+    question: string;
+    choices: string[];
+    correct: number;
+    solution?: string;
+  }>;
+  timed?: boolean;
+  durationMinutes?: number;
+  shuffle?: boolean;
+}) => {
+  const validQuestions = (questions || []).filter(
+    (q) => q && typeof q.question === "string" && Array.isArray(q.choices) && q.choices.length >= 2
+  );
+  const questionSnapshots: Record<string, any> = {};
+  const ids: string[] = [];
+
+  validQuestions.forEach((q, idx) => {
+    const safeId = q.id || `mmq_${Date.now()}_${idx}`;
+    ids.push(safeId);
+    questionSnapshots[safeId] = {
+      id: safeId,
+      topic: q.topic || "numerical",
+      label: q.label || "",
+      question: q.question,
+      choices: q.choices,
+      correct: typeof q.correct === "number" ? q.correct : 0,
+      solution: q.solution || "",
+    };
+  });
+
+  if (shuffle) {
+    for (let i = ids.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = ids[i];
+      ids[i] = ids[j];
+      ids[j] = tmp;
+    }
+  }
+
+  const totalItems = ids.length;
+  const safeMinutes = Math.max(1, Number(durationMinutes) || Math.max(1, totalItems));
+  const durationMs = timed ? safeMinutes * 60 * 1000 : 0;
+
+  return {
+    sessionId: `minimock-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    mode: "mini-mock" as const,
+    miniMockId: miniMockId || null,
+    returnView: "my-questions" as const,
+    timed,
+    title: title || `Mini Mock • ${totalItems} Items`,
+    startedAt: Date.now(),
+    durationMs,
+    totalCount: totalItems,
+    targetCount: totalItems,
+    orderIds: ids,
+    answers: {},
+    review: {},
+    currentIndex: 0,
+    finished: false,
+    isReviewSession: false,
+    historySaved: false,
+    questionSnapshots,
   };
 };
 
@@ -257,6 +349,7 @@ export const getAttemptModeLabel = (mode?: string) => {
   if (mode === "subprofessional") return "Subprofessional";
   if (mode === "drill") return "Mistake Drill";
   if (mode === "quick") return "Quick Practice";
+  if (mode === "mini-mock") return "Mini Mock";
   return "Professional";
 };
 

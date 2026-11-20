@@ -11,31 +11,26 @@ import {
   Check,
   Tag,
   BookOpen,
-  Eye,
-  Code,
   ArrowLeft,
   Clock,
   History,
   ArrowDownAZ,
   ArrowUpZA,
-  Sparkles,
   CheckSquare,
-  List,
-  Bold,
-  Italic,
-  Underline,
-  Columns,
   X,
   ArrowUpDown,
   MoreVertical,
   RotateCcw,
-  Heading3,
 } from "lucide-react";
 import { notesModel } from "../../models/notesModel";
 import { NOTE_TOPICS } from "../../constants/appConstants";
 import type { StudyNote, TopicId, SelectOption } from "../../types";
-import MarkdownText from "./MarkdownText";
+import NoteRichEditor from "./NoteRichEditor";
 import CustomSelect from "./CustomSelect";
+import {
+  stripNoteFormattingForSnippet,
+  markdownToPlainText,
+} from "../../utils/noteRichFormat";
 
 type NoteColorId = StudyNote["color"];
 
@@ -107,31 +102,6 @@ const SUGGESTED_TAGS = [
   "Need to Review",
 ];
 
-function stripMarkdownForSnippet(content: string): string {
-  return content
-    .replace(/```[\s\S]*?```/g, " ")
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
-    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
-    .replace(/<\/?u>/gi, "")
-    .replace(/^\s*[-*+]\s+\[[ xX]\]\s*/gm, "")
-    .replace(/^\s{0,3}(?:#{1,6}\s*|[-*+>]\s*|\d+\.\s*)/gm, "")
-    .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, "$1/$2")
-    .replace(/\\(?:rightarrow|to)\b/g, "→")
-    .replace(/\\times\b/g, "×")
-    .replace(/\\div\b/g, "÷")
-    .replace(/\\pm\b/g, "±")
-    .replace(/\\le\b/g, "≤")
-    .replace(/\\ge\b/g, "≥")
-    .replace(/\\approx\b/g, "≈")
-    .replace(/\\neq\b/g, "≠")
-    .replace(/\\cdot\b/g, "·")
-    .replace(/\\%/g, "%")
-    .replace(/\\[a-zA-Z]+/g, "")
-    .replace(/[*_`~${}\\]+/g, "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 120);
-}
 
 export interface NotesPageProps {
   userId: string | null;
@@ -148,16 +118,8 @@ export default function NotesPage({ userId, initialNoteId = null }: NotesPagePro
   const [activeTag, setActiveTag] = useState("all");
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "title-az" | "title-za">("newest");
 
-  // Responsive viewport flags
-  const [isWideDesktop, setIsWideDesktop] = useState(() =>
-    typeof window !== "undefined" ? window.innerWidth >= 1180 : true
-  );
-
   // Selected note for editing/viewing
   const [activeNote, setActiveNote] = useState<StudyNote | null>(null);
-  const [editorMode, setEditorMode] = useState<"write" | "preview" | "split">(() =>
-    typeof window !== "undefined" && window.innerWidth >= 1180 ? "split" : "preview"
-  );
 
   // Editor form state
   const [editTitle, setEditTitle] = useState("");
@@ -173,17 +135,13 @@ export default function NotesPage({ userId, initialNoteId = null }: NotesPagePro
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const previewRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const saveTimerRef = useRef<number | null>(null);
   const statusClearTimerRef = useRef<number | null>(null);
   const listTrackRef = useRef<HTMLDivElement>(null);
   const listThumbRef = useRef<HTMLDivElement>(null);
-  const editorTrackRef = useRef<HTMLDivElement>(null);
-  const editorThumbRef = useRef<HTMLDivElement>(null);
-  const previewTrackRef = useRef<HTMLDivElement>(null);
-  const previewThumbRef = useRef<HTMLDivElement>(null);
+  const richTrackRef = useRef<HTMLDivElement>(null);
+  const richThumbRef = useRef<HTMLDivElement>(null);
   const scrollTimersRef = useRef<WeakMap<HTMLElement, number>>(new WeakMap());
   const scrollRafRef = useRef<WeakMap<HTMLElement, number>>(new WeakMap());
 
@@ -237,12 +195,7 @@ export default function NotesPage({ userId, initialNoteId = null }: NotesPagePro
 
   useEffect(() => {
     const handleResize = () => {
-      const wide = window.innerWidth >= 1180;
-      setIsWideDesktop(wide);
       setIsDesktopPane(window.innerWidth >= 1025);
-      if (!wide) {
-        setEditorMode((prev) => (prev === "split" ? "write" : prev));
-      }
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
@@ -356,27 +309,17 @@ export default function NotesPage({ userId, initialNoteId = null }: NotesPagePro
     };
   }, [isDirty, activeNote?.id, editTitle, editContent, persistCurrentDraft]);
 
-  const applyNoteToEditor = useCallback(
-    (note: StudyNote, forcedMode?: "write" | "preview" | "split") => {
-      setActiveNote(note);
-      setEditTitle(note.title);
-      setEditContent(note.content);
-      setEditTopic(note.topic || "general");
-      setEditColor(note.color || "default");
-      setEditTags(Array.isArray(note.tags) ? [...note.tags] : []);
-      setEditPinned(Boolean(note.pinned));
-      setTagInput("");
-      setMoreMenuOpen(false);
-      if (forcedMode) {
-        setEditorMode(forcedMode);
-      } else {
-        setEditorMode(
-          window.innerWidth >= 1180 ? "split" : note.id ? "preview" : "write"
-        );
-      }
-    },
-    []
-  );
+  const applyNoteToEditor = useCallback((note: StudyNote) => {
+    setActiveNote(note);
+    setEditTitle(note.title);
+    setEditContent(note.content);
+    setEditTopic(note.topic || "general");
+    setEditColor(note.color || "default");
+    setEditTags(Array.isArray(note.tags) ? [...note.tags] : []);
+    setEditPinned(Boolean(note.pinned));
+    setTagInput("");
+    setMoreMenuOpen(false);
+  }, []);
 
   const openNote = useCallback(
     async (note: StudyNote) => {
@@ -550,7 +493,7 @@ export default function NotesPage({ userId, initialNoteId = null }: NotesPagePro
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    applyNoteToEditor(fresh, isWideDesktop ? "split" : "write");
+    applyNoteToEditor(fresh);
   };
 
   const handleCloseMobileEditor = async () => {
@@ -668,73 +611,10 @@ export default function NotesPage({ userId, initialNoteId = null }: NotesPagePro
     setEditTags(editTags.filter((t) => t !== tagToRemove));
   };
 
-  const insertSyntax = (prefix: string, suffix = "") => {
-    if (editorMode === "preview") {
-      setEditorMode(isWideDesktop ? "split" : "write");
-      setTimeout(() => insertSyntax(prefix, suffix), 20);
-      return;
-    }
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selection = editContent.substring(start, end);
-    const replacement = prefix + (selection || "text") + suffix;
-
-    const nextContent = editContent.substring(0, start) + replacement + editContent.substring(end);
-    setEditContent(nextContent);
-
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(
-        start + prefix.length,
-        start + prefix.length + (selection.length || 4)
-      );
-    }, 0);
-  };
-
-  // Interactive task checkbox toggle inside Preview pane
-  const handlePreviewClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLElement;
-    if (!(target instanceof HTMLInputElement) || target.type !== "checkbox") return;
-    if (!previewRef.current) return;
-
-    const checkboxes = Array.from(
-      previewRef.current.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')
-    );
-    const clickedIndex = checkboxes.indexOf(target);
-    if (clickedIndex < 0) return;
-
-    const lines = editContent.split(/\r?\n/);
-    let taskCounter = 0;
-    let inFence = false;
-    let changed = false;
-
-    const updatedLines = lines.map((line) => {
-      if (/^\s*(```|~~~)/.test(line)) inFence = !inFence;
-      if (inFence) return line;
-      const match = line.match(/^(\s*(?:[-*+]|\d+\.)\s+)\[([ xX])\](\s+.*)$/);
-      if (!match) return line;
-      if (taskCounter === clickedIndex) {
-        changed = true;
-        const nextMark = match[2].toLowerCase() === "x" ? " " : "x";
-        taskCounter++;
-        return `${match[1]}[${nextMark}]${match[3]}`;
-      }
-      taskCounter++;
-      return line;
-    });
-
-    if (changed) {
-      setEditContent(updatedLines.join("\n"));
-    }
-  };
-
-  const wordCount = useMemo(
-    () => (editContent.trim() ? editContent.trim().split(/\s+/).length : 0),
-    [editContent]
-  );
+  const wordCount = useMemo(() => {
+    const plain = markdownToPlainText(editContent);
+    return plain.trim() ? plain.trim().split(/\s+/).length : 0;
+  }, [editContent]);
   const readMinutes = Math.max(1, Math.ceil(wordCount / 200));
 
   return (
@@ -946,7 +826,7 @@ export default function NotesPage({ userId, initialNoteId = null }: NotesPagePro
                   undefined,
                   { month: "short", day: "numeric" }
                 );
-                const snippet = stripMarkdownForSnippet(note.content);
+                const snippet = stripNoteFormattingForSnippet(note.content);
 
                 return (
                   <div
@@ -1085,6 +965,14 @@ export default function NotesPage({ userId, initialNoteId = null }: NotesPagePro
                         <button
                           type="button"
                           className="qb-note-more-item"
+                          onClick={() => handleCopyNote(markdownToPlainText(editContent))}
+                        >
+                          <Copy size={14} />
+                          <span>Copy Text</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="qb-note-more-item"
                           onClick={() => handleCopyNote(editContent)}
                         >
                           <Copy size={14} />
@@ -1218,198 +1106,19 @@ export default function NotesPage({ userId, initialNoteId = null }: NotesPagePro
                 )}
               </div>
 
-              {/* Formatting Bar + View Switcher */}
-              <div className={`qb-note-formatting-bar is-mode-${editorMode}`}>
-                <div className="qb-note-fmt-tools" aria-label="Markdown formatting tools">
-                  <div className="qb-note-fmt-group">
-                    <button
-                      type="button"
-                      className="qb-note-fmt-btn"
-                      onClick={() => insertSyntax("**", "**")}
-                      title="Bold (**text**)"
-                      aria-label="Bold"
-                    >
-                      <Bold size={15} />
-                    </button>
-                    <button
-                      type="button"
-                      className="qb-note-fmt-btn"
-                      onClick={() => insertSyntax("*", "*")}
-                      title="Italic (*text*)"
-                      aria-label="Italic"
-                    >
-                      <Italic size={15} />
-                    </button>
-                    <button
-                      type="button"
-                      className="qb-note-fmt-btn"
-                      onClick={() => insertSyntax("<u>", "</u>")}
-                      title="Underline (<u>text</u>)"
-                      aria-label="Underline"
-                    >
-                      <Underline size={15} />
-                    </button>
-                    <button
-                      type="button"
-                      className="qb-note-fmt-btn"
-                      onClick={() => insertSyntax("### ")}
-                      title="Heading (### Header)"
-                      aria-label="Heading 3"
-                    >
-                      <Heading3 size={15} />
-                    </button>
-                  </div>
-
-                  <div className="qb-note-fmt-sep" />
-
-                  <div className="qb-note-fmt-group">
-                    <button
-                      type="button"
-                      className="qb-note-fmt-btn"
-                      onClick={() => insertSyntax("- ")}
-                      title="Bullet list (- item)"
-                      aria-label="Bullet list"
-                    >
-                      <List size={15} />
-                    </button>
-                    <button
-                      type="button"
-                      className="qb-note-fmt-btn"
-                      onClick={() => insertSyntax("- [ ] ")}
-                      title="Checklist (- [ ] item)"
-                      aria-label="Checklist"
-                    >
-                      <CheckSquare size={15} />
-                    </button>
-                  </div>
-
-                  <div className="qb-note-fmt-sep" />
-
-                  <div className="qb-note-fmt-group">
-                    <button
-                      type="button"
-                      className="qb-note-fmt-btn qb-note-fmt-math"
-                      onClick={() => insertSyntax("$", "$")}
-                      title="Inline math ($formula$)"
-                      aria-label="Inline math"
-                    >
-                      $x$
-                    </button>
-                    <button
-                      type="button"
-                      className="qb-note-fmt-btn qb-note-fmt-math"
-                      onClick={() => insertSyntax("$$\n", "\n$$")}
-                      title="Display math block ($$...$$)"
-                      aria-label="Display math block"
-                    >
-                      $$
-                    </button>
-                    <button
-                      type="button"
-                      className="qb-note-fmt-btn qb-note-fmt-math"
-                      onClick={() => insertSyntax("\\frac{a}{b}")}
-                      title="Fraction (\frac{a}{b})"
-                      aria-label="Fraction"
-                    >
-                      ½
-                    </button>
-                  </div>
+              {/* Unified Word / Apple Notes-Style Rich Text Document Area */}
+              <div className="qb-note-rich-area">
+                <NoteRichEditor
+                  noteKey={activeNote.id || "new-note"}
+                  markdown={editContent}
+                  onChangeMarkdown={setEditContent}
+                  onScroll={(el) =>
+                    handleMobileOverlayScroll(el, richTrackRef.current, richThumbRef.current)
+                  }
+                />
+                <div ref={richTrackRef} className="qb-mobile-scroll-track" aria-hidden="true">
+                  <div ref={richThumbRef} className="qb-mobile-scroll-thumb" />
                 </div>
-
-                {/* Mode Switcher Bar */}
-                <div className="qb-note-mode-row">
-                  <span className="qb-note-mode-label">
-                    {editorMode === "preview" ? "Reading View" : "Markdown"}
-                  </span>
-                  <div className="qb-note-view-switcher" role="tablist" aria-label="Editor view mode">
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={editorMode === "write"}
-                      className={`qb-note-view-tab${editorMode === "write" ? " is-active" : ""}`}
-                      onClick={() => setEditorMode("write")}
-                    >
-                      <Code size={13} />
-                      <span>Write</span>
-                    </button>
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={editorMode === "preview"}
-                      className={`qb-note-view-tab${editorMode === "preview" ? " is-active" : ""}`}
-                      onClick={() => setEditorMode("preview")}
-                    >
-                      <Eye size={13} />
-                      <span>Preview</span>
-                    </button>
-                    {isWideDesktop && (
-                      <button
-                        type="button"
-                        role="tab"
-                        aria-selected={editorMode === "split"}
-                        className={`qb-note-view-tab${editorMode === "split" ? " is-active" : ""}`}
-                        onClick={() => setEditorMode("split")}
-                      >
-                        <Columns size={13} />
-                        <span>Split</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Editor / Preview Content Area */}
-              <div className={`qb-note-content-area is-${editorMode}`}>
-                {(editorMode === "write" || editorMode === "split") && (
-                  <div className="qb-note-editor-wrapper">
-                    <textarea
-                      ref={textareaRef}
-                      className="qb-note-textarea"
-                      placeholder="Write your notes, math formulas ($a^2 + b^2 = c^2$), or checklists (- [ ] item)..."
-                      value={editContent}
-                      onChange={(e) => setEditContent(e.target.value)}
-                      onScroll={(e) =>
-                        handleMobileOverlayScroll(
-                          e.currentTarget,
-                          editorTrackRef.current,
-                          editorThumbRef.current
-                        )
-                      }
-                    />
-                    <div ref={editorTrackRef} className="qb-mobile-scroll-track" aria-hidden="true">
-                      <div ref={editorThumbRef} className="qb-mobile-scroll-thumb" />
-                    </div>
-                  </div>
-                )}
-
-                {(editorMode === "preview" || editorMode === "split") && (
-                  <div className="qb-note-preview-shell">
-                    <div
-                      ref={previewRef}
-                      className="qb-note-preview-wrapper"
-                      onClick={handlePreviewClick}
-                      onScroll={(e) =>
-                        handleMobileOverlayScroll(
-                          e.currentTarget,
-                          previewTrackRef.current,
-                          previewThumbRef.current
-                        )
-                      }
-                    >
-                      {editContent.trim() ? (
-                        <MarkdownText text={editContent} interactiveCheckboxes />
-                      ) : (
-                        <div className="qb-note-preview-empty">
-                          <Sparkles size={24} />
-                          <p>Live formatted preview & interactive checklists appear here.</p>
-                        </div>
-                      )}
-                    </div>
-                    <div ref={previewTrackRef} className="qb-mobile-scroll-track" aria-hidden="true">
-                      <div ref={previewThumbRef} className="qb-mobile-scroll-thumb" />
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Minimal Quiet Footer */}
@@ -1418,7 +1127,7 @@ export default function NotesPage({ userId, initialNoteId = null }: NotesPagePro
                   {wordCount} {wordCount === 1 ? "word" : "words"} · {readMinutes} min read
                 </span>
                 <span className="qb-note-math-hint">
-                  Markdown & KaTeX <code>$...$</code> enabled · Autosaves automatically
+                  Rich text, checklists & equations · Autosaves automatically
                 </span>
               </div>
             </div>

@@ -17,6 +17,7 @@ import Color from "@tiptap/extension-color";
 import TextAlign from "@tiptap/extension-text-align";
 import Placeholder from "@tiptap/extension-placeholder";
 import katex from "katex";
+import "katex/dist/katex.min.css";
 import {
   Undo2,
   Redo2,
@@ -368,7 +369,15 @@ export default function NoteRichEditor({
       if (triggerEl && toolbarRef.current) {
         const wrapRect = toolbarRef.current.getBoundingClientRect();
         const btnRect = triggerEl.getBoundingClientRect();
-        const estimatedWidth = kind === "math" ? 310 : kind === "link" ? 290 : kind === "highlight" || kind === "color" ? 228 : 170;
+        const desiredWidth =
+          kind === "math"
+            ? 310
+            : kind === "link"
+              ? 290
+              : kind === "highlight" || kind === "color"
+                ? 228
+                : 170;
+        const estimatedWidth = Math.min(Math.max(140, wrapRect.width - 16), desiredWidth);
         const rawLeft = btnRect.left - wrapRect.left;
         const maxLeft = Math.max(8, wrapRect.width - estimatedWidth - 8);
         setPopoverLeft(Math.max(8, Math.min(rawLeft, maxLeft)));
@@ -399,8 +408,7 @@ export default function NoteRichEditor({
         types: ["heading", "paragraph"],
       }),
       Placeholder.configure({
-        placeholder:
-          "Start writing your study note... Highlight text to format, or use shortcuts like Ctrl+B, # Heading, - [ ] Checklist",
+        placeholder: "Start writing your study note... Highlight text to format or use the toolbar above.",
       }),
       MathInlineExtension,
       MathBlockExtension,
@@ -680,13 +688,13 @@ export default function NoteRichEditor({
             <div className="qb-note-fmt-group">
               <button
                 type="button"
-                className={`qb-note-fmt-btn qb-rich-dropdown-btn${editorState?.headingLevel ? " is-active" : ""}`}
+                className={`qb-note-fmt-btn qb-rich-dropdown-btn${editorState?.headingLevel ? " is-active" : ""}${openPopover === "heading" ? " is-open" : ""}`}
                 onClick={(e) => togglePopover("heading", e.currentTarget)}
                 title="Text style & headings"
                 aria-expanded={openPopover === "heading"}
               >
                 <span className="qb-rich-heading-tag">{headingLabel}</span>
-                <ChevronDown size={12} />
+                <ChevronDown size={12} className="qb-rich-chevron" />
               </button>
             </div>
 
@@ -769,13 +777,13 @@ export default function NoteRichEditor({
                 </button>
                 <button
                   type="button"
-                  className="qb-note-fmt-btn qb-rich-split-caret"
+                  className={`qb-note-fmt-btn qb-rich-split-caret${openPopover === "highlight" ? " is-open" : ""}`}
                   onClick={(e) => togglePopover("highlight", e.currentTarget)}
                   title="Choose highlight color"
                   aria-label="Choose highlight color"
                   aria-expanded={openPopover === "highlight"}
                 >
-                  <ChevronDown size={11} />
+                  <ChevronDown size={11} className="qb-rich-chevron" />
                 </button>
               </div>
 

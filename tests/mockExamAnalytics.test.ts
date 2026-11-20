@@ -5,6 +5,9 @@ import {
   calculateExamMetrics,
   buildMockExamAttempt,
   buildReviewExamFromAttempt,
+  buildMistakeDrillExam,
+  buildMiniMockExamSession,
+  getAttemptModeLabel,
 } from "../src/utils/mockExamAnalytics";
 
 type AnalyticsQuestion = {
@@ -158,3 +161,101 @@ describe("buildReviewExamFromAttempt", () => {
     expect(review2.questionSnapshots["3"].correct).toBe(2);
   });
 });
+
+describe("buildMiniMockExamSession & mini-mock attempt handling", () => {
+  it("builds a timed or untimed mini-mock session with embedded snapshots", () => {
+    const timedSession = buildMiniMockExamSession({
+      miniMockId: "mm_123",
+      title: "Ratio Sprint",
+      questions: [
+        {
+          id: "pq_1",
+          topic: "numerical",
+          question: "Ratio of 1/2 to 1/4?",
+          choices: ["1:2", "2:1", "1:4", "4:1"],
+          correct: 1,
+          solution: "Multiply by 4.",
+        },
+        {
+          id: "pq_2",
+          topic: "verbal",
+          question: "Pick the synonym of candid.",
+          choices: ["Frank", "Secretive", "Hasty", "Mild"],
+          correct: 0,
+        },
+      ],
+      timed: true,
+      durationMinutes: 5,
+      shuffle: false,
+    });
+
+    expect(timedSession.mode).toBe("mini-mock");
+    expect(timedSession.miniMockId).toBe("mm_123");
+    expect(timedSession.returnView).toBe("my-questions");
+    expect(timedSession.durationMs).toBe(5 * 60 * 1000);
+    expect(timedSession.orderIds).toEqual(["pq_1", "pq_2"]);
+    expect(timedSession.questionSnapshots["pq_1"].solution).toBe("Multiply by 4.");
+    expect(getAttemptModeLabel(timedSession.mode)).toBe("Mini Mock");
+
+    const untimedSession = buildMiniMockExamSession({
+      title: "Untimed Deck",
+      questions: [
+        {
+          id: "pq_1",
+          topic: "numerical",
+          question: "Test?",
+          choices: ["A", "B", "C", "D"],
+          correct: 0,
+        },
+      ],
+      timed: false,
+    });
+    expect(untimedSession.timed).toBe(false);
+    expect(untimedSession.durationMs).toBe(0);
+  });
+
+  it("preserves custom questionSnapshots through attempt history, review, and mistake drills", () => {
+    const miniExam = buildMiniMockExamSession({
+      miniMockId: "mm_99",
+      title: "Custom Quiz",
+      questions: [
+        {
+          id: "pq_a",
+          topic: "numerical",
+          question: "2 + 2 = ?",
+          choices: ["3", "4", "5", "6"],
+          correct: 1,
+        },
+        {
+          id: "pq_b",
+          topic: "numerical",
+          question: "3 + 3 = ?",
+          choices: ["5", "6", "7", "8"],
+          correct: 1,
+        },
+      ],
+      timed: true,
+      durationMinutes: 4,
+    });
+
+    const completedExam = {
+      ...miniExam,
+      finished: true,
+      answers: { pq_a: 1, pq_b: 0 },
+    };
+
+    const emptyMap = new Map<string, AnalyticsQuestion>();
+    const attempt = buildMockExamAttempt(completedExam, emptyMap, 5000);
+    expect(attempt.correctCount).toBe(1);
+    expect(attempt.wrongCount).toBe(1);
+    expect(attempt.questionSnapshots?.pq_b?.question).toBe("3 + 3 = ?");
+
+    const review = buildReviewExamFromAttempt(attempt, emptyMap);
+    expect(review.questionSnapshots.pq_b.question).toBe("3 + 3 = ?");
+
+    const drill = buildMistakeDrillExam(attempt, emptyMap);
+    expect(drill.orderIds).toEqual(["pq_b"]);
+    expect(drill.questionSnapshots?.pq_b?.question).toBe("3 + 3 = ?");
+  });
+});
+

@@ -234,3 +234,78 @@ export function TipsSkeletonLoader() {
     </div>
   );
 }
+
+const MY_QUESTIONS_SKELETON_CARDS = [
+  { stemWidths: ["88%", "56%"], choiceWidths: ["64%", "52%", "72%", "48%"], hasSolution: true },
+  { stemWidths: ["94%", "42%"], choiceWidths: ["58%", "68%", "48%", "62%"], hasSolution: false },
+  { stemWidths: ["80%", "66%"], choiceWidths: ["66%", "54%", "60%", "56%"], hasSolution: false },
+];
+
+export function MyQuestionsSkeletonLoader() {
+  return (
+    <div
+      className="flex flex-col gap-4"
+      role="status"
+      aria-busy="true"
+      aria-label="Loading personal questions"
+    >
+      <span className="sr-only">Loading your personal questions...</span>
+      {MY_QUESTIONS_SKELETON_CARDS.map((card, idx) => (
+        <div
+          key={idx}
+          aria-hidden="true"
+          className="pointer-events-none flex flex-col gap-4 rounded-2xl border border-qb-border bg-qb-surface p-4 @sm:p-5 @2xl:p-6"
+        >
+          {/* Card Header Metadata & Action Bar */}
+          <div className="flex flex-col gap-3 border-b border-qb-border/70 pb-3.5 @2xl:flex-row @2xl:items-center @2xl:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="qb-skel-bar h-3.5 w-24" />
+              <span className="qb-skel-bar h-3.5 w-28" />
+              <span className="qb-skel-bar h-3.5 w-20" />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="qb-skel-bar h-9 flex-1 @sm:w-36 @sm:flex-none" />
+              <span className="qb-skel-bar h-9 w-16" />
+              <span className="qb-skel-bar h-9 w-9 shrink-0" />
+            </div>
+          </div>
+
+          {/* Question Stem Lines */}
+          <div className="flex flex-col gap-2 py-0.5">
+            <div className="qb-skel-bar h-4" style={{ width: card.stemWidths[0] }} />
+            <div className="qb-skel-bar h-4" style={{ width: card.stemWidths[1] }} />
+          </div>
+
+          {/* Choices Grid (1 col mobile/compact, 2 col @xl+) */}
+          <div className="grid grid-cols-1 gap-2.5 @xl:grid-cols-2">
+            {card.choiceWidths.map((choiceW, cIdx) => (
+              <div
+                key={cIdx}
+                className="flex items-center gap-2.5 rounded-xl border border-qb-border bg-qb-input px-3 py-2.5"
+              >
+                <span className="qb-skel-bar h-6 w-6 shrink-0" />
+                <span className="qb-skel-bar h-3.5" style={{ width: choiceW }} />
+              </div>
+            ))}
+          </div>
+
+          {/* Optional Solution Box Placeholder on First Card */}
+          {card.hasSolution && (
+            <div className="flex flex-col gap-2 rounded-xl border border-qb-border bg-qb-input p-3.5">
+              <span className="qb-skel-bar h-3 w-36" />
+              <span className="qb-skel-bar h-3.5 w-[82%]" />
+            </div>
+          )}
+
+          {/* Footer Date & Attribution */}
+          <div className="flex items-center justify-between border-t border-qb-border/70 pt-3">
+            <span className="qb-skel-bar h-3 w-28" />
+            <span className="qb-skel-bar h-3 w-24" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+

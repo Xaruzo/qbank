@@ -39,6 +39,10 @@ export function useViewRouter({
       if (page === "landing") return "landing";
       if (page === "signin" || page === "login") return "signIn";
       if (page === "settings") return "settings";
+      if (page === "my-questions") return "my-questions";
+      if (page === "tips") return "tips";
+      if (page === "notes") return "notes";
+      if (page === "mock") return "mock";
       if (page) return "list";
 
       // If user has a stored authenticated account, go directly to list view
@@ -62,6 +66,14 @@ export function useViewRouter({
   const [editId, setEditId] = useState<string | null>(null);
   const [selectedMockAttemptId, setSelectedMockAttemptId] = useState<string | null>(null);
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
+  const [selectedMiniMockId, setSelectedMiniMockId] = useState<string | null>(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("page") === "my-questions" ? params.get("mock") || null : null;
+    } catch {
+      return null;
+    }
+  });
   const [settingsTab, setSettingsTab] = useState<string>(() => {
     try {
       const params = new URLSearchParams(window.location.search);
@@ -173,12 +185,14 @@ export function useViewRouter({
       }
 
       if (page === "my-questions") {
+        const mockId = params.get("mock");
         setSelectedMockAttemptId(null);
         setDeepLinkShowSol(false);
         setEditId(null);
         setExam(null);
         setSelectedId(null);
         setSelectedNoteId(null);
+        setSelectedMiniMockId(mockId || null);
         setView("my-questions");
         return;
       }
@@ -327,14 +341,19 @@ export function useViewRouter({
     setView("notes");
   }, []);
 
-  const navigateMyQuestions = useCallback(() => {
+  const navigateMyQuestions = useCallback((miniMockId?: string | null) => {
+    const safeMiniMockId = typeof miniMockId === "string" && miniMockId.trim() ? miniMockId.trim() : null;
     setEditId(null);
     setSelectedId(null);
     setSelectedMockAttemptId(null);
     setSelectedNoteId(null);
     setDeepLinkShowSol(false);
     setExam(null);
-    window.history.pushState({}, "", `?page=my-questions`);
+    setSelectedMiniMockId(safeMiniMockId);
+    const query = safeMiniMockId
+      ? `?page=my-questions&mock=${encodeURIComponent(safeMiniMockId)}`
+      : `?page=my-questions`;
+    window.history.pushState({}, "", query);
     setView("my-questions");
   }, []);
 
@@ -410,6 +429,7 @@ export function useViewRouter({
     selectedMockAttemptId,
     setSelectedMockAttemptId,
     selectedNoteId,
+    selectedMiniMockId,
     settingsTab,
     deepLinkShowSol,
     setDeepLinkShowSol,

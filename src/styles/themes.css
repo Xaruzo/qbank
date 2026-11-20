@@ -474,6 +474,12 @@
   color:var(--accent);
 }
 
+.qb-choice.qb-choice-sel .qb-choice-l {
+  background:var(--accent);
+  border-color:var(--accent);
+  color:#ffffff;
+}
+
 .qb-qnum-cur {
   border-color:var(--accent-border);
   box-shadow:0 0 0 1px var(--accent-border);

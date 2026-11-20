@@ -904,25 +904,68 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   color: #f8fafc !important;
 }
 
-.qb:not(.light) .qb-choice,
-.dark .qb-choice {
+.qb:not(.light) .qb-choice:not(.qb-choice-sel):not(.correct):not(.wrong),
+.dark .qb-choice:not(.qb-choice-sel):not(.correct):not(.wrong) {
   color: #e2e8f0 !important;
   background: #0d1524 !important;
   border-color: #20314d !important;
 }
 
-.qb:not(.light) .qb-choice:not(:disabled):hover,
-.dark .qb-choice:not(:disabled):hover {
+.qb:not(.light) .qb-choice:not(:disabled):not(.qb-choice-sel):not(.correct):not(.wrong):hover,
+.dark .qb-choice:not(:disabled):not(.qb-choice-sel):not(.correct):not(.wrong):hover {
   background: #131f36 !important;
   border-color: rgba(245, 166, 35, 0.5) !important;
   color: #ffffff !important;
 }
 
-.qb:not(.light) .qb-choice-l,
-.dark .qb-choice-l {
+.qb:not(.light) .qb-choice.qb-choice-sel,
+.dark .qb-choice.qb-choice-sel {
+  color: #fffbeb !important;
+  background: rgba(245, 166, 35, 0.14) !important;
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.45), 0 6px 18px rgba(245, 158, 11, 0.14) !important;
+}
+
+.qb:not(.light) .qb-choice:not(.qb-choice-sel):not(.correct):not(.wrong) .qb-choice-l,
+.dark .qb-choice:not(.qb-choice-sel):not(.correct):not(.wrong) .qb-choice-l {
   color: #f1f5f9 !important;
   background: #142038 !important;
   border-color: #2a3d5e !important;
+}
+
+.qb:not(.light) .qb-choice.qb-choice-sel .qb-choice-l,
+.dark .qb-choice.qb-choice-sel .qb-choice-l {
+  color: #070c18 !important;
+  background: #f59e0b !important;
+  border-color: #fbbf24 !important;
+}
+
+.qb:not(.light) .qb-choice.correct,
+.dark .qb-choice.correct {
+  color: #86efac !important;
+  background: rgba(34, 197, 94, 0.14) !important;
+  border-color: #22c55e !important;
+}
+
+.qb:not(.light) .qb-choice.correct .qb-choice-l,
+.dark .qb-choice.correct .qb-choice-l {
+  color: #052e16 !important;
+  background: #22c55e !important;
+  border-color: #4ade80 !important;
+}
+
+.qb:not(.light) .qb-choice.wrong,
+.dark .qb-choice.wrong {
+  color: #fda4af !important;
+  background: rgba(244, 63, 94, 0.14) !important;
+  border-color: #f43f5e !important;
+}
+
+.qb:not(.light) .qb-choice.wrong .qb-choice-l,
+.dark .qb-choice.wrong .qb-choice-l {
+  color: #ffffff !important;
+  background: #f43f5e !important;
+  border-color: #fb7185 !important;
 }
 
 .qb:not(.light) .qb-det-label,
