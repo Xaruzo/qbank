@@ -15,6 +15,7 @@ import type { HeaderProps } from "../../types";
 
 export default function Header({
   onHome,
+  onDashboard,
   onLanding,
   showNavToggle = true,
   navOpen = false,
@@ -104,8 +105,8 @@ export default function Header({
           <button
             type="button"
             className="qb-logo"
-            onClick={onHome}
-            title="Return to Question Bank"
+            onClick={onDashboard || onHome}
+            title="Return to Study Dashboard"
           >
             <img className="qb-logo-img" src={brandLogo} alt="QBANK logo" />
             <div className="qb-logo-text-group">

@@ -36,14 +36,30 @@ import {
   Trash,
   ShieldOff,
   Archive,
+  SlidersHorizontal,
+  ChevronDown,
+  ChevronUp,
+  X,
 } from "lucide-react";
-import type { SettingsPageProps, UserRole, UserRoleRecord, SelectOption } from "../../types";
+import type {
+  AdminPermissionKey,
+  AdminPermissions,
+  SettingsPageProps,
+  UserRole,
+  UserRoleRecord,
+  SelectOption,
+} from "../../types";
 import { useOverlayDialogA11y } from "../../controllers/useOverlayDialogA11y";
 import AvatarStudio from "./AvatarStudio";
 import CustomSelect from "./CustomSelect";
 import ModernDatePicker from "./ModernDatePicker";
 import ChangePasswordModal from "./ChangePasswordModal";
-import { rolesModel } from "../../models/rolesModel";
+import {
+  ADMIN_PERMISSION_DEFINITIONS,
+  ALL_ADMIN_PERMISSIONS,
+  DEFAULT_ADMIN_PERMISSIONS,
+  rolesModel,
+} from "../../models/rolesModel";
 import { getDaysUntilExam } from "../../models/masteryModel";
 import {
   exportQuestionsJson,
@@ -87,6 +103,12 @@ const QUICK_ROLE_OPTIONS: SelectOption[] = [
   },
 ];
 
+const PERMISSION_CATEGORIES = [
+  "Question Bank",
+  "Moderation & Imports",
+  "Administration",
+] as const;
+
 export default function SettingsPage({
   initialTab = "identity",
   onTabChange,
@@ -100,6 +122,9 @@ export default function SettingsPage({
   isAuthenticated,
   isQuestionAdmin = false,
   isSuperAdmin = false,
+  canManageRoles = isSuperAdmin,
+  canModerateUsers = isSuperAdmin || isQuestionAdmin,
+  canBulkImport = isQuestionAdmin,
   totalQuestions = 0,
   mockAttemptsCount = 0,
   favoritesCount = 0,
@@ -108,12 +133,23 @@ export default function SettingsPage({
   onImportQuestions,
   onBackToMain,
 }: SettingsPageProps) {
+  const canViewRolesTab = Boolean(isSuperAdmin || canManageRoles || canModerateUsers);
+  const canEditAdminTemplate = Boolean(isSuperAdmin || canManageRoles);
+  const allowBulkImport = Boolean(isSuperAdmin || canBulkImport);
+
   const [activeTab, setActiveTab] = useState<string>(initialTab);
 
   const handleSelectTab = (tab: string) => {
     setActiveTab(tab);
     onTabChange?.(tab);
   };
+
+  useEffect(() => {
+    if (activeTab === "roles" && !canViewRolesTab) {
+      setActiveTab("identity");
+      onTabChange?.("identity");
+    }
+  }, [activeTab, canViewRolesTab, onTabChange]);
 
   // Check whether LITE / Power Saver mode is active
   const isLiteMode = Boolean(
@@ -168,7 +204,7 @@ export default function SettingsPage({
       window.removeEventListener("resize", updateIndicator);
       resizeObserver?.disconnect();
     };
-  }, [activeTab, isLiteMode, isSuperAdmin, isQuestionAdmin]);
+  }, [activeTab, isLiteMode, isSuperAdmin, isQuestionAdmin, canViewRolesTab]);
 
   // Form State
   const [fullName, setFullName] = useState(profile?.fullName || "");
@@ -226,13 +262,31 @@ export default function SettingsPage({
   const [moderationReason, setModerationReason] = useState("");
   const [isModerating, setIsModerating] = useState(false);
 
+  // Discord-style Admin Role Permissions & Per-Admin Override Modal State
+  const [defaultAdminPerms, setDefaultAdminPerms] = useState<AdminPermissions>(() =>
+    rolesModel.getDefaultAdminPermissions()
+  );
+  const [isAdminTemplateExpanded, setIsAdminTemplateExpanded] = useState(true);
+  const [permissionEditorTarget, setPermissionEditorTarget] = useState<UserRoleRecord | null>(null);
+  const [draftUserPerms, setDraftUserPerms] = useState<AdminPermissions>(
+    DEFAULT_ADMIN_PERMISSIONS
+  );
+  const [isSavingUserPerms, setIsSavingUserPerms] = useState(false);
+  const permissionDialogRef = useRef<HTMLDivElement>(null);
+
   const closeModerationModal = () => {
     if (isModerating) return;
     setModerationTarget(null);
     setModerationReason("");
   };
 
+  const closePermissionModal = () => {
+    if (isSavingUserPerms) return;
+    setPermissionEditorTarget(null);
+  };
+
   useOverlayDialogA11y(!!moderationTarget, closeModerationModal, moderationDialogRef);
+  useOverlayDialogA11y(!!permissionEditorTarget, closePermissionModal, permissionDialogRef);
 
   useEffect(() => {
     if (!openActionMenu) return;
@@ -306,6 +360,7 @@ export default function SettingsPage({
 
   useEffect(() => {
     if (activeTab !== "roles") return;
+    setDefaultAdminPerms(rolesModel.getDefaultAdminPermissions());
     let active = true;
     setIsUsersLoading(true);
     rolesModel
@@ -321,8 +376,105 @@ export default function SettingsPage({
     };
   }, [activeTab]);
 
+  const handleToggleDefaultAdminPerm = (key: AdminPermissionKey) => {
+    if (!canEditAdminTemplate) return;
+    const next: AdminPermissions = {
+      ...defaultAdminPerms,
+      [key]: !defaultAdminPerms[key],
+    };
+    const saved = rolesModel.saveDefaultAdminPermissions(next, false);
+    setDefaultAdminPerms(saved);
+    const label =
+      ADMIN_PERMISSION_DEFINITIONS.find((d) => d.key === key)?.label || key;
+    setRoleNotice({
+      type: "success",
+      message: `Default Admin permission "${label}" ${saved[key] ? "enabled" : "disabled"}.`,
+    });
+    setTimeout(() => setRoleNotice(null), 3500);
+  };
+
+  const handleResetDefaultAdminPerms = () => {
+    if (!canEditAdminTemplate) return;
+    const saved = rolesModel.saveDefaultAdminPermissions(DEFAULT_ADMIN_PERMISSIONS, false);
+    setDefaultAdminPerms(saved);
+    setRoleNotice({
+      type: "success",
+      message: "Default Admin permissions restored to recommended defaults.",
+    });
+    setTimeout(() => setRoleNotice(null), 3500);
+  };
+
+  const handleApplyDefaultPermsToAllAdmins = async () => {
+    if (!canEditAdminTemplate) return;
+    const saved = rolesModel.saveDefaultAdminPermissions(defaultAdminPerms, true);
+    setDefaultAdminPerms(saved);
+    await refreshUsersList();
+    setRoleNotice({
+      type: "success",
+      message: "Default Admin permissions synced across all active Admin accounts.",
+    });
+    setTimeout(() => setRoleNotice(null), 4000);
+  };
+
+  const openUserPermissionsModal = (record: UserRoleRecord) => {
+    if (!canEditAdminTemplate || record.role !== "admin") return;
+    const summary = rolesModel.getPermissionSummary(record);
+    setDraftUserPerms({ ...summary.resolved });
+    setPermissionEditorTarget(record);
+    setOpenActionMenu(null);
+  };
+
+  const handleSaveUserPermissions = async (permsToSave: AdminPermissions | null) => {
+    if (!permissionEditorTarget || !canEditAdminTemplate || isSavingUserPerms) return;
+    setIsSavingUserPerms(true);
+    setRoleNotice(null);
+    try {
+      const res = await rolesModel.updateUserPermissions(
+        permissionEditorTarget.email,
+        permsToSave,
+        { email: profile?.email, fullName: profile?.fullName },
+        permissionEditorTarget.fullName
+      );
+      if (res.success) {
+        setRoleNotice({
+          type: res.warning ? "warning" : "success",
+          message: res.warning
+            ? `Permissions updated for ${permissionEditorTarget.email} (${res.warning})`
+            : permsToSave === null
+              ? `${permissionEditorTarget.email} reset to Admin Role defaults.`
+              : `Saved granular permissions for ${permissionEditorTarget.email}.`,
+        });
+        await refreshUsersList();
+        setPermissionEditorTarget(null);
+        setTimeout(() => setRoleNotice(null), res.warning ? 8500 : 4000);
+      } else {
+        setRoleNotice({
+          type: "error",
+          message: res.error || "Failed to update permissions.",
+        });
+      }
+    } finally {
+      setIsSavingUserPerms(false);
+    }
+  };
+
   const handleAssignRole = async (targetEmail: string, roleToAssign: UserRole, targetName?: string) => {
     setRoleNotice(null);
+    if (!canEditAdminTemplate) {
+      setRoleNotice({ type: "error", message: "You do not have permission to assign roles." });
+      return;
+    }
+    if (!isSuperAdmin && roleToAssign === "superadmin") {
+      setRoleNotice({ type: "error", message: "Only a Superadmin can assign the Superadmin role." });
+      return;
+    }
+    const existingTarget = usersList.find(
+      (u) => u.email.toLowerCase() === targetEmail.trim().toLowerCase()
+    );
+    if (!isSuperAdmin && existingTarget?.role === "superadmin") {
+      setRoleNotice({ type: "error", message: "Only a Superadmin can modify another Superadmin account." });
+      return;
+    }
     const res = await rolesModel.assignRole(
       targetEmail,
       roleToAssign,
@@ -345,6 +497,17 @@ export default function SettingsPage({
   const handleRevokeRole = async (targetEmail: string) => {
     setRoleNotice(null);
     setOpenActionMenu(null);
+    if (!canEditAdminTemplate) {
+      setRoleNotice({ type: "error", message: "You do not have permission to revoke roles." });
+      return;
+    }
+    const existingTarget = usersList.find(
+      (u) => u.email.toLowerCase() === targetEmail.trim().toLowerCase()
+    );
+    if (!isSuperAdmin && existingTarget?.role === "superadmin") {
+      setRoleNotice({ type: "error", message: "Only a Superadmin can revoke another Superadmin role." });
+      return;
+    }
     const res = await rolesModel.revokeRole(targetEmail);
     if (res.success) {
       setRoleNotice({
@@ -816,7 +979,7 @@ export default function SettingsPage({
             </div>
           </button>
 
-          {(isSuperAdmin || isQuestionAdmin) && (
+          {canViewRolesTab && (
             <button
               ref={(el) => {
                 navItemRefs.current["roles"] = el;
@@ -832,7 +995,7 @@ export default function SettingsPage({
               </div>
               <div className="qb-settings-nav-item-text">
                 <span className="qb-settings-nav-item-title">Roles & Access Control</span>
-                <span className="qb-settings-nav-item-sub">Superadmin user permissions</span>
+                <span className="qb-settings-nav-item-sub">Role permissions & roster</span>
               </div>
             </button>
           )}
@@ -1386,7 +1549,7 @@ export default function SettingsPage({
                     <div>
                       <h4 className="font-semibold text-sm text-heading">Question Bank Import & Export</h4>
                       <p className="text-xs text-muted">
-                        Export all <span className="tabular-nums">{questions.length}</span> bank items as JSON{isQuestionAdmin ? ", or bulk-import validated .json / .csv question sets." : "."}
+                        Export all <span className="tabular-nums">{questions.length}</span> bank items as JSON{allowBulkImport ? ", or bulk-import validated .json / .csv question sets." : "."}
                       </p>
                     </div>
                   </div>
@@ -1403,7 +1566,7 @@ export default function SettingsPage({
                     <span>Export Question Bank (.json)</span>
                   </button>
 
-                  {isQuestionAdmin && onImportQuestions && (
+                  {allowBulkImport && onImportQuestions && (
                     <>
                       <input
                         ref={importFileInputRef}
@@ -1425,7 +1588,7 @@ export default function SettingsPage({
                   )}
                 </div>
 
-                {isQuestionAdmin && onImportQuestions && (
+                {allowBulkImport && onImportQuestions && (
                   <p className="qb-settings-bank-io-hint">
                     CSV columns: <code>topic, label, question, choiceA, choiceB, choiceC, choiceD, [choiceE], correct, [solution]</code> (<code>correct</code> accepts A–E or 0–4).
                   </p>
@@ -1542,8 +1705,8 @@ export default function SettingsPage({
             </div>
           )}
 
-          {/* TAB 5: ROLES & ACCESS CONTROL (SUPERADMIN / ADMIN) */}
-          {activeTab === "roles" && (
+          {/* TAB 5: ROLES & ACCESS CONTROL (SUPERADMIN / PERMITTED ADMIN) */}
+          {activeTab === "roles" && canViewRolesTab && (
             <div className="qb-settings-panel-section">
               <div className="qb-settings-section-head">
                 <div className="flex items-center gap-2">
@@ -1551,7 +1714,7 @@ export default function SettingsPage({
                   <h2 className="qb-settings-section-title">User Roles & Access Control</h2>
                 </div>
                 <p className="qb-settings-section-desc">
-                  Manage platform administrative privileges, assign Superadmin or Question Admin roles, and control access rights across reviewer accounts.
+                  Assign Superadmin or Admin roles, choose granular Discord-style permissions for Admins, and moderate reviewer accounts.
                 </p>
               </div>
 
@@ -1563,51 +1726,185 @@ export default function SettingsPage({
               )}
 
               {/* Quick Role Assignment Card */}
-              <div className="qb-settings-role-grant-card">
-                <div className="qb-settings-role-grant-head">
-                  <UserPlus size={18} className="text-amber-400" />
-                  <div>
-                    <h3 className="font-semibold text-sm text-heading">Grant or Assign User Role</h3>
-                    <p className="text-xs text-muted">
-                      Enter any examinee or staff email address to grant administrative permissions or assign roles.
-                    </p>
+              {canEditAdminTemplate && (
+                <div className="qb-settings-role-grant-card">
+                  <div className="qb-settings-role-grant-head">
+                    <UserPlus size={18} className="text-amber-400" />
+                    <div>
+                      <h3 className="font-semibold text-sm text-heading">Grant or Assign User Role</h3>
+                      <p className="text-xs text-muted">
+                        Enter an account email to assign Admin privileges or configure their role tier.
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    if (newRoleEmail.trim()) {
-                      handleAssignRole(newRoleEmail.trim(), newRoleSelect);
-                    }
-                  }}
-                  className="qb-settings-role-grant-form"
-                >
-                  <div className="qb-settings-input-wrap flex-1">
-                    <User size={16} className="qb-settings-input-icon" />
-                    <input
-                      type="email"
-                      className="qb-settings-text-input"
-                      placeholder="e.g. reviewer@domain.com"
-                      value={newRoleEmail}
-                      onChange={(e) => setNewRoleEmail(e.target.value)}
-                      required
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (newRoleEmail.trim()) {
+                        handleAssignRole(newRoleEmail.trim(), newRoleSelect);
+                      }
+                    }}
+                    className="qb-settings-role-grant-form"
+                  >
+                    <div className="qb-settings-input-wrap flex-1">
+                      <User size={16} className="qb-settings-input-icon" />
+                      <input
+                        type="email"
+                        className="qb-settings-text-input"
+                        placeholder="e.g. reviewer@domain.com"
+                        value={newRoleEmail}
+                        onChange={(e) => setNewRoleEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <CustomSelect
+                      value={newRoleSelect}
+                      onChange={(val) => setNewRoleSelect(val as UserRole)}
+                      options={
+                        isSuperAdmin
+                          ? ROLE_GRANT_OPTIONS
+                          : ROLE_GRANT_OPTIONS.filter((opt) => opt.value !== "superadmin")
+                      }
+                      className="qb-settings-role-select-wrap"
+                      showCheckmark
+                      portal
+                      minMenuWidth={320}
                     />
+                    <button type="submit" className="qb-settings-role-grant-btn">
+                      <UserPlus size={16} />
+                      <span>Assign Role</span>
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              {/* Discord-Style Default Admin Role Permissions Card */}
+              {canEditAdminTemplate && (
+                <div className="rounded-xl border border-qb-border bg-qb-surface p-4 sm:p-5 space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-purple-400/30 bg-purple-400/12 text-purple-400 light:border-purple-600/25 light:bg-purple-50 light:text-purple-700">
+                        <SlidersHorizontal size={17} aria-hidden="true" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-sm font-bold text-qb-heading">
+                            Admin Role Permissions
+                          </h3>
+                          <span className="text-xs font-medium text-qb-muted tabular-nums">
+                            {Object.values(defaultAdminPerms).filter(Boolean).length} /{" "}
+                            {ADMIN_PERMISSION_DEFINITIONS.length} enabled by default
+                          </span>
+                        </div>
+                        <p className="mt-0.5 text-xs text-qb-muted">
+                          Choose what standard Admins can do across the platform, or customize individual Admins in the roster below.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={handleResetDefaultAdminPerms}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-qb-border bg-qb-input px-3 py-1.5 text-xs font-semibold text-qb-mid transition-colors hover:border-qb-border-hover hover:text-qb-heading cursor-pointer whitespace-nowrap"
+                      >
+                        <RotateCcw size={13} aria-hidden="true" />
+                        <span>Reset Defaults</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleApplyDefaultPermsToAllAdmins}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/35 bg-amber-500/12 px-3 py-1.5 text-xs font-semibold text-amber-400 light:text-amber-700 transition-colors hover:bg-amber-500/20 cursor-pointer whitespace-nowrap"
+                      >
+                        <Check size={13} aria-hidden="true" />
+                        <span>Apply to All Admins</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsAdminTemplateExpanded((prev) => !prev)}
+                        aria-expanded={isAdminTemplateExpanded}
+                        aria-label={
+                          isAdminTemplateExpanded
+                            ? "Collapse Admin role permissions"
+                            : "Expand Admin role permissions"
+                        }
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-qb-border bg-qb-input text-qb-muted transition-colors hover:border-qb-border-hover hover:text-qb-heading cursor-pointer"
+                      >
+                        {isAdminTemplateExpanded ? (
+                          <ChevronUp size={15} />
+                        ) : (
+                          <ChevronDown size={15} />
+                        )}
+                      </button>
+                    </div>
                   </div>
-                  <CustomSelect
-                    value={newRoleSelect}
-                    onChange={(val) => setNewRoleSelect(val as UserRole)}
-                    options={ROLE_GRANT_OPTIONS}
-                    className="qb-settings-role-select-wrap"
-                    showCheckmark
-                    portal
-                    minMenuWidth={320}
-                  />
-                  <button type="submit" className="qb-settings-role-grant-btn">
-                    <UserPlus size={16} />
-                    <span>Assign Role</span>
-                  </button>
-                </form>
-              </div>
+
+                  {isAdminTemplateExpanded && (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 pt-1">
+                      {PERMISSION_CATEGORIES.map((category) => {
+                        const items = ADMIN_PERMISSION_DEFINITIONS.filter(
+                          (d) => d.category === category
+                        );
+                        return (
+                          <div
+                            key={category}
+                            className="rounded-xl border border-qb-border bg-qb-input p-3.5 space-y-2.5"
+                          >
+                            <div className="text-[11px] font-bold uppercase tracking-[0.07em] text-qb-muted pb-1 border-b border-qb-border">
+                              {category}
+                            </div>
+                            <div className="divide-y divide-qb-border/70">
+                              {items.map((perm) => {
+                                const enabled = !!defaultAdminPerms[perm.key];
+                                return (
+                                  <div
+                                    key={perm.key}
+                                    className="flex items-start justify-between gap-3 py-2.5 first:pt-0.5 last:pb-0.5"
+                                  >
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-xs font-semibold text-qb-heading">
+                                          {perm.label}
+                                        </span>
+                                        {perm.sensitive && (
+                                          <span className="text-[10px] font-semibold text-amber-400 light:text-amber-700">
+                                            · Elevated
+                                          </span>
+                                        )}
+                                      </div>
+                                      <p className="mt-0.5 text-[11.5px] leading-snug text-qb-muted">
+                                        {perm.description}
+                                      </p>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      role="switch"
+                                      aria-checked={enabled}
+                                      aria-label={`Toggle default ${perm.label} permission`}
+                                      onClick={() => handleToggleDefaultAdminPerm(perm.key)}
+                                      className={`relative mt-0.5 inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors duration-150 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400 ${
+                                        enabled
+                                          ? "border-emerald-500/60 bg-emerald-500 light:border-emerald-600 light:bg-emerald-600"
+                                          : "border-qb-border bg-slate-700/70 light:bg-slate-300"
+                                      }`}
+                                    >
+                                      <span
+                                        className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-xs transition-transform duration-150 ${
+                                          enabled ? "translate-x-[18px]" : "translate-x-[2px]"
+                                        }`}
+                                      />
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Registered Users Roster Table */}
               <div className="qb-settings-users-roster-card">
@@ -1657,7 +1954,7 @@ export default function SettingsPage({
                 </div>
 
                 <div
-                  className="qb-settings-users-table-wrap"
+                  className="qb-settings-users-table-wrap min-[901px]:[--qb-roster-cols:minmax(195px,1.65fr)_minmax(128px,0.88fr)_minmax(130px,0.9fr)_minmax(268px,1.45fr)]"
                   role="table"
                   aria-label="Registered user accounts and role assignments"
                 >
@@ -1678,11 +1975,22 @@ export default function SettingsPage({
                         const status = uRecord.status || "active";
                         const isRestricted = status === "banned" || status === "deleted";
                         const isRootSuper = uRecord.email.toLowerCase() === "xaruzowarlord@gmail.com";
+                        const isTargetSuper = uRecord.role === "superadmin";
+                        const canActorModifyTarget = isSuperAdmin || !isTargetSuper;
                         const isCurrentUser =
                           !!profile?.email &&
                           uRecord.email.toLowerCase() === profile.email.trim().toLowerCase();
+                        const permSummary =
+                          uRecord.role === "admin" && !isRestricted
+                            ? rolesModel.getPermissionSummary(uRecord)
+                            : null;
+                        const hasPerAdminPermButton =
+                          canEditAdminTemplate && uRecord.role === "admin" && !isRestricted;
                         const hasKebabActions =
-                          !isRootSuper && (!isCurrentUser || uRecord.role !== "reviewer");
+                          !isRootSuper &&
+                          canActorModifyTarget &&
+                          ((canEditAdminTemplate && uRecord.role !== "reviewer" && !isRestricted) ||
+                            (canModerateUsers && !isCurrentUser));
                         const dateIso = uRecord.statusUpdatedAt || uRecord.assignedAt;
                         const assignedDateText = new Date(dateIso).toLocaleDateString();
                         const assignedByText = `by ${
@@ -1779,16 +2087,22 @@ export default function SettingsPage({
                                 <span className="qb-root-superadmin-label">
                                   Primary Root Superadmin
                                 </span>
+                              ) : !canActorModifyTarget ? (
+                                <span className="text-xs font-medium text-qb-muted">
+                                  Superadmin Protected
+                                </span>
                               ) : isRestricted ? (
                                 <div className="qb-user-role-actions">
-                                  <button
-                                    type="button"
-                                    className="qb-user-restore-btn"
-                                    onClick={() => handleRestoreUser(uRecord)}
-                                  >
-                                    <RotateCcw size={13} />
-                                    <span>Restore</span>
-                                  </button>
+                                  {canModerateUsers && (
+                                    <button
+                                      type="button"
+                                      className="qb-user-restore-btn"
+                                      onClick={() => handleRestoreUser(uRecord)}
+                                    >
+                                      <RotateCcw size={13} />
+                                      <span>Restore</span>
+                                    </button>
+                                  )}
                                   {hasKebabActions && (
                                     <button
                                       type="button"
@@ -1806,17 +2120,51 @@ export default function SettingsPage({
                                 </div>
                               ) : (
                                 <div className="qb-user-role-actions">
-                                  <CustomSelect
-                                    value={uRecord.role}
-                                    onChange={(val) =>
-                                      handleAssignRole(uRecord.email, val as UserRole, uRecord.fullName)
-                                    }
-                                    options={QUICK_ROLE_OPTIONS}
-                                    className="qb-table-role-select"
-                                    showCheckmark
-                                    portal
-                                    minMenuWidth={196}
-                                  />
+                                  {canEditAdminTemplate ? (
+                                    <CustomSelect
+                                      value={uRecord.role}
+                                      onChange={(val) =>
+                                        handleAssignRole(uRecord.email, val as UserRole, uRecord.fullName)
+                                      }
+                                      options={
+                                        isSuperAdmin
+                                          ? QUICK_ROLE_OPTIONS
+                                          : QUICK_ROLE_OPTIONS.filter(
+                                              (opt) => opt.value !== "superadmin"
+                                            )
+                                      }
+                                      className="qb-table-role-select"
+                                      showCheckmark
+                                      portal
+                                      minMenuWidth={196}
+                                    />
+                                  ) : (
+                                    <span className="text-xs font-semibold text-qb-mid px-2">
+                                      {uRecord.role.toUpperCase()}
+                                    </span>
+                                  )}
+                                  {hasPerAdminPermButton && permSummary && (
+                                    <button
+                                      type="button"
+                                      onClick={() => openUserPermissionsModal(uRecord)}
+                                      title={
+                                        permSummary.isCustom
+                                          ? `Custom Admin permissions (${permSummary.granted}/${permSummary.total})`
+                                          : `Configure Admin permissions (${permSummary.granted}/${permSummary.total})`
+                                      }
+                                      aria-label={`Configure permissions for ${uRecord.email}`}
+                                      className={`inline-flex h-[34px] shrink-0 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold tabular-nums transition-colors cursor-pointer whitespace-nowrap ${
+                                        permSummary.isCustom
+                                          ? "border-amber-500/45 bg-amber-500/14 text-amber-400 light:border-amber-600/40 light:bg-amber-50 light:text-amber-700 hover:bg-amber-500/22"
+                                          : "border-qb-border bg-qb-surface text-qb-mid hover:border-qb-border-hover hover:text-qb-heading"
+                                      }`}
+                                    >
+                                      <SlidersHorizontal size={13} aria-hidden="true" />
+                                      <span>
+                                        {permSummary.granted}/{permSummary.total}
+                                      </span>
+                                    </button>
+                                  )}
                                   {hasKebabActions && (
                                     <button
                                       type="button"
@@ -2026,7 +2374,18 @@ export default function SettingsPage({
               if (status === "active") {
                 return (
                   <>
-                    {target.role !== "reviewer" && (
+                    {canEditAdminTemplate && target.role === "admin" && (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="qb-user-action-item"
+                        onClick={() => openUserPermissionsModal(target)}
+                      >
+                        <SlidersHorizontal size={14} />
+                        <span>Configure Permissions</span>
+                      </button>
+                    )}
+                    {canEditAdminTemplate && target.role !== "reviewer" && (
                       <button
                         type="button"
                         role="menuitem"
@@ -2037,10 +2396,10 @@ export default function SettingsPage({
                         <span>Revoke Admin Access</span>
                       </button>
                     )}
-                    {!isSelf && target.role !== "reviewer" && (
+                    {canModerateUsers && !isSelf && target.role !== "reviewer" && (
                       <div className="qb-user-action-divider" />
                     )}
-                    {!isSelf && (
+                    {canModerateUsers && !isSelf && (
                       <>
                         <button
                           type="button"
@@ -2076,16 +2435,18 @@ export default function SettingsPage({
 
               return (
                 <>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="qb-user-action-item is-success"
-                    onClick={() => handleRestoreUser(target)}
-                  >
-                    <RotateCcw size={14} />
-                    <span>Restore Account</span>
-                  </button>
-                  {!isSelf && status === "banned" && (
+                  {canModerateUsers && (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="qb-user-action-item is-success"
+                      onClick={() => handleRestoreUser(target)}
+                    >
+                      <RotateCcw size={14} />
+                      <span>Restore Account</span>
+                    </button>
+                  )}
+                  {canModerateUsers && !isSelf && status === "banned" && (
                     <button
                       type="button"
                       role="menuitem"
@@ -2100,7 +2461,7 @@ export default function SettingsPage({
                       <span>Move to Removed</span>
                     </button>
                   )}
-                  {!isSelf && status === "deleted" && (
+                  {canModerateUsers && !isSelf && status === "deleted" && (
                     <button
                       type="button"
                       role="menuitem"
@@ -2115,7 +2476,7 @@ export default function SettingsPage({
                       <span>Suspend / Ban Email</span>
                     </button>
                   )}
-                  {!isSelf && (
+                  {canModerateUsers && !isSelf && (
                     <>
                       <div className="qb-user-action-divider" />
                       <button
@@ -2235,6 +2596,174 @@ export default function SettingsPage({
                     <span>Delete Permanently</span>
                   )}
                 </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {/* Discord-Style Per-Admin Granular Permissions Modal */}
+      {permissionEditorTarget &&
+        createPortal(
+          <div className="qb-modal-backdrop" onClick={closePermissionModal}>
+            <div
+              ref={permissionDialogRef}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="admin-perms-dialog-title"
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden rounded-2xl border border-qb-border bg-qb-surface shadow-2xl"
+            >
+              <div className="flex items-start justify-between gap-3 border-b border-qb-border px-5 py-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-purple-400/40 bg-purple-400/16 text-xs font-bold text-purple-400 light:text-purple-700">
+                    {permissionEditorTarget.fullName.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <h3
+                      id="admin-perms-dialog-title"
+                      className="text-base font-bold text-qb-heading truncate"
+                    >
+                      Admin Permissions — {permissionEditorTarget.fullName}
+                    </h3>
+                    <p className="text-xs text-qb-muted truncate">
+                      {permissionEditorTarget.email}
+                      <span aria-hidden="true"> · </span>
+                      <span className="tabular-nums font-semibold text-qb-mid">
+                        {Object.values(draftUserPerms).filter(Boolean).length} of{" "}
+                        {ADMIN_PERMISSION_DEFINITIONS.length} enabled
+                      </span>
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={closePermissionModal}
+                  aria-label="Close permissions dialog"
+                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-qb-border bg-qb-input text-qb-muted transition-colors hover:border-qb-border-hover hover:text-qb-heading cursor-pointer"
+                >
+                  <X size={15} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+                {PERMISSION_CATEGORIES.map((category) => {
+                  const items = ADMIN_PERMISSION_DEFINITIONS.filter(
+                    (d) => d.category === category
+                  );
+                  return (
+                    <div
+                      key={category}
+                      className="rounded-xl border border-qb-border bg-qb-input p-3.5 space-y-2"
+                    >
+                      <div className="text-[11px] font-bold uppercase tracking-[0.07em] text-qb-muted pb-1.5 border-b border-qb-border">
+                        {category}
+                      </div>
+                      <div className="divide-y divide-qb-border/70">
+                        {items.map((perm) => {
+                          const enabled = !!draftUserPerms[perm.key];
+                          return (
+                            <div
+                              key={perm.key}
+                              className="flex items-start justify-between gap-4 py-2.5 first:pt-0.5 last:pb-0.5"
+                            >
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-sm font-semibold text-qb-heading">
+                                    {perm.label}
+                                  </span>
+                                  {perm.sensitive && (
+                                    <span className="text-[11px] font-semibold text-amber-400 light:text-amber-700">
+                                      · Elevated
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="mt-0.5 text-xs leading-relaxed text-qb-muted">
+                                  {perm.description}
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                role="switch"
+                                aria-checked={enabled}
+                                aria-label={`Toggle ${perm.label} for ${permissionEditorTarget.email}`}
+                                onClick={() =>
+                                  setDraftUserPerms((prev) => ({
+                                    ...prev,
+                                    [perm.key]: !prev[perm.key],
+                                  }))
+                                }
+                                className={`relative mt-0.5 inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors duration-150 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400 ${
+                                  enabled
+                                    ? "border-emerald-500/60 bg-emerald-500 light:border-emerald-600 light:bg-emerald-600"
+                                    : "border-qb-border bg-slate-700/70 light:bg-slate-300"
+                                }`}
+                              >
+                                <span
+                                  className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-xs transition-transform duration-150 ${
+                                    enabled ? "translate-x-[18px]" : "translate-x-[2px]"
+                                  }`}
+                                />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-2.5 border-t border-qb-border bg-qb-input/60 px-5 py-3.5">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDraftUserPerms({ ...defaultAdminPerms })}
+                    disabled={isSavingUserPerms}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-qb-border bg-qb-surface px-3 py-1.5 text-xs font-semibold text-qb-mid transition-colors hover:border-qb-border-hover hover:text-qb-heading cursor-pointer disabled:opacity-50"
+                  >
+                    <RotateCcw size={13} aria-hidden="true" />
+                    <span>Use Role Default</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDraftUserPerms({ ...ALL_ADMIN_PERMISSIONS })}
+                    disabled={isSavingUserPerms}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-qb-border bg-qb-surface px-3 py-1.5 text-xs font-semibold text-qb-mid transition-colors hover:border-qb-border-hover hover:text-qb-heading cursor-pointer disabled:opacity-50"
+                  >
+                    <Check size={13} aria-hidden="true" />
+                    <span>Grant All</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={closePermissionModal}
+                    disabled={isSavingUserPerms}
+                    className="rounded-lg border border-qb-border bg-qb-surface px-3.5 py-2 text-xs font-semibold text-qb-mid transition-colors hover:border-qb-border-hover hover:text-qb-heading cursor-pointer disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSaveUserPermissions(draftUserPerms)}
+                    disabled={isSavingUserPerms}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-4 py-2 text-xs font-bold text-[#070c18] transition-colors hover:bg-amber-400 cursor-pointer disabled:opacity-50"
+                  >
+                    {isSavingUserPerms ? (
+                      <>
+                        <Loader2 size={13} className="animate-spin" />
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check size={13} />
+                        <span>Save Permissions</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>,

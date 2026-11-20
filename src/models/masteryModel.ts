@@ -1,4 +1,5 @@
-import type { Question, QuestionMasteryRecord } from "../types";
+import { TOPICS } from "../constants/appConstants";
+import type { Question, QuestionMasteryRecord, TopicId } from "../types";
 
 export const MASTERY_STORAGE_KEY = "cse-qbank-mastery-v1";
 export const DAILY_COUNT_STORAGE_KEY = "cse-qbank-daily-v1";
@@ -174,4 +175,198 @@ export const getDaysUntilExam = (
   if (!Number.isFinite(targetUtc) || !Number.isFinite(todayUtc)) return null;
 
   return Math.round((targetUtc - todayUtc) / 86_400_000);
+};
+
+export interface StudyDayEntry {
+  dateKey: string;
+  dayLabel: string;
+  isToday: boolean;
+  count: number;
+  goalMet: boolean;
+  ratio: number;
+}
+
+export interface StudyStreakSummary {
+  todayCount: number;
+  currentStreak: number;
+  bestStreak: number;
+  goalMetToday: boolean;
+  weeklyTotal: number;
+  totalDaysActive: number;
+  last7Days: StudyDayEntry[];
+}
+
+const shiftLocalDays = (base: Date, deltaDays: number): Date => {
+  const d = new Date(base.getFullYear(), base.getMonth(), base.getDate());
+  d.setDate(d.getDate() + deltaDays);
+  return d;
+};
+
+const parseLocalDateKey = (dateKey: string): Date | null => {
+  const match = dateKey.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+};
+
+export const getStudyStreakSummary = (
+  userId?: string | null,
+  dailyGoal: number = 25,
+  now: Date = new Date()
+): StudyStreakSummary => {
+  const counts = readDailyCountsMap(userId);
+  const safeGoal = Math.max(1, Number(dailyGoal) || 25);
+  const todayKey = getLocalDateKey(now);
+  const todayCount = Math.max(0, Number(counts[todayKey]) || 0);
+
+  // Build 7-day rolling window ending today
+  const weekdayFmt = new Intl.DateTimeFormat("en-US", { weekday: "short" });
+  const last7Days: StudyDayEntry[] = [];
+  let weeklyTotal = 0;
+
+  for (let offset = -6; offset <= 0; offset += 1) {
+    const dayDate = shiftLocalDays(now, offset);
+    const key = getLocalDateKey(dayDate);
+    const count = Math.max(0, Number(counts[key]) || 0);
+    weeklyTotal += count;
+    last7Days.push({
+      dateKey: key,
+      dayLabel: offset === 0 ? "Today" : weekdayFmt.format(dayDate),
+      isToday: offset === 0,
+      count,
+      goalMet: count >= safeGoal,
+      ratio: Math.min(1, count / safeGoal),
+    });
+  }
+
+  // Current consecutive streak: includes today if todayCount > 0, otherwise yesterday backwards
+  let currentStreak = 0;
+  const startOffset = todayCount > 0 ? 0 : -1;
+  for (let offset = startOffset; offset >= -365; offset -= 1) {
+    const key = getLocalDateKey(shiftLocalDays(now, offset));
+    if ((Number(counts[key]) || 0) > 0) {
+      currentStreak += 1;
+    } else {
+      break;
+    }
+  }
+
+  // Best streak and total active days across stored log
+  const activeDates = Object.entries(counts)
+    .filter(([k, v]) => /^\d{4}-\d{2}-\d{2}$/.test(k) && Number(v) > 0)
+    .map(([k]) => k)
+    .sort();
+
+  let bestStreak = 0;
+  let running = 0;
+  let prevDate: Date | null = null;
+
+  for (const key of activeDates) {
+    const curDate = parseLocalDateKey(key);
+    if (!curDate) continue;
+    if (prevDate) {
+      const diffDays = Math.round(
+        (Date.UTC(curDate.getFullYear(), curDate.getMonth(), curDate.getDate()) -
+          Date.UTC(prevDate.getFullYear(), prevDate.getMonth(), prevDate.getDate())) /
+          86_400_000
+      );
+      running = diffDays === 1 ? running + 1 : 1;
+    } else {
+      running = 1;
+    }
+    if (running > bestStreak) bestStreak = running;
+    prevDate = curDate;
+  }
+
+  return {
+    todayCount,
+    currentStreak,
+    bestStreak: Math.max(bestStreak, currentStreak),
+    goalMetToday: todayCount >= safeGoal,
+    weeklyTotal,
+    totalDaysActive: activeDates.length,
+    last7Days,
+  };
+};
+
+export interface SubjectMasteryRow {
+  id: TopicId;
+  label: string;
+  short: string;
+  color: string;
+  total: number;
+  mastered: number;
+  missed: number;
+  unseen: number;
+  attempted: number;
+  correctAnswers: number;
+  wrongAnswers: number;
+  accuracyPercent: number | null;
+  masteryPercent: number;
+  needsAttention: boolean;
+}
+
+const CORE_SUBJECT_IDS: TopicId[] = ["numerical", "verbal", "general", "analytical", "clerical"];
+
+export const getSubjectMasteryBreakdown = (
+  questions: Pick<Question, "id" | "topic">[] = [],
+  masteryMap: Record<string, QuestionMasteryRecord> = {}
+): { subjects: SubjectMasteryRow[]; weakAreas: SubjectMasteryRow[] } => {
+  const subjects: SubjectMasteryRow[] = CORE_SUBJECT_IDS.map((topicId) => {
+    const topicMeta = TOPICS.find((t) => t.id === topicId);
+    const topicQs = (questions || []).filter((q) => q.topic === topicId);
+
+    let mastered = 0;
+    let missed = 0;
+    let unseen = 0;
+    let correctAnswers = 0;
+    let wrongAnswers = 0;
+
+    for (const q of topicQs) {
+      const rec = masteryMap?.[q.id];
+      if (!rec || !rec.attempts) {
+        unseen += 1;
+      } else {
+        correctAnswers += Number(rec.correctCount) || 0;
+        wrongAnswers += Number(rec.wrongCount) || 0;
+        if (rec.lastResult === "wrong") missed += 1;
+        else mastered += 1;
+      }
+    }
+
+    const total = topicQs.length;
+    const attempted = mastered + missed;
+    const totalOutcomeCount = correctAnswers + wrongAnswers;
+    const accuracyPercent =
+      totalOutcomeCount > 0 ? Math.round((correctAnswers / totalOutcomeCount) * 100) : null;
+    const masteryPercent = total > 0 ? Math.round((mastered / total) * 100) : 0;
+    const needsAttention = missed > 0 || (accuracyPercent !== null && accuracyPercent < 80);
+
+    return {
+      id: topicId,
+      label: topicMeta?.label || topicId,
+      short: topicMeta?.short || topicId,
+      color: topicMeta?.color || "#f5a623",
+      total,
+      mastered,
+      missed,
+      unseen,
+      attempted,
+      correctAnswers,
+      wrongAnswers,
+      accuracyPercent,
+      masteryPercent,
+      needsAttention,
+    };
+  });
+
+  const weakAreas = subjects
+    .filter((s) => s.needsAttention)
+    .sort((a, b) => {
+      if (b.missed !== a.missed) return b.missed - a.missed;
+      const aAcc = a.accuracyPercent ?? 100;
+      const bAcc = b.accuracyPercent ?? 100;
+      return aAcc - bAcc;
+    });
+
+  return { subjects, weakAreas };
 };

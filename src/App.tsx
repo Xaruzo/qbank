@@ -21,6 +21,7 @@ const MockExamRunner = lazyWithRetry(() => import("./views/components/MockExamRu
 const TipsPage = lazyWithRetry(() => import("./views/components/TipsPage"));
 const TipDetailPage = lazyWithRetry(() => import("./views/components/TipDetailPage"));
 const NotesPage = lazyWithRetry(() => import("./views/components/NotesPage"));
+const DashboardPage = lazyWithRetry(() => import("./views/components/DashboardPage"));
 import { MyQuestionsView } from "./views/MyQuestionsView";
 import LoadingSpinner from "./views/components/LoadingSpinner";
 import SkeletonLoader, { MockSkeletonLoader, TipsSkeletonLoader } from "./views/components/SkeletonLoader";
@@ -56,7 +57,23 @@ import {
   buildMistakeDrillExam,
   buildQuickPracticeExam,
 } from "./utils/mockExamAnalytics";
-import { Home, ClipboardList, Lightbulb, PlayCircle, ArrowRight, BookOpen, Plus, ShieldCheck, FileEdit } from "lucide-react";
+import {
+  Home,
+  ClipboardList,
+  Lightbulb,
+  PlayCircle,
+  ArrowRight,
+  BookOpen,
+  Plus,
+  ShieldCheck,
+  FileEdit,
+  Layers,
+  Flame,
+  Star,
+  Calendar,
+  CheckCircle2,
+  RefreshCw,
+} from "lucide-react";
 import { QUESTION_ADMIN_UIDS, QUESTION_ADMIN_EMAILS, EXAM_PRESETS } from "./constants/appConstants";
 
 const PageLoader = ({ view }) => {
@@ -151,6 +168,7 @@ export default function App() {
     setDeepLinkShowSol,
     exam,
     setExam,
+    navigateDashboard: handleGoDashboard,
     navigateHome: handleGoHome,
     navigateLanding,
     navigateSignIn: handleSignIn,
@@ -256,7 +274,30 @@ export default function App() {
     (isAuthenticated &&
       ((user?.id && QUESTION_ADMIN_UIDS.includes(user.id)) ||
         (user?.email && QUESTION_ADMIN_EMAILS.includes(user.email.toLowerCase()))));
-  const canManageQuestions = isQuestionAdmin;
+  const adminPermissions = useMemo(() => {
+    void roleTick;
+    return rolesModel.getUserPermissions(
+      user,
+      isSuperAdmin ? "superadmin" : isQuestionAdmin ? "admin" : userRole
+    );
+  }, [user, userRole, isSuperAdmin, isQuestionAdmin, roleTick]);
+
+  const canCreateQuestions =
+    isSuperAdmin || !authAvailable || (isQuestionAdmin && adminPermissions.createQuestions);
+  const canEditQuestions =
+    isSuperAdmin || !authAvailable || (isQuestionAdmin && adminPermissions.editQuestions);
+  const canDeleteQuestions =
+    isSuperAdmin || !authAvailable || (isQuestionAdmin && adminPermissions.deleteQuestions);
+  const canReviewSubmissions =
+    isSuperAdmin || !authAvailable || (isQuestionAdmin && adminPermissions.reviewSubmissions);
+  const canBulkImport =
+    isSuperAdmin || !authAvailable || (isQuestionAdmin && adminPermissions.bulkImport);
+  const canModerateUsers =
+    isSuperAdmin || (isQuestionAdmin && adminPermissions.moderateUsers);
+  const canManageRoles =
+    isSuperAdmin || (isQuestionAdmin && adminPermissions.manageRoles);
+  const canManageQuestions =
+    canCreateQuestions || canEditQuestions || canDeleteQuestions;
   const favoriteCount = useMemo(() => qs.filter((q) => q.favorite).length, [qs]);
   const masteryCounts = useMemo(() => getMasterySummary(qs, masteryMap), [qs, masteryMap]);
   const todayAnsweredCount = useMemo(() => {
@@ -798,20 +839,20 @@ export default function App() {
   };
 
   const handleSave = async (formData: any) => {
-    if (!canManageQuestions) return;
+    if (editId ? !canEditQuestions : !canCreateQuestions) return;
     await saveQuestion(formData, editId);
     if (editId) goToQuestionDetail(editId);
     else handleGoHome();
   };
 
   const handleDelete = async (id: string) => {
-    if (!canManageQuestions) return;
+    if (!canDeleteQuestions) return;
     await deleteQuestion(id);
     handleGoHome();
   };
 
   const handleAddQuestionAction = async () => {
-    if (canManageQuestions) {
+    if (canCreateQuestions) {
       handleGoAdd();
       return;
     }
@@ -819,7 +860,7 @@ export default function App() {
   };
 
   const handleEditQuestionAction = async (question) => {
-    if (canManageQuestions) {
+    if (canEditQuestions) {
       handleGoEdit(question);
       return;
     }
@@ -860,15 +901,17 @@ export default function App() {
   const selectedIndexInFiltered = filteredQuestions.findIndex(q => q.id === selectedId);
   const nextQuestion = selectedIndexInFiltered >= 0 ? filteredQuestions[selectedIndexInFiltered + 1] : null;
   const prevQuestion = selectedIndexInFiltered > 0 ? filteredQuestions[selectedIndexInFiltered - 1] : null;
-  const primaryView = view === "mock" || view === "mockRun" || view === "mockAttempt"
-    ? "mock"
-    : view === "tips" || view === "tipDetail"
-      ? "tips"
-      : view === "notes"
-        ? "notes"
-        : view === "my-questions"
-          ? "my-questions"
-          : "home";
+  const primaryView = view === "dashboard"
+    ? "dashboard"
+    : view === "mock" || view === "mockRun" || view === "mockAttempt"
+      ? "mock"
+      : view === "tips" || view === "tipDetail"
+        ? "tips"
+        : view === "notes"
+          ? "notes"
+          : view === "my-questions"
+            ? "my-questions"
+            : "home";
   const SEEN_QUESTIONS_KEY = "qbank-seen-questions-total";
   const [seenQuestionsTotal, setSeenQuestionsTotal] = useState<number | null>(() => {
     try {
@@ -980,7 +1023,7 @@ export default function App() {
         onToggleTheme={toggleTheme}
         onStartReview={() => {
           try { sessionStorage.setItem("qbank-session-active", "true"); } catch (_) {}
-          handleGoHome();
+          handleGoDashboard();
         }}
         onSignIn={handleSignIn}
         onStartMock={(presetId) => {
@@ -1006,7 +1049,7 @@ export default function App() {
         onBackToLanding={handleGoLanding}
         onSuccessLogin={() => {
           try { sessionStorage.setItem("qbank-session-active", "true"); } catch (_) {}
-          handleGoHome();
+          handleGoDashboard();
         }}
         onSignInWithEmail={signInWithEmail}
         onSignInWithGoogle={signInWithGoogle}
@@ -1025,6 +1068,7 @@ export default function App() {
         <Header 
           isDark={isDark} 
           onToggleTheme={toggleTheme} 
+          onDashboard={handleGoDashboard}
           onHome={handleGoHome}
           onLanding={handleGoLanding}
           currentView={view}
@@ -1059,6 +1103,7 @@ export default function App() {
             variant="overlay"
             open={navOpen}
             active={primaryView}
+            onDashboard={handleGoDashboard}
             onHome={handleGoHome}
             onLanding={handleGoLanding}
             onMockExam={handleGoMockExam}
@@ -1089,6 +1134,7 @@ export default function App() {
               variant="rail"
               open={navOpen}
               active={primaryView}
+              onDashboard={handleGoDashboard}
               onHome={handleGoHome}
               onLanding={handleGoLanding}
               onMockExam={handleGoMockExam}
@@ -1133,139 +1179,310 @@ export default function App() {
               <SkeletonLoader />
             ) : (
             <Suspense fallback={<PageLoader view={view} />}>
-            {view === "list" ? (
-              <div className="fu qb-dashboard">
-                <section className="qb-list-hero" aria-label="Civil Service Reviewer Workspace">
-                  <div className="qb-list-hero-main">
-                    <div className="qb-hero-badge-wrap">
-                      <span className="qb-hero-kicker-tag">
-                        <ShieldCheck size={14} />
-                        Philippine Civil Service Exam Reviewer
+            {view === "dashboard" ? (
+              <DashboardPage
+                questions={qs}
+                masteryMap={masteryMap}
+                userId={user?.id || null}
+                profile={profile}
+                examTarget={settings.examTarget || profile?.examTarget || "professional"}
+                targetExamDate={profile?.targetExamDate || settings.targetExamDate}
+                dailyStudyGoal={dailyStudyGoal}
+                todayAnsweredCount={todayAnsweredCount}
+                daysUntilExam={daysUntilExam}
+                mockHistory={mockHistory}
+                activeExam={savedActiveMockExam}
+                isAuthenticated={isAuthenticated}
+                onResumeActiveExam={handleResumeActiveMockExam}
+                onOpenAttempt={handleOpenMockAttempt}
+                onStartExam={handleStartExam}
+                onStartQuickPractice={handleStartQuickPractice}
+                onOpenQuestionBank={(opts) => {
+                  setSearch("");
+                  setLabelFilter("all");
+                  setFavoriteOnly(false);
+                  setTopicFilter(opts?.topic || "all");
+                  setMasteryFilter(opts?.mastery || "all");
+                  handleGoHome();
+                }}
+                onGoMockExam={handleGoMockExam}
+                onOpenSettings={handleGoSettings}
+                onRequireAuth={handleSignIn}
+              />
+            ) : view === "list" ? (
+              <div className="fu space-y-5">
+                {/* Structured Workspace Header & Bento Summary Hub */}
+                <section className="space-y-4" aria-label="Civil Service Reviewer Workspace">
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-5 border-b border-qb-border">
+                    <div className="flex items-start gap-3.5 min-w-0">
+                      <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-amber-500/35 bg-amber-500/12 text-amber-400 light:border-amber-600/30 light:bg-amber-500/10 light:text-amber-700 mt-0.5">
+                        <ShieldCheck size={20} aria-hidden="true" />
                       </span>
-                    </div>
-                    <h1 className="qb-list-hero-title">Master the Civil Service Exam with Confidence.</h1>
-                    <p className="qb-list-hero-copy">
-                      Practice with authentic multiple-choice questions, take realistic timed simulations matching official CSC specifications, and master concepts through step-by-step visual solutions.
-                    </p>
-
-                    <div className="qb-hero-stats-meta" aria-label="Question Bank Summary">
-                      <span><strong><CountUp end={qs.length} duration={1200} /></strong> Total Questions</span>
-                      <span className="qb-hero-stats-sep" aria-hidden="true">·</span>
-                      <span><strong><CountUp end={activeTopicCount} duration={1000} /></strong> Subjects Active</span>
-                      <span className="qb-hero-stats-sep" aria-hidden="true">·</span>
-                      <span><strong><CountUp end={favoriteCount} duration={1000} /></strong> Starred Items</span>
-                      <span className="qb-hero-stats-sep" aria-hidden="true">·</span>
-                      <span>
-                        <strong className="tabular-nums">{todayAnsweredCount}/{dailyStudyGoal}</strong> Today
-                      </span>
-                      {daysUntilExam !== null && daysUntilExam >= 0 && (
-                        <>
-                          <span className="qb-hero-stats-sep" aria-hidden="true">·</span>
-                          <span>
-                            <strong className="tabular-nums">
-                              {daysUntilExam === 0 ? "Today" : `${daysUntilExam}d`}
-                            </strong>{" "}
-                            {daysUntilExam === 0 ? "Exam Day" : "to Exam"}
-                          </span>
-                        </>
-                      )}
-                      {refreshing && (
-                        <>
-                          <span className="qb-hero-stats-sep" aria-hidden="true">·</span>
-                          <span className="qb-sync-inline">
-                            <span className="qb-sync-dot" />
-                            Syncing questions
-                          </span>
-                        </>
-                      )}
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.08em] text-qb-accent">
+                          <span>Philippine Civil Service Exam Reviewer</span>
+                          {refreshing && (
+                            <>
+                              <span className="text-qb-muted" aria-hidden="true">·</span>
+                              <span className="inline-flex items-center gap-1 text-qb-muted normal-case tracking-normal font-semibold">
+                                <RefreshCw size={11} className="animate-spin" aria-hidden="true" />
+                                Syncing questions
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        <h1 className="mt-1 text-2xl sm:text-[28px] font-extrabold tracking-tight text-qb-heading leading-tight">
+                          Question Bank Workspace
+                        </h1>
+                        <p className="mt-1 max-w-2xl text-xs sm:text-sm text-qb-muted leading-relaxed">
+                          Practice authentic multiple-choice items, run official timed CSC simulations, and track subject mastery.
+                        </p>
+                      </div>
                     </div>
 
-                    <div className="qb-hero-actions">
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
                       <button
                         type="button"
-                        className="qb-hero-cta"
                         onClick={handleGoMockExam}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-xs sm:text-sm font-bold text-[#070c18] transition-colors hover:bg-amber-400 cursor-pointer whitespace-nowrap"
                       >
-                        <PlayCircle size={18} />
-                        Take Timed Mock Exam
+                        <PlayCircle size={16} aria-hidden="true" />
+                        <span>Take Timed Mock Exam</span>
                       </button>
                       <button
                         type="button"
-                        className="qb-hero-secondary"
                         onClick={() => handleGoTips()}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-qb-border bg-qb-surface px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-qb-heading transition-colors hover:border-qb-border-hover hover:bg-qb-surface-hover cursor-pointer whitespace-nowrap"
                       >
-                        <Lightbulb size={18} />
-                        Study Tips & Methods
+                        <Lightbulb size={16} className="text-qb-accent" aria-hidden="true" />
+                        <span>Study Tips</span>
                       </button>
-                      {canManageQuestions && (
+                      {canCreateQuestions && (
                         <button
                           type="button"
-                          className="qb-hero-ghost"
                           onClick={handleAddQuestionAction}
                           title="Add a new question to the bank"
+                          className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-qb-border bg-qb-input px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-qb-heading transition-colors hover:border-amber-500/45 hover:bg-qb-surface-hover cursor-pointer whitespace-nowrap"
                         >
-                          <Plus size={15} className="qb-add-btn-icon" />
-                          <span className="qb-add-btn-text">Add Question</span>
+                          <Plus size={15} className="text-qb-accent" aria-hidden="true" />
+                          <span>Add Question</span>
                         </button>
                       )}
                     </div>
                   </div>
 
-                  <div className="qb-list-hero-side">
-                    <div className="qb-hero-exam-hub">
-                      <div className="qb-hero-hub-header">
+                  {/* Bento Metric Tiles + Official CSC Exam Presets */}
+                  <div className="grid grid-cols-1 xl:grid-cols-12 gap-3.5 items-stretch">
+                    <div className="xl:col-span-7 grid grid-cols-2 gap-3" aria-label="Question Bank Summary">
+                      {/* Tile 1: Total Questions */}
+                      <div className="relative overflow-hidden rounded-2xl border border-qb-border bg-qb-surface p-4 flex flex-col justify-between gap-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-qb-muted">
+                            Question Bank
+                          </span>
+                          <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-amber-500/30 bg-amber-500/12 text-amber-400 light:text-amber-700">
+                            <Layers size={14} aria-hidden="true" />
+                          </span>
+                        </div>
                         <div>
-                          <div className="qb-hero-hub-kicker">CSC Exam Presets</div>
-                          <div className="qb-hero-hub-title">Official Test Formats</div>
+                          <div className="text-2xl sm:text-[28px] font-extrabold leading-none text-qb-heading tabular-nums">
+                            <CountUp end={qs.length} duration={1100} />
+                          </div>
+                          <div className="mt-1.5 text-xs font-medium text-qb-muted">
+                            <span className="font-semibold text-qb-mid tabular-nums">{activeTopicCount}</span> of 5 subjects active
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Tile 2: Daily Study Goal */}
+                      <div className="relative overflow-hidden rounded-2xl border border-qb-border bg-qb-surface p-4 flex flex-col justify-between gap-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-qb-muted">
+                            Today&apos;s Goal
+                          </span>
+                          <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-sky-400/30 bg-sky-400/12 text-sky-400 light:text-sky-700">
+                            <Flame size={14} aria-hidden="true" />
+                          </span>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="text-2xl sm:text-[28px] font-extrabold leading-none text-qb-heading tabular-nums">
+                              {todayAnsweredCount}
+                            </span>
+                            <span className="text-sm font-semibold text-qb-muted tabular-nums">
+                              / {dailyStudyGoal}
+                            </span>
+                          </div>
+                          <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800/70 light:bg-slate-200" aria-hidden="true">
+                            <div
+                              className="h-full rounded-full bg-sky-400 light:bg-sky-600 transition-all duration-300"
+                              style={{ width: `${Math.min(100, Math.round((todayAnsweredCount / Math.max(dailyStudyGoal, 1)) * 100))}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Tile 3: Interactive Starred Items */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFavoriteOnly(!favoriteOnly);
+                          if (!favoriteOnly) {
+                            setTimeout(() => {
+                              const feed = document.getElementById("qb-question-feed");
+                              if (feed) feed.scrollIntoView({ behavior: "smooth", block: "start" });
+                            }, 50);
+                          }
+                        }}
+                        aria-pressed={favoriteOnly}
+                        className={`relative overflow-hidden rounded-2xl border p-4 flex flex-col justify-between gap-2 text-left transition-colors cursor-pointer ${
+                          favoriteOnly
+                            ? "border-amber-500/60 bg-amber-500/[0.08] light:border-amber-600/55"
+                            : "border-qb-border bg-qb-surface hover:border-qb-border-hover hover:bg-qb-surface-hover"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2 w-full">
+                          <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-qb-muted">
+                            Starred Items
+                          </span>
+                          <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-amber-500/30 bg-amber-500/12 text-amber-400 light:text-amber-700">
+                            <Star size={14} fill={favoriteOnly ? "currentColor" : "none"} aria-hidden="true" />
+                          </span>
+                        </div>
+                        <div>
+                          <div className="text-2xl sm:text-[28px] font-extrabold leading-none text-qb-heading tabular-nums">
+                            <CountUp end={favoriteCount} duration={950} />
+                          </div>
+                          <div className="mt-1.5 text-xs font-medium text-qb-muted">
+                            {favoriteOnly ? "Filtering starred items" : "Click to focus starred"}
+                          </div>
+                        </div>
+                      </button>
+
+                      {/* Tile 4: Exam Countdown or Bank Mastery */}
+                      <div className="relative overflow-hidden rounded-2xl border border-qb-border bg-qb-surface p-4 flex flex-col justify-between gap-2">
+                        {daysUntilExam !== null && daysUntilExam >= 0 ? (
+                          <>
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-qb-muted">
+                                Exam Countdown
+                              </span>
+                              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-emerald-400/30 bg-emerald-400/12 text-emerald-400 light:text-emerald-700">
+                                <Calendar size={14} aria-hidden="true" />
+                              </span>
+                            </div>
+                            <div>
+                              <div className="text-2xl sm:text-[28px] font-extrabold leading-none text-qb-heading tabular-nums">
+                                {daysUntilExam === 0 ? "Today" : `${daysUntilExam}d`}
+                              </div>
+                              <div className="mt-1.5 text-xs font-medium text-qb-muted">
+                                {daysUntilExam === 0 ? "Exam Day" : "Remaining"}
+                                <span aria-hidden="true"> · </span>
+                                <span className="tabular-nums">{masteryCounts.mastered}</span> mastered
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-qb-muted">
+                                Bank Mastery
+                              </span>
+                              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-emerald-400/30 bg-emerald-400/12 text-emerald-400 light:text-emerald-700">
+                                <CheckCircle2 size={14} aria-hidden="true" />
+                              </span>
+                            </div>
+                            <div className="space-y-2">
+                              <div className="flex items-baseline gap-1.5">
+                                <span className="text-2xl sm:text-[28px] font-extrabold leading-none text-qb-heading tabular-nums">
+                                  {masteryCounts.mastered}
+                                </span>
+                                <span className="text-xs font-semibold text-qb-muted tabular-nums">
+                                  / {qs.length} ({qs.length > 0 ? Math.round((masteryCounts.mastered / qs.length) * 100) : 0}%)
+                                </span>
+                              </div>
+                              <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800/70 light:bg-slate-200" aria-hidden="true">
+                                <div
+                                  className="h-full rounded-full bg-emerald-400 light:bg-emerald-600 transition-all duration-300"
+                                  style={{
+                                    width: `${qs.length > 0 ? Math.min(100, Math.round((masteryCounts.mastered / qs.length) * 100)) : 0}%`,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Official CSC Exam Formats Bento Launcher */}
+                    <div className="xl:col-span-5 relative overflow-hidden rounded-2xl border border-qb-border bg-qb-surface p-4 sm:p-5 flex flex-col justify-between gap-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-qb-accent">
+                            CSC Exam Presets
+                          </div>
+                          <h2 className="mt-0.5 text-base font-bold text-qb-heading">
+                            Official Test Formats
+                          </h2>
                         </div>
                         <button
                           type="button"
-                          className="qb-hero-hub-link"
                           onClick={handleGoMockExam}
                           title="Open Mock Exam Center"
+                          className="inline-flex items-center gap-1 text-xs font-bold text-qb-accent hover:underline cursor-pointer shrink-0"
                         >
-                          View Center <ArrowRight size={13} />
+                          <span>View Center</span>
+                          <ArrowRight size={13} aria-hidden="true" />
                         </button>
                       </div>
 
-                      <div className="qb-hero-preset-item">
-                        <div className="qb-hero-preset-info">
-                          <div className="qb-hero-preset-name">Professional Level</div>
-                          <div className="qb-hero-preset-specs">170 items · 3h 10m · 80% passing</div>
+                      <div className="divide-y divide-qb-border rounded-xl border border-qb-border bg-qb-input">
+                        <div className="flex items-center justify-between gap-3 px-3.5 py-3">
+                          <div className="min-w-0">
+                            <div className="text-sm font-bold text-qb-heading">Professional Level</div>
+                            <div className="mt-0.5 text-xs text-qb-muted tabular-nums">
+                              170 items · 3h 10m · 80% passing
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!isAuthenticated) {
+                                handleSignIn();
+                              } else {
+                                handleStartExam("professional");
+                              }
+                            }}
+                            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-[#070c18] transition-colors hover:bg-amber-400 cursor-pointer"
+                          >
+                            <span>Start</span>
+                            <ArrowRight size={13} aria-hidden="true" />
+                          </button>
                         </div>
-                        <button
-                          type="button"
-                          className="qb-hero-preset-btn"
-                          onClick={() => {
-                            if (!isAuthenticated) {
-                              handleSignIn();
-                            } else {
-                              handleStartExam("professional");
-                            }
-                          }}
-                        >
-                          Start <ArrowRight size={13} />
-                        </button>
-                      </div>
 
-                      <div className="qb-hero-preset-item">
-                        <div className="qb-hero-preset-info">
-                          <div className="qb-hero-preset-name">Subprofessional Level</div>
-                          <div className="qb-hero-preset-specs">165 items · 2h 40m · 80% passing</div>
+                        <div className="flex items-center justify-between gap-3 px-3.5 py-3">
+                          <div className="min-w-0">
+                            <div className="text-sm font-bold text-qb-heading">Subprofessional Level</div>
+                            <div className="mt-0.5 text-xs text-qb-muted tabular-nums">
+                              165 items · 2h 40m · 80% passing
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!isAuthenticated) {
+                                handleSignIn();
+                              } else {
+                                handleStartExam("subprofessional");
+                              }
+                            }}
+                            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-qb-border bg-qb-surface px-3 py-1.5 text-xs font-bold text-qb-heading transition-colors hover:border-amber-500/50 hover:bg-qb-surface-hover cursor-pointer"
+                          >
+                            <span>Start</span>
+                            <ArrowRight size={13} aria-hidden="true" />
+                          </button>
                         </div>
-                        <button
-                          type="button"
-                          className="qb-hero-preset-btn"
-                          onClick={() => {
-                            if (!isAuthenticated) {
-                              handleSignIn();
-                            } else {
-                              handleStartExam("subprofessional");
-                            }
-                          }}
-                        >
-                          Start <ArrowRight size={13} />
-                        </button>
                       </div>
                     </div>
                   </div>
@@ -1306,7 +1523,7 @@ export default function App() {
                   sortBy={sortBy}
                   onSortChange={setSortBy}
                   masteryMap={masteryMap}
-                  canManageQuestions={canManageQuestions}
+                  canManageQuestions={canCreateQuestions}
                   authAvailable={authAvailable}
                   isAuthenticated={isAuthenticated}
                   onAddQuestion={handleAddQuestionAction}
@@ -1325,7 +1542,9 @@ export default function App() {
                 forceShowSolution={deepLinkShowSol}
                 hasPrev={!!prevQuestion}
                 hasNext={!!nextQuestion}
-                canManageQuestions={canManageQuestions}
+                canManageQuestions={canEditQuestions || canDeleteQuestions}
+                canEditQuestion={canEditQuestions}
+                canDeleteQuestion={canDeleteQuestions}
                 questionIndex={selectedIndexInFiltered >= 0 ? selectedIndexInFiltered + 1 : undefined}
                 totalQuestions={filteredQuestions.length > 0 ? filteredQuestions.length : qs.length}
                 queueQuestions={filteredQuestions.length > 0 ? filteredQuestions : qs}
@@ -1360,7 +1579,7 @@ export default function App() {
             ) : view === "my-questions" ? (
               <MyQuestionsView
                 currentUser={user}
-                isAdmin={isQuestionAdmin}
+                isAdmin={canReviewSubmissions}
                 onNavigateHome={handleGoHome}
                 onStartMiniMock={handleStartMiniMock}
                 initialMiniMockId={selectedMiniMockId}
@@ -1479,6 +1698,9 @@ export default function App() {
                 isAuthenticated={isAuthenticated}
                 isQuestionAdmin={isQuestionAdmin}
                 isSuperAdmin={isSuperAdmin}
+                canManageRoles={canManageRoles}
+                canModerateUsers={canModerateUsers}
+                canBulkImport={canBulkImport}
                 totalQuestions={qs.length}
                 mockAttemptsCount={mockHistory.length}
                 favoritesCount={favoriteCount}

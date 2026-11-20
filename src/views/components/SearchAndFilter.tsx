@@ -51,6 +51,7 @@ export default function SearchAndFilter({
     if (id === "all") return "#f5a623";
     return TOPICS.find((t: TopicDef) => t.id === id)?.color || "#f5a623";
   };
+
   const hasActiveFilters = Boolean(
     search.trim() ||
     topicFilter !== "all" ||
@@ -58,6 +59,7 @@ export default function SearchAndFilter({
     favoriteOnly ||
     masteryFilter !== "all"
   );
+
   const activeFiltersCount = [
     search.trim(),
     topicFilter !== "all" ? topicFilter : "",
@@ -195,8 +197,6 @@ export default function SearchAndFilter({
     };
   }, []);
 
-  // StrictMode-safe readiness toggle: enables CSS transitions after initial paint,
-  // and cleanly disables them when switching to LITE / Power-Saver.
   useEffect(() => {
     if (!onMasteryChange || isMotionDisabled) {
       setGliderReady(false);
@@ -296,75 +296,100 @@ export default function SearchAndFilter({
   };
 
   return (
-    <section className="qb-control-panel" aria-label="Search and Filter Questions">
-      <div className="qb-section-head qb-section-head-compact">
+    <section
+      className="rounded-2xl border border-qb-border bg-qb-surface p-4 sm:p-5 space-y-4"
+      aria-label="Search and Filter Questions"
+    >
+      {/* Header Row */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 pb-3.5 border-b border-qb-border">
         <div>
-          <div className="qb-section-kicker">Search & Filters</div>
-          <h2 className="qb-section-title">Refine & Focus Your Practice</h2>
+          <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-qb-accent">
+            Search & Filters
+          </div>
+          <h2 className="mt-0.5 text-base sm:text-lg font-bold tracking-tight text-qb-heading">
+            Refine & Focus Your Practice
+          </h2>
         </div>
-        <div className="qb-control-summary">
-          <span className="qb-control-stat">
-            <strong className="tabular-nums">{filteredCount}</strong> of <span className="tabular-nums">{total}</span> items
+
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium text-qb-muted px-1">
+            <strong className="font-bold text-qb-heading tabular-nums">{filteredCount}</strong>
+            {" "}of{" "}
+            <span className="tabular-nums">{total}</span> items
           </span>
+
           {favoriteCount > 0 && onFavoriteOnlyChange && (
             <button
               type="button"
-              className={`qb-filter-fav-btn${favoriteOnly ? " on" : ""}`}
               onClick={() => onFavoriteOnlyChange(!favoriteOnly)}
               aria-pressed={favoriteOnly}
               title={favoriteOnly ? "Show all questions" : "Show starred questions only"}
+              className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
+                favoriteOnly
+                  ? "border-amber-500/60 bg-amber-500/15 text-amber-300 light:border-amber-600/50 light:bg-amber-500/15 light:text-amber-800"
+                  : "border-qb-border bg-qb-input text-qb-mid hover:border-qb-border-hover hover:text-qb-heading"
+              }`}
             >
               <Star size={13} fill={favoriteOnly ? "currentColor" : "none"} />
-              <span>Starred (<span className="tabular-nums">{favoriteCount}</span>)</span>
+              <span>
+                Starred (<span className="tabular-nums">{favoriteCount}</span>)
+              </span>
             </button>
           )}
+
           {hasActiveFilters && onResetFilters && (
             <button
               type="button"
-              className="qb-filter-reset-btn"
               onClick={onResetFilters}
               title="Clear all active filters"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-qb-border bg-qb-input px-2.5 py-1.5 text-xs font-semibold text-qb-mid transition-colors hover:border-rose-500/40 hover:text-rose-400 light:hover:text-rose-700 cursor-pointer"
             >
               <RotateCcw size={12} />
-              <span>Reset filters ({activeFiltersCount})</span>
+              <span>Reset ({activeFiltersCount})</span>
             </button>
           )}
         </div>
       </div>
 
-      <div className="qb-control-grid">
-        <label className="qb-search-box">
-          <span className="qb-search-icon" aria-hidden="true">
-            <Search size={18} />
+      {/* Search Input & Problem Label Dropdown */}
+      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_240px] gap-3 items-end">
+        <div className="flex flex-col gap-1.5 min-w-0">
+          <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-qb-muted">
+            Keyword Search
           </span>
-          <input
-            className="qb-search"
-            placeholder="Search keywords, formulas, concepts, or problem text..."
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-          />
-          {search && (
-            <button
-              type="button"
-              className="qb-search-clear-btn"
-              onClick={() => onSearchChange("")}
-              aria-label="Clear search text"
-              title="Clear search"
-            >
-              <X size={15} />
-            </button>
-          )}
-        </label>
+          <label className="relative flex h-11 items-center rounded-xl border border-qb-border bg-qb-input transition-all focus-within:border-amber-500/60 focus-within:ring-2 focus-within:ring-amber-500/15">
+            <span className="pointer-events-none pl-3.5 text-qb-muted" aria-hidden="true">
+              <Search size={16} />
+            </span>
+            <input
+              className="w-full h-full bg-transparent px-3 text-sm text-qb-heading placeholder:text-qb-muted/70 focus:outline-none"
+              placeholder="Search keywords, formulas, concepts, or problem text..."
+              value={search}
+              onChange={(e) => onSearchChange(e.target.value)}
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => onSearchChange("")}
+                aria-label="Clear search text"
+                title="Clear search"
+                className="mr-2 inline-flex h-7 w-7 items-center justify-center rounded-lg text-qb-muted transition-colors hover:bg-qb-surface-hover hover:text-qb-heading cursor-pointer"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </label>
+        </div>
 
         {labelOptions.length > 0 && (
-          <div className="qb-label-filter-col" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <span className="qb-filter-label">
-              <Tag size={12} className="qb-filter-label-icon" aria-hidden="true" />
+          <div className="qb-label-filter-col flex flex-col gap-1.5 min-w-0">
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-qb-muted">
+              <Tag size={11} aria-hidden="true" />
               <span>Problem Label</span>
             </span>
             <div className="qb-select" ref={labelFilterRef} data-dir={labelFilterDir} data-open={labelFilterOpen}>
               <button
-                className="qb-select-btn"
+                className="qb-select-btn !h-11 !min-h-[44px] !rounded-xl"
                 type="button"
                 onClick={() => {
                   if (!labelFilterOpen && labelFilterRef.current) {
@@ -421,12 +446,17 @@ export default function SearchAndFilter({
         )}
       </div>
 
-      <div className="qb-filter-row">
-        <div className="qb-filter-row-title">
-          <SlidersHorizontal size={14} />
+      {/* Subject Focus Selector */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-qb-muted">
+          <SlidersHorizontal size={12} aria-hidden="true" />
           <span>Subject Focus</span>
         </div>
-        <div className="qb-pills" role="tablist" aria-label="Subject filter tabs">
+        <div
+          className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2"
+          role="tablist"
+          aria-label="Subject filter tabs"
+        >
           {[
             { id: "all" as const, label: "All Subjects", count: total },
             ...TOPICS.map((t: TopicDef) => ({ id: t.id, label: t.label, count: counts[t.id] || 0 })),
@@ -437,35 +467,52 @@ export default function SearchAndFilter({
             return (
               <button
                 key={p.id}
+                type="button"
                 role="tab"
                 aria-selected={isSelected}
-                className={`qb-pill qb-topic-pill topic-${p.id}${isSelected ? " on" : ""}`}
-                style={{
-                  "--topic-color": topicCol,
-                  "--topic-color-subtle": `${topicCol}16`,
-                  "--topic-color-border": `${topicCol}45`,
-                  "--topic-color-hover-bg": `${topicCol}2c`,
-                  "--topic-color-hover-border": `${topicCol}a0`,
-                  "--topic-color-glow": `${topicCol}55`,
-                } as React.CSSProperties}
                 onClick={() => onTopicChange(p.id as TopicId | "all")}
+                style={
+                  isSelected
+                    ? {
+                        borderColor: `${topicCol}88`,
+                        backgroundColor: `${topicCol}1c`,
+                      }
+                    : undefined
+                }
+                className={`inline-flex items-center justify-between sm:justify-start gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition-all duration-150 cursor-pointer ${
+                  isSelected
+                    ? "text-qb-heading"
+                    : "border-qb-border bg-qb-input text-qb-mid hover:border-qb-border-hover hover:text-qb-heading"
+                }`}
               >
-                <Icon
-                  size={14}
-                  className="qb-topic-pill-icon"
-                  aria-hidden="true"
-                />
-                <span className="qb-topic-pill-label">{p.label}</span>
-                <span className="qb-pill-count tabular-nums">{p.count}</span>
+                <span className="flex items-center gap-1.5 min-w-0">
+                  <Icon
+                    size={13}
+                    style={{ color: topicCol }}
+                    className="shrink-0"
+                    aria-hidden="true"
+                  />
+                  <span className="truncate">{p.label}</span>
+                </span>
+                <span
+                  className={`font-mono text-[11px] tabular-nums shrink-0 ${
+                    isSelected ? "text-qb-heading font-bold" : "text-qb-muted"
+                  }`}
+                >
+                  {p.count}
+                </span>
               </button>
             );
           })}
         </div>
       </div>
 
+      {/* Mastery Status Segmented Control */}
       {onMasteryChange && (
-        <div className="qb-mastery-filter-row">
-          <span className="qb-mastery-filter-label">Progress</span>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 pt-1">
+          <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-qb-muted shrink-0">
+            Progress
+          </span>
           <div
             ref={masteryBarRef}
             className={`qb-mastery-segmented${!isMotionDisabled && gliderRect ? " has-glider" : ""}${gliderReady ? " is-ready" : ""}`}

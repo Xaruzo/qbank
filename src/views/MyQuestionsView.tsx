@@ -27,6 +27,9 @@ import {
   Check,
   XCircle,
   Send,
+  Calculator,
+  BrainCircuit,
+  ClipboardList,
 } from "lucide-react";
 import { personalQuestionsModel, type PersonalQuestion } from "../models/personalQuestionsModel";
 import {
@@ -58,6 +61,14 @@ const DEFAULT_FORM = {
   solution: "",
   label: "",
   is_public: false,
+};
+
+const TOPIC_ICON_MAP: Record<string, typeof Calculator> = {
+  numerical: Calculator,
+  verbal: BookOpen,
+  general: Globe,
+  analytical: BrainCircuit,
+  clerical: ClipboardList,
 };
 
 const DEFAULT_MINI_MOCK_FORM = {
@@ -151,16 +162,40 @@ export function MyQuestionsView({
 
   const topicOptions: SelectOption[] = useMemo(
     () =>
-      TOPICS.map((t) => ({
-        value: t.id,
-        label: t.label,
-        dot: t.color,
-      })),
+      TOPICS.map((t) => {
+        const Icon = TOPIC_ICON_MAP[t.id] || BookOpen;
+        return {
+          value: t.id,
+          label: t.label,
+          icon: (
+            <Icon
+              size={15}
+              className="qb-topic-icon"
+              style={{ color: t.color, flexShrink: 0 }}
+              data-colored="true"
+            />
+          ),
+        };
+      }),
     []
   );
 
   const filterTopicOptions: SelectOption[] = useMemo(
-    () => [{ value: "all", label: "All Topics" }, ...topicOptions],
+    () => [
+      {
+        value: "all",
+        label: "All Topics",
+        icon: (
+          <Layers
+            size={15}
+            className="qb-topic-icon"
+            style={{ color: "#f5a623", flexShrink: 0 }}
+            data-colored="true"
+          />
+        ),
+      },
+      ...topicOptions,
+    ],
     [topicOptions]
   );
 
@@ -900,8 +935,8 @@ export function MyQuestionsView({
       ? showAnimatedTabGlider
         ? "border-transparent bg-transparent text-amber-300 light:text-amber-800"
         : "border-amber-500/45 bg-amber-500/[0.16] text-amber-300 shadow-xs light:border-amber-300 light:bg-white light:text-amber-800"
-      : "border-transparent text-qb-mid hover:text-qb-heading";
-    return `relative z-[2] inline-flex min-h-[40px] cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border px-3 text-xs font-semibold @md:text-[13px] ${tabButtonMotionClass} ${stateClass} ${extraClass}`.trim();
+      : "border-qb-border/75 bg-qb-bg/55 text-qb-mid hover:border-qb-border-hover hover:text-qb-heading sm:border-transparent sm:bg-transparent";
+    return `relative z-[2] inline-flex min-h-[40px] w-full shrink-0 cursor-pointer items-center justify-start gap-2 whitespace-nowrap rounded-lg border px-3 py-2 text-xs font-semibold sm:h-[34px] sm:min-h-0 sm:w-auto sm:justify-center sm:gap-1.5 sm:rounded-[7px] sm:px-2.5 sm:py-0 ${tabButtonMotionClass} ${stateClass} ${extraClass}`.trim();
   };
 
   return (
@@ -993,14 +1028,12 @@ export function MyQuestionsView({
           ref={tablistRef}
           role="tablist"
           aria-label="Personal question bank sections"
-          className={`relative grid w-full grid-cols-2 gap-1 rounded-xl border border-qb-border bg-qb-surface p-1 ${
-            isAdmin ? "@lg:grid-cols-3 @3xl:grid-cols-5" : "@3xl:grid-cols-4"
-          }`}
+          className="relative grid w-full grid-cols-2 gap-1.5 rounded-xl border border-qb-border bg-qb-surface p-1.5 sm:inline-flex sm:w-fit sm:max-w-full sm:items-center sm:gap-1 sm:overflow-x-auto sm:rounded-[10px] sm:p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {showAnimatedTabGlider && (
             <span
               aria-hidden="true"
-              className={`pointer-events-none absolute top-0 left-0 z-[1] box-border rounded-lg border border-amber-500/45 bg-amber-500/[0.16] shadow-[0_2px_10px_rgba(245,166,35,0.14)] light:border-amber-300 light:bg-white light:shadow-xs ${
+              className={`pointer-events-none absolute top-0 left-0 z-[1] box-border rounded-lg border border-amber-500/45 bg-amber-500/[0.16] shadow-[0_2px_10px_rgba(245,166,35,0.14)] light:border-amber-300 light:bg-white light:shadow-xs sm:rounded-[7px] ${
                 tabGliderReady
                   ? "will-change-[transform,width] transition-[transform,width,height] duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
                   : "transition-none"
@@ -1023,11 +1056,11 @@ export function MyQuestionsView({
             onClick={() => setActiveTab("private")}
             className={getTabButtonClass(activeTab === "private")}
           >
-            <Lock size={14} className="shrink-0" />
+            <Lock size={13} className="shrink-0" />
             <span className="truncate">Private Bank</span>
             <span
               aria-hidden={loading}
-              className={`inline-flex h-5 min-w-[26px] shrink-0 items-center justify-center rounded-md px-1.5 text-[11px] font-bold tabular-nums ${
+              className={`ml-auto inline-flex h-[18px] min-w-[20px] shrink-0 items-center justify-center rounded px-1.5 text-[10.5px] font-bold tabular-nums sm:ml-0 ${
                 loading
                   ? `bg-qb-input/80 text-transparent ${isMotionDisabled ? "" : "animate-pulse"}`
                   : activeTab === "private"
@@ -1054,11 +1087,11 @@ export function MyQuestionsView({
             }
             className={getTabButtonClass(activeTab === "published")}
           >
-            <Globe size={14} className="shrink-0" />
+            <Globe size={13} className="shrink-0" />
             <span className="truncate">Submissions</span>
             <span
               aria-hidden={loading}
-              className={`inline-flex h-5 min-w-[26px] shrink-0 items-center justify-center rounded-md px-1.5 text-[11px] font-bold tabular-nums ${
+              className={`ml-auto inline-flex h-[18px] min-w-[20px] shrink-0 items-center justify-center rounded px-1.5 text-[10.5px] font-bold tabular-nums sm:ml-0 ${
                 loading
                   ? `bg-qb-input/80 text-transparent ${isMotionDisabled ? "" : "animate-pulse"}`
                   : pendingOwnCount > 0 || activeTab === "published"
@@ -1080,11 +1113,11 @@ export function MyQuestionsView({
             onClick={() => setActiveTab("mini-mocks")}
             className={getTabButtonClass(activeTab === "mini-mocks")}
           >
-            <Layers size={14} className="shrink-0" />
+            <Layers size={13} className="shrink-0" />
             <span className="truncate">Mini Mocks</span>
             <span
               aria-hidden={loadingMocks}
-              className={`inline-flex h-5 min-w-[26px] shrink-0 items-center justify-center rounded-md px-1.5 text-[11px] font-bold tabular-nums ${
+              className={`ml-auto inline-flex h-[18px] min-w-[20px] shrink-0 items-center justify-center rounded px-1.5 text-[10.5px] font-bold tabular-nums sm:ml-0 ${
                 loadingMocks
                   ? `bg-qb-input/80 text-transparent ${isMotionDisabled ? "" : "animate-pulse"}`
                   : activeTab === "mini-mocks"
@@ -1109,7 +1142,7 @@ export function MyQuestionsView({
             }}
             className={getTabButtonClass(activeTab === "create")}
           >
-            <Plus size={14} className="shrink-0" />
+            <Plus size={13} className="shrink-0" />
             <span className="truncate">{editingId ? "Edit Question" : "Creator"}</span>
           </button>
 
@@ -1122,13 +1155,13 @@ export function MyQuestionsView({
               role="tab"
               aria-selected={activeTab === "review"}
               onClick={() => setActiveTab("review")}
-              className={getTabButtonClass(activeTab === "review", "col-span-2 @lg:col-span-1")}
+              className={getTabButtonClass(activeTab === "review", "col-span-2 sm:col-span-1")}
             >
-              <ShieldCheck size={14} className="shrink-0" />
+              <ShieldCheck size={13} className="shrink-0" />
               <span className="truncate">Review Queue</span>
               <span
                 aria-hidden={loadingPendingQueue}
-                className={`inline-flex h-5 min-w-[26px] shrink-0 items-center justify-center rounded-md px-1.5 text-[11px] font-bold tabular-nums ${
+                className={`ml-auto inline-flex h-[18px] min-w-[20px] shrink-0 items-center justify-center rounded px-1.5 text-[10.5px] font-bold tabular-nums sm:ml-0 ${
                   loadingPendingQueue
                     ? `bg-qb-input/80 text-transparent ${isMotionDisabled ? "" : "animate-pulse"}`
                     : pendingQueue.length > 0 || activeTab === "review"
@@ -1177,6 +1210,7 @@ export function MyQuestionsView({
                     onChange={setTopicFilter}
                     options={filterTopicOptions}
                     className="w-full [&_.qb-select-btn]:min-h-[44px] [&_.qb-select-btn]:rounded-xl! [&_.qb-select-btn]:px-3.5!"
+                    showCheckmark
                     portal
                     minMenuWidth={200}
                   />
@@ -2363,6 +2397,7 @@ export function MyQuestionsView({
                   onChange={(val) => setForm({ ...form, topic: val })}
                   options={topicOptions}
                   className="w-full [&_.qb-select-btn]:min-h-[44px] [&_.qb-select-btn]:rounded-xl! [&_.qb-select-btn]:px-3.5!"
+                  showCheckmark
                   portal
                   minMenuWidth={220}
                 />

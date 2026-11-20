@@ -1,11 +1,139 @@
 import { SUPERADMIN_EMAILS, SUPERADMIN_UIDS, QUESTION_ADMIN_EMAILS } from "../constants/appConstants";
 import { supabase, isNetworkOrFetchError } from "../utils/supabaseClient";
-import type { UserAccountStatus, UserRole, UserRoleRecord } from "../types";
+import type {
+  AdminPermissionKey,
+  AdminPermissions,
+  UserAccountStatus,
+  UserRole,
+  UserRoleRecord,
+} from "../types";
 
 export const USER_ROLES_STORAGE_KEY = "cse-qbank-user-roles-v1";
+export const ADMIN_ROLE_PERMISSIONS_STORAGE_KEY = "cse-qbank-admin-role-permissions-v1";
 const USER_ROLES_TABLE = "user_roles";
 const PROFILES_TABLE = "profiles";
 const LOCAL_CREDENTIALS_STORAGE_KEY = "cse-qbank-local-credentials-v1";
+
+export interface AdminPermissionDefinition {
+  key: AdminPermissionKey;
+  label: string;
+  description: string;
+  category: "Question Bank" | "Moderation & Imports" | "Administration";
+  sensitive?: boolean;
+}
+
+export const ADMIN_PERMISSION_DEFINITIONS: AdminPermissionDefinition[] = [
+  {
+    key: "createQuestions",
+    label: "Create Questions",
+    description: "Add new official items to the main Question Bank.",
+    category: "Question Bank",
+  },
+  {
+    key: "editQuestions",
+    label: "Edit Questions",
+    description: "Modify existing question prompts, answer choices, labels, and solutions.",
+    category: "Question Bank",
+  },
+  {
+    key: "deleteQuestions",
+    label: "Delete Questions",
+    description: "Delete official items from the Question Bank.",
+    category: "Question Bank",
+    sensitive: true,
+  },
+  {
+    key: "reviewSubmissions",
+    label: "Review Community Submissions",
+    description: "Open the Review Queue in My Qs to approve or reject user-submitted questions.",
+    category: "Moderation & Imports",
+  },
+  {
+    key: "bulkImport",
+    label: "Bulk Import Question Sets",
+    description: "Import validated .json and .csv question batches from Security & Storage.",
+    category: "Moderation & Imports",
+  },
+  {
+    key: "moderateUsers",
+    label: "Moderate Reviewer Accounts",
+    description: "Suspend, ban, restore, or remove reviewer accounts in Roles & Access Control.",
+    category: "Administration",
+    sensitive: true,
+  },
+  {
+    key: "manageRoles",
+    label: "Manage Roles & Permissions",
+    description: "Assign Admin roles and customize Admin permission toggles.",
+    category: "Administration",
+    sensitive: true,
+  },
+];
+
+export const DEFAULT_ADMIN_PERMISSIONS: AdminPermissions = {
+  createQuestions: true,
+  editQuestions: true,
+  deleteQuestions: true,
+  reviewSubmissions: true,
+  bulkImport: true,
+  moderateUsers: false,
+  manageRoles: false,
+};
+
+export const ALL_ADMIN_PERMISSIONS: AdminPermissions = {
+  createQuestions: true,
+  editQuestions: true,
+  deleteQuestions: true,
+  reviewSubmissions: true,
+  bulkImport: true,
+  moderateUsers: true,
+  manageRoles: true,
+};
+
+export const NO_ADMIN_PERMISSIONS: AdminPermissions = {
+  createQuestions: false,
+  editQuestions: false,
+  deleteQuestions: false,
+  reviewSubmissions: false,
+  bulkImport: false,
+  moderateUsers: false,
+  manageRoles: false,
+};
+
+const ADMIN_PERMISSION_KEYS = ADMIN_PERMISSION_DEFINITIONS.map((d) => d.key);
+
+export const normalizeAdminPermissions = (
+  raw?: unknown,
+  base: AdminPermissions = DEFAULT_ADMIN_PERMISSIONS
+): AdminPermissions => {
+  const result: AdminPermissions = { ...base };
+  if (raw && typeof raw === "object") {
+    const obj = raw as Record<string, unknown>;
+    ADMIN_PERMISSION_KEYS.forEach((key) => {
+      if (typeof obj[key] === "boolean") {
+        result[key] = obj[key] as boolean;
+      }
+    });
+  }
+  return result;
+};
+
+const extractExplicitPermissions = (raw?: unknown): Partial<AdminPermissions> | undefined => {
+  if (!raw || typeof raw !== "object") return undefined;
+  const obj = raw as Record<string, unknown>;
+  const out: Partial<AdminPermissions> = {};
+  let hasAny = false;
+  ADMIN_PERMISSION_KEYS.forEach((key) => {
+    if (typeof obj[key] === "boolean") {
+      out[key] = obj[key] as boolean;
+      hasAny = true;
+    }
+  });
+  return hasAny ? out : undefined;
+};
+
+const permissionsEqual = (a?: Partial<AdminPermissions> | null, b?: Partial<AdminPermissions> | null) =>
+  ADMIN_PERMISSION_KEYS.every((key) => a?.[key] === b?.[key]);
 
 const roleWeight = (role: UserRole) =>
   role === "superadmin" ? 3 : role === "admin" ? 2 : role === "moderator" ? 1 : 0;
@@ -199,6 +327,63 @@ export const rolesModel = {
     }
   },
 
+  getDefaultAdminPermissions(): AdminPermissions {
+    try {
+      const raw = localStorage.getItem(ADMIN_ROLE_PERMISSIONS_STORAGE_KEY);
+      if (!raw) return { ...DEFAULT_ADMIN_PERMISSIONS };
+      const parsed = JSON.parse(raw);
+      return normalizeAdminPermissions(parsed, DEFAULT_ADMIN_PERMISSIONS);
+    } catch {
+      return { ...DEFAULT_ADMIN_PERMISSIONS };
+    }
+  },
+
+  saveDefaultAdminPermissions(
+    perms: Partial<AdminPermissions>,
+    applyToAllAdmins = false
+  ): AdminPermissions {
+    const normalized = normalizeAdminPermissions(perms, DEFAULT_ADMIN_PERMISSIONS);
+    try {
+      localStorage.setItem(ADMIN_ROLE_PERMISSIONS_STORAGE_KEY, JSON.stringify(normalized));
+      if (applyToAllAdmins) {
+        const roles = this.getStoredRoles();
+        const adminEmails: string[] = [];
+        Object.keys(roles).forEach((email) => {
+          const rec = roles[email];
+          if (rec && rec.role === "admin" && normalizeStatus(rec.status) === "active") {
+            roles[email] = {
+              ...rec,
+              permissions: undefined,
+            };
+            adminEmails.push(email);
+          }
+        });
+        localStorage.setItem(USER_ROLES_STORAGE_KEY, JSON.stringify(roles));
+        if (supabase && adminEmails.length > 0) {
+          void (async () => {
+            for (const email of adminEmails) {
+              try {
+                const { error } = await supabase
+                  .from(USER_ROLES_TABLE)
+                  .update({ permissions: normalized })
+                  .eq("email", email);
+                if (error && isMissingColumnError(error)) break;
+              } catch {}
+            }
+          })();
+        }
+      }
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("qbank-roles-updated", { detail: { adminDefaults: normalized } })
+        );
+      }
+    } catch (e) {
+      console.warn("Could not save default admin permissions:", e);
+    }
+    return normalized;
+  },
+
   getUserRole(identifier: { id?: string | null; email?: string | null } | null): UserRole {
     if (!identifier) return "reviewer";
 
@@ -216,7 +401,7 @@ export const rolesModel = {
     const roles = this.getStoredRoles();
     const rec =
       (cleanEmail && roles[cleanEmail]) ||
-      (userId && roles[userId]) ||
+      (userId && (Object.values(roles) as UserRoleRecord[]).find((r) => r?.id === userId)) ||
       null;
     if (rec) {
       if (normalizeStatus(rec.status) !== "active") {
@@ -231,6 +416,160 @@ export const rolesModel = {
     }
 
     return "reviewer";
+  },
+
+  getUserPermissions(
+    identifier: { id?: string | null; email?: string | null } | null,
+    effectiveRole?: UserRole
+  ): AdminPermissions {
+    const role = effectiveRole || this.getUserRole(identifier);
+    if (role === "superadmin") {
+      return { ...ALL_ADMIN_PERMISSIONS };
+    }
+    if (role !== "admin") {
+      return { ...NO_ADMIN_PERMISSIONS };
+    }
+
+    const defaults = this.getDefaultAdminPermissions();
+    if (!identifier) return defaults;
+
+    const cleanEmail = (identifier.email || "").trim().toLowerCase();
+    const userId = identifier.id || "";
+    const roles = this.getStoredRoles();
+    const rec =
+      (cleanEmail && roles[cleanEmail]) ||
+      (userId && (Object.values(roles) as UserRoleRecord[]).find((r) => r?.id === userId)) ||
+      null;
+
+    if (!rec || normalizeStatus(rec.status) !== "active") {
+      return defaults;
+    }
+    return normalizeAdminPermissions(rec.permissions, defaults);
+  },
+
+  hasCustomPermissions(record?: UserRoleRecord | null): boolean {
+    if (!record || record.role !== "admin" || !record.permissions) return false;
+    const defaults = this.getDefaultAdminPermissions();
+    const resolved = normalizeAdminPermissions(record.permissions, defaults);
+    return !permissionsEqual(resolved, defaults);
+  },
+
+  getPermissionSummary(record: UserRoleRecord): {
+    granted: number;
+    total: number;
+    isCustom: boolean;
+    resolved: AdminPermissions;
+  } {
+    const total = ADMIN_PERMISSION_KEYS.length;
+    if (record.role === "superadmin") {
+      return {
+        granted: total,
+        total,
+        isCustom: false,
+        resolved: { ...ALL_ADMIN_PERMISSIONS },
+      };
+    }
+    if (record.role !== "admin" || normalizeStatus(record.status) !== "active") {
+      return {
+        granted: 0,
+        total,
+        isCustom: false,
+        resolved: { ...NO_ADMIN_PERMISSIONS },
+      };
+    }
+    const defaults = this.getDefaultAdminPermissions();
+    const resolved = normalizeAdminPermissions(record.permissions, defaults);
+    const granted = ADMIN_PERMISSION_KEYS.filter((k) => resolved[k]).length;
+    return {
+      granted,
+      total,
+      isCustom: !permissionsEqual(resolved, defaults),
+      resolved,
+    };
+  },
+
+  async updateUserPermissions(
+    targetEmail: string,
+    permissions: Partial<AdminPermissions> | null,
+    actorInfo?: { email?: string; fullName?: string },
+    targetName?: string
+  ): Promise<{ success: boolean; record?: UserRoleRecord; warning?: string; error?: string }> {
+    const cleanEmail = (targetEmail || "").trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes("@")) {
+      return { success: false, error: "Please provide a valid user email address." };
+    }
+    if (isProtectedRootEmail(cleanEmail)) {
+      return {
+        success: false,
+        error: "The primary root Superadmin always holds full platform permissions.",
+      };
+    }
+
+    const roles = this.getStoredRoles();
+    const existing = roles[cleanEmail];
+    const effectiveRole = existing?.role || this.getUserRole({ email: cleanEmail });
+    if (existing && normalizeStatus(existing.status) !== "active") {
+      return {
+        success: false,
+        error: "Restore this account to Active status before configuring permissions.",
+      };
+    }
+    if (effectiveRole !== "admin") {
+      return {
+        success: false,
+        error: "Granular permission toggles apply to Admin accounts.",
+      };
+    }
+
+    const defaults = this.getDefaultAdminPermissions();
+    const resolvedPermissions = permissions
+      ? normalizeAdminPermissions(permissions, defaults)
+      : defaults;
+    const isCustomized = permissions !== null && !permissionsEqual(resolvedPermissions, defaults);
+    const nowIso = new Date().toISOString();
+
+    const record: UserRoleRecord = {
+      id: existing?.id || `role-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      email: cleanEmail,
+      fullName: targetName || existing?.fullName || cleanEmail.split("@")[0],
+      role: "admin",
+      status: "active",
+      assignedAt: nowIso,
+      assignedBy: actorInfo?.email || actorInfo?.fullName || existing?.assignedBy || "Superadmin",
+      notes: isCustomized ? "Custom Admin permissions" : "Standard Admin permissions",
+      avatarUrl: existing?.avatarUrl || null,
+      permissions: isCustomized ? resolvedPermissions : undefined,
+    };
+
+    roles[cleanEmail] = record;
+    this.saveStoredRoles(roles);
+
+    let warning: string | undefined;
+    if (supabase) {
+      try {
+        const { error } = await supabase.from(USER_ROLES_TABLE).upsert(
+          {
+            email: cleanEmail,
+            role: "admin",
+            full_name: record.fullName,
+            assigned_at: record.assignedAt,
+            assigned_by: record.assignedBy,
+            permissions: resolvedPermissions,
+          },
+          { onConflict: "email" }
+        );
+        if (error && isMissingColumnError(error)) {
+          warning =
+            "Saved locally. Add a jsonb `permissions` column to Supabase `public.user_roles` to sync per-admin permissions across devices.";
+        }
+      } catch (e) {
+        if (!isNetworkOrFetchError(e)) {
+          warning = "Saved locally; could not sync permission overrides to Supabase.";
+        }
+      }
+    }
+
+    return { success: true, record, warning };
   },
 
   async assignRole(
@@ -258,6 +597,12 @@ export const rolesModel = {
       };
     }
 
+    const defaults = this.getDefaultAdminPermissions();
+    const preservedPermissions =
+      role === "admin" && existing?.role === "admin"
+        ? extractExplicitPermissions(existing.permissions)
+        : undefined;
+
     const record: UserRoleRecord = {
       id: existing?.id || `role-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       email: cleanEmail,
@@ -272,6 +617,8 @@ export const rolesModel = {
           : role === "admin"
             ? "Question Bank Administrator"
             : "Civil Service Reviewer",
+      avatarUrl: existing?.avatarUrl || null,
+      permissions: preservedPermissions,
     };
 
     roles[cleanEmail] = record;
@@ -279,16 +626,33 @@ export const rolesModel = {
 
     if (supabase) {
       try {
-        await supabase.from(USER_ROLES_TABLE).upsert(
+        const remotePerms =
+          role === "admin"
+            ? normalizeAdminPermissions(preservedPermissions, defaults)
+            : null;
+        const { error } = await supabase.from(USER_ROLES_TABLE).upsert(
           {
             email: cleanEmail,
             role,
             assigned_at: record.assignedAt,
             assigned_by: record.assignedBy,
             full_name: record.fullName,
+            permissions: remotePerms,
           },
           { onConflict: "email" }
         );
+        if (error && isMissingColumnError(error)) {
+          await supabase.from(USER_ROLES_TABLE).upsert(
+            {
+              email: cleanEmail,
+              role,
+              assigned_at: record.assignedAt,
+              assigned_by: record.assignedBy,
+              full_name: record.fullName,
+            },
+            { onConflict: "email" }
+          );
+        }
       } catch (e) {
         if (!isNetworkOrFetchError(e)) {
           // Graceful fallback to local storage
@@ -314,6 +678,7 @@ export const rolesModel = {
       roles[cleanEmail].role = "reviewer";
       roles[cleanEmail].assignedAt = new Date().toISOString();
       roles[cleanEmail].notes = "Role revoked; standard reviewer permissions.";
+      roles[cleanEmail].permissions = undefined;
       this.saveStoredRoles(roles);
     }
 
@@ -654,13 +1019,20 @@ export const rolesModel = {
       let rolesRes: any = await supabase
         .from(USER_ROLES_TABLE)
         .select(
-          "email,role,full_name,assigned_at,assigned_by,status,status_reason,status_updated_at,status_updated_by,deleted_at"
+          "email,role,full_name,assigned_at,assigned_by,status,status_reason,status_updated_at,status_updated_by,deleted_at,permissions"
         );
 
       if (rolesRes.error && isMissingColumnError(rolesRes.error)) {
         rolesRes = await supabase
           .from(USER_ROLES_TABLE)
-          .select("email,role,full_name,assigned_at,assigned_by");
+          .select(
+            "email,role,full_name,assigned_at,assigned_by,status,status_reason,status_updated_at,status_updated_by,deleted_at"
+          );
+        if (rolesRes.error && isMissingColumnError(rolesRes.error)) {
+          rolesRes = await supabase
+            .from(USER_ROLES_TABLE)
+            .select("email,role,full_name,assigned_at,assigned_by");
+        }
       }
 
       const profilesRes = await profilesPromise;
@@ -677,12 +1049,19 @@ export const rolesModel = {
           "status" in row
             ? normalizeStatus(row.status)
             : normalizeStatus(stored[email]?.status);
+        const nextRole = (row.role as UserRole) || "reviewer";
+        const remotePerms =
+          nextRole === "admin" && "permissions" in row
+            ? extractExplicitPermissions(row.permissions)
+            : nextRole === "admin"
+              ? extractExplicitPermissions(stored[email]?.permissions)
+              : undefined;
 
         const record: UserRoleRecord = {
           id: stored[email]?.id || `role-${email}`,
           email,
           fullName: row.full_name || stored[email]?.fullName || email.split("@")[0],
-          role: (row.role as UserRole) || "reviewer",
+          role: nextRole,
           status: remoteStatus,
           statusReason:
             "status_reason" in row ? row.status_reason || undefined : stored[email]?.statusReason,
@@ -698,13 +1077,15 @@ export const rolesModel = {
           assignedAt: row.assigned_at || stored[email]?.assignedAt || new Date().toISOString(),
           assignedBy: row.assigned_by || stored[email]?.assignedBy || "Supabase",
           notes: stored[email]?.notes,
+          permissions: remotePerms,
         };
 
         if (
           !stored[email] ||
           stored[email].role !== record.role ||
           stored[email].fullName !== record.fullName ||
-          normalizeStatus(stored[email].status) !== record.status
+          normalizeStatus(stored[email].status) !== record.status ||
+          !permissionsEqual(stored[email].permissions, record.permissions)
         ) {
           stored[email] = record;
           rolesChanged = true;

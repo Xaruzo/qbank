@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Flag, X, Check, Search, AlertTriangle, CheckCircle2, Clock3, Target, Lightbulb } from "lucide-react";
 import MarkdownText from "./MarkdownText";
 import { LETTERS, TOPICS } from "../../constants/appConstants";
@@ -245,9 +246,18 @@ export default function MockExamRunner({
     if (!expanded) return;
     setExpandedZoom(1);
     const el = expandedScrollRef.current;
-    if (!el) return;
-    el.scrollLeft = 0;
-    el.scrollTop = 0;
+    if (el) {
+      el.scrollLeft = 0;
+      el.scrollTop = 0;
+    }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setExpanded(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [expanded]);
 
   const answeredCount = metrics.answeredCount;
@@ -286,68 +296,83 @@ export default function MockExamRunner({
     });
   };
 
+  const modeBadgeTone = exam.isReviewSession
+    ? "border-violet-400/35 bg-violet-500/12 text-violet-300 light:border-violet-600/30 light:bg-violet-50 light:text-violet-700"
+    : exam.mode === "mini-mock"
+      ? "border-sky-400/35 bg-sky-500/12 text-sky-300 light:border-sky-600/30 light:bg-sky-50 light:text-sky-700"
+      : exam.mode === "drill"
+        ? "border-rose-400/35 bg-rose-500/12 text-rose-300 light:border-rose-600/30 light:bg-rose-50 light:text-rose-700"
+        : exam.mode === "quick"
+          ? "border-sky-400/35 bg-sky-500/12 text-sky-300 light:border-sky-600/30 light:bg-sky-50 light:text-sky-700"
+          : exam.mode === "subprofessional"
+            ? "border-indigo-400/35 bg-indigo-500/12 text-indigo-300 light:border-indigo-600/30 light:bg-indigo-50 light:text-indigo-700"
+            : "border-emerald-400/35 bg-emerald-500/12 text-emerald-300 light:border-emerald-600/30 light:bg-emerald-50 light:text-emerald-700";
+
   const examHeader = (
     <div className="qb-exam-top">
-      <div className="qb-exam-head-card">
-        <div className="qb-det-hdr qb-det-hdr-exam">
+      <div className="w-full rounded-xl border border-qb-border bg-qb-surface px-3 py-2 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 min-w-0">
           {exam.isReviewSession && (exam.archivedAttemptId || onBackToAttempt) ? (
-            <div className="qb-exam-head-nav-actions" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <>
               <button
                 type="button"
-                className="qb-back"
-                onClick={() => onBackToAttempt ? onBackToAttempt(exam.archivedAttemptId) : onExit()}
-                style={{ display: "flex", alignItems: "center" }}
+                onClick={() => (onBackToAttempt ? onBackToAttempt(exam.archivedAttemptId) : onExit())}
                 title="Return to Saved Attempt summary"
+                className="inline-flex h-8 items-center gap-1 rounded-lg border border-qb-border bg-qb-input px-2.5 text-xs font-semibold text-qb-heading transition-colors hover:border-qb-border-hover hover:bg-qb-surface-hover cursor-pointer whitespace-nowrap"
               >
-                <ChevronLeft size={16} style={{ marginRight: 4 }} />
-                Back to Saved Attempt
+                <ChevronLeft size={14} aria-hidden="true" />
+                <span>Back to Saved Attempt</span>
               </button>
               <button
                 type="button"
-                className="qb-exam-hub-link"
                 onClick={onExit}
                 title="Exit directly to Mock Exam Hub"
+                className="inline-flex h-8 items-center rounded-lg border border-qb-border bg-qb-input px-2.5 text-xs font-medium text-qb-mid transition-colors hover:border-qb-border-hover hover:text-qb-heading cursor-pointer whitespace-nowrap"
               >
                 Exit to Mock Hub
               </button>
-            </div>
+            </>
           ) : (
-            <button className="qb-back" onClick={onExit} style={{ display: "flex", alignItems: "center" }}>
-              <ChevronLeft size={16} style={{ marginRight: 4 }} />
-              Exit
+            <button
+              type="button"
+              onClick={onExit}
+              className="inline-flex h-8 items-center gap-1 rounded-lg border border-qb-border bg-qb-input px-2.5 text-xs font-semibold text-qb-heading transition-colors hover:border-qb-border-hover hover:bg-qb-surface-hover cursor-pointer whitespace-nowrap"
+            >
+              <ChevronLeft size={14} aria-hidden="true" />
+              <span>Exit</span>
             </button>
           )}
           <span
-            className={`qb-exam-mode-badge${
-              exam.isReviewSession
-                ? " review"
-                : exam.mode === "mini-mock"
-                  ? " mini"
-                  : exam.mode === "drill"
-                    ? " drill"
-                    : exam.mode === "quick"
-                      ? " quick"
-                      : exam.mode === "subprofessional"
-                        ? " subpro"
-                        : " pro"
-            }`}
+            className={`inline-flex h-7 items-center rounded-lg border px-2.5 text-[11px] font-bold tracking-wide ${modeBadgeTone}`}
           >
             {examLabel}
           </span>
         </div>
-        <div className="qb-exam-head-meta">
-          <div className="qb-exam-head-stats">
+
+        <div className="flex flex-wrap items-center gap-2 ml-auto">
+          <div className="inline-flex h-8 items-center divide-x divide-qb-border rounded-lg border border-qb-border bg-qb-input tabular-nums">
             {examStats.map((stat) => (
-              <div key={stat.label} className="qb-exam-stat-chip">
-                <span className="qb-exam-stat-value">{stat.value}</span>
-                <span className="qb-exam-stat-label">{stat.label}</span>
+              <div
+                key={stat.label}
+                className="flex items-baseline gap-1.5 px-2.5 text-xs"
+              >
+                <span className="font-extrabold text-qb-heading">{stat.value}</span>
+                <span className="text-[10px] font-medium uppercase tracking-wider text-qb-muted">
+                  {stat.label}
+                </span>
               </div>
             ))}
           </div>
+
           {!finished && (
-            <button type="button" className="qb-exam-flag qb-exam-flag-head" onClick={finishExam} title="Finish exam">
-              <Flag size={16} />
-              Finish
+            <button
+              type="button"
+              className="qb-exam-flag inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-bold cursor-pointer whitespace-nowrap"
+              onClick={finishExam}
+              title="Finish exam"
+            >
+              <Flag size={13} aria-hidden="true" />
+              <span>Finish</span>
             </button>
           )}
         </div>
@@ -588,9 +613,20 @@ export default function MockExamRunner({
 
   return (
     <div className="qb-exam-run fu">
-      {expanded && solImg && (
-        <div className="qb-modal-ov" onClick={() => setExpanded(false)}>
-          <button className="qb-modal-close" onClick={(e) => { e.stopPropagation(); setExpanded(false); }}>
+      {expanded && solImg && typeof document !== "undefined" && createPortal(
+        <div
+          className="qb-modal-ov"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Expanded solution illustration"
+          onClick={() => setExpanded(false)}
+        >
+          <button
+            type="button"
+            className="qb-modal-close"
+            onClick={(e) => { e.stopPropagation(); setExpanded(false); }}
+            aria-label="Close image preview"
+          >
             <X size={24} />
           </button>
           <div className="qb-modal-content" onClick={e => e.stopPropagation()}>
@@ -614,169 +650,113 @@ export default function MockExamRunner({
               />
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      <div className="qb-exam-shell">
+      <div className="qb-exam-shell !gap-2.5">
         {examHeader}
         {examSidePanel}
 
         <div className="qb-exam-layout">
-          <div className="qb-exam-main @container">
+          <div className="qb-exam-main @container !gap-2.5">
             {finished && (
               <section
                 aria-label={exam.isReviewSession ? "Review Snapshot" : "Final Score Summary"}
-                className="shrink-0 rounded-2xl border border-qb-border bg-qb-surface px-4 py-3 sm:px-5 sm:py-3.5"
+                className="shrink-0 rounded-xl border border-qb-border bg-qb-surface px-3.5 py-2"
               >
-                <div className="flex flex-col gap-3 @2xl:flex-row @2xl:items-center @2xl:justify-between">
+                <div className="flex flex-col gap-2 @2xl:flex-row @2xl:items-center @2xl:justify-between">
                   {/* Left: Score & Breakdown */}
-                  <div className="flex flex-wrap items-center justify-between gap-3 @2xl:justify-start">
-                    <div className="flex items-center gap-3.5">
-                      <div className="flex flex-col">
-                        <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-qb-muted">
-                          {exam.isReviewSession ? "Review Snapshot" : "Final Score"}
-                        </span>
-                        <span
-                          className={`font-sans text-3xl font-extrabold leading-none tabular-nums @xl:text-[34px] ${
-                            metrics.scorePercent >= 80
-                              ? "text-emerald-400 light:text-emerald-600"
-                              : metrics.scorePercent >= 50
-                                ? "text-amber-400 light:text-amber-600"
-                                : "text-rose-400 light:text-rose-600"
-                          }`}
-                        >
-                          {metrics.scorePercent}%
-                        </span>
-                      </div>
+                  <div className="flex flex-wrap items-center justify-between gap-2.5 @2xl:justify-start">
+                    <div className="flex items-center gap-2.5">
+                      <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-qb-muted">
+                        {exam.isReviewSession ? "Snapshot" : "Score"}
+                      </span>
+                      <span
+                        className={`font-sans text-xl font-extrabold leading-none tabular-nums @xl:text-2xl ${
+                          metrics.scorePercent >= 80
+                            ? "text-emerald-400 light:text-emerald-600"
+                            : metrics.scorePercent >= 50
+                              ? "text-amber-400 light:text-amber-600"
+                              : "text-rose-400 light:text-rose-600"
+                        }`}
+                      >
+                        {metrics.scorePercent}%
+                      </span>
 
-                      <div className="h-8 w-px bg-qb-border" aria-hidden="true" />
+                      <div className="h-4 w-px bg-qb-border" aria-hidden="true" />
 
-                      <div className="flex flex-col gap-0.5 text-xs text-qb-mid tabular-nums">
-                        <span className="font-semibold text-qb-heading">
-                          {score}/{metrics.totalCount} correct
-                        </span>
-                        <span>
-                          {metrics.wrongCount} wrong · {metrics.unansweredCount} blank
-                        </span>
-                      </div>
+                      <span className="text-xs text-qb-mid tabular-nums">
+                        <strong className="font-semibold text-qb-heading">{score}/{metrics.totalCount}</strong> correct
+                        <span className="text-qb-muted"> · {metrics.wrongCount} wrong · {metrics.unansweredCount} blank</span>
+                      </span>
                     </div>
 
                     <button
                       type="button"
                       onClick={() => setSummaryCollapsed((c) => !c)}
                       aria-expanded={!summaryCollapsed}
-                      className="inline-flex min-h-[34px] cursor-pointer items-center gap-1 rounded-lg border border-qb-border bg-qb-input px-2.5 text-xs font-semibold text-qb-mid transition-colors hover:border-qb-border-hover hover:text-qb-heading @2xl:hidden"
+                      className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-md border border-qb-border bg-qb-input px-2 text-[11px] font-semibold text-qb-mid transition-colors hover:border-qb-border-hover hover:text-qb-heading @2xl:hidden"
                     >
                       <span>{summaryCollapsed ? "Details" : "Compact"}</span>
-                      {summaryCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+                      {summaryCollapsed ? <ChevronDown size={13} /> : <ChevronUp size={13} />}
                     </button>
                   </div>
 
                   {/* Right: Compact Metrics + Actions */}
-                  {!summaryCollapsed && (
-                    <div className="flex flex-col gap-2.5 @xl:flex-row @xl:flex-wrap @xl:items-center @xl:justify-between @2xl:justify-end">
-                      <div className="flex flex-wrap items-center gap-2 tabular-nums">
-                        <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-300 light:border-emerald-200 light:bg-emerald-50 light:text-emerald-700">
-                          <CheckCircle2 size={13} />
-                          <span>{metrics.correctCount} correct</span>
+                  <div
+                    className={`${
+                      summaryCollapsed ? "hidden @2xl:flex" : "flex"
+                    } flex-col gap-2 @xl:flex-row @xl:flex-wrap @xl:items-center @xl:justify-between @2xl:justify-end`}
+                  >
+                    <div className="flex flex-wrap items-center gap-1.5 tabular-nums">
+                      <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-300 light:border-emerald-200 light:bg-emerald-50 light:text-emerald-700">
+                        <CheckCircle2 size={12} />
+                        <span>{metrics.correctCount} correct</span>
+                      </span>
+                      <span className="inline-flex items-center gap-1 rounded-md border border-rose-500/25 bg-rose-500/10 px-2 py-0.5 text-[11px] font-semibold text-rose-300 light:border-rose-200 light:bg-rose-50 light:text-rose-700">
+                        <AlertTriangle size={12} />
+                        <span>{metrics.wrongCount} wrong</span>
+                      </span>
+                      <span className="inline-flex items-center gap-1 rounded-md border border-qb-border bg-qb-input px-2 py-0.5 text-[11px] font-medium text-qb-mid">
+                        <Clock3 size={12} />
+                        <span>{formatClock(metrics.timeSpentMs)}</span>
+                      </span>
+                      {metrics.strongestTopic && (
+                        <span className="inline-flex items-center gap-1 rounded-md border border-qb-border bg-qb-input px-2 py-0.5 text-[11px] font-medium text-qb-mid">
+                          <Target size={12} />
+                          <span>Best: {metrics.strongestTopic.label}</span>
                         </span>
-                        <span className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/25 bg-rose-500/10 px-2.5 py-1 text-xs font-semibold text-rose-300 light:border-rose-200 light:bg-rose-50 light:text-rose-700">
-                          <AlertTriangle size={13} />
-                          <span>{metrics.wrongCount} wrong</span>
-                        </span>
-                        <span className="inline-flex items-center gap-1.5 rounded-lg border border-qb-border bg-qb-input px-2.5 py-1 text-xs font-medium text-qb-mid">
-                          <Clock3 size={13} />
-                          <span>{formatClock(metrics.timeSpentMs)}</span>
-                        </span>
-                        {metrics.strongestTopic && (
-                          <span className="inline-flex items-center gap-1.5 rounded-lg border border-qb-border bg-qb-input px-2.5 py-1 text-xs font-medium text-qb-mid">
-                            <Target size={13} />
-                            <span>Best: {metrics.strongestTopic.label}</span>
-                          </span>
-                        )}
-                      </div>
+                      )}
+                    </div>
 
-                      <div className="flex items-center gap-2">
-                        {(metrics.wrongCount > 0 || metrics.unansweredCount > 0) &&
-                          onStartDrillMistakes && (
-                            <button
-                              type="button"
-                              className="qb-exam-drill-btn w-full justify-center @xl:w-auto"
-                              onClick={() =>
-                                onStartDrillMistakes({
-                                  id: exam.archivedAttemptId || exam.sessionId,
-                                  mode: exam.mode,
-                                  questions: exam.orderIds.map((id, index) => ({
-                                    id,
-                                    index,
-                                    isCorrect: questionStatuses[id] === "correct",
-                                    wasAnswered: questionStatuses[id] !== "skipped",
-                                    correct: questionLookup.get(id)?.correct,
-                                    userAnswer: exam.answers[id],
-                                  })),
-                                })
-                              }
-                            >
-                              <Target size={15} />
-                              <span>
-                                Drill Missed Questions (
-                                {metrics.wrongCount + metrics.unansweredCount})
-                              </span>
-                            </button>
-                          )}
-
+                    {(metrics.wrongCount > 0 || metrics.unansweredCount > 0) &&
+                      onStartDrillMistakes && (
                         <button
                           type="button"
-                          onClick={() => setSummaryCollapsed(true)}
-                          title="Minimize score bar"
-                          aria-label="Minimize score bar"
-                          className="hidden h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-qb-border bg-qb-input text-qb-mid transition-colors hover:border-qb-border-hover hover:text-qb-heading @2xl:inline-flex"
+                          className="inline-flex h-7 items-center justify-center gap-1.5 rounded-lg border border-amber-500/45 bg-amber-500/14 px-2.5 text-xs font-bold text-amber-400 light:border-amber-600/40 light:bg-amber-50 light:text-amber-800 transition-colors hover:bg-amber-500 hover:text-[#070c18] cursor-pointer whitespace-nowrap w-full @xl:w-auto"
+                          onClick={() =>
+                            onStartDrillMistakes({
+                              id: exam.archivedAttemptId || exam.sessionId,
+                              mode: exam.mode,
+                              questions: exam.orderIds.map((id, index) => ({
+                                id,
+                                index,
+                                isCorrect: questionStatuses[id] === "correct",
+                                wasAnswered: questionStatuses[id] !== "skipped",
+                                correct: questionLookup.get(id)?.correct,
+                                userAnswer: exam.answers[id],
+                              })),
+                            })
+                          }
                         >
-                          <ChevronUp size={15} />
+                          <Target size={13} />
+                          <span>
+                            Drill Missed ({metrics.wrongCount + metrics.unansweredCount})
+                          </span>
                         </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {summaryCollapsed && (
-                    <div className="hidden items-center gap-2 @2xl:flex">
-                      {(metrics.wrongCount > 0 || metrics.unansweredCount > 0) &&
-                        onStartDrillMistakes && (
-                          <button
-                            type="button"
-                            className="qb-exam-drill-btn"
-                            onClick={() =>
-                              onStartDrillMistakes({
-                                id: exam.archivedAttemptId || exam.sessionId,
-                                mode: exam.mode,
-                                questions: exam.orderIds.map((id, index) => ({
-                                  id,
-                                  index,
-                                  isCorrect: questionStatuses[id] === "correct",
-                                  wasAnswered: questionStatuses[id] !== "skipped",
-                                  correct: questionLookup.get(id)?.correct,
-                                  userAnswer: exam.answers[id],
-                                })),
-                              })
-                            }
-                          >
-                            <Target size={15} />
-                            <span>
-                              Drill Missed ({metrics.wrongCount + metrics.unansweredCount})
-                            </span>
-                          </button>
-                        )}
-                      <button
-                        type="button"
-                        onClick={() => setSummaryCollapsed(false)}
-                        title="Expand score details"
-                        aria-label="Expand score details"
-                        className="inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-qb-border bg-qb-input text-qb-mid transition-colors hover:border-qb-border-hover hover:text-qb-heading"
-                      >
-                        <ChevronDown size={15} />
-                      </button>
-                    </div>
-                  )}
+                      )}
+                  </div>
                 </div>
               </section>
             )}

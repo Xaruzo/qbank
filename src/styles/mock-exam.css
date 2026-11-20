@@ -1032,6 +1032,9 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
+  width: 260px;
+  max-width: 100%;
+  flex-shrink: 0;
   min-height: 40px;
   padding: 0 16px;
   border-radius: 11px;
@@ -1041,6 +1044,7 @@
   font-family: var(--font-sans);
   font-size: 13px;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
   cursor: pointer;
   transition: transform 0.14s ease, filter 0.14s ease;

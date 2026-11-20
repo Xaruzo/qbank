@@ -729,19 +729,24 @@
     flex-shrink: 0;
     width: 100%;
     z-index: 350;
+    overflow: visible;
     padding: 0 0 calc(env(safe-area-inset-bottom, 0px));
-    background: #0c1424 !important;
-    border-top: 1px solid var(--border) !important;
+    background: rgba(10, 17, 32, 0.9) !important;
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
     border-left: none !important;
     border-right: none !important;
     border-bottom: none !important;
-    box-shadow: 0 -4px 18px rgba(4, 8, 18, 0.38) !important;
+    box-shadow: 0 -8px 28px rgba(2, 6, 23, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
     pointer-events: auto;
   }
   .light .qb-mobile-tabbar {
-    background: #ffffff !important;
-    border-top: 1px solid var(--border) !important;
-    box-shadow: 0 -2px 12px rgba(15, 23, 42, 0.06) !important;
+    background: rgba(255, 255, 255, 0.94) !important;
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    border-top: 1px solid rgba(15, 23, 42, 0.1) !important;
+    box-shadow: 0 -6px 24px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
   }
 }
 

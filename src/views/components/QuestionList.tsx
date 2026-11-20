@@ -188,38 +188,33 @@ export default function QuestionList({
   }, [sortOpen]);
 
   return (
-    <section className="qb-question-section" ref={copyAreaRef} id="qb-question-feed">
-      <div className="qb-list-meta" ref={metaBarRef}>
-        <div className="qb-list-meta-header-row">
-          <div className="qb-list-meta-left">
-            <span className="qb-list-label">Question Feed</span>
-            <span className="qb-list-value">
-              {visibleCount < questions.length
-                ? `${visibleCount} of ${questions.length} shown`
-                : `${questions.length} shown`}
-            </span>
-          </div>
-          {canManageQuestions && onAddQuestion && (
-            <button
-              type="button"
-              className="qb-add-btn qb-list-add-btn qb-docked-add-btn"
-              onClick={onAddQuestion}
-              title="Add Question to Reviewer Bank"
-            >
-              <ModernAddIcon size={16} className="qb-add-btn-icon" />
-              <span className="qb-add-btn-text">Add Question</span>
-            </button>
-          )}
+    <section className="space-y-4" ref={copyAreaRef} id="qb-question-feed">
+      {/* Structured Question Feed Header Toolbar */}
+      <div
+        ref={metaBarRef}
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-qb-border bg-qb-surface px-4 py-3.5"
+      >
+        <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+          <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-qb-accent">
+            Question Feed
+          </span>
+          <span className="text-qb-muted" aria-hidden="true">·</span>
+          <span className="text-sm font-semibold text-qb-heading tabular-nums">
+            {visibleCount < questions.length
+              ? `${visibleCount} of ${questions.length} shown`
+              : `${questions.length} ${questions.length === 1 ? "item" : "items"} shown`}
+          </span>
         </div>
-        <div className="qb-list-meta-right">
-          <div className="qb-sort-wrap">
-            <span className="qb-sort-label">
-              <ArrowUpDown size={12} className="qb-sort-label-icon" aria-hidden="true" />
+
+        <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2.5">
+          <div className="qb-sort-wrap flex items-center gap-2">
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-[0.06em] text-qb-muted">
+              <ArrowUpDown size={12} aria-hidden="true" />
               <span>Sort</span>
             </span>
             <div className="qb-select" ref={sortRef} data-dir={sortDir} data-open={sortOpen}>
               <button
-                className="qb-select-btn qb-sort-select-btn"
+                className="qb-select-btn qb-sort-select-btn !min-h-[38px] !rounded-xl"
                 type="button"
                 onClick={() => {
                   if (!sortOpen && sortRef.current) {
@@ -232,7 +227,7 @@ export default function QuestionList({
                 aria-expanded={sortOpen}
                 style={
                   sortBy === "favorites"
-                    ? { borderColor: "rgba(245, 158, 11, 0.35)", backgroundColor: "rgba(245, 158, 11, 0.08)" }
+                    ? { borderColor: "rgba(245, 158, 11, 0.45)", backgroundColor: "rgba(245, 158, 11, 0.1)" }
                     : undefined
                 }
               >
@@ -248,7 +243,9 @@ export default function QuestionList({
                     className="qb-select-btn-text"
                     style={sortBy === "favorites" ? { color: "#f59e0b", fontWeight: 600 } : undefined}
                   >
-                    {SORT_CONFIG[sortBy]?.label || SORT_OPTIONS.find((o: { value: string; label: string }) => o.value === sortBy)?.label || "Sort"}
+                    {SORT_CONFIG[sortBy]?.label ||
+                      SORT_OPTIONS.find((o: { value: string; label: string }) => o.value === sortBy)?.label ||
+                      "Sort"}
                   </span>
                 </span>
                 <ChevronDown size={15} className={`qb-select-chevron${sortOpen ? " is-open" : ""}`} />
@@ -293,117 +290,174 @@ export default function QuestionList({
               </div>
             </div>
           </div>
+
+          {canManageQuestions && onAddQuestion && (
+            <button
+              type="button"
+              onClick={onAddQuestion}
+              title="Add Question to Reviewer Bank"
+              className="inline-flex h-[38px] items-center gap-2 rounded-xl bg-amber-500 px-3.5 text-xs font-bold text-[#070c18] transition-colors hover:bg-amber-400 cursor-pointer shrink-0"
+            >
+              <ModernAddIcon size={15} className="shrink-0" />
+              <span>Add Question</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Tips Feature Promo Banner */}
+      {/* Compact Study Notes & Visual Diagrams Callout */}
       {onNavigateToTips && questions.length > 0 && (
-        <div className="qb-tips-promo-banner">
-          <div className="qb-tips-promo-content">
-            <div className="qb-tips-promo-icon">
-              <Lightbulb size={28} />
-            </div>
-            <div className="qb-tips-promo-text">
-              <h3 className="qb-tips-promo-title">Create Study Notes & Visual Diagrams</h3>
-              <p className="qb-tips-promo-desc">
-                Organize your methods step-by-step. Add text notes or draw visual solutions.
-                Categorize by type (Formula, Shortcut, Method) and track your mastery.
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-amber-500/25 light:border-amber-600/25 bg-amber-500/[0.06] light:bg-amber-50/75 px-4 py-3.5">
+          <div className="flex items-start sm:items-center gap-3 min-w-0">
+            <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/15 text-amber-400 light:border-amber-600/25 light:text-amber-700">
+              <Lightbulb size={18} aria-hidden="true" />
+            </span>
+            <div className="min-w-0">
+              <h3 className="text-sm font-bold text-qb-heading leading-snug">
+                Create Study Notes & Visual Diagrams
+              </h3>
+              <p className="mt-0.5 text-xs text-qb-mid leading-relaxed">
+                Organize formulas, shortcuts, and step-by-step visual solutions across every question.
               </p>
             </div>
           </div>
           <button
             type="button"
-            className="qb-tips-promo-btn"
             onClick={onNavigateToTips}
+            className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500 px-3.5 text-xs font-bold text-[#070c18] transition-colors hover:bg-amber-400 cursor-pointer"
           >
-            <BookOpen size={16} />
+            <BookOpen size={14} aria-hidden="true" />
             <span>Open Tips</span>
           </button>
         </div>
       )}
 
-      <div className="qb-question-stack" id="qb-question-cards">
+      {/* Responsive 2-Column Bento Question Cards Grid */}
+      <div
+        className={
+          questions.length === 0
+            ? "block"
+            : "grid grid-cols-1 lg:grid-cols-2 gap-3.5"
+        }
+        id="qb-question-cards"
+      >
         {questions.length === 0 ? (
-          <div className="qb-empty">
-            <ClipboardList size={48} className="qb-empty-ico" style={{ margin: "0 auto 14px", opacity: 0.2 }} />
-            <div className="qb-empty-t">{totalInProject === 0 ? "No questions yet" : "No results found"}</div>
-            <div className="qb-empty-s">
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-qb-border bg-qb-surface px-6 py-14 text-center">
+            <ClipboardList size={40} className="mb-3 text-qb-muted opacity-40" aria-hidden="true" />
+            <div className="text-base font-bold text-qb-heading">
+              {totalInProject === 0 ? "No questions yet" : "No matching questions found"}
+            </div>
+            <div className="mt-1 max-w-md text-xs sm:text-sm text-qb-muted">
               {totalInProject === 0
-                ? "Add your first CSE question to get started."
-                : "Try adjusting your search or filter."}
+                ? "Add your first Civil Service Exam practice question to get started."
+                : "Try adjusting your keyword search, subject selection, or progress filters."}
             </div>
           </div>
         ) : (
           visibleQuestions.map((q, i) => {
             const t = getTopic(q.topic);
+            const attempt = masteryMap?.[q.id];
+            const isMissed = Boolean(attempt?.attempts && attempt.lastResult === "wrong");
+            const isMastered = Boolean(attempt?.attempts && attempt.lastResult !== "wrong");
+
             return (
               <div
                 key={q.id}
-                className={`qb-qcard${q.favorite ? " qb-qcard-fav" : ""}`}
+                role="button"
+                tabIndex={0}
                 onClick={() => onSelect(q.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onSelect(q.id);
+                  }
+                }}
+                className={`group relative flex flex-col justify-between gap-3 overflow-hidden rounded-2xl border p-4 sm:p-5 text-left transition-all duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 ${
+                  q.favorite
+                    ? "border-amber-500/45 bg-qb-surface hover:border-amber-500/70 hover:bg-qb-surface-hover light:border-amber-600/45"
+                    : "border-qb-border bg-qb-surface hover:border-qb-border-hover hover:bg-qb-surface-hover"
+                }`}
               >
-                <div className="qb-qcard-top">
-                  <div className="qb-qcard-top-left">
-                    <span className="qb-qnum tabular-nums">Question {String(i + 1).padStart(3, "0")}</span>
-                    <span
-                      className="qb-badge qb-qcard-topic-badge"
-                      style={{
-                        color: t.color,
-                        background: `${t.color}1c`,
-                        borderColor: `${t.color}35`,
-                      }}
-                    >
-                      {t.label}
+                {/* Card Header: Index + Topic + Favorite Toggle */}
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="font-mono text-xs font-semibold text-qb-muted tabular-nums">
+                      #{String(i + 1).padStart(3, "0")}
+                    </span>
+                    <span className="text-qb-muted/50" aria-hidden="true">·</span>
+                    <span className="inline-flex items-center gap-1.5 text-xs font-bold truncate" style={{ color: t.color }}>
+                      <span
+                        className="h-1.5 w-1.5 rounded-full shrink-0"
+                        style={{ backgroundColor: t.color }}
+                        aria-hidden="true"
+                      />
+                      <span className="truncate">{t.label}</span>
                     </span>
                   </div>
+
                   <button
                     type="button"
-                    className={`qb-fav-btn${q.favorite ? " on" : ""}`}
                     aria-label={q.favorite ? "Remove from favorites" : "Add to favorites"}
                     title={q.favorite ? "Unfavorite question" : "Favorite question"}
                     onClick={(e) => {
                       e.stopPropagation();
                       onToggleFavorite(q.id);
                     }}
+                    className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-colors cursor-pointer ${
+                      q.favorite
+                        ? "border-amber-500/45 bg-amber-500/15 text-amber-400 light:border-amber-600/40 light:text-amber-700"
+                        : "border-qb-border bg-qb-input text-qb-muted hover:border-qb-border-hover hover:text-amber-400 light:hover:text-amber-700"
+                    }`}
                   >
-                    <Star size={16} className="qb-fav-ico" fill={q.favorite ? "currentColor" : "none"} />
+                    <Star size={14} fill={q.favorite ? "currentColor" : "none"} />
                   </button>
                 </div>
-                <div className="qb-qcard-body">
-                  <div className="qb-qcard-heading">
-                    <span className="qb-qcard-label">{q.label || "General Review"}</span>
+
+                {/* Card Body: Label & Question Stem */}
+                <div className="space-y-1.5 min-w-0 flex-1">
+                  <div className="text-xs font-bold tracking-wide text-qb-heading">
+                    {q.label || "General Review"}
                   </div>
-                  <span className="qb-qtext">
+                  <div className="text-[14px] leading-relaxed text-qb-mid line-clamp-3 break-words">
                     <MarkdownText text={q.question} inline />
-                  </span>
+                  </div>
                 </div>
-                <div className="qb-qcard-foot">
-                  {(q.favorite || masteryMap?.[q.id]?.attempts) ? (
-                    <div className="qb-qcard-meta">
-                      {q.favorite && (
-                        <span className="qb-qcard-inline-status is-fav">Starred</span>
-                      )}
-                      {q.favorite && masteryMap?.[q.id]?.attempts ? (
-                        <span className="qb-qcard-meta-sep" aria-hidden="true">·</span>
-                      ) : null}
-                      {masteryMap?.[q.id]?.attempts ? (
-                        masteryMap[q.id].lastResult === "wrong" ? (
-                          <span className="qb-qcard-inline-status is-missed">
-                            <AlertCircle size={12} aria-hidden="true" />
-                            <span>Missed</span>
-                          </span>
-                        ) : (
-                          <span className="qb-qcard-inline-status is-mastered">
-                            <CheckCircle2 size={12} aria-hidden="true" />
-                            <span>Mastered</span>
-                          </span>
-                        )
-                      ) : null}
-                    </div>
-                  ) : null}
-                  <span className="qb-qcard-open">
-                    Open
-                    <ChevronRight size={18} className="qb-qarrow" />
+
+                {/* Card Footer: Inline Status & Open Affordance */}
+                <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-qb-border/70 text-xs">
+                  <div className="flex items-center gap-2 min-w-0 truncate">
+                    {q.favorite && (
+                      <span className="font-semibold text-amber-400 light:text-amber-700">
+                        Starred
+                      </span>
+                    )}
+                    {q.favorite && (isMissed || isMastered) && (
+                      <span className="text-qb-muted" aria-hidden="true">·</span>
+                    )}
+                    {isMissed && (
+                      <span className="inline-flex items-center gap-1 font-semibold text-rose-400 light:text-rose-700">
+                        <AlertCircle size={12} aria-hidden="true" />
+                        <span>Missed</span>
+                      </span>
+                    )}
+                    {isMastered && (
+                      <span className="inline-flex items-center gap-1 font-semibold text-emerald-400 light:text-emerald-700">
+                        <CheckCircle2 size={12} aria-hidden="true" />
+                        <span>Mastered</span>
+                      </span>
+                    )}
+                    {!q.favorite && !isMissed && !isMastered && (
+                      <span className="text-qb-muted">Unseen</span>
+                    )}
+                  </div>
+
+                  <span className="inline-flex shrink-0 items-center gap-1 font-bold text-qb-mid transition-colors group-hover:text-qb-accent">
+                    <span>Open</span>
+                    <ChevronRight
+                      size={15}
+                      className="transition-transform duration-150 group-hover:translate-x-0.5"
+                      aria-hidden="true"
+                    />
                   </span>
                 </div>
               </div>
@@ -412,12 +466,13 @@ export default function QuestionList({
         )}
       </div>
 
+      {/* Pagination */}
       {visibleCount < questions.length && (
-        <div style={{ display: "flex", justifyContent: "center", paddingTop: 14 }}>
+        <div className="flex justify-center pt-2">
           <button
             type="button"
-            className="qb-pill"
             onClick={() => setVisibleCount((c) => Math.min(c + PAGE_SIZE, questions.length))}
+            className="inline-flex items-center gap-2 rounded-xl border border-qb-border bg-qb-surface px-5 py-2.5 text-xs font-bold text-qb-heading transition-colors hover:border-amber-500/45 hover:bg-qb-surface-hover cursor-pointer"
           >
             <span>
               Show more (<span className="tabular-nums">{questions.length - visibleCount}</span> remaining)
@@ -426,6 +481,7 @@ export default function QuestionList({
         </div>
       )}
 
+      {/* Floating Docked Add Action */}
       {canManageQuestions &&
         onAddQuestion &&
         typeof document !== "undefined" &&

@@ -114,6 +114,17 @@ export interface AppSettings {
 export type UserRole = "superadmin" | "admin" | "moderator" | "reviewer";
 export type UserAccountStatus = "active" | "banned" | "deleted";
 
+export type AdminPermissionKey =
+  | "createQuestions"
+  | "editQuestions"
+  | "deleteQuestions"
+  | "reviewSubmissions"
+  | "bulkImport"
+  | "moderateUsers"
+  | "manageRoles";
+
+export type AdminPermissions = Record<AdminPermissionKey, boolean>;
+
 export interface UserRoleRecord {
   id: string;
   email: string;
@@ -128,6 +139,7 @@ export interface UserRoleRecord {
   statusUpdatedAt?: string;
   statusUpdatedBy?: string;
   deletedAt?: string | null;
+  permissions?: Partial<AdminPermissions> | null;
 }
 
 export interface UserProfile {
@@ -148,6 +160,7 @@ export interface HeaderProps {
   isDark: boolean;
   onToggleTheme: () => void;
   onHome: () => void;
+  onDashboard?: () => void;
   onLanding?: () => void;
   currentView?: string;
   showNavToggle?: boolean;
@@ -184,6 +197,7 @@ export interface SideNavProps {
   variant?: "rail" | "overlay";
   open?: boolean;
   active?: string;
+  onDashboard?: () => void;
   onHome?: () => void;
   onLanding?: () => void;
   onMockExam?: () => void;
@@ -222,6 +236,9 @@ export interface SettingsPageProps {
   isAuthenticated: boolean;
   isQuestionAdmin?: boolean;
   isSuperAdmin?: boolean;
+  canManageRoles?: boolean;
+  canModerateUsers?: boolean;
+  canBulkImport?: boolean;
   totalQuestions?: number;
   mockAttemptsCount?: number;
   favoritesCount?: number;

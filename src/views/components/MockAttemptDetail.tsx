@@ -31,43 +31,84 @@ export default function MockAttemptDetail({ attempt, qMap, onBack, onReviewAttem
     return [q.question || "", q.topic || "", q.label || ""].some((s) => s.toLowerCase().includes(qry));
   });
 
+  const modeTitle =
+    attempt.mode === "drill"
+      ? `Mistake Drill (${attempt.totalCount} Items)`
+      : attempt.mode === "quick"
+        ? `Quick Practice (${attempt.totalCount} Items)`
+        : attempt.mode === "subprofessional"
+          ? "Subprofessional Level (165 Items)"
+          : "Professional Level (170 Items)";
+
+  const modeToneClass =
+    attempt.mode === "drill"
+      ? "text-rose-400 light:text-rose-700"
+      : attempt.mode === "quick"
+        ? "text-sky-400 light:text-sky-700"
+        : attempt.mode === "subprofessional"
+          ? "text-violet-400 light:text-violet-700"
+          : "text-emerald-400 light:text-emerald-700";
+
   return (
-    <div className="qb-mock-attempt-detail fu">
-      <div className="qb-det-hdr qb-det-hdr-attempt">
-        <button className="qb-back" onClick={onBack} style={{ display: "flex", alignItems: "center" }}>
-          <ChevronLeft size={16} style={{ marginRight: 4 }} />
-          Back to Mock Exam
-        </button>
-        <div className="qb-mock-attempt-toolbar">
-          <span className={`qb-exam-mode-badge qb-mock-attempt-badge${attempt.mode === "drill" ? " drill" : attempt.mode === "quick" ? " quick" : attempt.mode === "subprofessional" ? " subpro" : " pro"}`}>
-            {attempt.mode === "drill"
-              ? `Mistake Drill (${attempt.totalCount} Items)`
-              : attempt.mode === "quick"
-                ? `Quick Practice (${attempt.totalCount} Items)`
-                : attempt.mode === "subprofessional"
-                  ? "Subprofessional Level (165 Items)"
-                  : "Professional Level (170 Items)"}
+    <div className="qb-mock-attempt-detail fu space-y-5">
+      <header className="space-y-3.5 pb-5 border-b border-qb-border">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-qb-border bg-qb-surface px-3 py-1.5 text-xs font-semibold text-qb-mid transition-colors hover:border-qb-border-hover hover:text-qb-heading cursor-pointer"
+          >
+            <ChevronLeft size={15} aria-hidden="true" />
+            <span>Back to Mock Exam</span>
+          </button>
+
+          <span className="text-xs font-medium text-qb-muted tabular-nums">
+            Completed {formatAttemptDate(attempt.completedAt)}
           </span>
-          {missedCount > 0 && onStartDrillMistakes && (
+        </div>
+
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.08em]">
+              <span className={modeToneClass}>{modeTitle}</span>
+              <span className="text-qb-muted" aria-hidden="true">·</span>
+              <span className="text-qb-muted tabular-nums">
+                {attempt.totalCount} {attempt.totalCount === 1 ? "item" : "items"}
+              </span>
+            </div>
+            <h1 className="mt-1 text-2xl sm:text-[26px] font-extrabold tracking-tight text-qb-heading leading-tight">
+              Mock Attempt Breakdown
+            </h1>
+            <p className="mt-1 text-xs sm:text-sm text-qb-muted tabular-nums">
+              Review subject accuracy, exam pacing, and item-by-item answers for this attempt.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            {missedCount > 0 && onStartDrillMistakes && (
+              <button
+                type="button"
+                onClick={() => onStartDrillMistakes(attempt)}
+                title={`Start a focused practice test with ${missedCount} missed/skipped items`}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-500/45 bg-amber-500/12 px-3.5 py-2.5 text-xs sm:text-sm font-bold text-amber-400 light:border-amber-600/40 light:bg-amber-50 light:text-amber-800 transition-colors hover:bg-amber-500/20 cursor-pointer whitespace-nowrap"
+              >
+                <Target size={15} aria-hidden="true" />
+                <span className="tabular-nums">Drill Mistakes ({missedCount})</span>
+              </button>
+            )}
             <button
               type="button"
-              className="qb-mock-secondary-btn qb-mock-attempt-drill-btn"
-              onClick={() => onStartDrillMistakes(attempt)}
-              title={`Start a focused practice test with ${missedCount} missed/skipped items`}
+              onClick={() => onReviewAttempt(attempt)}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-xs sm:text-sm font-bold text-[#070c18] transition-colors hover:bg-amber-400 cursor-pointer whitespace-nowrap"
             >
-              <Target size={15} />
-              <span>Drill Mistakes ({missedCount})</span>
+              <ArrowUpRight size={16} aria-hidden="true" />
+              <span>Open Full Review</span>
             </button>
-          )}
-          <button type="button" className="qb-mock-secondary-btn qb-mock-attempt-open-btn" onClick={() => onReviewAttempt(attempt)}>
-            <ArrowUpRight size={16} />
-            Open Full Review
-          </button>
-          <span className="qb-exam-progress qb-mock-attempt-date-chip">{formatAttemptDate(attempt.completedAt)}</span>
+          </div>
         </div>
-      </div>
+      </header>
 
-      <div className="qb-exam-summary" style={{ marginBottom: 18 }}>
+      <div className="qb-exam-summary">
         <div className="qb-exam-summary-primary">
           <div className="qb-exam-summary-kicker">
             Saved Attempt ({getAttemptModeLabel(attempt.mode)})

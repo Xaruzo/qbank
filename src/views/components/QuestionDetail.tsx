@@ -35,6 +35,8 @@ export default function QuestionDetail({
   onNext,
   forceShowSolution,
   canManageQuestions,
+  canEditQuestion,
+  canDeleteQuestion,
   questionIndex,
   totalQuestions,
   queueQuestions = [],
@@ -42,6 +44,8 @@ export default function QuestionDetail({
   sessionResults = {},
   onRecordResult,
 }) {
+  const allowEdit = canEditQuestion ?? !!canManageQuestions;
+  const allowDelete = canDeleteQuestion ?? !!canManageQuestions;
   const [pick, setPick] = useState(null);
   const [showSol, setShowSol] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -204,9 +208,18 @@ export default function QuestionDetail({
     if (!expanded) return;
     lastTapRef.current = { t: 0, x: 0, y: 0 };
     const el = expandedScrollRef.current;
-    if (!el) return;
-    el.scrollLeft = 0;
-    el.scrollTop = 0;
+    if (el) {
+      el.scrollLeft = 0;
+      el.scrollTop = 0;
+    }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setExpanded(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [expanded]);
 
   useEffect(() => () => {
@@ -362,9 +375,15 @@ export default function QuestionDetail({
   const currentScratch = scratchMap[question.id] || "";
 
   return (
-    <div className="qb-det-page fu" ref={copyAreaRef}>
-      {expanded && solImg && (
-        <div className="qb-modal-ov" onClick={() => setExpanded(false)}>
+    <div className="qb-det-page fu !gap-2.5" ref={copyAreaRef}>
+      {expanded && solImg && typeof document !== "undefined" && createPortal(
+        <div
+          className="qb-modal-ov"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Expanded solution illustration"
+          onClick={() => setExpanded(false)}
+        >
           <button
             type="button"
             className="qb-modal-close"
@@ -410,25 +429,26 @@ export default function QuestionDetail({
               />
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Top Header & Action Toolbar */}
-      <div className="qb-det-hdr">
+      <div className="qb-det-hdr sm:!py-2 sm:!mb-0">
         <div className="qb-det-meta">
           <div className="qb-det-meta-left">
             <button
               type="button"
-              className="qb-back-btn"
+              className="qb-back-btn sm:!h-8 sm:!py-0 sm:!px-2.5 sm:!text-xs sm:!rounded-lg"
               onClick={onBack}
               title="Return to Question Bank"
             >
-              <ChevronLeft size={15} />
+              <ChevronLeft size={14} />
               <span>Bank</span>
             </button>
 
             <span
-              className="qb-det-topic-badge"
+              className="qb-det-topic-badge sm:!py-1 sm:!px-2.5 sm:!text-[11.5px]"
               style={{
                 color: topic.color,
                 backgroundColor: `${topic.color}16`,
@@ -445,7 +465,7 @@ export default function QuestionDetail({
 
             {questionIndex && totalQuestions && (
               <span
-                className="qb-det-index-badge"
+                className="qb-det-index-badge sm:!h-7 sm:!py-0 sm:!px-2.5 sm:!text-[11.5px]"
                 title={`Item ${questionIndex} of ${totalQuestions}`}
               >
                 <span className="qb-det-index-full">Item {questionIndex} of {totalQuestions}</span>
@@ -454,7 +474,7 @@ export default function QuestionDetail({
             )}
           </div>
 
-          <div className="qb-timer-pill" title="Time spent on this question">
+          <div className="qb-timer-pill sm:!h-8 sm:!min-w-[70px] sm:!px-2.5 sm:!text-xs sm:!rounded-lg" title="Time spent on this question">
             <Clock size={12} className="qb-timer-icon" />
             <span className="qb-timer-val">{answerTimeText}</span>
           </div>
@@ -466,62 +486,66 @@ export default function QuestionDetail({
             {onTips && (
               <button
                 type="button"
-                className="qb-det-action-btn qb-det-tips-btn"
+                className="qb-det-action-btn qb-det-tips-btn sm:!h-8 sm:!px-2.5 sm:!rounded-lg"
                 aria-label="Open tips and methods for this question"
                 title="Open tips and methods"
                 onClick={onTips}
               >
-                <Lightbulb size={14} />
+                <Lightbulb size={13} />
                 <span>Tips</span>
               </button>
             )}
 
             <button
               type="button"
-              className={`qb-det-action-btn qb-det-share-btn${shareLabel !== "Share" ? " is-copied" : ""}`}
+              className={`qb-det-action-btn qb-det-share-btn sm:!h-8 sm:!min-w-[78px] sm:!px-2.5 sm:!rounded-lg${shareLabel !== "Share" ? " is-copied" : ""}`}
               aria-label="Share question link"
               title="Share question link"
               onClick={handleShare}
             >
-              {shareLabel === "Share" ? <Link2 size={14} /> : <Check size={14} />}
+              {shareLabel === "Share" ? <Link2 size={13} /> : <Check size={13} />}
               <span>{shareLabel}</span>
             </button>
 
-            {canManageQuestions && (
+            {(allowEdit || allowDelete) && (
               <div className="qb-det-admin-group">
-                <button
-                  type="button"
-                  className="qb-edit-btn"
-                  onClick={() => onEdit(question)}
-                  title="Edit question"
-                  aria-label="Edit question"
-                >
-                  <Pencil size={13} className="qb-btn-icon" />
-                  <span>Edit</span>
-                </button>
-                <button
-                  type="button"
-                  className="qb-del-btn"
-                  onClick={() => setIsDeleteModalOpen(true)}
-                  title="Delete question"
-                  aria-label="Delete question"
-                  aria-haspopup="dialog"
-                >
-                  <Trash2 size={13} className="qb-btn-icon" />
-                  <span>Delete</span>
-                </button>
+                {allowEdit && (
+                  <button
+                    type="button"
+                    className="qb-edit-btn sm:!h-8 sm:!py-0 sm:!px-2.5 sm:!text-xs sm:!rounded-lg"
+                    onClick={() => onEdit(question)}
+                    title="Edit question"
+                    aria-label="Edit question"
+                  >
+                    <Pencil size={13} className="qb-btn-icon" />
+                    <span>Edit</span>
+                  </button>
+                )}
+                {allowDelete && (
+                  <button
+                    type="button"
+                    className="qb-del-btn sm:!h-8 sm:!py-0 sm:!px-2.5 sm:!text-xs sm:!rounded-lg"
+                    onClick={() => setIsDeleteModalOpen(true)}
+                    title="Delete question"
+                    aria-label="Delete question"
+                    aria-haspopup="dialog"
+                  >
+                    <Trash2 size={13} className="qb-btn-icon" />
+                    <span>Delete</span>
+                  </button>
+                )}
               </div>
             )}
           </div>
 
           <button
             type="button"
-            className={`qb-det-fav-btn${question.favorite ? " on" : ""}`}
+            className={`qb-det-fav-btn sm:!w-8 sm:!h-8 sm:!rounded-lg${question.favorite ? " on" : ""}`}
             aria-label={question.favorite ? "Remove from favorites" : "Add to favorites"}
             title={question.favorite ? "Unfavorite question" : "Favorite question"}
             onClick={() => onToggleFavorite(question.id)}
           >
-            <Star size={15} fill={question.favorite ? "currentColor" : "none"} />
+            <Star size={14} fill={question.favorite ? "currentColor" : "none"} />
           </button>
 
           {/* Compact mobile/tablet overflow trigger (<768px) */}
@@ -565,33 +589,37 @@ export default function QuestionDetail({
                   {shareLabel === "Share" ? <Link2 size={15} /> : <Check size={15} />}
                   <span>{shareLabel === "Share" ? "Copy Share Link" : shareLabel}</span>
                 </button>
-                {canManageQuestions && (
+                {(allowEdit || allowDelete) && (
                   <>
                     <div className="qb-det-overflow-divider" />
-                    <button
-                      type="button"
-                      role="menuitem"
-                      className="qb-det-overflow-item"
-                      onClick={() => {
-                        setOverflowOpen(false);
-                        onEdit(question);
-                      }}
-                    >
-                      <Pencil size={15} />
-                      <span>Edit Question</span>
-                    </button>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      className="qb-det-overflow-item is-danger"
-                      onClick={() => {
-                        setOverflowOpen(false);
-                        setIsDeleteModalOpen(true);
-                      }}
-                    >
-                      <Trash2 size={15} />
-                      <span>Delete Question</span>
-                    </button>
+                    {allowEdit && (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="qb-det-overflow-item"
+                        onClick={() => {
+                          setOverflowOpen(false);
+                          onEdit(question);
+                        }}
+                      >
+                        <Pencil size={15} />
+                        <span>Edit Question</span>
+                      </button>
+                    )}
+                    {allowDelete && (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="qb-det-overflow-item is-danger"
+                        onClick={() => {
+                          setOverflowOpen(false);
+                          setIsDeleteModalOpen(true);
+                        }}
+                      >
+                        <Trash2 size={15} />
+                        <span>Delete Question</span>
+                      </button>
+                    )}
                   </>
                 )}
               </div>
@@ -681,22 +709,22 @@ export default function QuestionDetail({
       </div>
 
       {/* Sticky Bottom Controls Dock (zero vertical target drift across questions) */}
-      <div className="qb-det-footer">
+      <div className="qb-det-footer sm:!py-2 sm:!px-4 sm:!rounded-xl">
         <div className="qb-det-footer-left">
           {canRevealSolution && hasSolution && (
             <button
               type="button"
-              className={`qb-reveal-toggle${showSol ? " is-active" : ""}`}
+              className={`qb-reveal-toggle sm:!py-1.5 sm:!px-3 sm:!text-xs sm:!rounded-lg${showSol ? " is-active" : ""}`}
               onClick={() => setShowSol((prev) => !prev)}
             >
-              <Lightbulb size={15} />
+              <Lightbulb size={14} />
               <span>{showSol ? "Hide Solution" : "Show Solution"}</span>
-              <ChevronDown size={15} className={`qb-reveal-caret${showSol ? " is-open" : ""}`} />
+              <ChevronDown size={14} className={`qb-reveal-caret${showSol ? " is-open" : ""}`} />
             </button>
           )}
           {pick === null && (
-            <div className="qb-det-footer-hint">
-              <MousePointerClick size={14} className="qb-det-footer-hint-ico" />
+            <div className="qb-det-footer-hint sm:!text-xs">
+              <MousePointerClick size={13} className="qb-det-footer-hint-ico" />
               <span>Tap a choice to check your answer</span>
             </div>
           )}
@@ -704,14 +732,14 @@ export default function QuestionDetail({
 
         {pick !== null && (
           <div
-            className={`qb-det-footer-verdict ${pick === question.correct ? "ok" : "no"}`}
+            className={`qb-det-footer-verdict sm:!text-xs ${pick === question.correct ? "ok" : "no"}`}
             role="status"
             aria-live="polite"
           >
             {pick === question.correct ? (
-              <CheckCircle2 size={15} className="qb-det-footer-verdict-ico" />
+              <CheckCircle2 size={14} className="qb-det-footer-verdict-ico" />
             ) : (
-              <AlertCircle size={15} className="qb-det-footer-verdict-ico" />
+              <AlertCircle size={14} className="qb-det-footer-verdict-ico" />
             )}
             <span>
               {pick === question.correct
@@ -724,22 +752,22 @@ export default function QuestionDetail({
         <div className="qb-det-footer-right">
           <button
             type="button"
-            className="qb-det-navbtn qb-det-navbtn-prev"
+            className="qb-det-navbtn qb-det-navbtn-prev sm:!py-1.5 sm:!px-3.5 sm:!text-xs sm:!rounded-lg"
             onClick={onPrev}
             disabled={!hasPrev}
             title={hasPrev ? "Previous question (←)" : "No previous question"}
           >
-            <ChevronLeft size={16} />
+            <ChevronLeft size={14} />
             <span>Prev</span>
           </button>
           <button
             type="button"
-            className="qb-det-navbtn qb-det-navbtn-next"
+            className="qb-det-navbtn qb-det-navbtn-next sm:!py-1.5 sm:!px-3.5 sm:!text-xs sm:!rounded-lg"
             onClick={onNext}
             title={hasNext ? "Next question (→)" : "Finish review"}
           >
             <span>{hasNext ? "Next" : "Finish"}</span>
-            <ChevronRight size={16} />
+            <ChevronRight size={14} />
           </button>
         </div>
       </div>

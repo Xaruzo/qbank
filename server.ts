@@ -141,16 +141,23 @@ async function verifyAdminCaller(req: express.Request): Promise<{ ok: boolean; e
 
   let roleRes: any = await supabaseAdmin
     .from("user_roles")
-    .select("role,status")
+    .select("role,status,permissions")
     .eq("email", callerEmail)
     .maybeSingle();
 
   if (roleRes.error && isMissingColumnError(roleRes.error)) {
     roleRes = await supabaseAdmin
       .from("user_roles")
-      .select("role")
+      .select("role,status")
       .eq("email", callerEmail)
       .maybeSingle();
+    if (roleRes.error && isMissingColumnError(roleRes.error)) {
+      roleRes = await supabaseAdmin
+        .from("user_roles")
+        .select("role")
+        .eq("email", callerEmail)
+        .maybeSingle();
+    }
   }
 
   const roleRow = roleRes.data;
@@ -161,6 +168,14 @@ async function verifyAdminCaller(req: express.Request): Promise<{ ok: boolean; e
     (roleRow.role === "superadmin" || roleRow.role === "admin");
   if (!isAuthorized) {
     return { ok: false, statusCode: 403, error: "Administrator privileges required." };
+  }
+  if (
+    roleRow.role === "admin" &&
+    roleRow.permissions &&
+    typeof roleRow.permissions === "object" &&
+    roleRow.permissions.moderateUsers !== true
+  ) {
+    return { ok: false, statusCode: 403, error: "Administrator user-moderation permission is required." };
   }
   return { ok: true, email: callerEmail };
 }

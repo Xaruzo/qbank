@@ -11,84 +11,85 @@ const SKEL_QUESTIONS = [0, 1, 2, 3];
 
 export default function SkeletonLoader() {
   return (
-    <div className="fu qb-dashboard qb-skeleton" aria-hidden="true">
-      <section className="qb-list-hero qb-skel-hero">
-        <div className="qb-list-hero-main">
-          {Bar({ w: "128px", h: "10px" })}
-          {Bar({ w: "min(420px, 85%)", h: "36px", extra: { maxWidth: "85%" } })}
-          {Bar({ w: "min(360px, 62%)", h: "15px", extra: { maxWidth: "62%" } })}
-          <div className="qb-skel-chips">
-            <Chip w={130} />
-            <Chip w={120} />
-            <Chip w={150} />
+    <div className="fu space-y-5 animate-pulse" aria-hidden="true">
+      {/* Workspace Header & Bento Summary Skeleton */}
+      <section className="space-y-4">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-5 border-b border-qb-border">
+          <div className="space-y-2.5">
+            <div className="h-3 w-40 rounded bg-qb-surface" />
+            <div className="h-7 w-72 max-w-full rounded-lg bg-qb-surface" />
+            <div className="h-4 w-96 max-w-full rounded bg-qb-surface" />
+          </div>
+          <div className="flex flex-wrap gap-2.5">
+            <div className="h-10 w-44 rounded-xl bg-qb-surface border border-qb-border" />
+            <div className="h-10 w-40 rounded-xl bg-qb-surface border border-qb-border" />
           </div>
         </div>
-        <div className="qb-list-hero-side">
-          <div className="qb-list-hero-panel qb-skel-panel">
-            {Bar({ w: "64px", h: "9px" })}
-            {Bar({ w: "56px", h: "30px" })}
-            {Bar({ w: "100%", h: "13px" })}
+
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-3.5">
+          <div className="xl:col-span-7 grid grid-cols-2 gap-3">
+            {[0, 1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="h-28 rounded-2xl border border-qb-border bg-qb-surface p-4 flex flex-col justify-between"
+              >
+                <div className="h-3 w-24 rounded bg-qb-input" />
+                <div className="h-7 w-16 rounded bg-qb-input" />
+                <div className="h-2.5 w-28 rounded bg-qb-input" />
+              </div>
+            ))}
           </div>
-          <div className="qb-list-hero-panel qb-skel-panel">
-            {Bar({ w: "56px", h: "9px" })}
-            {Bar({ w: "56px", h: "30px" })}
-            {Bar({ w: "100%", h: "13px" })}
+          <div className="xl:col-span-5 rounded-2xl border border-qb-border bg-qb-surface p-5 space-y-3">
+            <div className="h-4 w-36 rounded bg-qb-input" />
+            <div className="h-16 rounded-xl bg-qb-input" />
+            <div className="h-16 rounded-xl bg-qb-input" />
           </div>
         </div>
       </section>
 
-      <div className="qb-skel-stats">
+      {/* Topic Coverage Bento Skeleton */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
         {SKEL_STATS.map((i) => (
-          <div className="qb-stat qb-skel-stat" key={i}>
-            {Bar({ w: "52px", h: "10px" })}
-            {Bar({ w: "88px", h: "15px" })}
-            <div className="qb-skel-stat-n">
-              {Bar({ w: "52px", h: "30px" })}
+          <div
+            key={i}
+            className="h-36 rounded-2xl border border-qb-border bg-qb-surface p-4 flex flex-col justify-between"
+          >
+            <div className="flex justify-between">
+              <div className="h-7 w-7 rounded-lg bg-qb-input" />
+              <div className="h-3 w-8 rounded bg-qb-input" />
             </div>
-            {Bar({ w: "72%", h: "12px" })}
+            <div className="h-6 w-14 rounded bg-qb-input" />
+            <div className="h-1.5 w-full rounded-full bg-qb-input" />
           </div>
         ))}
       </div>
 
-      <div className="qb-skel-control">
-        <div className="qb-skel-control-row">
-          {Bar({ w: "min(420px, 100%)", h: "46px", extra: { maxWidth: "100%", borderRadius: 18 } })}
-          <Chip w={200} h={46} br={18} />
-          <Chip w={170} h={46} br={18} />
-        </div>
+      {/* Filter Panel Skeleton */}
+      <div className="h-40 rounded-2xl border border-qb-border bg-qb-surface p-5 space-y-4">
+        <div className="h-5 w-48 rounded bg-qb-input" />
+        <div className="h-11 w-full rounded-xl bg-qb-input" />
       </div>
 
-      <section className="qb-question-section">
-        <div className="qb-list-meta">
-          <div className="qb-list-meta-left">
-            {Bar({ w: "88px", h: "14px" })}
-            {Bar({ w: "72px", h: "14px" })}
-          </div>
-          <div className="qb-list-meta-right">
-            <Chip w={110} h={34} br={10} />
-          </div>
-        </div>
-
-        <div className="qb-question-stack">
-          {SKEL_QUESTIONS.map((i) => (
-            <div className="qb-qcard qb-skel-card" key={i}>
-              <div className="qb-qcard-top">
-                {Bar({ w: "92px", h: "12px" })}
-                {Chip({ w: 46, h: 22, br: 6 })}
-              </div>
-              <div className="qb-qcard-body">
-                {Bar({ w: "min(320px, 55%)", h: "16px", extra: { maxWidth: "55%" } })}
-                {Bar({ w: "92%", h: "13px" })}
-                {Bar({ w: "78%", h: "13px" })}
-              </div>
-              <div className="qb-qcard-foot">
-                <Chip w={96} h={24} />
-                <Chip w={96} h={24} />
-              </div>
+      {/* 2-Column Question Grid Skeleton */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
+        {SKEL_QUESTIONS.map((i) => (
+          <div
+            key={i}
+            className="h-44 rounded-2xl border border-qb-border bg-qb-surface p-5 flex flex-col justify-between"
+          >
+            <div className="flex justify-between">
+              <div className="h-3.5 w-28 rounded bg-qb-input" />
+              <div className="h-7 w-7 rounded-lg bg-qb-input" />
             </div>
-          ))}
-        </div>
-      </section>
+            <div className="space-y-2">
+              <div className="h-3.5 w-40 rounded bg-qb-input" />
+              <div className="h-3.5 w-full rounded bg-qb-input" />
+              <div className="h-3.5 w-4/5 rounded bg-qb-input" />
+            </div>
+            <div className="h-3 w-24 rounded bg-qb-input" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

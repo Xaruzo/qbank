@@ -4,6 +4,7 @@ import type { Question } from "../types";
 export type ViewType =
   | "landing"
   | "signIn"
+  | "dashboard"
   | "list"
   | "detail"
   | "add"
@@ -38,14 +39,16 @@ export function useViewRouter({
       const page = params.get("page");
       if (page === "landing") return "landing";
       if (page === "signin" || page === "login") return "signIn";
+      if (page === "dashboard") return "dashboard";
       if (page === "settings") return "settings";
       if (page === "my-questions") return "my-questions";
       if (page === "tips") return "tips";
       if (page === "notes") return "notes";
       if (page === "mock") return "mock";
-      if (page) return "list";
+      if (page === "list" || page === "questions") return "list";
+      if (page) return "dashboard";
 
-      // If user has a stored authenticated account, go directly to list view
+      // If user has a stored authenticated account, open Dashboard by default
       const hasSystemUser =
         typeof localStorage !== "undefined" &&
         !!localStorage.getItem("cse-qbank-system-user-v1");
@@ -56,7 +59,7 @@ export function useViewRouter({
         );
 
       // New visitors and unauthenticated users always see the landing page first
-      return hasSystemUser || hasSupabaseToken ? "list" : "landing";
+      return hasSystemUser || hasSupabaseToken ? "dashboard" : "landing";
     } catch {
       return "landing";
     }
@@ -263,12 +266,22 @@ export function useViewRouter({
         } catch (_) {}
       }
 
+      if (page === "dashboard") {
+        setSelectedMockAttemptId(null);
+        setSelectedId(null);
+        setDeepLinkShowSol(false);
+        setEditId(null);
+        setExam(null);
+        setView("dashboard");
+        return;
+      }
+
       if (page === "list" || page === "questions") {
         setView("list");
       } else if (!isAuthenticated && !hasStoredAuthToken && !isAuthLoading && !page) {
         setView("landing");
       } else {
-        setView("list");
+        setView("dashboard");
       }
     };
 
@@ -278,6 +291,20 @@ export function useViewRouter({
   }, [authAvailable, isAuthLoading, isAuthenticated, qs]);
 
   // Typed Navigation Actions
+  const navigateDashboard = useCallback(() => {
+    setEditId(null);
+    setSelectedId(null);
+    setSelectedMockAttemptId(null);
+    setSelectedNoteId(null);
+    setDeepLinkShowSol(false);
+    setExam(null);
+    try {
+      sessionStorage.setItem("qbank-session-active", "true");
+    } catch (_) {}
+    window.history.pushState({}, "", `?page=dashboard`);
+    setView("dashboard");
+  }, []);
+
   const navigateHome = useCallback(() => {
     setEditId(null);
     setSelectedId(null);
@@ -435,6 +462,7 @@ export function useViewRouter({
     setDeepLinkShowSol,
     exam,
     setExam,
+    navigateDashboard,
     navigateHome,
     navigateLanding,
     navigateSignIn,

@@ -19,13 +19,14 @@ import {
   Crown,
   ShieldCheck,
   FileEdit,
+  LayoutDashboard,
   type LucideIcon,
 } from "lucide-react";
 import brandLogo from "../../assets/logo.png";
 import type { SideNavProps } from "../../types";
 
 interface NavItemDef {
-  id: "home" | "mock" | "tips" | "notes" | "my-questions";
+  id: "dashboard" | "home" | "mock" | "tips" | "notes" | "my-questions";
   label: string;
   shortLabel: string;
   railLabel?: string;
@@ -251,7 +252,8 @@ function RailNavList({
 export default function SideNav({
   variant = "rail",
   open = false,
-  active = "home",
+  active = "dashboard",
+  onDashboard,
   onHome,
   onLanding,
   onMockExam,
@@ -432,6 +434,7 @@ export default function SideNav({
   }, [profileMenuOpen]);
 
   const handlers: Record<string, (() => void) | undefined> = {
+    dashboard: onDashboard,
     home: onHome,
     mock: onMockExam,
     tips: onTips,
@@ -440,6 +443,14 @@ export default function SideNav({
   };
 
   const navItems: NavItemDef[] = [
+    {
+      id: "dashboard",
+      label: "Dashboard",
+      shortLabel: "Home",
+      railLabel: "Home",
+      title: "Study Dashboard (Goals, Mastery & Mocks)",
+      icon: LayoutDashboard,
+    },
     {
       id: "home",
       label: "Question Bank",
@@ -489,10 +500,10 @@ export default function SideNav({
     <div className="qb-nav-brand-header">
       <div
         className="qb-nav-brand-lockup"
-        onClick={handleNavigate(onLanding || onHome)}
+        onClick={handleNavigate(onDashboard || onHome || onLanding)}
         role="button"
         tabIndex={0}
-        title="CSE QBANK Reviewer"
+        title="CSE QBANK Dashboard"
       >
         <img src={brandLogo} alt="QBANK logo" className="qb-nav-brand-logo" />
         <div className="qb-nav-brand-titles">

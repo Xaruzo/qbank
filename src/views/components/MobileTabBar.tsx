@@ -61,12 +61,20 @@ export default function MobileTabBar({ items, activeId }: MobileTabBarProps) {
     };
   }, [activeId]);
 
+  const centerIndex =
+    items.length >= 5 && items.length % 2 === 1 ? Math.floor(items.length / 2) : -1;
+  const isCenterActive = centerIndex >= 0 && items[centerIndex]?.id === activeId;
+
   return (
     <nav className="qb-mobile-tabbar" aria-label="Primary Bottom Navigation">
-      <div ref={innerRef} className="qb-mobile-tabbar-inner">
+      <div
+        ref={innerRef}
+        className="qb-mobile-tabbar-inner"
+        style={{ gridTemplateColumns: `repeat(${Math.max(1, items.length)}, minmax(0, 1fr))` }}
+      >
         {glider.ready && (
           <div
-            className="qb-mobile-nav-glider"
+            className={`qb-mobile-nav-glider${isCenterActive ? " is-center-active" : ""}`}
             style={{
               transform: `translateX(${glider.left}px)`,
               width: `${glider.width}px`,
@@ -78,9 +86,10 @@ export default function MobileTabBar({ items, activeId }: MobileTabBarProps) {
           </div>
         )}
 
-        {items.map((item) => {
+        {items.map((item, idx) => {
           const Icon = item.icon;
           const isActive = activeId === item.id;
+          const isCenter = idx === centerIndex;
           return (
             <button
               key={item.id}
@@ -88,7 +97,7 @@ export default function MobileTabBar({ items, activeId }: MobileTabBarProps) {
                 tabRefs.current[item.id] = el;
               }}
               type="button"
-              className={`qb-mobile-tab${isActive ? " on" : ""}`}
+              className={`qb-mobile-tab${isActive ? " on" : ""}${isCenter ? " is-center" : ""}`}
               onClick={item.onClick}
               aria-current={isActive ? "page" : undefined}
               aria-label={item.badge ? `${item.label} (${item.badge} new)` : item.label}
@@ -96,7 +105,7 @@ export default function MobileTabBar({ items, activeId }: MobileTabBarProps) {
               <span className="qb-mobile-tab-indicator" aria-hidden="true" />
               <span className="qb-mobile-tab-surface">
                 <span className="qb-mobile-tab-icon-box" aria-hidden="true">
-                  <Icon size={20} strokeWidth={isActive ? 2.4 : 1.9} />
+                  <Icon size={isCenter ? 21 : 19} strokeWidth={isActive ? 2.25 : 2} />
                   {item.isLive && (
                     <span
                       className="qb-mobile-tab-live-dot"

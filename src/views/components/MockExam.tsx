@@ -20,6 +20,8 @@ import {
   Trophy,
   Zap,
   Clock,
+  LayoutGrid,
+  LayoutList,
 } from "lucide-react";
 import { formatAttemptDate, formatExamDuration, getAttemptModeLabel } from "../../utils/mockExamAnalytics";
 import { EXAM_PRESETS, TOPICS } from "../../constants/appConstants";
@@ -153,6 +155,23 @@ export default function MockExam({
   const [quickScope, setQuickScope] = useState<"all" | "unseen" | "missed">("all");
   const [quickTopic, setQuickTopic] = useState<string>("all");
   const [quickTimed, setQuickTimed] = useState<boolean>(true);
+  const [historyViewMode, setHistoryViewMode] = useState<"table" | "grid">(() => {
+    try {
+      const saved = window.localStorage?.getItem("qbank-mock-history-view");
+      return saved === "grid" ? "grid" : "table";
+    } catch {
+      return "table";
+    }
+  });
+
+  const handleHistoryViewChange = (mode: "table" | "grid") => {
+    setHistoryViewMode(mode);
+    try {
+      window.localStorage?.setItem("qbank-mock-history-view", mode);
+    } catch {
+      // Ignore storage errors
+    }
+  };
 
   const sortedHistory = useMemo(
     () => [...history].sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()),
@@ -707,8 +726,8 @@ export default function MockExam({
               onClick={handleStartQuick}
               disabled={quickMatchingCount === 0}
             >
-              <Zap size={15} />
-              <span>
+              <Zap size={15} className="shrink-0" />
+              <span className="tabular-nums">
                 {quickMatchingCount === 0
                   ? "No Matching Items"
                   : `Start ${Math.min(quickCount, quickMatchingCount)}-Item Quick Practice`}
@@ -719,70 +738,245 @@ export default function MockExam({
       )}
 
       {/* History of Saved Attempts */}
-      <div className="qb-mock-history">
-        <div className="qb-det-card qb-mock-history-list">
-          <div className="qb-mock-section-head">
+      <section className="qb-mock-history" aria-label="Saved Attempts History">
+        <div className="rounded-2xl border border-qb-border bg-qb-surface p-4 sm:p-5 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <div className="qb-mock-section-kicker">Saved Attempts</div>
-              <div className="qb-mock-section-title">History & Presets</div>
-              <div className="qb-mock-section-copy">Open past sessions to inspect score changes, unanswered items, and pacing over time.</div>
+              <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-qb-accent">
+                Saved Attempts
+              </div>
+              <h2 className="mt-0.5 text-lg sm:text-xl font-bold text-qb-heading">
+                History &amp; Presets
+              </h2>
+              <p className="mt-0.5 text-xs sm:text-sm text-qb-muted">
+                Open past sessions to inspect score changes, unanswered items, and pacing over time.
+              </p>
             </div>
-            <span className="qb-exam-progress">{isHistoryLoading ? "Loading..." : `${sortedHistory.length} total`}</span>
+
+            <div className="flex items-center gap-2.5 self-start sm:self-center shrink-0">
+              <span className="text-xs font-semibold text-qb-muted tabular-nums">
+                {isHistoryLoading ? "Loading..." : `${sortedHistory.length} total`}
+              </span>
+              <div
+                role="group"
+                aria-label="History view mode"
+                className="inline-flex items-center gap-1 rounded-xl border border-qb-border bg-qb-input p-1"
+              >
+                <button
+                  type="button"
+                  onClick={() => handleHistoryViewChange("table")}
+                  aria-pressed={historyViewMode === "table"}
+                  title="Table view"
+                  aria-label="Table view"
+                  className={`inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors cursor-pointer ${
+                    historyViewMode === "table"
+                      ? "bg-amber-500 text-[#070c18]"
+                      : "text-qb-muted hover:text-qb-heading hover:bg-qb-surface-hover"
+                  }`}
+                >
+                  <LayoutList size={15} aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleHistoryViewChange("grid")}
+                  aria-pressed={historyViewMode === "grid"}
+                  title="Grid view"
+                  aria-label="Grid view"
+                  className={`inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors cursor-pointer ${
+                    historyViewMode === "grid"
+                      ? "bg-amber-500 text-[#070c18]"
+                      : "text-qb-muted hover:text-qb-heading hover:bg-qb-surface-hover"
+                  }`}
+                >
+                  <LayoutGrid size={15} aria-hidden="true" />
+                </button>
+              </div>
+            </div>
           </div>
 
           {!isAuthenticated && authAvailable ? (
-            <div className="qb-empty" style={{ padding: "48px 16px" }}>
-              <div className="qb-empty-text">Sign in to view saved history</div>
-              <div className="qb-empty-s" style={{ marginTop: 8 }}>
+            <div className="rounded-xl border border-qb-border bg-qb-input py-12 px-4 text-center">
+              <div className="text-base font-bold text-qb-heading">Sign in to view saved history</div>
+              <p className="mt-1.5 text-xs sm:text-sm text-qb-muted max-w-md mx-auto">
                 Your mock exam attempts, trends, and subject breakdown are saved per account.
-              </div>
-              <button type="button" className="qb-mock-secondary-btn" style={{ marginTop: 16 }} onClick={onRequireAuth}>
+              </p>
+              <button
+                type="button"
+                className="qb-mock-secondary-btn mt-4 inline-flex items-center gap-1.5"
+                onClick={onRequireAuth}
+              >
                 <ArrowUpRight size={16} />
-                Sign In
+                <span>Sign In</span>
               </button>
             </div>
           ) : isHistoryLoading ? (
             <LoadingSpinner centered text="Loading mock exam history..." />
           ) : !sortedHistory.length ? (
-            <div className="qb-empty" style={{ padding: "48px 16px" }}>
-              <div className="qb-empty-text">No mock exam history yet</div>
-              <div className="qb-empty-s" style={{ marginTop: 8 }}>
+            <div className="rounded-xl border border-qb-border bg-qb-input py-12 px-4 text-center">
+              <div className="text-base font-bold text-qb-heading">No mock exam history yet</div>
+              <p className="mt-1.5 text-xs sm:text-sm text-qb-muted max-w-lg mx-auto">
                 Finish a Professional (170-item) or Subprofessional (165-item) mock exam, and your score, subject breakdown, and reviewed questions will appear here.
-              </div>
+              </p>
+            </div>
+          ) : historyViewMode === "table" ? (
+            <div className="overflow-x-auto rounded-xl border border-qb-border bg-qb-input">
+              <table className="w-full min-w-[680px] border-collapse text-left">
+                <thead>
+                  <tr className="border-b border-qb-border text-[10.5px] font-bold uppercase tracking-[0.08em] text-qb-muted">
+                    <th className="py-3 pl-4 pr-3">Attempt</th>
+                    <th className="py-3 px-3">Mode</th>
+                    <th className="py-3 px-3">Score</th>
+                    <th className="py-3 px-3">Breakdown</th>
+                    <th className="py-3 px-3">Duration</th>
+                    <th className="py-3 pl-3 pr-4 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-qb-border">
+                  {sortedHistory.map((attempt, index) => {
+                    const attemptNum = sortedHistory.length - index;
+                    const passed = (attempt.scorePercent || 0) >= 80;
+                    const midScore = !passed && (attempt.scorePercent || 0) >= 50;
+                    const scoreTone = passed
+                      ? "text-emerald-400 light:text-emerald-700"
+                      : midScore
+                        ? "text-amber-400 light:text-amber-700"
+                        : "text-rose-400 light:text-rose-700";
+                    const modeTone =
+                      attempt.mode === "drill"
+                        ? "text-rose-400 light:text-rose-700"
+                        : attempt.mode === "quick"
+                          ? "text-sky-400 light:text-sky-700"
+                          : attempt.mode === "subprofessional"
+                            ? "text-violet-400 light:text-violet-700"
+                            : "text-emerald-400 light:text-emerald-700";
+                    const totalItems = Number(attempt.totalCount) || 0;
+
+                    return (
+                      <tr
+                        key={attempt.id}
+                        onClick={() => onOpenAttempt(attempt.id)}
+                        className="group transition-colors hover:bg-qb-surface-hover cursor-pointer"
+                      >
+                        <td className="py-3 pl-4 pr-3">
+                          <div className="flex items-center gap-2.5">
+                            <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-qb-border bg-qb-surface text-xs font-bold text-qb-heading tabular-nums">
+                              #{attemptNum}
+                            </span>
+                            <div className="min-w-0">
+                              <div className="text-sm font-semibold text-qb-heading truncate">
+                                {attempt.title?.trim() || `Attempt ${attemptNum}`}
+                              </div>
+                              <div className="text-xs text-qb-muted tabular-nums">
+                                {formatAttemptDate(attempt.completedAt)}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 whitespace-nowrap">
+                          <span className={`text-xs font-bold ${modeTone}`}>
+                            {getAttemptModeLabel(attempt.mode)}
+                          </span>
+                          <div className="text-[11px] text-qb-muted tabular-nums">
+                            {totalItems} {totalItems === 1 ? "item" : "items"}
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 whitespace-nowrap tabular-nums">
+                          <div className={`text-sm font-extrabold ${scoreTone}`}>
+                            {attempt.scorePercent}%
+                          </div>
+                          <div className="text-[11px] text-qb-muted">
+                            {passed ? "Passing" : "Below 80%"}
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 whitespace-nowrap text-xs text-qb-mid tabular-nums">
+                          <span>{attempt.correctCount} correct</span>
+                          <span className="text-qb-muted" aria-hidden="true"> · </span>
+                          <span>{attempt.unansweredCount} blank</span>
+                        </td>
+                        <td className="py-3 px-3 whitespace-nowrap text-xs font-medium text-qb-mid tabular-nums">
+                          {formatExamDuration(attempt.timeSpentMs)}
+                        </td>
+                        <td className="py-3 pl-3 pr-4 text-right whitespace-nowrap">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onOpenAttempt(attempt.id);
+                            }}
+                            className="inline-flex items-center gap-1 rounded-lg border border-qb-border bg-qb-surface px-2.5 py-1.5 text-xs font-semibold text-qb-heading transition-colors group-hover:border-amber-500/45 group-hover:text-qb-accent cursor-pointer"
+                          >
+                            <span>Open</span>
+                            <ArrowUpRight size={13} aria-hidden="true" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           ) : (
-            <div className="qb-mock-attempts">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5 max-h-[760px] overflow-y-auto pr-0.5">
               {sortedHistory.map((attempt, index) => {
-                const isSubPro = attempt.mode === "subprofessional";
-                const isDrill = attempt.mode === "drill";
-                const isQuick = attempt.mode === "quick";
-                const tierClass = isDrill ? "drill" : isQuick ? "quick" : isSubPro ? "subpro" : "pro";
+                const attemptNum = sortedHistory.length - index;
+                const passed = (attempt.scorePercent || 0) >= 80;
+                const midScore = !passed && (attempt.scorePercent || 0) >= 50;
+                const scoreTone = passed
+                  ? "text-emerald-400 light:text-emerald-700"
+                  : midScore
+                    ? "text-amber-400 light:text-amber-700"
+                    : "text-rose-400 light:text-rose-700";
+                const modeTone =
+                  attempt.mode === "drill"
+                    ? "text-rose-400 light:text-rose-700"
+                    : attempt.mode === "quick"
+                      ? "text-sky-400 light:text-sky-700"
+                      : attempt.mode === "subprofessional"
+                        ? "text-violet-400 light:text-violet-700"
+                        : "text-emerald-400 light:text-emerald-700";
+                const totalItems = Number(attempt.totalCount) || 0;
+
                 return (
                   <button
                     key={attempt.id}
                     type="button"
-                    className="qb-mock-attempt-card"
                     onClick={() => onOpenAttempt(attempt.id)}
+                    className="group rounded-2xl border border-qb-border bg-qb-input p-4 flex flex-col justify-between gap-3 text-left transition-colors hover:border-amber-500/45 hover:bg-qb-surface-hover cursor-pointer"
                   >
-                    <div className="qb-mock-attempt-top">
-                      <div className="qb-mock-attempt-top-left">
-                        <span className="qb-mock-attempt-rank tabular-nums">Attempt {sortedHistory.length - index}</span>
-                        <span className={`qb-mock-attempt-tier-pill ${tierClass}`}>
-                          {getAttemptModeLabel(attempt.mode)}
+                    <div className="space-y-2 w-full">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-qb-muted tabular-nums">
+                            Attempt {attemptNum}
+                          </span>
+                          <span className="text-qb-muted" aria-hidden="true">·</span>
+                          <span className={`text-xs font-bold truncate ${modeTone}`}>
+                            {getAttemptModeLabel(attempt.mode)}
+                          </span>
+                        </div>
+                        <span className={`text-2xl font-extrabold leading-none tabular-nums shrink-0 ${scoreTone}`}>
+                          {attempt.scorePercent}%
                         </span>
                       </div>
-                      <span className="qb-mock-attempt-score tabular-nums">{attempt.scorePercent}%</span>
+
+                      <div className="text-sm font-semibold text-qb-heading">
+                        {formatAttemptDate(attempt.completedAt)}
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-qb-muted tabular-nums">
+                        <span>{attempt.correctCount} correct</span>
+                        <span aria-hidden="true">·</span>
+                        <span>{attempt.unansweredCount} blank</span>
+                        <span aria-hidden="true">·</span>
+                        <span>{formatExamDuration(attempt.timeSpentMs)}</span>
+                        <span aria-hidden="true">·</span>
+                        <span>{totalItems} {totalItems === 1 ? "item" : "items"}</span>
+                      </div>
                     </div>
-                    <div className="qb-mock-attempt-date">{formatAttemptDate(attempt.completedAt)}</div>
-                    <div className="qb-mock-attempt-meta">
-                      <span>{attempt.correctCount} correct</span>
-                      <span>{attempt.unansweredCount} blank</span>
-                      <span>{formatExamDuration(attempt.timeSpentMs)}</span>
-                      <span>{attempt.totalCount} items</span>
-                    </div>
-                    <div className="qb-mock-attempt-link">
+
+                    <div className="w-full pt-2.5 border-t border-qb-border flex items-center justify-between text-xs font-bold text-qb-accent">
                       <span>Open attempt details</span>
-                      <ArrowUpRight size={15} />
+                      <ArrowUpRight size={14} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden="true" />
                     </div>
                   </button>
                 );
@@ -790,7 +984,7 @@ export default function MockExam({
             </div>
           )}
         </div>
-      </div>
+      </section>
     </div>
   );
 }

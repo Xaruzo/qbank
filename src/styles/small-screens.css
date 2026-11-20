@@ -285,14 +285,18 @@
   /* Tab bar */
   .qb-mobile-tab {
     font-size: 9.5px !important;
-    min-height: 48px !important;
-    padding: 0 2px 4px !important;
-  
+    min-height: 54px !important;
+    padding: 0 1px 5px !important;
   }
-  .qb-mobile-tab svg {
-    width: 17px !important;
-    height: 17px !important;
-  
+  .qb-mobile-tab:not(.is-center) svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+  .qb-mobile-tab.is-center .qb-mobile-tab-icon-box {
+    width: 42px;
+    height: 42px;
+    margin-top: -19px;
+    border-radius: 13px;
   }
   /* Mastery buttons */
   .qb-mastery-btn {
