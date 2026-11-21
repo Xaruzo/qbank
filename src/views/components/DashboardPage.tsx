@@ -1,6 +1,6 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useMeterReady } from "../../controllers/useMeterReady";
 import {
-  LayoutDashboard,
   Flame,
   Target,
   Calendar,
@@ -18,6 +18,11 @@ import {
   ChevronRight,
   Zap,
   SlidersHorizontal,
+  BarChart3,
+  Briefcase,
+  GraduationCap,
+  Trophy,
+  History,
 } from "lucide-react";
 import CountUp from "./CountUp";
 import {
@@ -56,7 +61,10 @@ interface DashboardPageProps {
     topic: string;
     timed: boolean;
   }) => void;
-  onOpenQuestionBank: (opts?: { topic?: TopicId | "all"; mastery?: "all" | "unseen" | "missed" | "mastered" }) => void;
+  onOpenQuestionBank: (opts?: {
+    topic?: TopicId | "all";
+    mastery?: "all" | "unseen" | "missed" | "mastered";
+  }) => void;
   onGoMockExam: () => void;
   onOpenSettings: (tab?: string) => void;
   onRequireAuth: () => void;
@@ -70,30 +78,25 @@ const SUBJECT_ICONS: Record<string, typeof Calculator> = {
   clerical: ClipboardList,
 };
 
-const SUBJECT_ACCENT_STYLES: Record<string, { iconBox: string; bar: string }> = {
+const SUBJECT_ACCENT_STYLES: Record<string, { icon: string; bar: string }> = {
   numerical: {
-    iconBox:
-      "border-amber-500/30 bg-amber-500/12 text-amber-400 light:border-amber-600/25 light:bg-amber-50 light:text-amber-700",
+    icon: "bg-amber-500/10 text-amber-400 light:bg-amber-50 light:text-amber-700",
     bar: "bg-amber-400 light:bg-amber-600",
   },
   verbal: {
-    iconBox:
-      "border-sky-400/30 bg-sky-400/12 text-sky-400 light:border-sky-600/25 light:bg-sky-50 light:text-sky-700",
+    icon: "bg-sky-400/10 text-sky-400 light:bg-sky-50 light:text-sky-700",
     bar: "bg-sky-400 light:bg-sky-600",
   },
   general: {
-    iconBox:
-      "border-violet-400/30 bg-violet-400/12 text-violet-400 light:border-violet-600/25 light:bg-violet-50 light:text-violet-700",
+    icon: "bg-violet-400/10 text-violet-400 light:bg-violet-50 light:text-violet-700",
     bar: "bg-violet-400 light:bg-violet-600",
   },
   analytical: {
-    iconBox:
-      "border-emerald-400/30 bg-emerald-400/12 text-emerald-400 light:border-emerald-600/25 light:bg-emerald-50 light:text-emerald-700",
+    icon: "bg-emerald-400/10 text-emerald-400 light:bg-emerald-50 light:text-emerald-700",
     bar: "bg-emerald-400 light:bg-emerald-600",
   },
   clerical: {
-    iconBox:
-      "border-rose-400/30 bg-rose-400/12 text-rose-400 light:border-rose-600/25 light:bg-rose-50 light:text-rose-700",
+    icon: "bg-rose-400/10 text-rose-400 light:bg-rose-50 light:text-rose-700",
     bar: "bg-rose-400 light:bg-rose-600",
   },
 };
@@ -120,11 +123,25 @@ const formatRemainingClock = (activeExam: any) => {
 };
 
 const formatTargetDate = (iso?: string) => {
-  if (!iso) return "Not scheduled";
+  if (!iso) return "No date set";
   const match = iso.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!match) return iso;
   const d = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+};
+
+const formatActivityDateLabel = (dateKey: string, isToday: boolean) => {
+  const match = dateKey.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return isToday ? "Today" : dateKey;
+  const d = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  const shortDate = d.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+  return isToday
+    ? `Today · ${d.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+    : shortDate;
 };
 
 const formatAttemptMode = (attempt: MockExamAttempt) => {
@@ -157,6 +174,15 @@ export default function DashboardPage({
   onOpenSettings,
   onRequireAuth,
 }: DashboardPageProps) {
+  const [hoveredDayKey, setHoveredDayKey] = useState<string | null>(null);
+  const [pinnedDayKey, setPinnedDayKey] = useState<string | null>(null);
+  const [tooltipAnchor, setTooltipAnchor] = useState<{ dayKey: string; idx: number }>({
+    dayKey: "",
+    idx: 6,
+  });
+  const activityCardRef = useRef<HTMLElement | null>(null);
+  const metersReady = useMeterReady(true);
+
   const safeGoal = Math.max(1, Number(dailyStudyGoal) || 25);
   const masterySummary = useMemo(
     () => getMasterySummary(questions, masteryMap),
@@ -164,7 +190,6 @@ export default function DashboardPage({
   );
   const streakSummary = useMemo(
     () => getStudyStreakSummary(userId, safeGoal),
-    // todayAnsweredCount ensures recomputation immediately after answering an item
     [userId, safeGoal, todayAnsweredCount]
   );
   const { subjects, weakAreas } = useMemo(
@@ -190,6 +215,56 @@ export default function DashboardPage({
     () => Math.max(safeGoal, ...streakSummary.last7Days.map((d) => d.count), 1),
     [safeGoal, streakSummary.last7Days]
   );
+  const CHART_PLOT_MAX_PCT = 82;
+  const goalLinePct = Math.round((safeGoal / maxDayCount) * CHART_PLOT_MAX_PCT);
+  const weeklyAvgRaw = streakSummary.weeklyTotal / 7;
+  const weeklyAvgLabel = Number.isInteger(weeklyAvgRaw)
+    ? String(weeklyAvgRaw)
+    : weeklyAvgRaw.toFixed(1);
+  const daysMetCount = useMemo(
+    () => streakSummary.last7Days.filter((d) => d.goalMet).length,
+    [streakSummary.last7Days]
+  );
+
+  useEffect(() => {
+    if (!pinnedDayKey) return;
+    const handlePointerDown = (event: PointerEvent) => {
+      if (
+        activityCardRef.current &&
+        event.target instanceof Node &&
+        !activityCardRef.current.contains(event.target)
+      ) {
+        setPinnedDayKey(null);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setPinnedDayKey(null);
+        setHoveredDayKey(null);
+      }
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [pinnedDayKey]);
+
+  const activeDayKey = hoveredDayKey ?? pinnedDayKey;
+  const activeDayIdx = activeDayKey
+    ? streakSummary.last7Days.findIndex((d) => d.dateKey === activeDayKey)
+    : -1;
+  const isTooltipOpen = activeDayIdx >= 0;
+  const safeDisplayIdx =
+    activeDayIdx >= 0
+      ? activeDayIdx
+      : Math.min(Math.max(tooltipAnchor.idx, 0), Math.max(streakSummary.last7Days.length - 1, 0));
+  const tooltipDay = streakSummary.last7Days[safeDisplayIdx] || null;
+  const totalChartDays = Math.max(streakSummary.last7Days.length, 1);
+  const tooltipCenterPct = ((safeDisplayIdx + 0.5) / totalChartDays) * 100;
+  const tooltipEdgeAnchorPct =
+    totalChartDays > 1 ? (safeDisplayIdx / (totalChartDays - 1)) * 100 : 50;
 
   const hasResumableMock = Boolean(
     activeExam &&
@@ -242,120 +317,120 @@ export default function DashboardPage({
   };
 
   return (
-    <div className="fu space-y-5">
-      {/* Structured Workspace Header */}
-      <header className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-5 border-b border-qb-border">
-        <div className="flex items-start gap-3.5 min-w-0">
-          <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-amber-500/35 bg-amber-500/12 text-amber-400 light:border-amber-600/30 light:bg-amber-500/10 light:text-amber-700 mt-0.5">
-            <LayoutDashboard size={20} aria-hidden="true" />
-          </span>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.08em] text-qb-accent">
-              <span>Study Dashboard</span>
-              <span className="text-qb-muted" aria-hidden="true">·</span>
-              <span className="text-qb-muted">{trackLabel}</span>
-            </div>
-            <h1 className="mt-1 text-2xl sm:text-[26px] font-extrabold tracking-tight text-qb-heading text-balance leading-tight">
-              {firstName ? `Welcome back, ${firstName}` : "CSE Readiness Overview"}
-            </h1>
-            <p className="mt-1 text-sm text-qb-mid leading-relaxed tabular-nums">
-              {todayCount} of {safeGoal} daily items answered
-              <span aria-hidden="true"> · </span>
-              {streakSummary.currentStreak}d active streak
-              <span aria-hidden="true"> · </span>
-              {daysUntilExam !== null && daysUntilExam >= 0
-                ? daysUntilExam === 0
-                  ? "Exam Day today"
-                  : `${daysUntilExam}d until exam`
-                : "80% CSC passing target"}
-            </p>
+    <div className="fu space-y-4 sm:space-y-5 pb-3 sm:pb-0">
+      {/* Clean Executive Header */}
+      <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-3.5 pb-4 border-b border-qb-border">
+        <div className="min-w-0 space-y-1">
+          <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-qb-muted">
+            <span className="text-qb-accent">Study Dashboard</span>
+            <span aria-hidden="true">/</span>
+            <span>{trackLabel}</span>
           </div>
+
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-qb-heading text-balance leading-snug">
+            {firstName ? `Welcome back, ${firstName}` : "CSE Readiness Overview"}
+          </h1>
+
+          <p className="text-xs sm:text-sm text-qb-mid tabular-nums">
+            {todayCount}/{safeGoal} daily items
+            <span aria-hidden="true"> · </span>
+            {streakSummary.currentStreak}d streak
+            <span aria-hidden="true"> · </span>
+            {daysUntilExam !== null && daysUntilExam >= 0
+              ? daysUntilExam === 0
+                ? "Exam day today"
+                : `${daysUntilExam}d until exam`
+              : "80% passing target"}
+          </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 shrink-0">
           <button
             type="button"
             onClick={handlePrimaryAction}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-xs sm:text-sm font-bold text-[#070c18] transition-colors hover:bg-amber-400 cursor-pointer whitespace-nowrap"
+            className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-xl bg-amber-500 px-3.5 py-2 text-xs sm:text-sm font-bold text-[#070c18] transition-colors hover:bg-amber-400 active:scale-[0.98] cursor-pointer whitespace-nowrap"
           >
             {hasResumableMock ? (
               <>
-                <PlayCircle size={16} aria-hidden="true" />
-                <span>Resume Active Mock</span>
+                <PlayCircle size={15} aria-hidden="true" />
+                <span>Resume Mock</span>
               </>
             ) : masterySummary.missed > 0 ? (
               <>
-                <Zap size={16} aria-hidden="true" />
+                <Zap size={15} aria-hidden="true" />
                 <span className="tabular-nums">Drill {masterySummary.missed} Missed</span>
               </>
             ) : (
               <>
-                <PlayCircle size={16} aria-hidden="true" />
-                <span>Start Quick Practice</span>
+                <PlayCircle size={15} aria-hidden="true" />
+                <span>Quick Practice</span>
               </>
             )}
           </button>
           <button
             type="button"
             onClick={() => onOpenQuestionBank({ topic: "all", mastery: "all" })}
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-qb-border bg-qb-surface px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-qb-heading transition-colors hover:border-qb-border-hover hover:bg-qb-surface-hover cursor-pointer whitespace-nowrap"
+            className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-xl border border-qb-border bg-qb-surface px-3.5 py-2 text-xs sm:text-sm font-semibold text-qb-heading transition-colors hover:border-qb-border-hover hover:bg-qb-surface-hover active:scale-[0.98] cursor-pointer whitespace-nowrap"
           >
-            <Layers size={15} className="text-qb-accent" aria-hidden="true" />
-            <span>Open Question Bank</span>
+            <Layers size={15} className="text-qb-muted shrink-0" aria-hidden="true" />
+            <span>Question Bank</span>
           </button>
         </div>
       </header>
 
-      {/* 4-Column Bento Telemetry Strip */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3.5" aria-label="Study Metrics">
-        {/* Card 1: Daily Study Goal */}
-        <div className="rounded-2xl border border-qb-border bg-qb-surface p-4 flex flex-col justify-between gap-3">
+      {/* 4-Metric Telemetry Strip: 2x2 compact grid on mobile, 4-across on desktop */}
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5" aria-label="Study Metrics">
+        {/* Daily Goal */}
+        <div className="rounded-2xl border border-qb-border bg-qb-surface p-3 sm:p-4 flex flex-col justify-between gap-2.5 transition-colors hover:border-qb-border-hover">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-qb-muted">
-              Daily Study Goal
-            </span>
-            <span
-              className={`inline-flex h-7 w-7 items-center justify-center rounded-lg border ${
+            <span className="text-xs font-medium text-qb-muted">Daily Goal</span>
+            <Target
+              size={15}
+              className={
                 goalMet
-                  ? "border-emerald-400/35 bg-emerald-400/12 text-emerald-400 light:border-emerald-600/30 light:bg-emerald-50 light:text-emerald-700"
-                  : "border-amber-500/30 bg-amber-500/12 text-amber-400 light:border-amber-600/25 light:bg-amber-50 light:text-amber-700"
-              }`}
-            >
-              <Target size={14} aria-hidden="true" />
-            </span>
+                  ? "shrink-0 text-emerald-400 light:text-emerald-700"
+                  : "shrink-0 text-qb-muted"
+              }
+              aria-hidden="true"
+            />
           </div>
-          <div className="space-y-2">
-            <div className="flex items-baseline justify-between gap-2">
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-2xl sm:text-[28px] font-extrabold leading-none text-qb-heading tabular-nums">
-                  <CountUp end={todayCount} duration={700} />
+          <div className="space-y-1.5">
+            <div className="flex items-baseline justify-between gap-1.5">
+              <div className="flex items-baseline gap-1 min-w-0">
+                <span className="text-xl sm:text-2xl font-bold leading-none text-qb-heading tabular-nums">
+                  <CountUp end={todayCount} duration={650} />
                 </span>
-                <span className="text-xs font-semibold text-qb-muted tabular-nums">
-                  / {safeGoal} items
+                <span className="text-xs font-medium text-qb-muted tabular-nums">
+                  /{safeGoal}
                 </span>
               </div>
               <span
-                className={`text-xs font-bold tabular-nums ${
+                className={`text-xs font-semibold tabular-nums ${
                   goalMet ? "text-emerald-400 light:text-emerald-700" : "text-qb-accent"
                 }`}
               >
-                {dailyPct}%
+                <CountUp end={dailyPct} duration={700} suffix="%" />
               </span>
             </div>
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800/70 light:bg-slate-200" aria-hidden="true">
+            <div
+              className="relative h-1.5 w-full overflow-hidden rounded-full bg-slate-800/70 light:bg-slate-200"
+              aria-hidden="true"
+            >
               <div
-                className={`h-full rounded-full transition-all duration-300 ${
+                className={`h-full rounded-full transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
                   goalMet ? "bg-emerald-400 light:bg-emerald-600" : "bg-amber-400 light:bg-amber-600"
                 }`}
-                style={{ width: `${dailyPct}%` }}
+                style={{ width: `${metersReady ? dailyPct : 0}%` }}
               />
             </div>
-            <div className="flex items-center justify-between gap-2 text-xs text-qb-muted">
-              <span>{goalMet ? "Daily target met" : `${dailyRemaining} left today`}</span>
+            <div className="flex items-center justify-between gap-1 text-[11px] sm:text-xs text-qb-muted">
+              <span className="tabular-nums">
+                {goalMet ? "Target met" : `${dailyRemaining} left`}
+              </span>
               <button
                 type="button"
                 onClick={() => onOpenSettings("exam")}
-                className="font-semibold text-qb-accent hover:underline cursor-pointer"
+                className="font-semibold text-qb-accent hover:underline cursor-pointer shrink-0"
               >
                 Adjust
               </button>
@@ -363,45 +438,35 @@ export default function DashboardPage({
           </div>
         </div>
 
-        {/* Card 2: Study Streak */}
-        <div className="rounded-2xl border border-qb-border bg-qb-surface p-4 flex flex-col justify-between gap-3">
+        {/* Study Streak */}
+        <div className="rounded-2xl border border-qb-border bg-qb-surface p-3 sm:p-4 flex flex-col justify-between gap-2.5 transition-colors hover:border-qb-border-hover">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-qb-muted">
-              Study Streak
-            </span>
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-amber-500/30 bg-amber-500/12 text-amber-400 light:border-amber-600/25 light:bg-amber-50 light:text-amber-700">
-              <Flame size={14} aria-hidden="true" />
-            </span>
+            <span className="text-xs font-medium text-qb-muted">Study Streak</span>
+            <Flame size={15} className="shrink-0 text-amber-400 light:text-amber-600" aria-hidden="true" />
           </div>
-          <div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-2xl sm:text-[28px] font-extrabold leading-none text-qb-heading tabular-nums">
-                <CountUp end={streakSummary.currentStreak} duration={700} />
+          <div className="space-y-1.5">
+            <div className="flex items-baseline gap-1">
+              <span className="text-xl sm:text-2xl font-bold leading-none text-qb-heading tabular-nums">
+                <CountUp end={streakSummary.currentStreak} duration={650} />
               </span>
-              <span className="text-xs font-semibold text-qb-muted">
+              <span className="text-xs font-medium text-qb-muted">
                 {streakSummary.currentStreak === 1 ? "day" : "days"}
               </span>
             </div>
-            <div className="mt-2 text-xs font-medium text-qb-muted tabular-nums">
-              Best streak: {streakSummary.bestStreak}d
-              <span aria-hidden="true"> · </span>
-              {streakSummary.totalDaysActive} active {streakSummary.totalDaysActive === 1 ? "day" : "days"}
+            <div className="text-[11px] sm:text-xs text-qb-muted tabular-nums leading-snug">
+              Best {streakSummary.bestStreak}d · {streakSummary.totalDaysActive}d active
             </div>
           </div>
         </div>
 
-        {/* Card 3: Exam Countdown */}
-        <div className="rounded-2xl border border-qb-border bg-qb-surface p-4 flex flex-col justify-between gap-3">
+        {/* Exam Countdown */}
+        <div className="rounded-2xl border border-qb-border bg-qb-surface p-3 sm:p-4 flex flex-col justify-between gap-2.5 transition-colors hover:border-qb-border-hover">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-qb-muted">
-              Exam Countdown
-            </span>
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-sky-400/30 bg-sky-400/12 text-sky-400 light:border-sky-600/25 light:bg-sky-50 light:text-sky-700">
-              <Calendar size={14} aria-hidden="true" />
-            </span>
+            <span className="text-xs font-medium text-qb-muted">Exam Date</span>
+            <Calendar size={15} className="shrink-0 text-qb-muted" aria-hidden="true" />
           </div>
-          <div>
-            <div className="text-2xl sm:text-[28px] font-extrabold leading-none text-qb-heading tabular-nums">
+          <div className="space-y-1.5">
+            <div className="text-xl sm:text-2xl font-bold leading-none text-qb-heading tabular-nums">
               {daysUntilExam !== null
                 ? daysUntilExam === 0
                   ? "Today"
@@ -410,160 +475,211 @@ export default function DashboardPage({
                     : "Passed"
                 : "Unset"}
             </div>
-            <div className="mt-2 flex items-center justify-between gap-2 text-xs text-qb-muted">
-              <span className="truncate tabular-nums">{formatTargetDate(targetExamDate)}</span>
+            <div className="flex items-center justify-between gap-1 text-[11px] sm:text-xs text-qb-muted leading-snug">
+              <span className="tabular-nums">{formatTargetDate(targetExamDate)}</span>
               <button
                 type="button"
                 onClick={() => onOpenSettings("exam")}
                 className="font-semibold text-qb-accent hover:underline cursor-pointer shrink-0"
               >
-                Edit date
+                {targetExamDate ? "Edit" : "Set"}
               </button>
             </div>
           </div>
         </div>
 
-        {/* Card 4: Overall Bank Mastery */}
-        <div className="rounded-2xl border border-qb-border bg-qb-surface p-4 flex flex-col justify-between gap-3">
+        {/* Bank Mastery */}
+        <div className="rounded-2xl border border-qb-border bg-qb-surface p-3 sm:p-4 flex flex-col justify-between gap-2.5 transition-colors hover:border-qb-border-hover">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-bold uppercase tracking-[0.06em] text-qb-muted">
-              Bank Mastery
-            </span>
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-emerald-400/30 bg-emerald-400/12 text-emerald-400 light:border-emerald-600/25 light:bg-emerald-50 light:text-emerald-700">
-              <CheckCircle2 size={14} aria-hidden="true" />
-            </span>
+            <span className="text-xs font-medium text-qb-muted">Bank Mastery</span>
+            <CheckCircle2
+              size={15}
+              className="shrink-0 text-emerald-400 light:text-emerald-700"
+              aria-hidden="true"
+            />
           </div>
-          <div className="space-y-2">
-            <div className="flex items-baseline justify-between gap-2">
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-2xl sm:text-[28px] font-extrabold leading-none text-qb-heading tabular-nums">
-                  {bankMasteryPct}%
-                </span>
-                <span className="text-xs font-semibold text-qb-muted tabular-nums">
-                  ({masterySummary.mastered}/{questions.length})
-                </span>
-              </div>
+          <div className="space-y-1.5">
+            <div className="flex items-baseline justify-between gap-1">
+              <span className="text-xl sm:text-2xl font-bold leading-none text-qb-heading tabular-nums">
+                <CountUp end={bankMasteryPct} duration={700} suffix="%" />
+              </span>
+              <span className="text-[11px] sm:text-xs font-medium text-qb-muted tabular-nums">
+                {masterySummary.mastered}/{questions.length}
+              </span>
+            </div>
+            <div
+              className="relative h-1.5 w-full overflow-hidden rounded-full bg-slate-800/70 light:bg-slate-200"
+              aria-hidden="true"
+            >
+              <div
+                className="h-full rounded-full bg-emerald-400 light:bg-emerald-600 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                style={{
+                  width: `${metersReady ? bankMasteryPct : 0}%`,
+                  transitionDelay: metersReady ? "80ms" : "0ms",
+                }}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-1 text-[11px] sm:text-xs text-qb-muted tabular-nums">
+              <span>{masterySummary.unseen} unseen</span>
               {masterySummary.missed > 0 && (
                 <button
                   type="button"
                   onClick={() => onOpenQuestionBank({ topic: "all", mastery: "missed" })}
-                  className="text-xs font-semibold text-rose-400 light:text-rose-700 hover:underline cursor-pointer tabular-nums"
+                  className="font-semibold text-rose-400 light:text-rose-700 hover:underline cursor-pointer shrink-0"
                 >
                   {masterySummary.missed} missed
                 </button>
               )}
             </div>
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800/70 light:bg-slate-200" aria-hidden="true">
-              <div
-                className="h-full rounded-full bg-emerald-400 light:bg-emerald-600 transition-all duration-300"
-                style={{ width: `${bankMasteryPct}%` }}
-              />
-            </div>
-            <div className="text-xs text-qb-muted tabular-nums">
-              {masterySummary.attempted} attempted
-              <span aria-hidden="true"> · </span>
-              {masterySummary.unseen} unseen
-            </div>
           </div>
         </div>
       </section>
 
-      {/* Main 12-Column Tracking Workspace */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-start">
-        {/* Left Column: Subject Mastery, Weak-Area Alerts & 7-Day Rhythm */}
-        <div className="xl:col-span-7 space-y-4">
-          {/* Subject Mastery & Weak-Area Alerts */}
-          <section
-            className="rounded-2xl border border-qb-border bg-qb-surface p-4 sm:p-5 space-y-4"
-            aria-label="Subject Mastery and Weak Areas"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-qb-accent">
-                  Subject Mastery
-                </div>
-                <h2 className="mt-0.5 text-base font-bold text-qb-heading">
-                  CSE Topic Coverage & Weak-Area Alerts
-                </h2>
+      {/* Single-Elevation Continuity or Weak-Area Priority Strip */}
+      {hasResumableMock ? (
+        <section
+          className="rounded-2xl border border-amber-500/35 bg-qb-surface p-3.5 sm:px-5 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+          aria-label="Session in progress"
+        >
+          <div className="flex items-start gap-3 min-w-0 flex-1">
+            <Timer size={18} className="mt-0.5 shrink-0 text-amber-400 light:text-amber-700" aria-hidden="true" />
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-sm font-bold text-qb-heading">
+                  {activeExam.title ||
+                    (activeExam.mode === "subprofessional"
+                      ? "Subprofessional Mock Exam"
+                      : activeExam.mode === "professional"
+                        ? "Professional Mock Exam"
+                        : activeExam.mode === "drill"
+                          ? "Mistake Drill Session"
+                          : "Quick Practice Session")}
+                </span>
+                <span className="text-xs font-medium text-qb-muted tabular-nums">
+                  {activeAnsweredCount}/{activeTotalCount} answered ({activeProgressPct}%)
+                  {activeTimeLeftLabel ? ` · ${activeTimeLeftLabel}` : ""}
+                </span>
               </div>
-              <span className="text-xs font-medium text-qb-muted tabular-nums">
-                5 subjects · 80% passing benchmark
+              <div
+                className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800/70 light:bg-slate-200"
+                aria-hidden="true"
+              >
+                <div
+                  className="h-full rounded-full bg-amber-400 light:bg-amber-600 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                  style={{ width: `${metersReady ? activeProgressPct : 0}%` }}
+                />
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={onResumeActiveExam}
+              className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-amber-500 px-3.5 py-2 text-xs font-bold text-[#070c18] transition-colors hover:bg-amber-400 cursor-pointer whitespace-nowrap"
+            >
+              <PlayCircle size={14} aria-hidden="true" />
+              <span>Resume Session</span>
+            </button>
+            <button
+              type="button"
+              onClick={onGoMockExam}
+              className="inline-flex min-h-[38px] items-center justify-center rounded-xl border border-qb-border bg-qb-surface px-3 py-2 text-xs font-semibold text-qb-heading transition-colors hover:border-qb-border-hover hover:bg-qb-surface-hover cursor-pointer whitespace-nowrap"
+            >
+              Mock Center
+            </button>
+          </div>
+        </section>
+      ) : primaryWeakArea ? (
+        <section
+          className="rounded-2xl border border-rose-400/35 bg-rose-500/[0.06] light:border-rose-600/25 light:bg-rose-50/70 px-3.5 sm:px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5"
+          aria-label="Weak area priority"
+        >
+          <div className="flex items-start sm:items-center gap-2.5 min-w-0">
+            <AlertTriangle
+              size={16}
+              className="mt-0.5 sm:mt-0 shrink-0 text-rose-400 light:text-rose-700"
+              aria-hidden="true"
+            />
+            <div className="min-w-0 text-xs sm:text-sm leading-snug">
+              <span className="font-bold text-qb-heading">
+                Focus needed: {primaryWeakArea.label}
+              </span>
+              <span className="text-qb-mid tabular-nums">
+                {" · "}
+                {primaryWeakArea.missed > 0
+                  ? `${primaryWeakArea.missed} missed`
+                  : "Below 80% target"}
+                {primaryWeakArea.accuracyPercent !== null &&
+                  ` · ${primaryWeakArea.accuracyPercent}% accuracy`}
+                {weakAreas.length > 1 && ` · +${weakAreas.length - 1} more`}
               </span>
             </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() =>
+                onStartQuickPractice({
+                  count: 15,
+                  scope: primaryWeakArea.missed > 0 ? "missed" : "all",
+                  topic: primaryWeakArea.id,
+                  timed: false,
+                })
+              }
+              className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg bg-rose-500 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-rose-400 cursor-pointer whitespace-nowrap"
+            >
+              <Zap size={13} aria-hidden="true" />
+              <span>Drill {primaryWeakArea.short}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                onOpenQuestionBank({
+                  topic: primaryWeakArea.id,
+                  mastery: primaryWeakArea.missed > 0 ? "missed" : "all",
+                })
+              }
+              className="inline-flex min-h-[36px] items-center rounded-lg border border-qb-border bg-qb-surface px-2.5 py-1.5 text-xs font-semibold text-qb-heading transition-colors hover:border-qb-border-hover cursor-pointer whitespace-nowrap"
+            >
+              Review
+            </button>
+          </div>
+        </section>
+      ) : null}
 
-            {primaryWeakArea ? (
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-rose-400/35 bg-rose-500/10 light:border-rose-600/25 light:bg-rose-50 px-4 py-3">
-                <div className="flex items-start gap-2.5 min-w-0">
-                  <AlertTriangle
-                    size={17}
-                    className="mt-0.5 shrink-0 text-rose-400 light:text-rose-700"
-                    aria-hidden="true"
-                  />
-                  <div className="min-w-0">
-                    <div className="text-xs font-bold text-qb-heading">
-                      Weak Area Detected: {primaryWeakArea.label}
-                    </div>
-                    <p className="mt-0.5 text-xs text-qb-mid tabular-nums">
-                      {primaryWeakArea.missed > 0
-                        ? `${primaryWeakArea.missed} missed ${primaryWeakArea.missed === 1 ? "item" : "items"}`
-                        : "Accuracy below 80% benchmark"}
-                      {primaryWeakArea.accuracyPercent !== null && (
-                        <>
-                          <span aria-hidden="true"> · </span>
-                          {primaryWeakArea.accuracyPercent}% accuracy
-                        </>
-                      )}
-                      {weakAreas.length > 1 && (
-                        <>
-                          <span aria-hidden="true"> · </span>
-                          +{weakAreas.length - 1} other {weakAreas.length - 1 === 1 ? "subject" : "subjects"} flagged
-                        </>
-                      )}
-                    </p>
-                  </div>
+      {/* Main 12-Column Workspace Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+        {/* Left Column (7/12): Subject Mastery & 7-Day Activity */}
+        <div className="lg:col-span-7 space-y-4">
+          {/* Subject Mastery */}
+          <section
+            className="rounded-2xl border border-qb-border bg-qb-surface overflow-hidden"
+            aria-label="Subject Mastery Breakdown"
+          >
+            <div className="flex items-center justify-between gap-2 px-3.5 py-3.5 sm:px-5 border-b border-qb-border">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <Layers size={15} className="shrink-0 text-qb-accent" aria-hidden="true" />
+                  <h2 className="text-sm sm:text-base font-bold text-qb-heading leading-tight">
+                    Subject Mastery
+                  </h2>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onStartQuickPractice({
-                        count: 15,
-                        scope: primaryWeakArea.missed > 0 ? "missed" : "all",
-                        topic: primaryWeakArea.id,
-                        timed: false,
-                      })
-                    }
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-rose-500 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-rose-400 cursor-pointer whitespace-nowrap"
-                  >
-                    <Zap size={13} aria-hidden="true" />
-                    <span>Drill {primaryWeakArea.short}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onOpenQuestionBank({
-                        topic: primaryWeakArea.id,
-                        mastery: primaryWeakArea.missed > 0 ? "missed" : "all",
-                      })
-                    }
-                    className="inline-flex items-center gap-1 rounded-lg border border-qb-border bg-qb-surface px-2.5 py-1.5 text-xs font-semibold text-qb-heading transition-colors hover:border-qb-border-hover cursor-pointer whitespace-nowrap"
-                  >
-                    <span>Review</span>
-                  </button>
-                </div>
+                <p className="mt-0.5 text-[11px] sm:text-xs text-qb-muted tabular-nums leading-snug">
+                  5 CSE subjects · 80% passing benchmark
+                </p>
               </div>
-            ) : (
-              <div className="flex items-center justify-between gap-3 rounded-xl border border-qb-border bg-qb-input px-4 py-3">
-                <div className="text-xs text-qb-mid">
-                  {masterySummary.attempted === 0
-                    ? "Start answering items across any of the 5 CSC topics to surface weak-area diagnostics."
-                    : "No weak-area alerts right now — all attempted subjects are at or above the 80% target."}
-                </div>
-              </div>
-            )}
+              <button
+                type="button"
+                onClick={() => onOpenQuestionBank({ topic: "all", mastery: "all" })}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-qb-accent hover:underline cursor-pointer shrink-0 whitespace-nowrap"
+              >
+                <span>All items</span>
+                <ArrowRight size={13} aria-hidden="true" />
+              </button>
+            </div>
 
-            <div className="divide-y divide-qb-border rounded-xl border border-qb-border bg-qb-input">
-              {subjects.map((subject) => {
+            <div className="divide-y divide-qb-border">
+              {subjects.map((subject, idx) => {
                 const Icon = SUBJECT_ICONS[subject.id] || Layers;
                 const styles = SUBJECT_ACCENT_STYLES[subject.id] || SUBJECT_ACCENT_STYLES.numerical;
                 const accuracyTone =
@@ -576,330 +692,560 @@ export default function DashboardPage({
                         : "text-rose-400 light:text-rose-700";
 
                 return (
-                  <div
+                  <button
                     key={subject.id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-3.5 py-3"
+                    type="button"
+                    onClick={() =>
+                      onOpenQuestionBank({
+                        topic: subject.id,
+                        mastery: subject.missed > 0 ? "missed" : "all",
+                      })
+                    }
+                    className="group w-full min-h-[60px] flex items-center gap-3 px-3.5 py-3 sm:px-5 text-left transition-colors hover:bg-qb-surface-hover active:bg-qb-surface-hover cursor-pointer"
                   >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <span
-                        className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${styles.iconBox}`}
-                      >
-                        <Icon size={15} aria-hidden="true" />
-                      </span>
-                      <div className="min-w-0 flex-1 space-y-1.5">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="text-sm font-bold text-qb-heading truncate">
-                              {subject.label}
+                    <span
+                      className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${styles.icon}`}
+                    >
+                      <Icon size={15} aria-hidden="true" />
+                    </span>
+
+                    <div className="min-w-0 flex-1 space-y-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+                          <span className="text-[13px] sm:text-sm font-semibold text-qb-heading leading-snug">
+                            {subject.label}
+                          </span>
+                          {subject.needsAttention && (
+                            <span className="text-[11px] font-semibold text-rose-400 light:text-rose-700 shrink-0">
+                              · Review
                             </span>
-                            {subject.needsAttention && (
-                              <span className="text-[11px] font-semibold text-rose-400 light:text-rose-700 shrink-0">
-                                · Needs review
-                              </span>
-                            )}
-                          </div>
-                          <span className={`text-xs font-bold tabular-nums shrink-0 ${accuracyTone}`}>
-                            {subject.accuracyPercent !== null
-                              ? `${subject.accuracyPercent}% acc`
-                              : "Unstarted"}
-                          </span>
-                        </div>
-
-                        <div
-                          className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800/70 light:bg-slate-200"
-                          aria-hidden="true"
-                        >
-                          <div
-                            className={`h-full rounded-full transition-all duration-300 ${styles.bar}`}
-                            style={{ width: `${subject.masteryPercent}%` }}
-                          />
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-1.5 text-[11.5px] text-qb-muted tabular-nums">
-                          <span>
-                            {subject.mastered}/{subject.total} mastered
-                          </span>
-                          {subject.missed > 0 && (
-                            <>
-                              <span aria-hidden="true">·</span>
-                              <span className="text-rose-400 light:text-rose-700 font-semibold">
-                                {subject.missed} missed
-                              </span>
-                            </>
                           )}
-                          <span aria-hidden="true">·</span>
-                          <span>{subject.unseen} unseen</span>
                         </div>
+                        <span className={`text-xs font-bold tabular-nums shrink-0 ${accuracyTone}`}>
+                          {subject.accuracyPercent !== null
+                            ? `${subject.accuracyPercent}%`
+                            : "Unstarted"}
+                        </span>
+                      </div>
+
+                      <div
+                        className="relative h-1.5 w-full overflow-hidden rounded-full bg-slate-800/70 light:bg-slate-200"
+                        aria-hidden="true"
+                      >
+                        <div
+                          className={`h-full rounded-full transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${styles.bar}`}
+                          style={{
+                            width: `${metersReady ? subject.masteryPercent : 0}%`,
+                            transitionDelay: metersReady ? `${idx * 55}ms` : "0ms",
+                          }}
+                        />
+                        <span
+                          className="pointer-events-none absolute top-0 bottom-0 w-px bg-white/30 light:bg-slate-900/20"
+                          style={{ left: "80%" }}
+                        />
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] sm:text-xs text-qb-muted tabular-nums">
+                        <span>
+                          {subject.mastered}/{subject.total} mastered
+                        </span>
+                        {subject.missed > 0 && (
+                          <span className="text-rose-400 light:text-rose-700 font-semibold">
+                            · {subject.missed} missed
+                          </span>
+                        )}
+                        <span>· {subject.unseen} unseen</span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0 sm:pl-2">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          onOpenQuestionBank({
-                            topic: subject.id,
-                            mastery: subject.missed > 0 ? "missed" : "all",
-                          })
-                        }
-                        className="inline-flex items-center gap-1 rounded-lg border border-qb-border bg-qb-surface px-2.5 py-1.5 text-xs font-semibold text-qb-mid transition-colors hover:border-qb-border-hover hover:text-qb-heading cursor-pointer whitespace-nowrap"
-                      >
-                        <span>{subject.missed > 0 ? "Fix Missed" : "Browse"}</span>
-                        <ChevronRight size={13} aria-hidden="true" />
-                      </button>
-                    </div>
-                  </div>
+                    <ChevronRight
+                      size={15}
+                      className="shrink-0 text-qb-muted transition-transform group-hover:translate-x-0.5 group-hover:text-qb-heading"
+                      aria-hidden="true"
+                    />
+                  </button>
                 );
               })}
             </div>
           </section>
 
-          {/* 7-Day Study Activity Rhythm */}
+          {/* 7-Day Study Activity (PolicyPulse Bar Telemetry + Gliding Tooltip) */}
           <section
-            className="rounded-2xl border border-qb-border bg-qb-surface p-4 sm:p-5 space-y-4"
-            aria-label="7-Day Study Rhythm"
+            ref={activityCardRef}
+            className="rounded-2xl border border-qb-border bg-qb-surface p-3.5 sm:p-5 space-y-3.5"
+            aria-label="7-Day Study Activity"
           >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-qb-accent">
-                  Consistency Log
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <BarChart3
+                    size={15}
+                    className="shrink-0 text-emerald-400 light:text-emerald-700"
+                    aria-hidden="true"
+                  />
+                  <h2 className="text-sm sm:text-base font-bold text-qb-heading leading-tight">
+                    7-Day Study Activity
+                  </h2>
                 </div>
-                <h2 className="mt-0.5 text-base font-bold text-qb-heading">
-                  7-Day Study Activity
-                </h2>
+                <p className="mt-0.5 text-[11px] sm:text-xs text-qb-muted tabular-nums leading-snug">
+                  Daily answered items vs {safeGoal}/day target
+                </p>
               </div>
-              <div className="text-xs font-medium text-qb-muted tabular-nums">
-                {streakSummary.weeklyTotal} answered this week
-                <span aria-hidden="true"> · </span>
-                Goal: {safeGoal}/day
+
+              <div className="flex items-center gap-3 pt-0.5 text-[11px] font-medium text-qb-muted">
+                <span className="inline-flex items-center gap-1.5">
+                  <span
+                    className="h-2 w-2 rounded-xs bg-emerald-400 light:bg-emerald-600"
+                    aria-hidden="true"
+                  />
+                  <span>Goal met</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span
+                    className="h-2 w-2 rounded-xs bg-amber-400 light:bg-amber-500"
+                    aria-hidden="true"
+                  />
+                  <span>Active</span>
+                </span>
               </div>
             </div>
 
-            <div className="rounded-xl border border-qb-border bg-qb-input px-3.5 pt-4 pb-3">
-              <div className="grid grid-cols-7 gap-2 items-end h-32">
-                {streakSummary.last7Days.map((day) => {
-                  const heightPct =
-                    day.count > 0 ? Math.max(12, Math.round((day.count / maxDayCount) * 100)) : 6;
-                  return (
+            {/* Interactive Bar Chart Canvas */}
+            <div className="pt-2">
+              <div className="flex items-stretch gap-1.5 sm:gap-2">
+                {/* Subtle Y-Axis Scale */}
+                <div
+                  className="flex h-36 sm:h-40 w-6 sm:w-7 shrink-0 flex-col justify-between pb-0.5 text-right text-[10px] font-medium text-qb-muted tabular-nums select-none"
+                  aria-hidden="true"
+                >
+                  <span>{maxDayCount}</span>
+                  <span>{Math.round(maxDayCount / 2)}</span>
+                  <span>0</span>
+                </div>
+
+                {/* Plot Columns Wrapper */}
+                <div
+                  className="relative flex-1"
+                  onPointerLeave={(e) => {
+                    if (e.pointerType !== "touch") setHoveredDayKey(null);
+                  }}
+                >
+                  {/* Plot Grid & Bars */}
+                  <div className="relative h-40 sm:h-44 border-b border-qb-border">
+                    {/* Subtle Horizontal Gridlines */}
                     <div
-                      key={day.dateKey}
-                      className="flex flex-col items-center justify-end gap-1.5 h-full"
-                      title={`${day.dateKey}: ${day.count} answered`}
+                      className="pointer-events-none absolute inset-x-0 top-0 border-t border-dashed border-qb-border/60"
+                      aria-hidden="true"
+                    />
+                    <div
+                      className="pointer-events-none absolute inset-x-0 top-1/2 border-t border-dashed border-qb-border/50"
+                      aria-hidden="true"
+                    />
+
+                    {/* Dashed Daily Goal Benchmark Line */}
+                    <div
+                      className="pointer-events-none absolute inset-x-0 z-10 flex items-center justify-end border-t border-dashed border-emerald-400/55 light:border-emerald-600/45"
+                      style={{ bottom: `${goalLinePct}%` }}
+                      aria-hidden="true"
                     >
-                      <span className="text-[11px] font-semibold text-qb-mid tabular-nums">
-                        {day.count > 0 ? day.count : "0"}
-                      </span>
-                      <div className="w-full max-w-[34px] flex-1 flex items-end">
-                        <div
-                          className={`w-full rounded-t-md transition-all duration-300 ${
-                            day.count === 0
-                              ? "bg-slate-700/40 light:bg-slate-200"
-                              : day.goalMet
-                                ? "bg-emerald-400 light:bg-emerald-600"
-                                : "bg-amber-400 light:bg-amber-500"
-                          }`}
-                          style={{ height: `${heightPct}%` }}
-                        />
-                      </div>
-                      <span
-                        className={`text-[11px] font-medium ${
-                          day.isToday ? "text-qb-accent font-bold" : "text-qb-muted"
-                        }`}
-                      >
-                        {day.dayLabel}
+                      <span className="-mt-4 rounded bg-qb-surface/95 px-1 text-[10px] font-semibold text-emerald-400 light:text-emerald-700 tabular-nums">
+                        Goal {safeGoal}
                       </span>
                     </div>
-                  );
-                })}
+
+                    {/* 7 Interactive Day Columns */}
+                    <div className="relative z-20 grid h-full grid-cols-7 gap-1.5 sm:gap-2.5 items-end">
+                      {streakSummary.last7Days.map((day, idx) => {
+                        const barPct =
+                          day.count > 0
+                            ? Math.min(
+                                92,
+                                Math.max(9, Math.round((day.count / maxDayCount) * CHART_PLOT_MAX_PCT))
+                              )
+                            : 0;
+                        const isActiveDay = activeDayKey === day.dateKey;
+                        const isDimmed = activeDayKey !== null && !isActiveDay;
+
+                        return (
+                          <button
+                            key={day.dateKey}
+                            type="button"
+                            onPointerEnter={(e) => {
+                              if (e.pointerType !== "touch") {
+                                setHoveredDayKey(day.dateKey);
+                                setTooltipAnchor({ dayKey: day.dateKey, idx });
+                              }
+                            }}
+                            onFocus={() => {
+                              setHoveredDayKey(day.dateKey);
+                              setTooltipAnchor({ dayKey: day.dateKey, idx });
+                            }}
+                            onBlur={() =>
+                              setHoveredDayKey((prev) => (prev === day.dateKey ? null : prev))
+                            }
+                            onClick={() => {
+                              setTooltipAnchor({ dayKey: day.dateKey, idx });
+                              setPinnedDayKey((prev) => (prev === day.dateKey ? null : day.dateKey));
+                            }}
+                            aria-label={`${formatActivityDateLabel(day.dateKey, day.isToday)}: ${day.count} of ${safeGoal} answered`}
+                            className={`group relative flex h-full w-full flex-col items-center justify-end rounded-lg px-0.5 transition-opacity duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60 cursor-pointer ${
+                              isDimmed ? "opacity-55" : "opacity-100"
+                            }`}
+                          >
+                            {/* Subtle Full-Height Column Track */}
+                            <div
+                              className={`relative flex h-full w-full max-w-[32px] sm:max-w-[36px] flex-col items-center justify-end rounded-t-lg transition-colors duration-150 ${
+                                isActiveDay
+                                  ? "bg-slate-800/65 light:bg-slate-200/80"
+                                  : "bg-slate-800/25 light:bg-slate-100/85 group-hover:bg-slate-800/45 light:group-hover:bg-slate-200/65"
+                              }`}
+                            >
+                              <span
+                                className={`mb-1 text-[10.5px] sm:text-[11px] font-semibold tabular-nums leading-none transition-colors duration-150 ${
+                                  isActiveDay
+                                    ? "text-qb-heading"
+                                    : day.count > 0
+                                      ? "text-qb-mid"
+                                      : "text-qb-muted"
+                                }`}
+                              >
+                                {day.count}
+                              </span>
+
+                              <div
+                                className={`w-full rounded-t-md transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${
+                                  day.count === 0
+                                    ? "bg-slate-600/45 light:bg-slate-300"
+                                    : day.goalMet
+                                      ? "bg-gradient-to-t from-emerald-500 to-emerald-400 light:from-emerald-600 light:to-emerald-500"
+                                      : "bg-gradient-to-t from-amber-500 to-amber-400 light:from-amber-600 light:to-amber-400"
+                                } ${
+                                  isActiveDay
+                                    ? day.goalMet
+                                      ? "ring-2 ring-emerald-400/50 light:ring-emerald-600/40 brightness-110"
+                                      : "ring-2 ring-amber-400/50 light:ring-amber-600/40 brightness-110"
+                                    : ""
+                                }`}
+                                style={{
+                                  height: !metersReady
+                                    ? "0%"
+                                    : day.count === 0
+                                      ? "4px"
+                                      : `${barPct}%`,
+                                  transitionDelay: metersReady ? `${idx * 45}ms` : "0ms",
+                                }}
+                              />
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Animated Gliding PolicyPulse Tooltip (tracks bar horizontally & vertically inside plot) */}
+                    {tooltipDay && (() => {
+                      const activeBarPct =
+                        tooltipDay.count > 0
+                          ? Math.min(
+                              92,
+                              Math.max(9, Math.round((tooltipDay.count / maxDayCount) * CHART_PLOT_MAX_PCT))
+                            )
+                          : 0;
+                      const tooltipBottomPct =
+                        tooltipDay.count === 0 ? 18 : Math.min(46, activeBarPct + 16);
+                      const dayPct = Math.min(
+                        100,
+                        Math.round((tooltipDay.count / safeGoal) * 100)
+                      );
+                      const remainingToGoal = Math.max(0, safeGoal - tooltipDay.count);
+                      const barTone =
+                        tooltipDay.count === 0
+                          ? "bg-slate-500/60 light:bg-slate-400"
+                          : tooltipDay.goalMet
+                            ? "bg-gradient-to-r from-emerald-500 to-emerald-400 light:from-emerald-600 light:to-emerald-500"
+                            : "bg-gradient-to-r from-amber-500 to-amber-400 light:from-amber-600 light:to-amber-500";
+                      const statusTone =
+                        tooltipDay.count === 0
+                          ? "text-qb-muted"
+                          : tooltipDay.goalMet
+                            ? "text-emerald-400 light:text-emerald-700"
+                            : "text-amber-400 light:text-amber-700";
+
+                      return (
+                        <div
+                          role="tooltip"
+                          aria-hidden={!isTooltipOpen}
+                          className={`pointer-events-none absolute left-0 right-0 z-30 transition-[bottom,opacity] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none ${
+                            isTooltipOpen ? "opacity-100" : "opacity-0"
+                          }`}
+                          style={{ bottom: `${tooltipBottomPct}%` }}
+                        >
+                          <div
+                            className="relative w-[184px] sm:w-[200px] rounded-xl border border-qb-border-hover bg-[#0c1426] light:bg-white px-3 py-2.5 text-left shadow-[0_18px_38px_rgba(0,0,0,0.6),0_0_0_1px_rgba(245,166,35,0.12)] light:border-slate-300 light:shadow-[0_14px_30px_rgba(15,23,42,0.14)] transition-[left,transform] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
+                            style={{
+                              left: `${tooltipEdgeAnchorPct}%`,
+                              transform: isTooltipOpen
+                                ? `translateX(-${tooltipEdgeAnchorPct}%) translateY(0) scale(1)`
+                                : `translateX(-${tooltipEdgeAnchorPct}%) translateY(6px) scale(0.95)`,
+                            }}
+                          >
+                            <div className="flex items-center justify-between gap-2 text-[11px] leading-none">
+                              <span className="font-bold text-qb-heading whitespace-nowrap">
+                                {formatActivityDateLabel(tooltipDay.dateKey, tooltipDay.isToday)}
+                              </span>
+                              <span className={`font-semibold whitespace-nowrap ${statusTone}`}>
+                                {tooltipDay.goalMet
+                                  ? "Goal met"
+                                  : tooltipDay.count > 0
+                                    ? "Active"
+                                    : "Idle"}
+                              </span>
+                            </div>
+
+                            <div className="mt-1.5 flex items-baseline justify-between gap-2 tabular-nums">
+                              <div className="flex items-baseline gap-1">
+                                <span className="text-base font-bold leading-none text-qb-heading">
+                                  {tooltipDay.count}
+                                </span>
+                                <span className="text-[11px] text-qb-muted">
+                                  / {safeGoal} items
+                                </span>
+                              </div>
+                              <span className={`text-[11px] font-bold ${statusTone}`}>
+                                {dayPct}%
+                              </span>
+                            </div>
+
+                            <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-800 light:bg-slate-200">
+                              <div
+                                className={`h-full rounded-full transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${barTone}`}
+                                style={{ width: `${dayPct}%` }}
+                              />
+                            </div>
+
+                            <p className="mt-1.5 text-[10.5px] leading-snug text-qb-muted tabular-nums">
+                              {tooltipDay.goalMet
+                                ? "Daily study target reached"
+                                : tooltipDay.count > 0
+                                  ? `${remainingToGoal} more to hit daily goal`
+                                  : "No study items logged"}
+                            </p>
+                          </div>
+
+                          {/* Sliding Caret Pointer aligned directly over active bar */}
+                          <div
+                            className="absolute -bottom-[5px] h-2.5 w-2.5 rotate-45 border-r border-b border-qb-border-hover bg-[#0c1426] light:border-slate-300 light:bg-white transition-[left,transform] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
+                            style={{
+                              left: `${tooltipCenterPct}%`,
+                              transform: isTooltipOpen
+                                ? "translateX(-50%) translateY(0) scale(1)"
+                                : "translateX(-50%) translateY(6px) scale(0.8)",
+                            }}
+                            aria-hidden="true"
+                          />
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* X-Axis Day Labels */}
+                  <div className="mt-2 grid grid-cols-7 gap-1.5 sm:gap-2.5">
+                    {streakSummary.last7Days.map((day, idx) => {
+                      const isActiveDay = activeDayKey === day.dateKey;
+                      return (
+                        <button
+                          key={day.dateKey}
+                          type="button"
+                          onClick={() => {
+                            setTooltipAnchor({ dayKey: day.dateKey, idx });
+                            setPinnedDayKey((prev) => (prev === day.dateKey ? null : day.dateKey));
+                          }}
+                          className={`text-center text-[11px] leading-none transition-colors cursor-pointer ${
+                            isActiveDay
+                              ? "text-qb-heading font-bold"
+                              : day.isToday
+                                ? "text-qb-accent font-bold"
+                                : "text-qb-muted font-medium hover:text-qb-heading"
+                          }`}
+                        >
+                          {day.dayLabel}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Clean PolicyPulse Telemetry Summary Footer */}
+            <div className="grid grid-cols-3 divide-x divide-qb-border border-t border-qb-border pt-3 text-center sm:text-left">
+              <div className="pr-2 sm:pr-4">
+                <div className="text-[11px] font-medium text-qb-muted">7-Day Total</div>
+                <div className="mt-0.5 text-sm font-bold text-qb-heading tabular-nums">
+                  <CountUp end={streakSummary.weeklyTotal} duration={650} /> items
+                </div>
+              </div>
+              <div className="px-2 sm:px-4">
+                <div className="text-[11px] font-medium text-qb-muted">Daily Avg</div>
+                <div className="mt-0.5 text-sm font-bold text-qb-heading tabular-nums">
+                  {weeklyAvgLabel} / day
+                </div>
+              </div>
+              <div className="pl-2 sm:pl-4">
+                <div className="text-[11px] font-medium text-qb-muted">Goal Met</div>
+                <div className="mt-0.5 text-sm font-bold text-qb-heading tabular-nums">
+                  {daysMetCount} / 7 days
+                </div>
               </div>
             </div>
 
             {streakSummary.weeklyTotal === 0 && (
-              <p className="text-xs text-qb-muted">
-                Answer your first question or run a Quick Practice set to populate your daily study streak and 7-day log.
+              <p className="text-xs text-qb-muted leading-relaxed">
+                Answer your first question or run a Quick Practice set to populate your 7-day activity log.
               </p>
             )}
           </section>
         </div>
 
-        {/* Right Column: Resume Mock / Quick Launch & Recent Mock Exam Scores */}
-        <div className="xl:col-span-5 space-y-4">
-          {/* Resume Active Mock or Official Exam Quick Launch */}
+        {/* Right Column (5/12): Practice & Mock Simulators + Recent Scores */}
+        <div className="lg:col-span-5 space-y-4">
+          {/* Quick Practice & Official Simulators */}
           <section
-            className="rounded-2xl border border-qb-border bg-qb-surface p-4 sm:p-5 space-y-3.5"
-            aria-label="Mock Exam Continuity"
+            className="rounded-2xl border border-qb-border bg-qb-surface overflow-hidden"
+            aria-label="Practice and Mock Simulators"
           >
-            {hasResumableMock ? (
-              <>
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-amber-400 light:text-amber-700">
-                      Session In Progress
-                    </div>
-                    <h2 className="mt-0.5 text-base font-bold text-qb-heading">
-                      {activeExam.title ||
-                        (activeExam.mode === "subprofessional"
-                          ? "Subprofessional Mock Exam"
-                          : activeExam.mode === "professional"
-                            ? "Professional Mock Exam"
-                            : activeExam.mode === "drill"
-                              ? "Mistake Drill Session"
-                              : "Quick Practice Session")}
-                    </h2>
-                  </div>
-                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-amber-500/35 bg-amber-500/12 text-amber-400 light:text-amber-700">
-                    <Timer size={16} aria-hidden="true" />
-                  </span>
+            <div className="flex items-center justify-between gap-2 px-3.5 py-3.5 sm:px-5 border-b border-qb-border">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <Timer size={15} className="shrink-0 text-sky-400 light:text-sky-700" aria-hidden="true" />
+                  <h2 className="text-sm sm:text-base font-bold text-qb-heading leading-tight">
+                    Practice & Mocks
+                  </h2>
                 </div>
-
-                <div className="rounded-xl border border-qb-border bg-qb-input p-3.5 space-y-2.5">
-                  <div className="flex items-center justify-between gap-2 text-xs">
-                    <span className="font-semibold text-qb-heading tabular-nums">
-                      {activeAnsweredCount} of {activeTotalCount} answered ({activeProgressPct}%)
-                    </span>
-                    {activeTimeLeftLabel && (
-                      <span className="text-qb-muted tabular-nums">{activeTimeLeftLabel}</span>
-                    )}
-                  </div>
-                  <div
-                    className="h-2 w-full overflow-hidden rounded-full bg-slate-800/70 light:bg-slate-200"
-                    aria-hidden="true"
-                  >
-                    <div
-                      className="h-full rounded-full bg-amber-400 light:bg-amber-600 transition-all duration-300"
-                      style={{ width: `${activeProgressPct}%` }}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={onResumeActiveExam}
-                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-xs sm:text-sm font-bold text-[#070c18] transition-colors hover:bg-amber-400 cursor-pointer whitespace-nowrap"
-                  >
-                    <PlayCircle size={15} aria-hidden="true" />
-                    <span>Resume Session</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onGoMockExam}
-                    className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-qb-border bg-qb-input px-3.5 py-2.5 text-xs font-semibold text-qb-heading transition-colors hover:border-qb-border-hover cursor-pointer whitespace-nowrap"
-                  >
-                    <span>Mock Center</span>
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-qb-accent">
-                      Exam Simulation
-                    </div>
-                    <h2 className="mt-0.5 text-base font-bold text-qb-heading">
-                      Launch Practice or Mock Exam
-                    </h2>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={onGoMockExam}
-                    className="inline-flex items-center gap-1 text-xs font-bold text-qb-accent hover:underline cursor-pointer shrink-0"
-                  >
-                    <span>Mock Center</span>
-                    <ArrowRight size={13} aria-hidden="true" />
-                  </button>
-                </div>
-
-                <div className="divide-y divide-qb-border rounded-xl border border-qb-border bg-qb-input">
-                  <div className="flex items-center justify-between gap-3 px-3.5 py-3">
-                    <div className="min-w-0">
-                      <div className="text-sm font-bold text-qb-heading">15-Item Quick Sprint</div>
-                      <div className="mt-0.5 text-xs text-qb-muted tabular-nums">
-                        15 min · Mixed CSE subjects
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        onStartQuickPractice({
-                          count: 15,
-                          scope: masterySummary.unseen > 0 ? "unseen" : "all",
-                          topic: "all",
-                          timed: true,
-                        })
-                      }
-                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-[#070c18] transition-colors hover:bg-amber-400 cursor-pointer"
-                    >
-                      <span>Start</span>
-                      <ArrowRight size={13} aria-hidden="true" />
-                    </button>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-3 px-3.5 py-3">
-                    <div className="min-w-0">
-                      <div className="text-sm font-bold text-qb-heading">Professional CSC Mock</div>
-                      <div className="mt-0.5 text-xs text-qb-muted tabular-nums">
-                        170 items · 3h 10m · 80% pass
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleLaunchOfficialMock("professional")}
-                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-qb-border bg-qb-surface px-3 py-1.5 text-xs font-bold text-qb-heading transition-colors hover:border-amber-500/45 cursor-pointer"
-                    >
-                      <span>Start</span>
-                      <ArrowRight size={13} aria-hidden="true" />
-                    </button>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-3 px-3.5 py-3">
-                    <div className="min-w-0">
-                      <div className="text-sm font-bold text-qb-heading">Subprofessional CSC Mock</div>
-                      <div className="mt-0.5 text-xs text-qb-muted tabular-nums">
-                        165 items · 2h 40m · 80% pass
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleLaunchOfficialMock("subprofessional")}
-                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-qb-border bg-qb-surface px-3 py-1.5 text-xs font-bold text-qb-heading transition-colors hover:border-amber-500/45 cursor-pointer"
-                    >
-                      <span>Start</span>
-                      <ArrowRight size={13} aria-hidden="true" />
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-          </section>
-
-          {/* Recent Mock Exam Scores */}
-          <section
-            className="rounded-2xl border border-qb-border bg-qb-surface p-4 sm:p-5 space-y-3.5"
-            aria-label="Recent Mock Exam Scores"
-          >
-            <div className="flex items-center justify-between gap-2">
-              <div>
-                <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-qb-accent">
-                  Score History
-                </div>
-                <h2 className="mt-0.5 text-base font-bold text-qb-heading">
-                  Recent Mock Exams
-                </h2>
+                <p className="mt-0.5 text-[11px] sm:text-xs text-qb-muted leading-snug">
+                  Timed sprints & CSC mocks
+                </p>
               </div>
               <button
                 type="button"
                 onClick={onGoMockExam}
-                className="inline-flex items-center gap-1 text-xs font-bold text-qb-accent hover:underline cursor-pointer shrink-0"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-qb-accent hover:underline cursor-pointer shrink-0 whitespace-nowrap"
               >
-                <span>View All</span>
+                <span>Mock Center</span>
+                <ArrowRight size={13} aria-hidden="true" />
+              </button>
+            </div>
+
+            <div className="divide-y divide-qb-border">
+              <div className="flex items-center justify-between gap-2.5 px-3.5 py-3 sm:px-5">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400 light:bg-amber-50 light:text-amber-700">
+                    <Zap size={15} aria-hidden="true" />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-[13px] sm:text-sm font-semibold text-qb-heading leading-snug">
+                      15-Item Quick Sprint
+                    </div>
+                    <div className="mt-0.5 text-[11px] sm:text-xs text-qb-muted tabular-nums leading-snug">
+                      15m · Mixed subjects
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    onStartQuickPractice({
+                      count: 15,
+                      scope: masterySummary.unseen > 0 ? "unseen" : "all",
+                      topic: "all",
+                      timed: true,
+                    })
+                  }
+                  className="inline-flex min-h-[34px] shrink-0 items-center gap-1 rounded-lg bg-amber-500 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-[#070c18] transition-colors hover:bg-amber-400 cursor-pointer whitespace-nowrap"
+                >
+                  <span>Start</span>
+                  <ArrowRight size={12} aria-hidden="true" />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between gap-2.5 px-3.5 py-3 sm:px-5">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sky-400/10 text-sky-400 light:bg-sky-50 light:text-sky-700">
+                    <Briefcase size={15} aria-hidden="true" />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-[13px] sm:text-sm font-semibold text-qb-heading leading-snug">
+                      Professional CSC Mock
+                    </div>
+                    <div className="mt-0.5 text-[11px] sm:text-xs text-qb-muted tabular-nums leading-snug">
+                      170 Qs · 3h 10m · 80% pass
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleLaunchOfficialMock("professional")}
+                  className="inline-flex min-h-[34px] shrink-0 items-center gap-1 rounded-lg border border-qb-border bg-qb-input px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-qb-heading transition-colors hover:border-amber-500/45 hover:bg-qb-surface-hover cursor-pointer whitespace-nowrap"
+                >
+                  <span>Start</span>
+                  <ArrowRight size={12} aria-hidden="true" />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between gap-2.5 px-3.5 py-3 sm:px-5">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-400/10 text-violet-400 light:bg-violet-50 light:text-violet-700">
+                    <GraduationCap size={15} aria-hidden="true" />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-[13px] sm:text-sm font-semibold text-qb-heading leading-snug">
+                      Subprofessional CSC Mock
+                    </div>
+                    <div className="mt-0.5 text-[11px] sm:text-xs text-qb-muted tabular-nums leading-snug">
+                      165 Qs · 2h 40m · 80% pass
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleLaunchOfficialMock("subprofessional")}
+                  className="inline-flex min-h-[34px] shrink-0 items-center gap-1 rounded-lg border border-qb-border bg-qb-input px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-qb-heading transition-colors hover:border-amber-500/45 hover:bg-qb-surface-hover cursor-pointer whitespace-nowrap"
+                >
+                  <span>Start</span>
+                  <ArrowRight size={12} aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+          </section>
+
+          {/* Recent Mock Exam Scores */}
+          <section
+            className="rounded-2xl border border-qb-border bg-qb-surface overflow-hidden"
+            aria-label="Recent Mock Exam Scores"
+          >
+            <div className="flex items-center justify-between gap-2 px-3.5 py-3.5 sm:px-5 border-b border-qb-border">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <History size={15} className="shrink-0 text-qb-muted" aria-hidden="true" />
+                  <h2 className="text-sm sm:text-base font-bold text-qb-heading leading-tight">
+                    Recent Mock Exams
+                  </h2>
+                </div>
+                <p className="mt-0.5 text-[11px] sm:text-xs text-qb-muted leading-snug">
+                  Latest attempts & scores
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onGoMockExam}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-qb-accent hover:underline cursor-pointer shrink-0 whitespace-nowrap"
+              >
+                <span>View all</span>
                 <ArrowRight size={13} aria-hidden="true" />
               </button>
             </div>
 
             {recentAttempts.length > 0 ? (
-              <div className="divide-y divide-qb-border rounded-xl border border-qb-border bg-qb-input">
+              <div className="divide-y divide-qb-border">
                 {recentAttempts.map((attempt) => {
                   const passed = attempt.scorePercent >= 80;
                   const completedDate = attempt.completedAt
@@ -914,25 +1260,25 @@ export default function DashboardPage({
                       key={attempt.id}
                       type="button"
                       onClick={() => onOpenAttempt(attempt.id)}
-                      className="w-full flex items-center justify-between gap-3 px-3.5 py-3 text-left transition-colors hover:bg-qb-surface-hover cursor-pointer"
+                      className="group w-full min-h-[58px] flex items-center justify-between gap-2.5 px-3.5 py-3 sm:px-5 text-left transition-colors hover:bg-qb-surface-hover active:bg-qb-surface-hover cursor-pointer"
                     >
                       <div className="min-w-0">
-                        <div className="text-sm font-semibold text-qb-heading truncate">
+                        <div className="text-[13px] sm:text-sm font-semibold text-qb-heading leading-snug">
                           {formatAttemptMode(attempt)}
                         </div>
-                        <div className="mt-0.5 text-xs text-qb-muted tabular-nums">
+                        <div className="mt-0.5 text-[11px] sm:text-xs text-qb-muted tabular-nums leading-snug">
                           {completedDate}
                           <span aria-hidden="true"> · </span>
                           {formatDurationShort(attempt.timeSpentMs)}
                           <span aria-hidden="true"> · </span>
-                          {attempt.correctCount}/{attempt.totalCount} correct
+                          {attempt.correctCount}/{attempt.totalCount}
                         </div>
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
                         <div className="text-right">
                           <div
-                            className={`text-sm font-extrabold tabular-nums ${
+                            className={`text-sm font-bold tabular-nums ${
                               passed
                                 ? "text-emerald-400 light:text-emerald-700"
                                 : "text-amber-400 light:text-amber-700"
@@ -940,28 +1286,33 @@ export default function DashboardPage({
                           >
                             {attempt.scorePercent}%
                           </div>
-                          <div className="text-[10.5px] font-semibold text-qb-muted">
+                          <div className="text-[11px] font-medium text-qb-muted">
                             {passed ? "Passing" : "Below 80%"}
                           </div>
                         </div>
-                        <ChevronRight size={15} className="text-qb-muted" aria-hidden="true" />
+                        <ChevronRight
+                          size={15}
+                          className="text-qb-muted transition-transform group-hover:translate-x-0.5 group-hover:text-qb-heading"
+                          aria-hidden="true"
+                        />
                       </div>
                     </button>
                   );
                 })}
               </div>
             ) : (
-              <div className="rounded-xl border border-qb-border bg-qb-input p-5 text-center space-y-2.5">
-                <p className="text-xs font-medium text-qb-mid">
+              <div className="p-5 sm:p-6 text-center space-y-2.5">
+                <Trophy size={22} className="mx-auto text-qb-muted" aria-hidden="true" />
+                <p className="text-xs font-semibold text-qb-heading">
                   No completed mock exams recorded yet.
                 </p>
-                <p className="text-xs text-qb-muted">
-                  Complete a Quick Practice or CSC Mock Exam to track score progression toward the 80% passing bar.
+                <p className="text-xs text-qb-muted max-w-xs mx-auto leading-relaxed">
+                  Complete a Quick Practice or CSC Mock Exam to track score progression toward the 80% target.
                 </p>
                 <button
                   type="button"
                   onClick={onGoMockExam}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-qb-border bg-qb-surface px-3 py-1.5 text-xs font-semibold text-qb-heading transition-colors hover:border-amber-500/45 cursor-pointer"
+                  className="inline-flex min-h-[36px] items-center gap-1.5 rounded-xl border border-qb-border bg-qb-input px-3.5 py-1.5 text-xs font-semibold text-qb-heading transition-colors hover:border-amber-500/45 hover:bg-qb-surface-hover cursor-pointer"
                 >
                   <SlidersHorizontal size={13} className="text-qb-accent" aria-hidden="true" />
                   <span>Open Mock Exam Center</span>

@@ -27,6 +27,8 @@ import { formatAttemptDate, formatExamDuration, getAttemptModeLabel } from "../.
 import { EXAM_PRESETS, TOPICS } from "../../constants/appConstants";
 import CustomSelect from "./CustomSelect";
 import LoadingSpinner from "./LoadingSpinner";
+import CountUp from "./CountUp";
+import { useMeterReady } from "../../controllers/useMeterReady";
 
 const TOPIC_ICON_MAP: Record<string, typeof Calculator> = {
   numerical: Calculator,
@@ -155,6 +157,7 @@ export default function MockExam({
   const [quickScope, setQuickScope] = useState<"all" | "unseen" | "missed">("all");
   const [quickTopic, setQuickTopic] = useState<string>("all");
   const [quickTimed, setQuickTimed] = useState<boolean>(true);
+  const metersReady = useMeterReady(true);
   const [historyViewMode, setHistoryViewMode] = useState<"table" | "grid">(() => {
     try {
       const saved = window.localStorage?.getItem("qbank-mock-history-view");
@@ -310,7 +313,7 @@ export default function MockExam({
 
           <div className="qb-mock-mini-value-row">
             <div className={`qb-mock-mini-value${latestAttempt ? "" : " qb-mock-mini-empty"}`}>
-              {latestAttempt ? `${latestAttempt.scorePercent}%` : "--"}
+              {latestAttempt ? <CountUp end={latestAttempt.scorePercent || 0} duration={700} suffix="%" /> : "--"}
             </div>
             {latestAttempt && (
               <span className={`qb-mock-mini-badge${latestAttempt.scorePercent >= 80 ? " pass" : ""}`}>
@@ -322,7 +325,11 @@ export default function MockExam({
           <div className="qb-mock-meter" aria-hidden="true">
             <span
               className={`qb-mock-meter-fill${latestAttempt ? scoreMeterClass(latestAttempt.scorePercent || 0) : " qb-mock-meter-idle"}`}
-              style={latestAttempt ? { width: `${Math.max(0, Math.min(100, latestAttempt.scorePercent || 0))}%` } : null}
+              style={
+                latestAttempt
+                  ? { width: `${metersReady ? Math.max(0, Math.min(100, latestAttempt.scorePercent || 0)) : 0}%` }
+                  : null
+              }
             />
           </div>
 
@@ -350,7 +357,7 @@ export default function MockExam({
 
           <div className="qb-mock-mini-value-row">
             <div className={`qb-mock-mini-value${sortedHistory.length ? "" : " qb-mock-mini-empty"}`}>
-              {sortedHistory.length ? `${recentAverage}%` : "--"}
+              {sortedHistory.length ? <CountUp end={recentAverage} duration={700} suffix="%" /> : "--"}
             </div>
             {sortedHistory.length > 0 && (
               <span className={`qb-mock-mini-badge${recentAverage >= 80 ? " pass" : ""}`}>
@@ -362,7 +369,14 @@ export default function MockExam({
           <div className="qb-mock-meter" aria-hidden="true">
             <span
               className={`qb-mock-meter-fill${sortedHistory.length ? scoreMeterClass(recentAverage) : " qb-mock-meter-idle"}`}
-              style={sortedHistory.length ? { width: `${Math.max(0, Math.min(100, recentAverage))}%` } : null}
+              style={
+                sortedHistory.length
+                  ? {
+                      width: `${metersReady ? Math.max(0, Math.min(100, recentAverage)) : 0}%`,
+                      transitionDelay: metersReady ? "60ms" : "0ms",
+                    }
+                  : null
+              }
             />
           </div>
 
@@ -391,9 +405,7 @@ export default function MockExam({
           <div className="qb-mock-mini-value-row">
             <div className={`qb-mock-mini-value${improvement === null ? " qb-mock-mini-empty" : improvement > 0 ? " qb-mock-mini-up" : improvement < 0 ? " qb-mock-mini-down" : ""}`}>
               {improvement === null ? "--" : (
-                <>
-                  <span>{improvement > 0 ? `+${improvement}%` : `${improvement}%`}</span>
-                </>
+                <CountUp end={improvement} prefix={improvement > 0 ? "+" : ""} suffix="%" duration={700} />
               )}
             </div>
             {improvement !== null && (
@@ -406,7 +418,14 @@ export default function MockExam({
           <div className="qb-mock-meter" aria-hidden="true">
             <span
               className={`qb-mock-meter-fill${improvement === null ? " qb-mock-meter-idle" : improvement > 0 ? " qb-mock-meter-up" : improvement < 0 ? " qb-mock-meter-down" : ""}`}
-              style={improvement === null ? null : { width: `${Math.max(0, Math.min(100, 50 + improvement / 2))}%` }}
+              style={
+                improvement === null
+                  ? null
+                  : {
+                      width: `${metersReady ? Math.max(0, Math.min(100, 50 + improvement / 2)) : 0}%`,
+                      transitionDelay: metersReady ? "120ms" : "0ms",
+                    }
+              }
             />
           </div>
 
@@ -436,7 +455,7 @@ export default function MockExam({
 
           <div className="qb-mock-mini-value-row">
             <div className={`qb-mock-mini-value${bestAttempt ? "" : " qb-mock-mini-empty"}`}>
-              {bestAttempt ? `${bestAttempt.scorePercent}%` : "--"}
+              {bestAttempt ? <CountUp end={bestAttempt.scorePercent || 0} duration={700} suffix="%" /> : "--"}
             </div>
             {bestAttempt && (
               <span className={`qb-mock-mini-badge${bestAttempt.scorePercent >= 80 ? " pass" : ""}`}>
@@ -448,7 +467,14 @@ export default function MockExam({
           <div className="qb-mock-meter" aria-hidden="true">
             <span
               className={`qb-mock-meter-fill${bestAttempt ? scoreMeterClass(bestAttempt.scorePercent || 0) : " qb-mock-meter-idle"}`}
-              style={bestAttempt ? { width: `${Math.max(0, Math.min(100, bestAttempt.scorePercent || 0))}%` } : null}
+              style={
+                bestAttempt
+                  ? {
+                      width: `${metersReady ? Math.max(0, Math.min(100, bestAttempt.scorePercent || 0)) : 0}%`,
+                      transitionDelay: metersReady ? "180ms" : "0ms",
+                    }
+                  : null
+              }
             />
           </div>
 

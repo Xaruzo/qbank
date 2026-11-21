@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import MarkdownText from "./MarkdownText";
 import usePlainTextCopy from "../../utils/usePlainTextCopy";
+import { useMeterReady } from "../../controllers/useMeterReady";
 
 export default function QuestionDetail({
   question,
@@ -46,6 +47,7 @@ export default function QuestionDetail({
 }) {
   const allowEdit = canEditQuestion ?? !!canManageQuestions;
   const allowDelete = canDeleteQuestion ?? !!canManageQuestions;
+  const metersReady = useMeterReady(true);
   const [pick, setPick] = useState(null);
   const [showSol, setShowSol] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -722,14 +724,18 @@ export default function QuestionDetail({
               onClick={() => setShowSol((prev) => !prev)}
             >
               <Lightbulb size={14} />
-              <span>{showSol ? "Hide Solution" : "Show Solution"}</span>
+              <span>
+                <span className="qb-det-footer-text-full">{showSol ? "Hide Solution" : "Show Solution"}</span>
+                <span className="qb-det-footer-text-short">{showSol ? "Hide Sol." : "Solution"}</span>
+              </span>
               <ChevronDown size={14} className={`qb-reveal-caret${showSol ? " is-open" : ""}`} />
             </button>
           )}
           {pick === null && (
             <div className="qb-det-footer-hint sm:!text-xs">
               <MousePointerClick size={13} className="qb-det-footer-hint-ico" />
-              <span>Tap a choice to check your answer</span>
+              <span className="qb-det-footer-text-full">Tap a choice to check your answer</span>
+              <span className="qb-det-footer-text-short">Tap a choice</span>
             </div>
           )}
         </div>
@@ -745,10 +751,15 @@ export default function QuestionDetail({
             ) : (
               <AlertCircle size={14} className="qb-det-footer-verdict-ico" />
             )}
-            <span>
+            <span className="qb-det-footer-text-full">
               {pick === question.correct
                 ? `Correct! Choice ${LETTERS[question.correct]} is right.`
                 : `Incorrect. The correct answer is ${LETTERS[question.correct]}.`}
+            </span>
+            <span className="qb-det-footer-text-short">
+              {pick === question.correct
+                ? `Correct`
+                : `Ans: ${LETTERS[question.correct]}`}
             </span>
           </div>
         )}
@@ -793,7 +804,7 @@ export default function QuestionDetail({
                   <div className="qb-det-rail-progress-bar">
                     <div
                       className="qb-det-rail-progress-fill"
-                      style={{ width: `${progressPct}%` }}
+                      style={{ width: `${metersReady ? progressPct : 0}%` }}
                     />
                   </div>
                 </div>

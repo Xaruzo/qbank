@@ -159,7 +159,7 @@ export default function Stats({
           className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2.5 sm:gap-3"
           role="list"
         >
-          {statItems.map((item) => {
+          {statItems.map((item, idx) => {
             const isActive = topicFilter === item.id;
             const Icon = TOPIC_ICONS[item.id] || Layers;
             return (
@@ -204,7 +204,7 @@ export default function Stats({
 
                 <div className="mt-3">
                   <div className="text-2xl sm:text-[26px] font-extrabold leading-none tracking-tight text-qb-heading tabular-nums">
-                    <CountUp end={isVisible ? item.value : 0} duration={1100} />
+                    <CountUp end={isVisible ? item.value : 0} duration={750} />
                   </div>
                   <div className="mt-1.5 truncate text-[13px] font-semibold text-qb-mid">
                     {item.label}
@@ -215,7 +215,7 @@ export default function Stats({
                   <div className="flex items-center justify-between text-[11px] font-medium text-qb-muted">
                     <span>{item.id === "all" ? "Full bank" : "Share"}</span>
                     <span className="font-mono font-semibold text-qb-heading tabular-nums">
-                      <CountUp end={isVisible ? item.percent : 0} suffix="%" duration={1100} />
+                      <CountUp end={isVisible ? item.percent : 0} suffix="%" duration={750} />
                     </span>
                   </div>
                   <div
@@ -223,10 +223,11 @@ export default function Stats({
                     aria-hidden="true"
                   >
                     <div
-                      className="h-full rounded-full transition-all duration-500 ease-out"
+                      className="h-full rounded-full transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
                       style={{
                         width: isVisible ? `${Math.max(item.percent, 4)}%` : "0%",
                         backgroundColor: item.color,
+                        transitionDelay: isVisible ? `${idx * 45}ms` : "0ms",
                       }}
                     />
                   </div>

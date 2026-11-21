@@ -2,10 +2,13 @@ import { useState } from "react";
 import { AlertTriangle, ArrowUpRight, ChevronLeft, Clock3, Search, Trophy, TrendingUp, Target } from "lucide-react";
 import { LETTERS, TOPICS } from "../../constants/appConstants";
 import { buildQuestionLookup, formatAttemptDate, formatExamDuration, calculatePacingStats, getAttemptModeLabel } from "../../utils/mockExamAnalytics";
+import CountUp from "./CountUp";
+import { useMeterReady } from "../../controllers/useMeterReady";
 
 export default function MockAttemptDetail({ attempt, qMap, onBack, onReviewAttempt, onStartDrillMistakes }) {
   const [reviewSearch, setReviewSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const metersReady = useMeterReady(Boolean(attempt));
   if (!attempt) return null;
 
   const questionLookup = buildQuestionLookup(qMap);
@@ -114,7 +117,9 @@ export default function MockAttemptDetail({ attempt, qMap, onBack, onReviewAttem
             Saved Attempt ({getAttemptModeLabel(attempt.mode)})
           </div>
           <div className="qb-exam-summary-scoreline">
-            <div className="qb-exam-summary-n">{attempt.scorePercent}%</div>
+            <div className="qb-exam-summary-n">
+              <CountUp end={attempt.scorePercent || 0} duration={700} suffix="%" />
+            </div>
             <div className="qb-exam-summary-copy">
               <span>{attempt.correctCount} correct out of {attempt.totalCount} items</span>
               <span>{formatExamDuration(attempt.timeSpentMs)} spent on this run</span>
@@ -182,14 +187,20 @@ export default function MockAttemptDetail({ attempt, qMap, onBack, onReviewAttem
           <div className="qb-mock-topic-breakdown">
             <div className="qb-mock-subtitle">Subject Breakdown</div>
             <div className="qb-mock-topic-list">
-              {(attempt.topicStats || []).map((topic) => (
+              {(attempt.topicStats || []).map((topic, idx) => (
                 <div key={topic.topicId} className="qb-mock-topic-row">
                   <div className="qb-mock-topic-main">
                     <span className="qb-mock-topic-dot" style={{ background: topic.color }} />
                     <span className="qb-mock-topic-name">{topic.label}</span>
                   </div>
                   <div className="qb-mock-topic-bar">
-                    <span style={{ width: `${topic.accuracy}%`, background: topic.color }} />
+                    <span
+                      style={{
+                        width: `${metersReady ? topic.accuracy : 0}%`,
+                        background: topic.color,
+                        transitionDelay: metersReady ? `${idx * 55}ms` : "0ms",
+                      }}
+                    />
                   </div>
                   <div className="qb-mock-topic-meta">
                     {topic.correct}/{topic.total} correct

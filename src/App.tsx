@@ -37,6 +37,7 @@ import { useQuestionsController } from "./controllers/useQuestionsController";
 import { useThemeController } from "./controllers/useThemeController";
 import { useSettingsController } from "./controllers/useSettingsController";
 import { useViewRouter } from "./controllers/useViewRouter";
+import { useMeterReady } from "./controllers/useMeterReady";
 import { storageModel } from "./models/storageModel";
 import { tipsModel } from "./models/tipsModel";
 import { favoritesModel } from "./models/favoritesModel";
@@ -206,6 +207,7 @@ export default function App() {
   const handleSelectQuestion = goToQuestionDetail;
 
   const [editorAsideHostEl, setEditorAsideHostEl] = useState<HTMLElement | null>(null);
+  const listMetersReady = useMeterReady(view === "list");
 
   // PolicyPulse sidebar logic: the collapsed rail width persists across
   // reloads, the desktop shell starts expanded by default, and the
@@ -1307,7 +1309,7 @@ export default function App() {
                         <div className="space-y-2">
                           <div className="flex items-baseline gap-1.5">
                             <span className="text-2xl sm:text-[28px] font-extrabold leading-none text-qb-heading tabular-nums">
-                              {todayAnsweredCount}
+                              <CountUp end={todayAnsweredCount} duration={700} />
                             </span>
                             <span className="text-sm font-semibold text-qb-muted tabular-nums">
                               / {dailyStudyGoal}
@@ -1315,8 +1317,14 @@ export default function App() {
                           </div>
                           <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800/70 light:bg-slate-200" aria-hidden="true">
                             <div
-                              className="h-full rounded-full bg-sky-400 light:bg-sky-600 transition-all duration-300"
-                              style={{ width: `${Math.min(100, Math.round((todayAnsweredCount / Math.max(dailyStudyGoal, 1)) * 100))}%` }}
+                              className="h-full rounded-full bg-sky-400 light:bg-sky-600 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                              style={{
+                                width: `${
+                                  listMetersReady
+                                    ? Math.min(100, Math.round((todayAnsweredCount / Math.max(dailyStudyGoal, 1)) * 100))
+                                    : 0
+                                }%`,
+                              }}
                             />
                           </div>
                         </div>
@@ -1395,7 +1403,7 @@ export default function App() {
                             <div className="space-y-2">
                               <div className="flex items-baseline gap-1.5">
                                 <span className="text-2xl sm:text-[28px] font-extrabold leading-none text-qb-heading tabular-nums">
-                                  {masteryCounts.mastered}
+                                  <CountUp end={masteryCounts.mastered} duration={700} />
                                 </span>
                                 <span className="text-xs font-semibold text-qb-muted tabular-nums">
                                   / {qs.length} ({qs.length > 0 ? Math.round((masteryCounts.mastered / qs.length) * 100) : 0}%)
@@ -1403,9 +1411,14 @@ export default function App() {
                               </div>
                               <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800/70 light:bg-slate-200" aria-hidden="true">
                                 <div
-                                  className="h-full rounded-full bg-emerald-400 light:bg-emerald-600 transition-all duration-300"
+                                  className="h-full rounded-full bg-emerald-400 light:bg-emerald-600 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
                                   style={{
-                                    width: `${qs.length > 0 ? Math.min(100, Math.round((masteryCounts.mastered / qs.length) * 100)) : 0}%`,
+                                    width: `${
+                                      listMetersReady && qs.length > 0
+                                        ? Math.min(100, Math.round((masteryCounts.mastered / qs.length) * 100))
+                                        : 0
+                                    }%`,
+                                    transitionDelay: listMetersReady ? "75ms" : "0ms",
                                   }}
                                 />
                               </div>

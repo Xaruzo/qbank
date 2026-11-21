@@ -923,6 +923,10 @@
   border-radius: 18px;
 }
 
+.qb-det-footer-text-short {
+  display: none;
+}
+
 .qb-det-footer {
   position: sticky;
   bottom: 12px;
@@ -1536,18 +1540,27 @@ body.light .qb-timer-icon {
     border-radius: 10px;
   }
 
-  /* Compact Sticky Thumb Dock (single row when no reveal toggle, compact 2-row otherwise) */
+  /* Ultra-Compact Single-Row Sticky Thumb Dock on Mobile */
+  .qb-det-footer-text-full {
+    display: none;
+  }
+
+  .qb-det-footer-text-short {
+    display: inline;
+  }
+
   .qb-det-footer {
     bottom: 0;
     margin: auto -10px 0 -10px;
     border: none;
     border-top: 1px solid var(--border);
     border-radius: 0;
-    padding: 6px 10px calc(6px + env(safe-area-inset-bottom, 0px));
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 5px 10px calc(5px + env(safe-area-inset-bottom, 0px));
+    display: flex;
+    flex-wrap: nowrap;
     align-items: center;
-    gap: 5px 8px;
+    justify-content: space-between;
+    gap: 6px;
     background: rgba(13, 21, 36, 0.96);
     box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.28);
   }
@@ -1562,29 +1575,34 @@ body.light .qb-timer-icon {
     display: contents;
   }
 
-  .qb-det-footer-hint,
-  .qb-det-footer-verdict {
-    grid-column: 1;
-    grid-row: 1;
-    order: 0;
+  .qb-det-footer-hint {
+    order: 2;
+    flex: 1 1 auto;
+    min-width: 0;
     min-height: 0;
     font-size: 11px;
-    line-height: 1.25;
+    line-height: 1.2;
     justify-content: flex-start;
-    gap: 5px;
-  }
-
-  .qb-det-footer.has-reveal .qb-det-footer-hint,
-  .qb-det-footer.has-reveal .qb-det-footer-verdict {
-    grid-column: 1 / -1;
-    grid-row: 1;
+    gap: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .qb-det-footer-verdict {
-    padding: 3px 7px;
-    border-radius: 6px;
-    width: fit-content;
-    max-width: 100%;
+    order: 2;
+    flex: 0 1 auto;
+    min-width: 0;
+    height: 28px;
+    padding: 0 7px;
+    border-radius: 7px;
+    font-size: 11px;
+    line-height: 1;
+    justify-content: flex-start;
+    gap: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .qb-det-footer-verdict.ok {
@@ -1598,47 +1616,44 @@ body.light .qb-timer-icon {
   }
 
   .qb-reveal-toggle {
-    grid-column: 1;
-    grid-row: 2;
-    justify-self: start;
-    height: 30px;
-    padding: 0 9px;
-    font-size: 11.5px;
+    order: 1;
+    flex-shrink: 0;
+    height: 28px;
+    padding: 0 8px;
+    font-size: 11px;
     gap: 4px;
-    border-radius: 8px;
-    max-width: 100%;
+    border-radius: 7px;
+  }
+
+  .qb-reveal-caret {
+    display: none;
   }
 
   .qb-det-footer-right {
-    grid-column: 2;
-    grid-row: 1;
-    justify-self: end;
+    order: 3;
+    margin-left: auto;
+    flex-shrink: 0;
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-  }
-
-  .qb-det-footer.has-reveal .qb-det-footer-right {
-    grid-column: 2;
-    grid-row: 2;
+    gap: 4px;
   }
 
   .qb-det-navbtn {
-    height: 30px;
-    min-width: 62px;
-    padding: 0 9px;
+    height: 28px;
+    min-width: 52px;
+    padding: 0 8px;
     justify-content: center;
-    font-size: 11.5px;
-    gap: 3px;
-    border-radius: 8px;
+    font-size: 11px;
+    gap: 2px;
+    border-radius: 7px;
   }
 
   .qb-det-footer-hint-ico,
   .qb-det-footer-verdict-ico,
   .qb-det-navbtn svg,
   .qb-reveal-toggle svg {
-    width: 12px;
-    height: 12px;
+    width: 11px;
+    height: 11px;
   }
 }
 
@@ -1649,30 +1664,31 @@ body.light .qb-timer-icon {
   }
 
   .qb-det-footer {
-    padding: 5px 8px calc(5px + env(safe-area-inset-bottom, 0px));
-    gap: 4px 6px;
+    padding: 4px 8px calc(4px + env(safe-area-inset-bottom, 0px));
+    gap: 4px;
   }
 
-  .qb-det-footer-hint,
+  .qb-det-footer-hint {
+    font-size: 10.5px;
+  }
+
   .qb-det-footer-verdict {
+    height: 26px;
+    padding: 0 6px;
     font-size: 10.5px;
   }
 
   .qb-reveal-toggle {
-    height: 28px;
-    padding: 0 8px;
-    font-size: 11px;
-  }
-
-  .qb-reveal-caret {
-    display: none;
+    height: 26px;
+    padding: 0 7px;
+    font-size: 10.5px;
   }
 
   .qb-det-navbtn {
-    height: 28px;
-    min-width: 56px;
-    padding: 0 8px;
-    font-size: 11px;
+    height: 26px;
+    min-width: 46px;
+    padding: 0 7px;
+    font-size: 10.5px;
   }
 }
 
