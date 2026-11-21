@@ -30,6 +30,7 @@ import {
   Calculator,
   BrainCircuit,
   ClipboardList,
+  ChevronDown,
 } from "lucide-react";
 import { personalQuestionsModel, type PersonalQuestion } from "../models/personalQuestionsModel";
 import {
@@ -42,6 +43,8 @@ import { TOPICS, PROBLEM_LABELS, LETTERS } from "../constants/appConstants";
 import { fileToImagePayload } from "../utils/questionImageImport";
 import CustomSelect from "./components/CustomSelect";
 import MarkdownText from "./components/MarkdownText";
+import QuestionRichEditor, { type QuestionRichEditorHandle } from "./components/QuestionRichEditor";
+import SymbolToolbar from "./components/SymbolToolbar";
 import { MyQuestionsSkeletonLoader } from "./components/SkeletonLoader";
 import type { SelectOption } from "../types";
 
@@ -130,6 +133,19 @@ export function MyQuestionsView({
 
   // Question Form state
   const [form, setForm] = useState(DEFAULT_FORM);
+  const questionEditorRef = useRef<QuestionRichEditorHandle | null>(null);
+  const solutionEditorRef = useRef<QuestionRichEditorHandle | null>(null);
+  const choiceEditorRefs = useRef<(QuestionRichEditorHandle | null)[]>([]);
+  const activeChoiceRef = useRef<QuestionRichEditorHandle | null>(null);
+  const [activeChoiceIdx, setActiveChoiceIdx] = useState<number | null>(null);
+  const [choiceFormats, setChoiceFormats] = useState({
+    bold: false,
+    italic: false,
+    underline: false,
+  });
+  const [showStemSymbols, setShowStemSymbols] = useState(false);
+  const [showChoiceSymbols, setShowChoiceSymbols] = useState(false);
+  const [showSolutionSymbols, setShowSolutionSymbols] = useState(false);
 
   // AI Scan state
   const [importImage, setImportImage] = useState<{ base64: string; mimeType: string } | null>(null);
@@ -282,6 +298,8 @@ export function MyQuestionsView({
   const resetCreator = () => {
     setEditingId(null);
     setForm(DEFAULT_FORM);
+    setActiveChoiceIdx(null);
+    activeChoiceRef.current = null;
     setImportImage(null);
     setExtractError("");
     setExtractSuccess("");
@@ -1525,7 +1543,11 @@ export function MyQuestionsView({
                                 {LETTERS[cIdx]}
                               </span>
                               <span className="min-w-0 break-words">
-                                {choice || `Option ${LETTERS[cIdx]}`}
+                                {choice ? (
+                                  <MarkdownText text={choice} inline />
+                                ) : (
+                                  `Option ${LETTERS[cIdx]}`
+                                )}
                               </span>
                             </div>
                             {isCorrect && (
@@ -2457,20 +2479,37 @@ export function MyQuestionsView({
             </div>
 
             <div className="flex flex-col gap-2">
-              <label
-                htmlFor="mq-question-stem"
-                className="text-xs font-bold uppercase tracking-wider text-qb-mid"
-              >
-                Question Stem
-              </label>
-              <textarea
-                id="mq-question-stem"
-                rows={4}
+              <div className="flex items-center justify-between gap-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-qb-mid">
+                  Question Stem
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowStemSymbols((v) => !v)}
+                  aria-expanded={showStemSymbols}
+                  className={`inline-flex min-h-[30px] cursor-pointer items-center gap-1 rounded-lg border px-2.5 text-[11px] font-semibold transition-colors ${
+                    showStemSymbols
+                      ? "border-amber-500/45 bg-amber-500/14 text-amber-300 light:border-amber-300 light:bg-amber-50 light:text-amber-800"
+                      : "border-qb-border bg-qb-input text-qb-mid hover:border-qb-border-hover hover:text-qb-heading"
+                  }`}
+                >
+                  <span>Symbols &amp; Math</span>
+                  <ChevronDown
+                    size={12}
+                    className={`transition-transform duration-200 ${showStemSymbols ? "rotate-180" : ""}`}
+                    aria-hidden="true"
+                  />
+                </button>
+              </div>
+              <QuestionRichEditor
+                ref={questionEditorRef}
                 value={form.question}
-                onChange={(e) => setForm({ ...form, question: e.target.value })}
-                placeholder="Type your question here (supports math formulas like $1/4$ or $x^2$)..."
-                className="min-h-[112px] w-full resize-y rounded-xl border border-qb-border bg-qb-input px-3.5 py-2.5 text-base leading-relaxed text-qb-heading placeholder:text-qb-muted/70 focus:border-amber-500 focus:outline-none @md:text-sm"
+                onChange={(next) => setForm((f) => ({ ...f, question: next }))}
+                placeholder="Type your question here... Highlight text to format."
+                minHeightPx={104}
+                ariaLabel="Question Stem"
               />
+              {showStemSymbols && <SymbolToolbar richEditorRef={questionEditorRef} />}
             </div>
 
             <div className="flex flex-col gap-2.5">
@@ -2478,29 +2517,52 @@ export function MyQuestionsView({
                 <label className="text-xs font-bold uppercase tracking-wider text-qb-mid">
                   Answer Choices (A – {LETTERS[form.choices.length - 1]})
                 </label>
-                {form.choices.length < 5 ? (
+                <div className="flex flex-wrap items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={() => setForm({ ...form, choices: [...form.choices, ""] })}
-                    className="min-h-[32px] cursor-pointer rounded-lg border border-qb-border bg-qb-input px-2.5 text-xs font-semibold text-qb-mid transition-colors hover:border-qb-border-hover hover:text-qb-heading"
+                    onClick={() => setShowChoiceSymbols((v) => !v)}
+                    aria-expanded={showChoiceSymbols}
+                    className={`inline-flex min-h-[32px] cursor-pointer items-center gap-1 rounded-lg border px-2.5 text-[11px] font-semibold transition-colors ${
+                      showChoiceSymbols
+                        ? "border-amber-500/45 bg-amber-500/14 text-amber-300 light:border-amber-300 light:bg-amber-50 light:text-amber-800"
+                        : "border-qb-border bg-qb-input text-qb-mid hover:border-qb-border-hover hover:text-qb-heading"
+                    }`}
                   >
-                    + Add Option E
+                    <span>Symbols &amp; Format</span>
+                    <ChevronDown
+                      size={12}
+                      className={`transition-transform duration-200 ${showChoiceSymbols ? "rotate-180" : ""}`}
+                      aria-hidden="true"
+                    />
                   </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setForm({
-                        ...form,
-                        choices: form.choices.slice(0, 4),
-                        correct: Math.min(form.correct, 3),
-                      })
-                    }
-                    className="min-h-[32px] cursor-pointer rounded-lg border border-qb-border bg-qb-input px-2.5 text-xs font-semibold text-qb-mid transition-colors hover:border-qb-border-hover hover:text-qb-heading"
-                  >
-                    Remove Option E
-                  </button>
-                )}
+                  {form.choices.length < 5 ? (
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, choices: [...form.choices, ""] })}
+                      className="min-h-[32px] cursor-pointer rounded-lg border border-qb-border bg-qb-input px-2.5 text-xs font-semibold text-qb-mid transition-colors hover:border-qb-border-hover hover:text-qb-heading"
+                    >
+                      + Add Option E
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (activeChoiceIdx === 4) {
+                          setActiveChoiceIdx(null);
+                          activeChoiceRef.current = null;
+                        }
+                        setForm({
+                          ...form,
+                          choices: form.choices.slice(0, 4),
+                          correct: Math.min(form.correct, 3),
+                        });
+                      }}
+                      className="min-h-[32px] cursor-pointer rounded-lg border border-qb-border bg-qb-input px-2.5 text-xs font-semibold text-qb-mid transition-colors hover:border-qb-border-hover hover:text-qb-heading"
+                    >
+                      Remove Option E
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="flex flex-col gap-2.5">
@@ -2526,21 +2588,42 @@ export function MyQuestionsView({
                       >
                         {LETTERS[idx]}
                       </button>
-                      <input
-                        type="text"
-                        value={choice}
-                        onChange={(e) => {
-                          const next = [...form.choices];
-                          next[idx] = e.target.value;
-                          setForm({ ...form, choices: next });
+                      <QuestionRichEditor
+                        ref={(el) => {
+                          choiceEditorRefs.current[idx] = el;
                         }}
+                        singleLine
+                        className="min-w-0 flex-1"
+                        value={choice}
                         placeholder={`Option ${LETTERS[idx]}`}
-                        className="min-h-[44px] min-w-0 flex-1 rounded-xl border border-qb-border bg-qb-input px-3.5 py-2 text-base text-qb-heading placeholder:text-qb-muted/70 focus:border-amber-500 focus:outline-none @md:text-sm"
+                        ariaLabel={`Option ${LETTERS[idx]}`}
+                        onFocus={() => {
+                          setActiveChoiceIdx(idx);
+                          activeChoiceRef.current = choiceEditorRefs.current[idx];
+                        }}
+                        onFormatChange={setChoiceFormats}
+                        onChange={(next) => {
+                          setForm((f) => {
+                            const updated = [...f.choices];
+                            updated[idx] = next;
+                            return { ...f, choices: updated };
+                          });
+                        }}
                       />
                     </div>
                   );
                 })}
               </div>
+              {showChoiceSymbols && (
+                <SymbolToolbar
+                  richEditorRef={activeChoiceRef}
+                  showInlineFormats
+                  isBoldActive={activeChoiceIdx !== null && choiceFormats.bold}
+                  isItalicActive={activeChoiceIdx !== null && choiceFormats.italic}
+                  isUnderlineActive={activeChoiceIdx !== null && choiceFormats.underline}
+                  disabled={activeChoiceIdx === null}
+                />
+              )}
               <p className="text-xs text-qb-muted">
                 Tap a letter badge (A–{LETTERS[form.choices.length - 1]}) to mark the correct
                 answer. Currently marked:{" "}
@@ -2552,20 +2635,37 @@ export function MyQuestionsView({
             </div>
 
             <div className="flex flex-col gap-2">
-              <label
-                htmlFor="mq-solution-input"
-                className="text-xs font-bold uppercase tracking-wider text-qb-mid"
-              >
-                Step-by-Step Solution (Optional)
-              </label>
-              <textarea
-                id="mq-solution-input"
-                rows={3}
+              <div className="flex items-center justify-between gap-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-qb-mid">
+                  Step-by-Step Solution (Optional)
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowSolutionSymbols((v) => !v)}
+                  aria-expanded={showSolutionSymbols}
+                  className={`inline-flex min-h-[30px] cursor-pointer items-center gap-1 rounded-lg border px-2.5 text-[11px] font-semibold transition-colors ${
+                    showSolutionSymbols
+                      ? "border-amber-500/45 bg-amber-500/14 text-amber-300 light:border-amber-300 light:bg-amber-50 light:text-amber-800"
+                      : "border-qb-border bg-qb-input text-qb-mid hover:border-qb-border-hover hover:text-qb-heading"
+                  }`}
+                >
+                  <span>Symbols &amp; Math</span>
+                  <ChevronDown
+                    size={12}
+                    className={`transition-transform duration-200 ${showSolutionSymbols ? "rotate-180" : ""}`}
+                    aria-hidden="true"
+                  />
+                </button>
+              </div>
+              <QuestionRichEditor
+                ref={solutionEditorRef}
                 value={form.solution}
-                onChange={(e) => setForm({ ...form, solution: e.target.value })}
+                onChange={(next) => setForm((f) => ({ ...f, solution: next }))}
                 placeholder="Explain the step-by-step solution..."
-                className="min-h-[96px] w-full resize-y rounded-xl border border-qb-border bg-qb-input px-3.5 py-2.5 text-base leading-relaxed text-qb-heading placeholder:text-qb-muted/70 focus:border-amber-500 focus:outline-none @md:text-sm"
+                minHeightPx={96}
+                ariaLabel="Step-by-Step Solution"
               />
+              {showSolutionSymbols && <SymbolToolbar richEditorRef={solutionEditorRef} />}
             </div>
 
             <button
