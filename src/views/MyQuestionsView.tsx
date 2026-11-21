@@ -929,14 +929,14 @@ export function MyQuestionsView({
   ]);
 
   const showAnimatedTabGlider = !isMotionDisabled && tabGliderRect !== null;
-  const tabButtonMotionClass = isMotionDisabled ? "transition-none" : "transition-colors duration-150";
+  const tabButtonMotionClass = isMotionDisabled ? "transition-none" : "transition-colors duration-200";
   const getTabButtonClass = (isActive: boolean, extraClass = "") => {
     const stateClass = isActive
       ? showAnimatedTabGlider
-        ? "border-transparent bg-transparent text-amber-300 light:text-amber-800"
-        : "border-amber-500/45 bg-amber-500/[0.16] text-amber-300 shadow-xs light:border-amber-300 light:bg-white light:text-amber-800"
-      : "border-qb-border/75 bg-qb-bg/55 text-qb-mid hover:border-qb-border-hover hover:text-qb-heading sm:border-transparent sm:bg-transparent";
-    return `relative z-[2] inline-flex min-h-[40px] w-full shrink-0 cursor-pointer items-center justify-start gap-2 whitespace-nowrap rounded-lg border px-3 py-2 text-xs font-semibold sm:h-[34px] sm:min-h-0 sm:w-auto sm:justify-center sm:gap-1.5 sm:rounded-[7px] sm:px-2.5 sm:py-0 ${tabButtonMotionClass} ${stateClass} ${extraClass}`.trim();
+        ? "border-transparent bg-transparent text-[#070c18] font-bold light:text-white"
+        : "border-transparent bg-gradient-to-br from-amber-300 via-amber-500 to-orange-500 text-[#070c18] font-bold shadow-[0_4px_20px_rgba(245,158,11,0.45),inset_0_1px_0_rgba(255,255,255,0.38)] light:from-amber-500 light:via-amber-600 light:to-orange-600 light:text-white light:shadow-[0_4px_16px_rgba(217,119,6,0.32),inset_0_1px_0_rgba(255,255,255,0.28)]"
+      : "border-white/[0.08] bg-[#070b15] text-qb-heading shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] hover:border-white/[0.16] hover:bg-[#0b1122] light:border-slate-200/90 light:bg-white light:text-slate-700 light:shadow-[0_1px_2px_rgba(15,23,42,0.05)] light:hover:border-slate-300 light:hover:bg-slate-50 sm:border-transparent sm:bg-transparent sm:text-qb-mid sm:shadow-none sm:hover:bg-transparent sm:hover:text-qb-heading sm:light:bg-transparent sm:light:shadow-none";
+    return `relative z-[2] inline-flex min-h-[38px] w-full shrink-0 cursor-pointer items-center justify-start gap-2 whitespace-nowrap rounded-xl border px-3 py-1.5 text-[11.5px] font-semibold sm:h-[31px] sm:min-h-0 sm:w-auto sm:justify-center sm:gap-1.5 sm:rounded-full sm:px-3 sm:py-0 ${tabButtonMotionClass} ${stateClass} ${extraClass}`.trim();
   };
 
   return (
@@ -1028,12 +1028,12 @@ export function MyQuestionsView({
           ref={tablistRef}
           role="tablist"
           aria-label="Personal question bank sections"
-          className="relative grid w-full grid-cols-2 gap-1.5 rounded-xl border border-qb-border bg-qb-surface p-1.5 sm:inline-flex sm:w-fit sm:max-w-full sm:items-center sm:gap-1 sm:overflow-x-auto sm:rounded-[10px] sm:p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="relative grid w-full grid-cols-2 gap-1.5 rounded-2xl border border-qb-border bg-[#0e1526] light:bg-slate-200/75 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] light:shadow-[inset_0_1px_2px_rgba(15,23,42,0.06)] sm:inline-flex sm:w-fit sm:max-w-full sm:items-center sm:gap-0.5 sm:overflow-x-auto sm:rounded-full sm:bg-gradient-to-b sm:from-[#0f172a] sm:to-[#080e1a] sm:p-1 sm:light:from-slate-100 sm:light:to-slate-200/85 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {showAnimatedTabGlider && (
             <span
               aria-hidden="true"
-              className={`pointer-events-none absolute top-0 left-0 z-[1] box-border rounded-lg border border-amber-500/45 bg-amber-500/[0.16] shadow-[0_2px_10px_rgba(245,166,35,0.14)] light:border-amber-300 light:bg-white light:shadow-xs sm:rounded-[7px] ${
+              className={`pointer-events-none absolute top-0 left-0 z-[1] box-border rounded-xl bg-gradient-to-br from-amber-300 via-amber-500 to-orange-500 shadow-[0_4px_20px_rgba(245,158,11,0.45),inset_0_1px_0_rgba(255,255,255,0.38)] light:from-amber-500 light:via-amber-600 light:to-orange-600 light:shadow-[0_4px_16px_rgba(217,119,6,0.32),inset_0_1px_0_rgba(255,255,255,0.28)] sm:rounded-full ${
                 tabGliderReady
                   ? "will-change-[transform,width] transition-[transform,width,height] duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
                   : "transition-none"
@@ -1056,16 +1056,19 @@ export function MyQuestionsView({
             onClick={() => setActiveTab("private")}
             className={getTabButtonClass(activeTab === "private")}
           >
-            <Lock size={13} className="shrink-0" />
+            <Lock
+              size={13}
+              className={`shrink-0 ${activeTab === "private" ? "text-current" : "text-sky-400 light:text-sky-600 sm:text-current"}`}
+            />
             <span className="truncate">Private Bank</span>
             <span
               aria-hidden={loading}
-              className={`ml-auto inline-flex h-[18px] min-w-[20px] shrink-0 items-center justify-center rounded px-1.5 text-[10.5px] font-bold tabular-nums sm:ml-0 ${
+              className={`ml-auto inline-flex h-[16px] min-w-[18px] shrink-0 items-center justify-center rounded-full px-1 text-[10px] font-bold tabular-nums sm:ml-0 ${
                 loading
                   ? `bg-qb-input/80 text-transparent ${isMotionDisabled ? "" : "animate-pulse"}`
                   : activeTab === "private"
-                    ? "bg-amber-500/20 text-amber-300 light:bg-amber-100 light:text-amber-800"
-                    : "bg-qb-input text-qb-mid"
+                    ? "bg-[#070c18]/18 text-[#070c18] light:bg-white/25 light:text-white"
+                    : "bg-white/[0.07] text-qb-mid light:bg-slate-200/80 light:text-slate-700"
               }`}
             >
               {loading ? "0" : privateQuestions.length}
@@ -1087,16 +1090,21 @@ export function MyQuestionsView({
             }
             className={getTabButtonClass(activeTab === "published")}
           >
-            <Globe size={13} className="shrink-0" />
+            <Globe
+              size={13}
+              className={`shrink-0 ${activeTab === "published" ? "text-current" : "text-emerald-400 light:text-emerald-600 sm:text-current"}`}
+            />
             <span className="truncate">Submissions</span>
             <span
               aria-hidden={loading}
-              className={`ml-auto inline-flex h-[18px] min-w-[20px] shrink-0 items-center justify-center rounded px-1.5 text-[10.5px] font-bold tabular-nums sm:ml-0 ${
+              className={`ml-auto inline-flex h-[16px] min-w-[18px] shrink-0 items-center justify-center rounded-full px-1 text-[10px] font-bold tabular-nums sm:ml-0 ${
                 loading
                   ? `bg-qb-input/80 text-transparent ${isMotionDisabled ? "" : "animate-pulse"}`
-                  : pendingOwnCount > 0 || activeTab === "published"
-                    ? "bg-amber-500/20 text-amber-300 light:bg-amber-100 light:text-amber-800"
-                    : "bg-qb-input text-qb-mid"
+                  : activeTab === "published"
+                    ? "bg-[#070c18]/18 text-[#070c18] light:bg-white/25 light:text-white"
+                    : pendingOwnCount > 0
+                      ? "bg-amber-500/20 text-amber-300 light:bg-amber-100 light:text-amber-800"
+                      : "bg-white/[0.07] text-qb-mid light:bg-slate-200/80 light:text-slate-700"
               }`}
             >
               {loading ? "0" : submittedQuestions.length}
@@ -1113,16 +1121,19 @@ export function MyQuestionsView({
             onClick={() => setActiveTab("mini-mocks")}
             className={getTabButtonClass(activeTab === "mini-mocks")}
           >
-            <Layers size={13} className="shrink-0" />
+            <Layers
+              size={13}
+              className={`shrink-0 ${activeTab === "mini-mocks" ? "text-current" : "text-violet-400 light:text-violet-600 sm:text-current"}`}
+            />
             <span className="truncate">Mini Mocks</span>
             <span
               aria-hidden={loadingMocks}
-              className={`ml-auto inline-flex h-[18px] min-w-[20px] shrink-0 items-center justify-center rounded px-1.5 text-[10.5px] font-bold tabular-nums sm:ml-0 ${
+              className={`ml-auto inline-flex h-[16px] min-w-[18px] shrink-0 items-center justify-center rounded-full px-1 text-[10px] font-bold tabular-nums sm:ml-0 ${
                 loadingMocks
                   ? `bg-qb-input/80 text-transparent ${isMotionDisabled ? "" : "animate-pulse"}`
                   : activeTab === "mini-mocks"
-                    ? "bg-amber-500/20 text-amber-300 light:bg-amber-100 light:text-amber-800"
-                    : "bg-qb-input text-qb-mid"
+                    ? "bg-[#070c18]/18 text-[#070c18] light:bg-white/25 light:text-white"
+                    : "bg-white/[0.07] text-qb-mid light:bg-slate-200/80 light:text-slate-700"
               }`}
             >
               {loadingMocks ? "0" : totalMiniMocksCount}
@@ -1142,7 +1153,10 @@ export function MyQuestionsView({
             }}
             className={getTabButtonClass(activeTab === "create")}
           >
-            <Plus size={13} className="shrink-0" />
+            <Plus
+              size={13}
+              className={`shrink-0 ${activeTab === "create" ? "text-current" : "text-amber-400 light:text-amber-600 sm:text-current"}`}
+            />
             <span className="truncate">{editingId ? "Edit Question" : "Creator"}</span>
           </button>
 
@@ -1157,16 +1171,21 @@ export function MyQuestionsView({
               onClick={() => setActiveTab("review")}
               className={getTabButtonClass(activeTab === "review", "col-span-2 sm:col-span-1")}
             >
-              <ShieldCheck size={13} className="shrink-0" />
+              <ShieldCheck
+                size={13}
+                className={`shrink-0 ${activeTab === "review" ? "text-current" : "text-emerald-400 light:text-emerald-600 sm:text-current"}`}
+              />
               <span className="truncate">Review Queue</span>
               <span
                 aria-hidden={loadingPendingQueue}
-                className={`ml-auto inline-flex h-[18px] min-w-[20px] shrink-0 items-center justify-center rounded px-1.5 text-[10.5px] font-bold tabular-nums sm:ml-0 ${
+                className={`ml-auto inline-flex h-[16px] min-w-[18px] shrink-0 items-center justify-center rounded-full px-1 text-[10px] font-bold tabular-nums sm:ml-0 ${
                   loadingPendingQueue
                     ? `bg-qb-input/80 text-transparent ${isMotionDisabled ? "" : "animate-pulse"}`
-                    : pendingQueue.length > 0 || activeTab === "review"
-                      ? "bg-amber-500/20 text-amber-300 light:bg-amber-100 light:text-amber-800"
-                      : "bg-qb-input text-qb-mid"
+                    : activeTab === "review"
+                      ? "bg-[#070c18]/18 text-[#070c18] light:bg-white/25 light:text-white"
+                      : pendingQueue.length > 0
+                        ? "bg-amber-500/20 text-amber-300 light:bg-amber-100 light:text-amber-800"
+                        : "bg-white/[0.07] text-qb-mid light:bg-slate-200/80 light:text-slate-700"
                 }`}
               >
                 {loadingPendingQueue ? "0" : pendingQueue.length}
@@ -1186,7 +1205,7 @@ export function MyQuestionsView({
                 />
                 <input
                   type="text"
-                  placeholder="Search questions, labels, or choices..."
+                  placeholder="Search my questions..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="min-h-[44px] w-full min-w-0 rounded-xl border border-qb-border bg-qb-input py-2 pl-10 pr-10 text-base text-qb-heading placeholder:text-qb-muted/75 focus:border-amber-500 focus:outline-none @md:text-sm"
@@ -1677,7 +1696,7 @@ export function MyQuestionsView({
                     type="text"
                     value={miniMockForm.title}
                     onChange={(e) => setMiniMockForm({ ...miniMockForm, title: e.target.value })}
-                    placeholder="e.g. Numerical Word Problems Sprint"
+                    placeholder="e.g. Numerical Sprint"
                     className="min-h-[44px] w-full rounded-xl border border-qb-border bg-qb-input px-3.5 py-2 text-base text-qb-heading placeholder:text-qb-muted/70 focus:border-amber-500 focus:outline-none @md:text-sm"
                   />
                 </div>
@@ -1696,7 +1715,7 @@ export function MyQuestionsView({
                     onChange={(e) =>
                       setMiniMockForm({ ...miniMockForm, description: e.target.value })
                     }
-                    placeholder="Focus areas, passing goal, or tips for takers..."
+                    placeholder="Optional notes or goal..."
                     className="min-h-[44px] w-full rounded-xl border border-qb-border bg-qb-input px-3.5 py-2 text-base text-qb-heading placeholder:text-qb-muted/70 focus:border-amber-500 focus:outline-none @md:text-sm"
                   />
                 </div>
@@ -1841,7 +1860,7 @@ export function MyQuestionsView({
                           type="text"
                           value={pickerSearch}
                           onChange={(e) => setPickerSearch(e.target.value)}
-                          placeholder="Filter your questions to include..."
+                          placeholder="Filter questions..."
                           className="min-h-[38px] w-full rounded-xl border border-qb-border bg-qb-input py-1.5 pl-9 pr-3 text-sm text-qb-heading placeholder:text-qb-muted/70 focus:border-amber-500 focus:outline-none"
                         />
                       </div>
@@ -2152,7 +2171,7 @@ export function MyQuestionsView({
                     type="text"
                     value={miniMockSearch}
                     onChange={(e) => setMiniMockSearch(e.target.value)}
-                    placeholder="Search community mini mocks..."
+                    placeholder="Search mini mocks..."
                     className="min-h-[40px] w-full rounded-xl border border-qb-border bg-qb-input py-1.5 pl-9 pr-8 text-sm text-qb-heading placeholder:text-qb-muted/75 focus:border-amber-500 focus:outline-none"
                   />
                   {miniMockSearch && (
@@ -2415,7 +2434,7 @@ export function MyQuestionsView({
                   type="text"
                   value={form.label}
                   onChange={(e) => setForm({ ...form, label: e.target.value })}
-                  placeholder="e.g. Ratio Problem, Percentage, Analogy"
+                  placeholder="e.g. Ratio, Analogy"
                   className="min-h-[44px] w-full rounded-xl border border-qb-border bg-qb-input px-3.5 py-2 text-base text-qb-heading placeholder:text-qb-muted/70 focus:border-amber-500 focus:outline-none @md:text-sm"
                 />
                 <div className="flex flex-wrap gap-1.5 pt-0.5">

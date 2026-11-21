@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useMeterReady } from "../../controllers/useMeterReady";
 import {
   Flame,
@@ -23,8 +23,12 @@ import {
   GraduationCap,
   Trophy,
   History,
+  Plus,
+  Search,
+  ShieldCheck,
 } from "lucide-react";
 import CountUp from "./CountUp";
+import cseHubWorkbenchImg from "../../assets/images/cse_hub_workbench_1795232246631.jpg";
 import {
   getMasterySummary,
   getStudyStreakSummary,
@@ -64,7 +68,10 @@ interface DashboardPageProps {
   onOpenQuestionBank: (opts?: {
     topic?: TopicId | "all";
     mastery?: "all" | "unseen" | "missed" | "mastered";
+    search?: string;
   }) => void;
+  canCreateQuestions?: boolean;
+  onAddQuestion?: () => void;
   onGoMockExam: () => void;
   onOpenSettings: (tab?: string) => void;
   onRequireAuth: () => void;
@@ -170,10 +177,14 @@ export default function DashboardPage({
   onStartExam,
   onStartQuickPractice,
   onOpenQuestionBank,
+  canCreateQuestions = false,
+  onAddQuestion,
   onGoMockExam,
   onOpenSettings,
   onRequireAuth,
 }: DashboardPageProps) {
+  const [hubQuery, setHubQuery] = useState("");
+  const [hubImgError, setHubImgError] = useState(false);
   const [hoveredDayKey, setHoveredDayKey] = useState<string | null>(null);
   const [pinnedDayKey, setPinnedDayKey] = useState<string | null>(null);
   const [tooltipAnchor, setTooltipAnchor] = useState<{ dayKey: string; idx: number }>({
@@ -316,67 +327,273 @@ export default function DashboardPage({
     onStartExam(presetId);
   };
 
+  const handleHubSearchSubmit = (event: FormEvent) => {
+    event.preventDefault();
+    onOpenQuestionBank({
+      topic: "all",
+      mastery: "all",
+      search: hubQuery.trim(),
+    });
+  };
+
+  const topicQuickFilters: Array<{
+    id: TopicId;
+    label: string;
+  }> = [
+    { id: "numerical", label: "Numerical" },
+    { id: "verbal", label: "Verbal" },
+    { id: "general", label: "General Info" },
+    { id: "analytical", label: "Analytical" },
+  ];
+
   return (
     <div className="fu space-y-4 sm:space-y-5 pb-3 sm:pb-0">
-      {/* Clean Executive Header */}
-      <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-3.5 pb-4 border-b border-qb-border">
-        <div className="min-w-0 space-y-1">
-          <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-qb-muted">
-            <span className="text-qb-accent">Study Dashboard</span>
-            <span aria-hidden="true">/</span>
-            <span>{trackLabel}</span>
+      {/* Studio Command Hub: Clean Top Context Bar + Mobile-First Workflow Order + Desktop 2-Column Split */}
+      <section
+        className="relative overflow-hidden rounded-2xl border border-qb-border bg-qb-surface p-3.5 sm:p-6"
+        aria-label="Study Command Hub"
+      >
+        <div
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(56,189,248,0.08),transparent_55%),radial-gradient(ellipse_at_top_right,rgba(245,166,35,0.08),transparent_50%)] light:bg-[radial-gradient(ellipse_at_bottom_left,rgba(37,99,235,0.05),transparent_55%),radial-gradient(ellipse_at_top_right,rgba(217,119,6,0.06),transparent_50%)]"
+          aria-hidden="true"
+        />
+
+        <div className="relative space-y-4 sm:space-y-5">
+          {/* Full-Width Single-Row Header Bar (prevents wrapping/orphaning on mobile) */}
+          <div className="flex items-center justify-between gap-2 border-b border-qb-border/75 pb-3">
+            <div className="min-w-0 flex items-center gap-1.5 text-[11.5px] sm:text-xs font-semibold text-qb-muted">
+              <span className="text-qb-accent shrink-0">Study Dashboard</span>
+              <span aria-hidden="true">·</span>
+              <span className="truncate tabular-nums">
+                {daysUntilExam !== null && daysUntilExam >= 0
+                  ? daysUntilExam === 0
+                    ? "Exam day today"
+                    : `${daysUntilExam}d until exam`
+                  : "5 subjects"}
+              </span>
+            </div>
+
+            {canCreateQuestions && onAddQuestion ? (
+              <button
+                type="button"
+                onClick={onAddQuestion}
+                className="inline-flex min-h-[34px] sm:min-h-[36px] items-center justify-center gap-1.5 rounded-lg border border-qb-border bg-qb-input px-3 py-1.5 text-xs font-semibold text-qb-heading transition-colors hover:border-amber-500/45 hover:bg-qb-surface-hover cursor-pointer whitespace-nowrap shrink-0"
+              >
+                <Plus size={13} className="text-qb-accent shrink-0" aria-hidden="true" />
+                <span>Add Question</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onOpenSettings("exam")}
+                className="inline-flex min-h-[34px] sm:min-h-[36px] items-center justify-center gap-1.5 rounded-lg border border-qb-border bg-qb-input px-3 py-1.5 text-xs font-semibold text-qb-heading transition-colors hover:border-amber-500/45 hover:bg-qb-surface-hover cursor-pointer whitespace-nowrap shrink-0"
+              >
+                <SlidersHorizontal size={13} className="text-qb-accent shrink-0" aria-hidden="true" />
+                <span>Exam Settings</span>
+              </button>
+            )}
           </div>
 
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-qb-heading text-balance leading-snug">
-            {firstName ? `Welcome back, ${firstName}` : "CSE Readiness Overview"}
-          </h1>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 lg:gap-7 items-stretch">
+            {/* Workbench Showcase: Second on mobile (after greeting/search/actions), Left (5/12) on desktop */}
+            <div className="order-2 lg:order-1 lg:col-span-5 flex flex-col justify-between overflow-hidden rounded-xl border border-qb-border bg-[#070d19] light:bg-slate-900">
+              <div className="relative h-[156px] sm:h-[190px] lg:h-auto lg:flex-1 lg:min-h-[210px] w-full overflow-hidden">
+                {!hubImgError ? (
+                  <img
+                    src={cseHubWorkbenchImg}
+                    alt="Translucent architectural glass study plates displaying geometric grids, golden ratio arcs, and progress charts"
+                    referrerPolicy="no-referrer"
+                    onError={() => setHubImgError(true)}
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] hover:scale-[1.02] motion-reduce:transform-none"
+                  />
+                ) : (
+                  <div
+                    className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-[#0b1528] via-[#0e1b33] to-[#08101e] p-4 text-center"
+                    aria-hidden="true"
+                  >
+                    <Layers size={28} className="text-amber-400/80" />
+                    <span className="text-xs font-semibold text-slate-300">
+                      CSE Study &amp; Readiness Workbench
+                    </span>
+                  </div>
+                )}
 
-          <p className="text-xs sm:text-sm text-qb-mid tabular-nums">
-            {todayCount}/{safeGoal} daily items
-            <span aria-hidden="true"> · </span>
-            {streakSummary.currentStreak}d streak
-            <span aria-hidden="true"> · </span>
-            {daysUntilExam !== null && daysUntilExam >= 0
-              ? daysUntilExam === 0
-                ? "Exam day today"
-                : `${daysUntilExam}d until exam`
-              : "80% passing target"}
-          </p>
-        </div>
+                {/* Measured Scrim for Guaranteed AA Contrast over Artwork */}
+                <div
+                  className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#050914] via-[#050914]/55 to-[#050914]/20"
+                  aria-hidden="true"
+                />
 
-        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={handlePrimaryAction}
-            className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-xl bg-amber-500 px-3.5 py-2 text-xs sm:text-sm font-bold text-[#070c18] transition-colors hover:bg-amber-400 active:scale-[0.98] cursor-pointer whitespace-nowrap"
-          >
-            {hasResumableMock ? (
-              <>
-                <PlayCircle size={15} aria-hidden="true" />
-                <span>Resume Mock</span>
-              </>
-            ) : masterySummary.missed > 0 ? (
-              <>
-                <Zap size={15} aria-hidden="true" />
-                <span className="tabular-nums">Drill {masterySummary.missed} Missed</span>
-              </>
-            ) : (
-              <>
-                <PlayCircle size={15} aria-hidden="true" />
-                <span>Quick Practice</span>
-              </>
-            )}
-          </button>
-          <button
-            type="button"
-            onClick={() => onOpenQuestionBank({ topic: "all", mastery: "all" })}
-            className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-xl border border-qb-border bg-qb-surface px-3.5 py-2 text-xs sm:text-sm font-semibold text-qb-heading transition-colors hover:border-qb-border-hover hover:bg-qb-surface-hover active:scale-[0.98] cursor-pointer whitespace-nowrap"
-          >
-            <Layers size={15} className="text-qb-muted shrink-0" aria-hidden="true" />
-            <span>Question Bank</span>
-          </button>
+                {/* Top Track Metadata inside Media Frame */}
+                <div className="absolute top-3 left-3.5 right-3.5 flex items-center justify-between gap-2 text-[11px] font-semibold text-slate-200">
+                  <span className="inline-flex items-center gap-1.5 min-w-0 truncate">
+                    <ShieldCheck size={13} className="text-emerald-400 shrink-0" aria-hidden="true" />
+                    <span className="truncate">{trackLabel}</span>
+                  </span>
+                  <span className="text-emerald-300 tabular-nums shrink-0">80% Pass Target</span>
+                </div>
+
+                {/* Bottom Mastery Readout anchored inside scrim */}
+                <div className="absolute inset-x-3.5 bottom-3.5 space-y-2">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-xs font-semibold text-slate-200">
+                      Bank Mastery Progress
+                    </span>
+                    <span className="text-sm font-bold text-white tabular-nums">
+                      {bankMasteryPct}%
+                    </span>
+                  </div>
+                  <div
+                    className="h-1.5 w-full overflow-hidden rounded-full bg-white/15"
+                    aria-hidden="true"
+                  >
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-amber-400 to-emerald-400 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                      style={{ width: `${metersReady ? bankMasteryPct : 0}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Clean Hairline Footer inside Workbench Frame */}
+              <div className="flex items-center justify-between gap-3 border-t border-white/10 bg-[#080f1d] px-3.5 py-2.5 text-xs">
+                <span className="text-slate-300 tabular-nums">
+                  <strong className="font-bold text-white">{masterySummary.mastered}</strong>
+                  <span className="text-slate-400"> / {questions.length} mastered</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={onGoMockExam}
+                  className="inline-flex items-center gap-1 font-semibold text-amber-400 hover:text-amber-300 cursor-pointer whitespace-nowrap transition-colors"
+                >
+                  <span>Mock Center</span>
+                  <ArrowRight size={13} aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+
+            {/* Primary Workspace Flow: First on mobile, Right (7/12) on desktop */}
+            <div className="order-1 lg:order-2 lg:col-span-7 flex flex-col justify-between gap-4 sm:gap-5">
+              {/* Balanced Headline + Context Line */}
+              <div className="space-y-1.5">
+                <h1 className="text-[22px] sm:text-[28px] font-bold tracking-tight text-qb-heading text-balance leading-[1.2]">
+                  {firstName ? `Welcome back, ${firstName}` : "Civil Service Exam Readiness"}
+                </h1>
+                <p className="text-xs sm:text-sm text-qb-mid leading-relaxed max-w-2xl tabular-nums">
+                  {todayCount}/{safeGoal} daily items completed
+                  <span aria-hidden="true"> · </span>
+                  {streakSummary.currentStreak}d study streak
+                  {masterySummary.missed > 0 && (
+                    <>
+                      <span aria-hidden="true"> · </span>
+                      <span className="text-rose-400 light:text-rose-700 font-semibold">
+                        {masterySummary.missed} missed to review
+                      </span>
+                    </>
+                  )}
+                </p>
+              </div>
+
+              {/* Integrated Single-Row Question Bank Search + 2x2 Mobile / Wrap Desktop Subject Quick Jumps */}
+              <div className="space-y-3">
+                <form
+                  onSubmit={handleHubSearchSubmit}
+                  className="flex items-center gap-1.5 rounded-xl border border-qb-border-hover bg-qb-input p-1.5 transition-colors focus-within:border-amber-500/60"
+                >
+                  <div className="flex items-center gap-2 flex-1 min-w-0 pl-2">
+                    <Search size={15} className="shrink-0 text-qb-muted" aria-hidden="true" />
+                    <input
+                      type="text"
+                      value={hubQuery}
+                      onChange={(e) => setHubQuery(e.target.value)}
+                      placeholder="Search topics..."
+                      aria-label="Search the CSE Question Bank"
+                      className="w-full min-h-[38px] bg-transparent text-[13px] sm:text-sm text-qb-heading placeholder:text-qb-muted focus:outline-none"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-lg border border-amber-500/35 bg-amber-500/15 px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-semibold text-amber-300 transition-colors hover:bg-amber-500/25 active:scale-[0.98] cursor-pointer whitespace-nowrap shrink-0 light:border-amber-300 light:bg-amber-50 light:text-amber-800 light:hover:bg-amber-100"
+                  >
+                    <span className="sm:hidden">Search</span>
+                    <span className="hidden sm:inline">Search Bank</span>
+                    <ArrowRight size={13} aria-hidden="true" />
+                  </button>
+                </form>
+
+                <div className="space-y-1.5 sm:space-y-0 sm:flex sm:flex-wrap sm:items-center sm:gap-1.5">
+                  <span className="block sm:inline text-[11px] font-semibold text-qb-muted sm:mr-1">
+                    Jump to subject
+                  </span>
+                  <div className="grid grid-cols-2 gap-1.5 sm:contents">
+                    {topicQuickFilters.map((topicItem) => (
+                      <button
+                        key={topicItem.id}
+                        type="button"
+                        onClick={() => onOpenQuestionBank({ topic: topicItem.id, mastery: "all" })}
+                        className="inline-flex min-h-[40px] sm:min-h-[32px] items-center justify-between sm:justify-center gap-1.5 rounded-lg border border-qb-border bg-qb-input/75 px-3 py-1.5 sm:px-2.5 sm:py-1 text-xs font-medium text-qb-heading transition-colors hover:border-amber-500/45 hover:bg-qb-surface-hover cursor-pointer whitespace-nowrap"
+                      >
+                        <span className="truncate">{topicItem.label}</span>
+                        <ChevronRight size={12} className="text-qb-muted shrink-0 sm:hidden" aria-hidden="true" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Hairline Footer: Quiet Telemetry + Clean Equal-Width Mobile CTAs */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-qb-border/75 pt-3.5 sm:pt-4">
+                <div className="flex items-center gap-3.5 text-xs tabular-nums">
+                  <div>
+                    <span className="text-qb-muted">Daily Goal </span>
+                    <strong className={goalMet ? "font-bold text-emerald-400 light:text-emerald-700" : "font-bold text-qb-heading"}>
+                      {dailyPct}%
+                    </strong>
+                  </div>
+                  <span className="text-qb-border" aria-hidden="true">·</span>
+                  <div>
+                    <span className="text-qb-muted">Unseen </span>
+                    <strong className="font-bold text-qb-heading">{masterySummary.unseen}</strong>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => onOpenQuestionBank({ topic: "all", mastery: "all" })}
+                    className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-xl border border-qb-border bg-qb-input px-3 sm:px-3.5 py-2 text-xs sm:text-sm font-semibold text-qb-heading transition-colors hover:border-qb-border-hover hover:bg-qb-surface-hover active:scale-[0.98] cursor-pointer whitespace-nowrap"
+                  >
+                    <Layers size={15} className="text-qb-muted shrink-0" aria-hidden="true" />
+                    <span>Question Bank</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handlePrimaryAction}
+                    className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-xl bg-amber-500 px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold text-[#070c18] shadow-[0_6px_20px_rgba(245,166,35,0.22)] transition-colors hover:bg-amber-400 active:scale-[0.98] cursor-pointer whitespace-nowrap"
+                  >
+                    {hasResumableMock ? (
+                      <>
+                        <PlayCircle size={15} aria-hidden="true" />
+                        <span>Resume Mock</span>
+                      </>
+                    ) : masterySummary.missed > 0 ? (
+                      <>
+                        <Zap size={15} aria-hidden="true" />
+                        <span className="tabular-nums">Drill {masterySummary.missed} Missed</span>
+                      </>
+                    ) : (
+                      <>
+                        <PlayCircle size={15} aria-hidden="true" />
+                        <span>Quick Practice</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </header>
+      </section>
 
       {/* 4-Metric Telemetry Strip: 2x2 compact grid on mobile, 4-across on desktop */}
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5" aria-label="Study Metrics">

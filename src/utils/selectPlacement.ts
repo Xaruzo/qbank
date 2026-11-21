@@ -5,7 +5,7 @@ export interface SelectPlacement {
 
 export function computeSelectPlacement(
   rootEl: HTMLElement | null,
-  preferredMaxHeight = 312
+  preferredMaxHeight = 264
 ): SelectPlacement {
   if (!rootEl || typeof window === "undefined") {
     return { dir: "down", maxHeight: preferredMaxHeight };

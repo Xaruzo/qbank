@@ -363,7 +363,7 @@ export default function SearchAndFilter({
             </span>
             <input
               className="w-full h-full bg-transparent px-3 text-sm text-qb-heading placeholder:text-qb-muted/70 focus:outline-none"
-              placeholder="Search keywords, formulas, concepts, or problem text..."
+              placeholder="Search questions..."
               value={search}
               onChange={(e) => onSearchChange(e.target.value)}
             />

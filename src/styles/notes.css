@@ -1523,19 +1523,27 @@
   scrollbar-color: var(--scroll-thumb) transparent;
 }
 
-.qb-rich-editor-content {
+.qb-rich-editor-scroll .qb-rich-editor-content {
   min-height: 100%;
 }
 
 .qb-rich-editor-content .ProseMirror {
-  min-height: 100%;
-  padding: 20px 26px 42px;
   outline: none;
-  color: var(--text);
+  color: rgba(226, 232, 240, 0.9);
   font-family: var(--font-sans);
   font-size: 15px;
+  font-weight: 400;
   line-height: 1.72;
   word-break: break-word;
+}
+
+.light .qb-rich-editor-content .ProseMirror {
+  color: #1e293b;
+}
+
+.qb-rich-editor-scroll .qb-rich-editor-content .ProseMirror {
+  min-height: 100%;
+  padding: 20px 26px 42px;
 }
 
 .qb-rich-editor-content .ProseMirror p.is-editor-empty:first-child::before {
@@ -1581,9 +1589,16 @@
   margin: 0.45em 0;
 }
 
-.qb-rich-editor-content .ProseMirror strong {
-  font-weight: 700;
-  color: var(--text-heading);
+.qb-rich-editor-content .ProseMirror strong,
+.qb-rich-editor-content .ProseMirror b {
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.005em;
+}
+
+.light .qb-rich-editor-content .ProseMirror strong,
+.light .qb-rich-editor-content .ProseMirror b {
+  color: #030712;
 }
 
 .qb-rich-editor-content .ProseMirror u {
@@ -2208,7 +2223,7 @@
     height: 20px;
   }
 
-  .qb-rich-editor-content .ProseMirror {
+  .qb-rich-editor-scroll .qb-rich-editor-content .ProseMirror {
     padding: 14px 14px 32px;
     font-size: 15px;
     line-height: 1.65;

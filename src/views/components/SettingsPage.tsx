@@ -1051,7 +1051,7 @@ export default function SettingsPage({
                         id="settings-fullname"
                         type="text"
                         className="qb-settings-text-input"
-                        placeholder="Enter your name or examinee pseudonym"
+                        placeholder="Full name or nickname"
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         maxLength={40}
@@ -1923,7 +1923,7 @@ export default function SettingsPage({
                     <input
                       type="text"
                       className="qb-settings-roster-search-input"
-                      placeholder="Search accounts by name, email, or role..."
+                      placeholder="Search name or email..."
                       value={roleSearch}
                       onChange={(e) => setRoleSearch(e.target.value)}
                     />
@@ -2582,8 +2582,8 @@ export default function SettingsPage({
                     className="qb-mod-reason-input"
                     placeholder={
                       moderationTarget.action === "ban"
-                        ? "e.g. Policy violation or suspicious activity"
-                        : "e.g. Offboarded staff or inactive account"
+                        ? "e.g. Policy violation"
+                        : "e.g. Inactive account"
                     }
                     value={moderationReason}
                     maxLength={140}

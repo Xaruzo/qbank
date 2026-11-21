@@ -1200,13 +1200,15 @@ export default function App() {
                 onStartExam={handleStartExam}
                 onStartQuickPractice={handleStartQuickPractice}
                 onOpenQuestionBank={(opts) => {
-                  setSearch("");
+                  setSearch(opts?.search ?? "");
                   setLabelFilter("all");
                   setFavoriteOnly(false);
                   setTopicFilter(opts?.topic || "all");
                   setMasteryFilter(opts?.mastery || "all");
                   handleGoHome();
                 }}
+                canCreateQuestions={canCreateQuestions}
+                onAddQuestion={handleAddQuestionAction}
                 onGoMockExam={handleGoMockExam}
                 onOpenSettings={handleGoSettings}
                 onRequireAuth={handleSignIn}

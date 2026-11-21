@@ -628,7 +628,7 @@ const QuestionRichEditor = forwardRef<QuestionRichEditorHandle, QuestionRichEdit
     const activeHighlightIndicator =
       (editorState?.highlight && editorState.highlightColor) || activeHighlightColor;
 
-    const resolvedMinHeight = singleLine ? 42 : minHeightPx;
+    const resolvedMinHeight = singleLine ? 40 : minHeightPx;
 
     return (
       <div
@@ -908,8 +908,8 @@ const QuestionRichEditor = forwardRef<QuestionRichEditorHandle, QuestionRichEdit
         <div
           className={
             singleLine
-              ? "overflow-x-auto overflow-y-hidden"
-              : "max-h-[340px] overflow-y-auto overscroll-contain"
+              ? "overflow-x-auto overflow-y-hidden overscroll-auto [touch-action:pan-x_pan-y]"
+              : "overflow-visible md:max-h-[380px] md:overflow-y-auto overscroll-auto touch-pan-y"
           }
           style={{ minHeight: `${resolvedMinHeight}px` }}
           onClick={() => {
@@ -922,10 +922,13 @@ const QuestionRichEditor = forwardRef<QuestionRichEditorHandle, QuestionRichEdit
             editor={editor}
             className={
               singleLine
-                ? "qb-rich-editor-content [&_.ProseMirror]:px-3 [&_.ProseMirror]:py-2 [&_.ProseMirror]:min-h-[42px] [&_.ProseMirror]:text-[15px] [&_.ProseMirror]:leading-[1.45] [&_.ProseMirror]:font-medium [&_.ProseMirror_p]:m-0"
-                : "qb-rich-editor-content [&_.ProseMirror]:px-3.5 [&_.ProseMirror]:py-2.5 [&_.ProseMirror]:text-[15px] [&_.ProseMirror]:leading-[1.65] [&_.ProseMirror]:font-medium"
+                ? "qb-rich-editor-content [&_.ProseMirror]:px-3 [&_.ProseMirror]:py-2 [&_.ProseMirror]:min-h-[40px] [&_.ProseMirror]:text-[15px] [&_.ProseMirror]:leading-[1.45] [&_.ProseMirror]:font-normal [&_.ProseMirror_p]:!my-0 [&_.ProseMirror]:[touch-action:pan-x_pan-y]"
+                : "qb-rich-editor-content [&_.ProseMirror]:px-3.5 [&_.ProseMirror]:py-2.5 [&_.ProseMirror]:min-h-[var(--qre-min-h)] [&_.ProseMirror]:text-[15px] [&_.ProseMirror]:leading-[1.6] [&_.ProseMirror]:font-normal [&_.ProseMirror>*:last-child]:mb-0 [&_.ProseMirror]:touch-pan-y"
             }
-            style={{ minHeight: `${resolvedMinHeight}px` }}
+            style={{
+              minHeight: `${resolvedMinHeight}px`,
+              ["--qre-min-h" as string]: `${resolvedMinHeight}px`,
+            }}
           />
         </div>
       </div>

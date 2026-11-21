@@ -901,12 +901,24 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 /* Question Content & Choices */
 .qb:not(.light) .qb-det-q,
 .dark .qb-det-q {
-  color: #f8fafc !important;
+  color: rgba(226, 232, 240, 0.92) !important;
+}
+
+.qb:not(.light) .qb-det-q .md-strong,
+.dark .qb-det-q .md-strong,
+.qb:not(.light) .qb-det-q strong,
+.dark .qb-det-q strong,
+.qb:not(.light) .qb-sol-body .md-strong,
+.dark .qb-sol-body .md-strong,
+.qb:not(.light) .qb-sol-body strong,
+.dark .qb-sol-body strong {
+  color: #ffffff;
+  font-weight: 800;
 }
 
 .qb:not(.light) .qb-choice:not(.qb-choice-sel):not(.correct):not(.wrong),
 .dark .qb-choice:not(.qb-choice-sel):not(.correct):not(.wrong) {
-  color: #e2e8f0 !important;
+  color: rgba(226, 232, 240, 0.9) !important;
   background: #0d1524 !important;
   border-color: #20314d !important;
 }

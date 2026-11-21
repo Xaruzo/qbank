@@ -109,53 +109,55 @@ export default function SymbolToolbar({
         ))}
       </div>
 
-      <div className="sym-tb-sep" />
-
-      <div className="sym-tb-group">
-        {showInlineFormats && richEditorRef && (
-          <>
+      {showInlineFormats && (
+        <>
+          <div className="sym-tb-group">
+            {richEditorRef && (
+              <>
+                <button
+                  type="button"
+                  className={`sym-tb-btn${isBoldActive ? activeFormatClass : ""}`}
+                  title="Bold (Ctrl+B)"
+                  aria-pressed={isBoldActive}
+                  style={{ fontWeight: 800, fontFamily: "Arial, sans-serif", fontSize: 15 }}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    if (!disabled) richEditorRef.current?.toggleBold();
+                  }}
+                >
+                  B
+                </button>
+                <button
+                  type="button"
+                  className={`sym-tb-btn${isItalicActive ? activeFormatClass : ""}`}
+                  title="Italic (Ctrl+I)"
+                  aria-pressed={isItalicActive}
+                  style={{ fontStyle: "italic", fontFamily: "Georgia, serif", fontSize: 15 }}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    if (!disabled) richEditorRef.current?.toggleItalic();
+                  }}
+                >
+                  I
+                </button>
+              </>
+            )}
             <button
               type="button"
-              className={`sym-tb-btn${isBoldActive ? activeFormatClass : ""}`}
-              title="Bold (Ctrl+B)"
-              aria-pressed={isBoldActive}
-              style={{ fontWeight: 800, fontFamily: "Arial, sans-serif", fontSize: 15 }}
+              className={`sym-tb-btn${isUnderlineActive ? activeFormatClass : ""}`}
+              title="Underline (Ctrl+U)"
+              aria-pressed={richEditorRef ? isUnderlineActive : undefined}
+              style={{ textDecoration: "underline", fontFamily: "Arial, sans-serif", fontSize: 15 }}
               onMouseDown={(e) => e.preventDefault()}
-              onClick={() => {
-                if (!disabled) richEditorRef.current?.toggleBold();
-              }}
+              onClick={insertUnderline}
             >
-              B
+              U
             </button>
-            <button
-              type="button"
-              className={`sym-tb-btn${isItalicActive ? activeFormatClass : ""}`}
-              title="Italic (Ctrl+I)"
-              aria-pressed={isItalicActive}
-              style={{ fontStyle: "italic", fontFamily: "Georgia, serif", fontSize: 15 }}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => {
-                if (!disabled) richEditorRef.current?.toggleItalic();
-              }}
-            >
-              I
-            </button>
-          </>
-        )}
-        <button
-          type="button"
-          className={`sym-tb-btn${isUnderlineActive ? activeFormatClass : ""}`}
-          title="Underline (Ctrl+U)"
-          aria-pressed={richEditorRef ? isUnderlineActive : undefined}
-          style={{ textDecoration: "underline", fontFamily: "Arial, sans-serif", fontSize: 15 }}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={insertUnderline}
-        >
-          U
-        </button>
-      </div>
+          </div>
 
-      <div className="sym-tb-sep" />
+          <div className="sym-tb-sep" />
+        </>
+      )}
 
       <div className="sym-tb-group">
         {COMMON_FRACTIONS.map(({ symbol, title }) => (

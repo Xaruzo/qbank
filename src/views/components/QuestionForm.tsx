@@ -79,11 +79,9 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
   const topicRef = useRef<HTMLDivElement>(null);
   const labelRef = useRef<HTMLDivElement>(null);
   const questionRef = useRef<QuestionRichEditorHandle | null>(null);
-  const [questionUnderlineActive, setQuestionUnderlineActive] = useState(false);
   const choiceRefs = useRef<Array<QuestionRichEditorHandle | null>>([]);
   const activeChoiceRef = useRef<QuestionRichEditorHandle | null>(null);
   const solutionRef = useRef<QuestionRichEditorHandle | null>(null);
-  const [solutionUnderlineActive, setSolutionUnderlineActive] = useState(false);
   const [activeChoice, setActiveChoice] = useState<number | null>(null);
   const [choiceFormats, setChoiceFormats] = useState<{
     bold: boolean;
@@ -772,7 +770,7 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
                 <input
                   id="qb-custom-label-input"
                   className="qb-finput"
-                  placeholder="e.g. Age Problem, Sentence Error"
+                  placeholder="e.g. Age Problem"
                   value={form.label}
                   onChange={e => setForm(f => ({ ...f, label: e.target.value }))}
                 />
@@ -1030,12 +1028,8 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
           placeholder="Type the question here... Highlight text to bold, italicize, or underline."
           minHeightPx={104}
           ariaLabel="Question"
-          onUnderlineChange={setQuestionUnderlineActive}
         />
-        <SymbolToolbar
-          richEditorRef={questionRef}
-          isUnderlineActive={questionUnderlineActive}
-        />
+        <SymbolToolbar richEditorRef={questionRef} />
       </div>
 
       <div className="qb-fsec">
@@ -1129,12 +1123,8 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
           placeholder="Write the step-by-step solution here..."
           minHeightPx={136}
           ariaLabel="Solution or explanation"
-          onUnderlineChange={setSolutionUnderlineActive}
         />
-        <SymbolToolbar
-          richEditorRef={solutionRef}
-          isUnderlineActive={solutionUnderlineActive}
-        />
+        <SymbolToolbar richEditorRef={solutionRef} />
 
         <div className="sol-tabs" aria-label="Additional visual content" style={{ marginTop:12 }}>
           <button 

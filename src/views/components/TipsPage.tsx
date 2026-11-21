@@ -622,7 +622,7 @@ export default function TipsPage({
             </span>
             <input
               className="qb-search"
-              placeholder="Search by label, formula, question, or notes..."
+              placeholder="Search tips, formulas..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />

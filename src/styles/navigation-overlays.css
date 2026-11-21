@@ -508,7 +508,7 @@
   }
 }
 
-.qb-main { flex:1; overflow-y:auto; overflow-x:hidden; scrollbar-gutter:stable; padding:0; min-height:0; }
+.qb-main { flex:1; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; touch-action:pan-y; scrollbar-gutter:stable; padding:0; min-height:0; }
 
 .qb-main.qb-main-exam { overflow:hidden; }
 

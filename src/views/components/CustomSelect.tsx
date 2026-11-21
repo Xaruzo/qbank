@@ -24,6 +24,7 @@ export default function CustomSelect({
 }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [direction, setDirection] = useState<"down" | "up">("down");
+  const [menuMaxHeight, setMenuMaxHeight] = useState<number>(264);
   const [portalCoords, setPortalCoords] = useState<PortalMenuCoords | null>(null);
   const selectRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -31,13 +32,20 @@ export default function CustomSelect({
   const computePlacement = useCallback(() => {
     if (!selectRef.current) return;
     const rect = selectRef.current.getBoundingClientRect();
-    const scrollParent = selectRef.current.closest(".qb-roster-list-scroll, .qb-settings-users-table-wrap");
-    const containerBottom = scrollParent
+    const scrollParent = selectRef.current.closest(".qb-roster-list-scroll, .qb-settings-users-table-wrap, .qb-main");
+    const containerTop = scrollParent && !portal
+      ? Math.max(0, scrollParent.getBoundingClientRect().top)
+      : 0;
+    const containerBottom = scrollParent && !portal
       ? Math.min(window.innerHeight, scrollParent.getBoundingClientRect().bottom)
       : window.innerHeight;
-    const spaceBelow = (portal ? window.innerHeight : containerBottom) - rect.bottom;
-    const nextDir: "down" | "up" = spaceBelow < 200 ? "up" : "down";
+    const edgeMargin = 14;
+    const spaceBelow = Math.max(0, containerBottom - rect.bottom - edgeMargin);
+    const spaceAbove = Math.max(0, rect.top - containerTop - edgeMargin);
+    const nextDir: "down" | "up" = spaceBelow < 200 && spaceAbove > spaceBelow ? "up" : "down";
+    const availableSpace = nextDir === "up" ? spaceAbove : spaceBelow;
     setDirection(nextDir);
+    setMenuMaxHeight(Math.max(120, Math.min(264, Math.floor(availableSpace))));
 
     if (portal) {
       const floorWidth = minMenuWidth ?? (showCheckmark ? 186 : 0);
@@ -123,7 +131,7 @@ export default function CustomSelect({
           : undefined
       }
     >
-      <div className="qb-select-menu-scroll">
+      <div className="qb-select-menu-scroll" style={{ maxHeight: `${menuMaxHeight}px` }}>
         {options.map((option) => {
           const isSelected = value === option.value;
           return (

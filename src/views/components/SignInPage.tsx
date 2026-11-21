@@ -578,7 +578,7 @@ export default function SignInPage({
                         spellCheck={false}
                         required
                         className="qb-signin-input with-toggle"
-                        placeholder={isRegisterMode ? "Create a secure password (6+ chars)" : "Enter your password"}
+                        placeholder={isRegisterMode ? "Password (6+ chars)" : "Enter your password"}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         disabled={loading}
