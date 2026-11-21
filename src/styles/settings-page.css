@@ -39,22 +39,10 @@
   border: 1.5px solid var(--surface);
 }
 
-@keyframes qb-nav-icon-pop {
-  0% { transform: translateY(0) scale(1); }
-  35% { transform: translateY(-3px) scale(1.22); }
-  70% { transform: translateY(1px) scale(0.94); }
-  100% { transform: translateY(0) scale(1); }
-}
-
 .qb-nav-icon-pop-wrap {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-}
-
-.qb-nav-item:hover .qb-nav-icon-pop-wrap,
-.qb-rail-btn:hover .qb-nav-icon-pop-wrap {
-  animation: qb-nav-icon-pop 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Ternary (Dark / Light / System) appearance segmented control */

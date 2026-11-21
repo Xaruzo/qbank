@@ -275,16 +275,25 @@
   color: var(--text-muted);
   cursor: pointer;
   text-align: left;
-  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), color 0.15s ease;
+  transition: background-color 0.16s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.16s cubic-bezier(0.16, 1, 0.3, 1), color 0.16s ease, box-shadow 0.16s ease;
   font-size: 13px;
   font-weight: 500;
   position: relative;
   z-index: 2;
 }
 
-.qb-nav-item:hover {
-  color: var(--text-heading);
-  transform: translateX(4px);
+@media (hover: hover) {
+  .qb-nav-item:not(.is-active):not(.on):hover {
+    color: var(--text-heading);
+    background: rgba(255, 255, 255, 0.055);
+    border-color: rgba(255, 255, 255, 0.13);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+}
+
+.qb-nav-item:focus-visible {
+  outline: 2px solid rgba(245, 166, 35, 0.65);
+  outline-offset: 2px;
 }
 
 .qb-nav-item.is-active {
@@ -305,11 +314,7 @@
 .qb-nav-item-icon {
   flex-shrink: 0;
   color: inherit;
-  transition: transform 0.18s ease;
-}
-
-.qb-nav-item:hover .qb-nav-item-icon {
-  transform: scale(1.1);
+  transition: color 0.16s ease;
 }
 
 .qb-nav-item-label {
@@ -415,7 +420,7 @@
 .qb-rail-btn {
   width: 46px;
   min-height: 44px;
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid transparent;
   background: transparent;
   color: var(--text-muted);
@@ -428,11 +433,21 @@
   padding: 5px 2px;
   position: relative;
   z-index: 2;
-  transition: color 0.15s ease, transform 0.15s ease;
+  transition: background-color 0.16s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.16s cubic-bezier(0.16, 1, 0.3, 1), color 0.16s ease, box-shadow 0.16s ease;
 }
 
-.qb-rail-btn:hover {
-  color: var(--text-heading);
+@media (hover: hover) {
+  .qb-rail-btn:not(.is-active):hover {
+    color: var(--text-heading);
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.14);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+}
+
+.qb-rail-btn:focus-visible {
+  outline: 2px solid rgba(245, 166, 35, 0.65);
+  outline-offset: 2px;
 }
 
 .qb-rail-btn.is-active {
@@ -1131,9 +1146,5 @@
 
 .qb-nav-item {
   position: relative;
-  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease, transform 0.16s ease;
-}
-
-.qb-nav-item:hover {
-  transform: translateX(2px);
+  transition: background-color 0.16s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.16s cubic-bezier(0.16, 1, 0.3, 1), color 0.16s ease, box-shadow 0.16s ease;
 }
