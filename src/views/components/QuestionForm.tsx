@@ -2,8 +2,9 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { TOPICS, LETTERS, PROBLEM_LABELS } from "../../constants/appConstants";
 import DrawCanvas from "./DrawCanvas";
+import QuestionRichEditor, { type QuestionRichEditorHandle } from "./QuestionRichEditor";
 import SymbolToolbar from "./SymbolToolbar";
-import { handleSymbolShortcuts } from "../../utils/symbolShortcuts";
+import { markdownToPlainText } from "../../utils/noteRichFormat";
 import { uploadImageToSupabase, validateImageFile } from "../../utils/imageUpload";
 import { fileToImagePayload } from "../../utils/questionImageImport";
 import { computeSelectPlacement } from "../../utils/selectPlacement";
@@ -77,11 +78,18 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
   const [labelMaxH, setLabelMaxH] = useState(312);
   const topicRef = useRef<HTMLDivElement>(null);
   const labelRef = useRef<HTMLDivElement>(null);
-  const questionRef = useRef(null);
-  const choiceRefs = useRef([]);
-  const activeChoiceRef = useRef(null);
-  const solutionRef = useRef(null);
-  const [activeChoice, setActiveChoice] = useState(null);
+  const questionRef = useRef<QuestionRichEditorHandle | null>(null);
+  const [questionUnderlineActive, setQuestionUnderlineActive] = useState(false);
+  const choiceRefs = useRef<Array<QuestionRichEditorHandle | null>>([]);
+  const activeChoiceRef = useRef<QuestionRichEditorHandle | null>(null);
+  const solutionRef = useRef<QuestionRichEditorHandle | null>(null);
+  const [solutionUnderlineActive, setSolutionUnderlineActive] = useState(false);
+  const [activeChoice, setActiveChoice] = useState<number | null>(null);
+  const [choiceFormats, setChoiceFormats] = useState<{
+    bold: boolean;
+    italic: boolean;
+    underline: boolean;
+  }>({ bold: false, italic: false, underline: false });
   const [useCustomLabel, setUseCustomLabel] = useState(!initialData?.label || !PROBLEM_LABELS.includes(initialData.label));
   const [importImage, setImportImage] = useState<{ base64: string; mimeType: string; previewUrl: string; name: string } | null>(null);
   const [includeAiSolution, setIncludeAiSolution] = useState(true);
@@ -310,51 +318,6 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
   const topicLabel = currentTopicObj.label;
   const TopicIcon = TOPIC_ICON_MAP[currentTopicObj.id] || Calculator;
 
-  const undoStacks = useRef({ question: [], solution: [], choices: [[], [], [], [], []] });
-
-  const pushUndo = (field, index, prev) => {
-    if (typeof prev !== "string") return;
-    const stack = field === "choices" ? undoStacks.current.choices[index] : undoStacks.current[field];
-    if (!stack) return;
-    if (stack[stack.length - 1] !== prev) stack.push(prev);
-    if (stack.length > 100) stack.shift();
-  };
-
-  const handleUndo = (field, index) => {
-    const stack = field === "choices" ? undoStacks.current.choices[index] : undoStacks.current[field];
-    if (!stack || !stack.length) return;
-    const prev = stack.pop();
-    if (field === "question") setForm(f => ({ ...f, question: prev }));
-    else if (field === "solution") setForm(f => ({ ...f, solution: prev }));
-    else setForm(f => {
-      const nc = [...f.choices];
-      nc[index] = prev;
-      return { ...f, choices: nc };
-    });
-  };
-
-  const undoKeyHandler = (field, index) => (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
-      e.preventDefault();
-      handleUndo(field, index);
-    }
-  };
-
-  const trimWordSelection = (el) => {
-    if (!el) return;
-    requestAnimationFrame(() => {
-      const start = el.selectionStart;
-      const end = el.selectionEnd;
-      if (start === null || end === null || start === end) return;
-      const value = el.value;
-      let s = start;
-      let e = end;
-      while (e > s && /\s/.test(value[e - 1])) e--;
-      while (s < e && /\s/.test(value[s])) s++;
-      if (s !== start || e !== end) el.setSelectionRange(s, e);
-    });
-  };
-
   useEffect(() => {
     if (!topicOpen) return;
     const handle = (e) => {
@@ -430,8 +393,8 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
   }, [labelOpen]);
 
   const handleSave = () => {
-    if (!form.question.trim()) { setError("Question cannot be empty."); return; }
-    if (form.choices.slice(0, 4).some(c => !c.trim())) { setError("All 4 choices are required."); return; }
+    if (!markdownToPlainText(form.question).trim()) { setError("Question cannot be empty."); return; }
+    if (form.choices.slice(0, 4).some(c => !markdownToPlainText(c).trim())) { setError("All 4 choices are required."); return; }
     const data = { ...form };
     if (visualMode === "upload" && data.solutionUpload) {
       data.solutionDraw = data.solutionUpload;
@@ -506,13 +469,6 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
       }
 
       const ext = data.extracted;
-      pushUndo("question", null, form.question);
-      if (includeAiSolution && ext.solution) {
-        pushUndo("solution", null, form.solution);
-      }
-      form.choices.forEach((prevChoice, idx) => {
-        pushUndo("choices", idx, prevChoice);
-      });
 
       if (ext.label) {
         setUseCustomLabel(!PROBLEM_LABELS.includes(ext.label));
@@ -576,10 +532,10 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
     await handleSelectImportFile(file);
   };
 
-  const valid = form.question.trim() && form.choices.slice(0, 4).every(c => c.trim());
-  const filledChoices = form.choices.filter(choice => choice.trim()).length;
-  const hasQuestion = !!form.question.trim();
-  const hasSolution = !!form.solution.trim();
+  const hasQuestion = !!markdownToPlainText(form.question).trim();
+  const valid = hasQuestion && form.choices.slice(0, 4).every(c => markdownToPlainText(c).trim());
+  const filledChoices = form.choices.filter(choice => markdownToPlainText(choice).trim()).length;
+  const hasSolution = !!markdownToPlainText(form.solution).trim();
   const hasVisualSupport = !!(form.solutionDraw || form.solutionUpload);
   const useSideRail = !!sideRailHost;
 
@@ -1067,19 +1023,18 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
           <HelpCircle size={14} className="qb-flabel-icon" />
           <span>Question</span>
         </label>
-        <textarea ref={questionRef} className="qb-fta" placeholder="Type the question here..." value={form.question}
-          onKeyDown={undoKeyHandler("question", null)}
-          onDoubleClick={() => trimWordSelection(questionRef.current)}
-          onChange={e => {
-            const val = e.target.value;
-            pushUndo("question", null, form.question);
-            setForm({...form, question: val});
-            handleSymbolShortcuts(e.target, val, v => setForm(f => ({...f, question: v})));
-          }} rows={3} />
-        <SymbolToolbar
-          targetRef={questionRef}
+        <QuestionRichEditor
+          ref={questionRef}
           value={form.question}
-          onChange={v => setForm(f => ({ ...f, question: v }))}
+          onChange={(next) => setForm((f) => ({ ...f, question: next }))}
+          placeholder="Type the question here... Highlight text to bold, italicize, or underline."
+          minHeightPx={104}
+          ariaLabel="Question"
+          onUnderlineChange={setQuestionUnderlineActive}
+        />
+        <SymbolToolbar
+          richEditorRef={questionRef}
+          isUnderlineActive={questionUnderlineActive}
         />
       </div>
 
@@ -1099,33 +1054,36 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
               aria-label={`Select Choice ${LETTERS[i]} as correct answer`}
             />
             <span className="qb-cletter">{LETTERS[i]}.</span>
-            <input ref={el => { choiceRefs.current[i] = el; }} className="qb-finput" placeholder={`Choice ${LETTERS[i]}${i === 4 ? " (optional)" : ""}`} value={c}
-              onFocus={() => { setActiveChoice(i); activeChoiceRef.current = choiceRefs.current[i]; }}
-              onKeyDown={undoKeyHandler("choices", i)}
-              onDoubleClick={() => trimWordSelection(choiceRefs.current[i])}
-              onChange={e => {
-                const val = e.target.value;
-                pushUndo("choices", i, form.choices[i]);
-                const nc=[...form.choices];
-                nc[i]=val;
-                setForm({...form, choices:nc});
-                handleSymbolShortcuts(e.target, val, v => {
-                  const ncc = [...form.choices];
-                  ncc[i] = v;
-                  setForm(f => ({ ...f, choices: ncc }));
+            <QuestionRichEditor
+              ref={(el) => {
+                choiceRefs.current[i] = el;
+              }}
+              singleLine
+              className="flex-1 min-w-0"
+              value={c}
+              placeholder={`Choice ${LETTERS[i]}${i === 4 ? " (optional)" : ""}`}
+              ariaLabel={`Choice ${LETTERS[i]}`}
+              onFocus={() => {
+                setActiveChoice(i);
+                activeChoiceRef.current = choiceRefs.current[i];
+              }}
+              onFormatChange={setChoiceFormats}
+              onChange={(next) => {
+                setForm((f) => {
+                  const nc = [...f.choices];
+                  nc[i] = next;
+                  return { ...f, choices: nc };
                 });
-              }} />
+              }}
+            />
           </div>
         ))}
         <SymbolToolbar
-          targetRef={activeChoiceRef}
-          value={activeChoice !== null ? form.choices[activeChoice] : ""}
-          onChange={v => {
-            if (activeChoice === null) return;
-            const nc = [...form.choices];
-            nc[activeChoice] = v;
-            setForm(f => ({ ...f, choices: nc }));
-          }}
+          richEditorRef={activeChoiceRef}
+          showInlineFormats
+          isBoldActive={activeChoice !== null && choiceFormats.bold}
+          isItalicActive={activeChoice !== null && choiceFormats.italic}
+          isUnderlineActive={activeChoice !== null && choiceFormats.underline}
           disabled={activeChoice === null}
         />
         <div style={{ marginTop: 8 }}>
@@ -1137,6 +1095,10 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
                 const nc = [...form.choices];
                 nc.pop();
                 const newCorrect = form.correct >= nc.length ? 0 : form.correct;
+                if (activeChoice === nc.length) {
+                  setActiveChoice(null);
+                  activeChoiceRef.current = null;
+                }
                 setForm({...form, choices: nc, correct: newCorrect});
               }}
             >
@@ -1160,19 +1122,18 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
           <span>Solution / Explanation</span> <span className="qb-flabel-sub">(optional)</span>
         </label>
 
-        <textarea ref={solutionRef} className="qb-fta" placeholder="Write the step-by-step solution here..." value={form.solution}
-          onKeyDown={undoKeyHandler("solution", null)}
-          onDoubleClick={() => trimWordSelection(solutionRef.current)}
-          onChange={e => {
-            const val = e.target.value;
-            pushUndo("solution", null, form.solution);
-            setForm({...form, solution: val});
-            handleSymbolShortcuts(e.target, val, v => setForm(f => ({...f, solution: v})));
-          }} rows={5} />
-        <SymbolToolbar
-          targetRef={solutionRef}
+        <QuestionRichEditor
+          ref={solutionRef}
           value={form.solution}
-          onChange={v => setForm(f => ({ ...f, solution: v }))}
+          onChange={(next) => setForm((f) => ({ ...f, solution: next }))}
+          placeholder="Write the step-by-step solution here..."
+          minHeightPx={136}
+          ariaLabel="Solution or explanation"
+          onUnderlineChange={setSolutionUnderlineActive}
+        />
+        <SymbolToolbar
+          richEditorRef={solutionRef}
+          isUnderlineActive={solutionUnderlineActive}
         />
 
         <div className="sol-tabs" aria-label="Additional visual content" style={{ marginTop:12 }}>

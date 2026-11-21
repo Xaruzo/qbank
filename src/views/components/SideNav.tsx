@@ -724,7 +724,7 @@ export default function SideNav({
           profileMenuOpen && open && expandedCoords && createPortal(
             <div
               ref={expandedPopoverRef}
-              className={`qb-portal-popover-wrap${!isDark ? " light" : ""}`}
+              className={`qb-portal-popover-wrap select-none${!isDark ? " light" : ""}`}
               style={{
                 position: "fixed",
                 bottom: `${expandedCoords.bottom}px`,
@@ -789,7 +789,7 @@ export default function SideNav({
       >
         <aside
           ref={cardRef}
-          className={`qb-side-drawer qb-modern-drawer${isClosing ? " is-closing" : ""}`}
+          className={`qb-side-drawer qb-modern-drawer select-none${isClosing ? " is-closing" : ""}`}
           role="dialog"
           aria-modal="true"
           aria-label="Navigation drawer"
@@ -814,7 +814,7 @@ export default function SideNav({
 
   return (
     <aside
-      className={`qb-side ${open ? "qb-side-expanded" : "qb-side-collapsed"}${
+      className={`qb-side select-none ${open ? "qb-side-expanded" : "qb-side-collapsed"}${
         isRailClosing ? " is-closing" : ""
       }${isRailOpening ? " is-opening" : ""}`}
       aria-label={open ? "Sidebar navigation expanded" : "Sidebar navigation collapsed"}
@@ -867,7 +867,7 @@ export default function SideNav({
                 {profileMenuOpen && railCoords && createPortal(
                   <div
                     ref={railPopoverRef}
-                    className={`qb-rail-portal-popover-wrap${!isDark ? " light" : ""}`}
+                    className={`qb-rail-portal-popover-wrap select-none${!isDark ? " light" : ""}`}
                     style={{
                       position: "fixed",
                       top: `${railCoords.top}px`,

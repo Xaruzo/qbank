@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type React from "react";
 import { ChevronDown } from "lucide-react";
 import {
   ARITHMETIC_SYMBOLS,
@@ -9,6 +10,7 @@ import {
   FRACTION_TEMPLATE,
 } from "../../constants/mathSymbols";
 import { insertAtCursor } from "../../utils/insertAtCursor";
+import type { QuestionRichEditorHandle } from "./QuestionRichEditor";
 
 function SymbolButton({ symbol, title, onClick }) {
   return (
@@ -24,9 +26,31 @@ function SymbolButton({ symbol, title, onClick }) {
   );
 }
 
-export default function SymbolToolbar({ targetRef, value, onChange, disabled = false }) {
+interface SymbolToolbarProps {
+  targetRef?: React.RefObject<HTMLInputElement | HTMLTextAreaElement | null>;
+  richEditorRef?: React.RefObject<QuestionRichEditorHandle | null>;
+  value?: string;
+  onChange?: (next: string) => void;
+  disabled?: boolean;
+  showInlineFormats?: boolean;
+  isBoldActive?: boolean;
+  isItalicActive?: boolean;
+  isUnderlineActive?: boolean;
+}
+
+export default function SymbolToolbar({
+  targetRef,
+  richEditorRef,
+  value = "",
+  onChange,
+  disabled = false,
+  showInlineFormats = false,
+  isBoldActive = false,
+  isItalicActive = false,
+  isUnderlineActive = false,
+}: SymbolToolbarProps) {
   const [moreOpen, setMoreOpen] = useState(false);
-  const moreRef = useRef(null);
+  const moreRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!moreOpen) return;
@@ -38,17 +62,25 @@ export default function SymbolToolbar({ targetRef, value, onChange, disabled = f
     return () => window.removeEventListener("mousedown", handle);
   }, [moreOpen]);
 
-  const insert = (text, cursorOffset = undefined, selectLength = 0) => {
+  const insert = (text: string, cursorOffset?: number, selectLength = 0) => {
     if (disabled) return;
+    if (richEditorRef?.current) {
+      richEditorRef.current.insertText(text, cursorOffset, selectLength);
+      return;
+    }
     const el = targetRef?.current;
-    if (!el) return;
+    if (!el || !onChange) return;
     insertAtCursor(el, text, value ?? "", onChange, cursorOffset, selectLength);
   };
 
   const insertUnderline = () => {
     if (disabled) return;
+    if (richEditorRef?.current) {
+      richEditorRef.current.toggleUnderline();
+      return;
+    }
     const el = targetRef?.current;
-    if (!el) return;
+    if (!el || !onChange) return;
     const start = el.selectionStart ?? value.length;
     const end = el.selectionEnd ?? start;
     if (start !== end) {
@@ -64,6 +96,9 @@ export default function SymbolToolbar({ targetRef, value, onChange, disabled = f
     }
   };
 
+  const activeFormatClass =
+    " !border-amber-500/60 !bg-amber-500/18 !text-amber-400 light:!border-amber-600/50 light:!bg-amber-100 light:!text-amber-700";
+
   return (
     <div className={`sym-tb${disabled ? " sym-tb-off" : ""}`}>
       <span className="sym-tb-label">Insert</span>
@@ -77,10 +112,41 @@ export default function SymbolToolbar({ targetRef, value, onChange, disabled = f
       <div className="sym-tb-sep" />
 
       <div className="sym-tb-group">
+        {showInlineFormats && richEditorRef && (
+          <>
+            <button
+              type="button"
+              className={`sym-tb-btn${isBoldActive ? activeFormatClass : ""}`}
+              title="Bold (Ctrl+B)"
+              aria-pressed={isBoldActive}
+              style={{ fontWeight: 800, fontFamily: "Arial, sans-serif", fontSize: 15 }}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                if (!disabled) richEditorRef.current?.toggleBold();
+              }}
+            >
+              B
+            </button>
+            <button
+              type="button"
+              className={`sym-tb-btn${isItalicActive ? activeFormatClass : ""}`}
+              title="Italic (Ctrl+I)"
+              aria-pressed={isItalicActive}
+              style={{ fontStyle: "italic", fontFamily: "Georgia, serif", fontSize: 15 }}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                if (!disabled) richEditorRef.current?.toggleItalic();
+              }}
+            >
+              I
+            </button>
+          </>
+        )}
         <button
           type="button"
-          className="sym-tb-btn"
-          title="Underline"
+          className={`sym-tb-btn${isUnderlineActive ? activeFormatClass : ""}`}
+          title="Underline (Ctrl+U)"
+          aria-pressed={richEditorRef ? isUnderlineActive : undefined}
           style={{ textDecoration: "underline", fontFamily: "Arial, sans-serif", fontSize: 15 }}
           onMouseDown={(e) => e.preventDefault()}
           onClick={insertUnderline}

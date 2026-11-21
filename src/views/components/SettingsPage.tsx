@@ -138,6 +138,11 @@ export default function SettingsPage({
   const allowBulkImport = Boolean(isSuperAdmin || canBulkImport);
 
   const [activeTab, setActiveTab] = useState<string>(initialTab);
+  const [prevInitialTab, setPrevInitialTab] = useState<string>(initialTab);
+  if (initialTab !== prevInitialTab) {
+    setPrevInitialTab(initialTab);
+    setActiveTab(initialTab);
+  }
 
   const handleSelectTab = (tab: string) => {
     setActiveTab(tab);
@@ -266,7 +271,7 @@ export default function SettingsPage({
   const [defaultAdminPerms, setDefaultAdminPerms] = useState<AdminPermissions>(() =>
     rolesModel.getDefaultAdminPermissions()
   );
-  const [isAdminTemplateExpanded, setIsAdminTemplateExpanded] = useState(true);
+  const [isAdminTemplateExpanded, setIsAdminTemplateExpanded] = useState(false);
   const [permissionEditorTarget, setPermissionEditorTarget] = useState<UserRoleRecord | null>(null);
   const [draftUserPerms, setDraftUserPerms] = useState<AdminPermissions>(
     DEFAULT_ADMIN_PERMISSIONS
@@ -1781,13 +1786,13 @@ export default function SettingsPage({
               {/* Discord-Style Default Admin Role Permissions Card */}
               {canEditAdminTemplate && (
                 <div className="rounded-xl border border-qb-border bg-qb-surface p-4 sm:p-5 space-y-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3 min-w-0">
                       <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-purple-400/30 bg-purple-400/12 text-purple-400 light:border-purple-600/25 light:bg-purple-50 light:text-purple-700">
                         <SlidersHorizontal size={17} aria-hidden="true" />
                       </div>
                       <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                           <h3 className="text-sm font-bold text-qb-heading">
                             Admin Role Permissions
                           </h3>
@@ -1802,45 +1807,48 @@ export default function SettingsPage({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        type="button"
-                        onClick={handleResetDefaultAdminPerms}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-qb-border bg-qb-input px-3 py-1.5 text-xs font-semibold text-qb-mid transition-colors hover:border-qb-border-hover hover:text-qb-heading cursor-pointer whitespace-nowrap"
-                      >
-                        <RotateCcw size={13} aria-hidden="true" />
-                        <span>Reset Defaults</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleApplyDefaultPermsToAllAdmins}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/35 bg-amber-500/12 px-3 py-1.5 text-xs font-semibold text-amber-400 light:text-amber-700 transition-colors hover:bg-amber-500/20 cursor-pointer whitespace-nowrap"
-                      >
-                        <Check size={13} aria-hidden="true" />
-                        <span>Apply to All Admins</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setIsAdminTemplateExpanded((prev) => !prev)}
-                        aria-expanded={isAdminTemplateExpanded}
-                        aria-label={
-                          isAdminTemplateExpanded
-                            ? "Collapse Admin role permissions"
-                            : "Expand Admin role permissions"
-                        }
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-qb-border bg-qb-input text-qb-muted transition-colors hover:border-qb-border-hover hover:text-qb-heading cursor-pointer"
-                      >
-                        {isAdminTemplateExpanded ? (
-                          <ChevronUp size={15} />
-                        ) : (
-                          <ChevronDown size={15} />
-                        )}
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsAdminTemplateExpanded((prev) => !prev)}
+                      aria-expanded={isAdminTemplateExpanded}
+                      aria-label={
+                        isAdminTemplateExpanded
+                          ? "Hide Admin role permissions"
+                          : "Configure Admin role permissions"
+                      }
+                      className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-qb-border bg-qb-input px-2.5 text-xs font-semibold text-qb-mid transition-colors hover:border-qb-border-hover hover:text-qb-heading cursor-pointer whitespace-nowrap"
+                    >
+                      <span>{isAdminTemplateExpanded ? "Hide" : "Configure"}</span>
+                      {isAdminTemplateExpanded ? (
+                        <ChevronUp size={14} aria-hidden="true" />
+                      ) : (
+                        <ChevronDown size={14} aria-hidden="true" />
+                      )}
+                    </button>
                   </div>
 
                   {isAdminTemplateExpanded && (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 pt-1">
+                    <div className="space-y-3 border-t border-qb-border pt-3.5">
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={handleResetDefaultAdminPerms}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-qb-border bg-qb-input px-3 py-1.5 text-xs font-semibold text-qb-mid transition-colors hover:border-qb-border-hover hover:text-qb-heading cursor-pointer whitespace-nowrap"
+                        >
+                          <RotateCcw size={13} aria-hidden="true" />
+                          <span>Reset Defaults</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleApplyDefaultPermsToAllAdmins}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/35 bg-amber-500/12 px-3 py-1.5 text-xs font-semibold text-amber-400 light:text-amber-700 transition-colors hover:bg-amber-500/20 cursor-pointer whitespace-nowrap"
+                        >
+                          <Check size={13} aria-hidden="true" />
+                          <span>Apply to All Admins</span>
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                       {PERMISSION_CATEGORIES.map((category) => {
                         const items = ADMIN_PERMISSION_DEFINITIONS.filter(
                           (d) => d.category === category
@@ -1901,6 +1909,7 @@ export default function SettingsPage({
                           </div>
                         );
                       })}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -2093,7 +2102,7 @@ export default function SettingsPage({
                                 </span>
                               ) : isRestricted ? (
                                 <div className="qb-user-role-actions">
-                                  {canModerateUsers && (
+                                  {canModerateUsers ? (
                                     <button
                                       type="button"
                                       className="qb-user-restore-btn"
@@ -2102,21 +2111,30 @@ export default function SettingsPage({
                                       <RotateCcw size={13} />
                                       <span>Restore</span>
                                     </button>
+                                  ) : (
+                                    <span className="qb-table-role-readonly text-xs font-semibold text-qb-muted px-2">
+                                      {status === "banned" ? "BANNED" : "REMOVED"}
+                                    </span>
                                   )}
-                                  {hasKebabActions && (
-                                    <button
-                                      type="button"
-                                      className={`qb-user-kebab-btn${
-                                        openActionMenu?.record.email === uRecord.email ? " is-open" : ""
-                                      }`}
-                                      aria-label={`More actions for ${uRecord.email}`}
-                                      aria-haspopup="menu"
-                                      aria-expanded={openActionMenu?.record.email === uRecord.email}
-                                      onClick={(e) => handleToggleActionMenu(e, uRecord)}
-                                    >
-                                      <EllipsisVertical size={15} />
-                                    </button>
-                                  )}
+                                  <span className="qb-user-perm-slot" aria-hidden="true" />
+                                  <span className="qb-user-kebab-slot">
+                                    {hasKebabActions && (
+                                      <button
+                                        type="button"
+                                        className={`qb-user-kebab-btn${
+                                          openActionMenu?.record.email === uRecord.email
+                                            ? " is-open"
+                                            : ""
+                                        }`}
+                                        aria-label={`More actions for ${uRecord.email}`}
+                                        aria-haspopup="menu"
+                                        aria-expanded={openActionMenu?.record.email === uRecord.email}
+                                        onClick={(e) => handleToggleActionMenu(e, uRecord)}
+                                      >
+                                        <EllipsisVertical size={15} />
+                                      </button>
+                                    )}
+                                  </span>
                                 </div>
                               ) : (
                                 <div className="qb-user-role-actions">
@@ -2139,46 +2157,52 @@ export default function SettingsPage({
                                       minMenuWidth={196}
                                     />
                                   ) : (
-                                    <span className="text-xs font-semibold text-qb-mid px-2">
+                                    <span className="qb-table-role-readonly text-xs font-semibold text-qb-mid px-2">
                                       {uRecord.role.toUpperCase()}
                                     </span>
                                   )}
-                                  {hasPerAdminPermButton && permSummary && (
-                                    <button
-                                      type="button"
-                                      onClick={() => openUserPermissionsModal(uRecord)}
-                                      title={
-                                        permSummary.isCustom
-                                          ? `Custom Admin permissions (${permSummary.granted}/${permSummary.total})`
-                                          : `Configure Admin permissions (${permSummary.granted}/${permSummary.total})`
-                                      }
-                                      aria-label={`Configure permissions for ${uRecord.email}`}
-                                      className={`inline-flex h-[34px] shrink-0 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-semibold tabular-nums transition-colors cursor-pointer whitespace-nowrap ${
-                                        permSummary.isCustom
-                                          ? "border-amber-500/45 bg-amber-500/14 text-amber-400 light:border-amber-600/40 light:bg-amber-50 light:text-amber-700 hover:bg-amber-500/22"
-                                          : "border-qb-border bg-qb-surface text-qb-mid hover:border-qb-border-hover hover:text-qb-heading"
-                                      }`}
-                                    >
-                                      <SlidersHorizontal size={13} aria-hidden="true" />
-                                      <span>
-                                        {permSummary.granted}/{permSummary.total}
-                                      </span>
-                                    </button>
-                                  )}
-                                  {hasKebabActions && (
-                                    <button
-                                      type="button"
-                                      className={`qb-user-kebab-btn${
-                                        openActionMenu?.record.email === uRecord.email ? " is-open" : ""
-                                      }`}
-                                      aria-label={`Account actions for ${uRecord.email}`}
-                                      aria-haspopup="menu"
-                                      aria-expanded={openActionMenu?.record.email === uRecord.email}
-                                      onClick={(e) => handleToggleActionMenu(e, uRecord)}
-                                    >
-                                      <EllipsisVertical size={15} />
-                                    </button>
-                                  )}
+                                  <span className="qb-user-perm-slot">
+                                    {hasPerAdminPermButton && permSummary ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => openUserPermissionsModal(uRecord)}
+                                        title={
+                                          permSummary.isCustom
+                                            ? `Custom Admin permissions (${permSummary.granted}/${permSummary.total})`
+                                            : `Configure Admin permissions (${permSummary.granted}/${permSummary.total})`
+                                        }
+                                        aria-label={`Configure permissions for ${uRecord.email}`}
+                                        className={`inline-flex h-[34px] w-full items-center justify-center gap-1.5 rounded-lg border px-2 text-xs font-semibold tabular-nums transition-colors cursor-pointer whitespace-nowrap ${
+                                          permSummary.isCustom
+                                            ? "border-amber-500/45 bg-amber-500/14 text-amber-400 light:border-amber-600/40 light:bg-amber-50 light:text-amber-700 hover:bg-amber-500/22"
+                                            : "border-qb-border bg-qb-surface text-qb-mid hover:border-qb-border-hover hover:text-qb-heading"
+                                        }`}
+                                      >
+                                        <SlidersHorizontal size={13} aria-hidden="true" />
+                                        <span>
+                                          {permSummary.granted}/{permSummary.total}
+                                        </span>
+                                      </button>
+                                    ) : null}
+                                  </span>
+                                  <span className="qb-user-kebab-slot">
+                                    {hasKebabActions && (
+                                      <button
+                                        type="button"
+                                        className={`qb-user-kebab-btn${
+                                          openActionMenu?.record.email === uRecord.email
+                                            ? " is-open"
+                                            : ""
+                                        }`}
+                                        aria-label={`Account actions for ${uRecord.email}`}
+                                        aria-haspopup="menu"
+                                        aria-expanded={openActionMenu?.record.email === uRecord.email}
+                                        onClick={(e) => handleToggleActionMenu(e, uRecord)}
+                                      >
+                                        <EllipsisVertical size={15} />
+                                      </button>
+                                    )}
+                                  </span>
                                 </div>
                               )}
                             </div>

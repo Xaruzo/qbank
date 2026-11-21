@@ -92,6 +92,8 @@
   overflow: hidden;
   background: var(--surface);
   border-right: 1px solid var(--border);
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .qb-modern-drawer {
@@ -103,6 +105,8 @@
   box-shadow: 18px 0 50px rgba(0, 0, 0, 0.45);
   display: flex;
   flex-direction: column;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .qb-modern-drawer-scroll,
