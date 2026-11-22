@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Editor, Node as TiptapNode, mergeAttributes } from "@tiptap/core";
 import {
   EditorContent,
@@ -41,6 +41,8 @@ import {
   AlignRight,
   AlignJustify,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Sigma,
   Search,
   X,
@@ -355,10 +357,39 @@ export default function NoteRichEditor({
   const [replaceText, setReplaceText] = useState("");
   const [activeMatchIdx, setActiveMatchIdx] = useState(0);
 
+  const [toolbarScroll, setToolbarScroll] = useState({ left: false, right: false });
+
   const toolbarRef = useRef<HTMLDivElement>(null);
+  const toolbarScrollRef = useRef<HTMLDivElement>(null);
   const findInputRef = useRef<HTMLInputElement>(null);
   const lastEmittedMdRef = useRef<string>(markdown);
   const lastLoadedKeyRef = useRef<string>(noteKey);
+
+  const updateToolbarScroll = useCallback(() => {
+    const el = toolbarScrollRef.current;
+    if (!el) {
+      setToolbarScroll({ left: false, right: false });
+      return;
+    }
+    const maxScrollLeft = el.scrollWidth - el.clientWidth;
+    const nextLeft = el.scrollLeft > 4;
+    const nextRight = maxScrollLeft > 4 && el.scrollLeft < maxScrollLeft - 4;
+    setToolbarScroll((prev) =>
+      prev.left === nextLeft && prev.right === nextRight
+        ? prev
+        : { left: nextLeft, right: nextRight }
+    );
+  }, []);
+
+  const scrollToolbarBy = (direction: "left" | "right") => {
+    const el = toolbarScrollRef.current;
+    if (!el) return;
+    const step = Math.max(140, Math.round(el.clientWidth * 0.65));
+    el.scrollBy({
+      left: direction === "right" ? step : -step,
+      behavior: "smooth",
+    });
+  };
 
   const togglePopover = (
     kind: "heading" | "highlight" | "color" | "align" | "link" | "math",
@@ -479,6 +510,31 @@ export default function NoteRichEditor({
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [editor, readOnly]);
+
+  useEffect(() => {
+    if (readOnly) {
+      setToolbarScroll({ left: false, right: false });
+      return;
+    }
+    const el = toolbarScrollRef.current;
+    if (!el) return;
+
+    updateToolbarScroll();
+    const rafId = window.requestAnimationFrame(updateToolbarScroll);
+
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(updateToolbarScroll);
+      ro.observe(el);
+    }
+    window.addEventListener("resize", updateToolbarScroll);
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      ro?.disconnect();
+      window.removeEventListener("resize", updateToolbarScroll);
+    };
+  }, [readOnly, editor, updateToolbarScroll]);
 
   const editorState = useEditorState({
     editor,
@@ -657,7 +713,26 @@ export default function NoteRichEditor({
     <div className={`qb-rich-editor-root${readOnly ? " is-readonly" : ""}`}>
       {!readOnly && (
         <div className="qb-rich-toolbar-wrap" ref={toolbarRef}>
-          <div className="qb-rich-toolbar" role="toolbar" aria-label="Rich text formatting tools">
+          <div className="qb-rich-toolbar-scroll-shell">
+            {toolbarScroll.left && (
+              <button
+                type="button"
+                className="qb-rich-scroll-arrow is-left"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => scrollToolbarBy("left")}
+                aria-label="Scroll formatting tools left"
+                title="Scroll tools left"
+              >
+                <ChevronLeft size={16} />
+              </button>
+            )}
+            <div
+              ref={toolbarScrollRef}
+              className="qb-rich-toolbar"
+              role="toolbar"
+              aria-label="Rich text formatting tools"
+              onScroll={updateToolbarScroll}
+            >
             {/* 1. Undo / Redo */}
             <div className="qb-note-fmt-group">
               <button
@@ -942,6 +1017,19 @@ export default function NoteRichEditor({
                 <Search size={14} />
               </button>
             </div>
+            </div>
+            {toolbarScroll.right && (
+              <button
+                type="button"
+                className="qb-rich-scroll-arrow is-right"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => scrollToolbarBy("right")}
+                aria-label="Scroll formatting tools right"
+                title="More formatting tools"
+              >
+                <ChevronRight size={16} />
+              </button>
+            )}
           </div>
 
           {/* Floating Popovers rendered outside scrolling toolbar so nothing ever clips */}

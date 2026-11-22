@@ -5,6 +5,8 @@ import {
   CHUNK_RELOAD_STORAGE_KEY,
   clearChunkReloadAttempted,
   isChunkLoadError,
+  isReactDispatcherMismatchError,
+  isStaleModuleError,
   markChunkReloadAttempted,
   shouldAttemptChunkReload,
 } from "../src/utils/lazyWithRetry";
@@ -62,6 +64,28 @@ describe("isChunkLoadError", () => {
     expect(isChunkLoadError(new TypeError("Cannot read properties of undefined"))).toBe(false);
     expect(isChunkLoadError(new Error("Network error 500"))).toBe(false);
     expect(isChunkLoadError(null)).toBe(false);
+  });
+});
+
+describe("isReactDispatcherMismatchError & isStaleModuleError", () => {
+  it("detects null React dispatcher hook errors caused by mismatched Vite dep hashes", () => {
+    expect(
+      isReactDispatcherMismatchError(new TypeError("Cannot read properties of null (reading 'useState')"))
+    ).toBe(true);
+    expect(
+      isStaleModuleError(new TypeError("Cannot read properties of null (reading 'useEffect')"))
+    ).toBe(true);
+    expect(
+      isStaleModuleError(new TypeError("null is not an object (evaluating 'dispatcher.useState')"))
+    ).toBe(true);
+    expect(isStaleModuleError(new Error("Invalid hook call."))).toBe(true);
+  });
+
+  it("ignores unrelated null property errors", () => {
+    expect(
+      isReactDispatcherMismatchError(new TypeError("Cannot read properties of null (reading 'id')"))
+    ).toBe(false);
+    expect(isStaleModuleError(new Error("Network error 500"))).toBe(false);
   });
 });
 

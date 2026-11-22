@@ -11,6 +11,11 @@ import {
   Check,
   Tag,
   BookOpen,
+  Landmark,
+  Calculator,
+  BrainCircuit,
+  ClipboardList,
+  Target,
   ArrowLeft,
   Clock,
   History,
@@ -21,6 +26,8 @@ import {
   ArrowUpDown,
   MoreVertical,
   RotateCcw,
+  Loader2,
+  type LucideIcon,
 } from "lucide-react";
 import { notesModel } from "../../models/notesModel";
 import { NOTE_TOPICS } from "../../constants/appConstants";
@@ -85,10 +92,32 @@ const SORT_OPTIONS: SelectOption[] = [
   },
 ];
 
-const TOPIC_SELECT_OPTIONS = NOTE_TOPICS.filter((t) => t.id !== "all").map((topic) => ({
-  value: topic.id,
-  label: topic.label,
-}));
+const NOTE_TOPIC_ICON_MAP: Record<string, LucideIcon> = {
+  general: Landmark,
+  numerical: Calculator,
+  verbal: BookOpen,
+  analytical: BrainCircuit,
+  clerical: ClipboardList,
+  strategy: Target,
+};
+
+const TOPIC_SELECT_OPTIONS: SelectOption[] = NOTE_TOPICS.filter((t) => t.id !== "all").map(
+  (topic) => {
+    const Icon = NOTE_TOPIC_ICON_MAP[topic.id] || BookOpen;
+    return {
+      value: topic.id,
+      label: topic.label,
+      icon: (
+        <Icon
+          size={14}
+          className="qb-topic-icon"
+          style={topic.color ? { color: topic.color } : undefined}
+          data-colored="true"
+        />
+      ),
+    };
+  }
+);
 
 
 const SUGGESTED_TAGS = [
@@ -302,7 +331,7 @@ export default function NotesPage({ userId, initialNoteId = null }: NotesPagePro
     if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
     saveTimerRef.current = window.setTimeout(() => {
       void persistCurrentDraft();
-    }, 750);
+    }, 1200);
 
     return () => {
       if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
@@ -910,30 +939,41 @@ export default function NotesPage({ userId, initialNoteId = null }: NotesPagePro
                   </button>
 
                   <div className="qb-note-topic-select-wrap qb-note-topic-desktop">
+                    <span className="qb-note-topic-field-label" id="qb-note-topic-label-desktop">
+                      Subject
+                    </span>
                     <CustomSelect
                       value={editTopic}
                       onChange={(val) => setEditTopic(val as TopicId)}
                       options={TOPIC_SELECT_OPTIONS}
                       className="qb-note-topic-dropdown"
                       portal
-                      minMenuWidth={185}
+                      minMenuWidth={268}
                     />
                   </div>
                 </div>
 
                 <div className="qb-note-editor-right">
-                  {saveStatus === "saving" && (
-                    <span className="qb-note-status-text is-saving">Saving...</span>
-                  )}
-                  {saveStatus === "saved" && !isDirty && (
-                    <span className="qb-note-status-text is-saved">
-                      <Check size={13} /> Saved
-                    </span>
-                  )}
-                  {copiedNotice && (
-                    <span className="qb-note-status-text is-saved">
+                  {copiedNotice ? (
+                    <span className="qb-note-status-text is-saved" role="status" aria-live="polite">
                       <Check size={13} /> Copied
                     </span>
+                  ) : saveStatus === "saving" ||
+                    (isDirty && Boolean(editTitle.trim() || editContent.trim())) ? (
+                    <span className="qb-note-status-text is-saving" role="status" aria-live="polite">
+                      <Loader2 size={13} className="qb-note-status-spin" /> Saving...
+                    </span>
+                  ) : activeNote.id ? (
+                    <span
+                      className={`qb-note-status-text ${saveStatus === "saved" ? "is-saved" : "is-idle"}`}
+                      role="status"
+                      aria-live="polite"
+                      title="Changes save automatically (or press Ctrl/Cmd + S)"
+                    >
+                      <Check size={13} /> Saved
+                    </span>
+                  ) : (
+                    <span className="qb-note-status-text is-idle">Draft</span>
                   )}
 
                   <button
@@ -1015,30 +1055,20 @@ export default function NotesPage({ userId, initialNoteId = null }: NotesPagePro
                       </div>
                     )}
                   </div>
-
-                  <button
-                    type="button"
-                    className={`qb-notes-btn qb-notes-save-btn${isDirty ? " is-dirty" : ""}`}
-                    onClick={() => void persistCurrentDraft()}
-                    disabled={!editTitle.trim() && !editContent.trim()}
-                    title="Save note (Ctrl/Cmd + S)"
-                  >
-                    <Check size={15} />
-                    <span>Save</span>
-                  </button>
                 </div>
               </div>
 
               {/* Document Title, Mobile Topic Selector & Compact Inline Tags */}
               <div className="qb-note-doc-header">
                 <div className="qb-note-topic-mobile-row">
+                  <span className="qb-note-topic-field-label">Subject</span>
                   <CustomSelect
                     value={editTopic}
                     onChange={(val) => setEditTopic(val as TopicId)}
                     options={TOPIC_SELECT_OPTIONS}
                     className="qb-note-topic-dropdown"
                     portal
-                    minMenuWidth={185}
+                    minMenuWidth={268}
                   />
                 </div>
 

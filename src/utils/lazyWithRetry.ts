@@ -23,6 +23,33 @@ export function isChunkLoadError(error: unknown): boolean {
   return CHUNK_ERROR_PATTERNS.some((pattern) => combined.includes(pattern));
 }
 
+const REACT_DISPATCHER_HOOK_RE =
+  /reading ['"]?use(?:state|effect|layouteffect|ref|memo|callback|context|reducer|syncExternalStore)['"]?|evaluating ['"]?dispatcher\.use(?:state|effect|layouteffect|ref|memo|callback|context|reducer)['"]?|dispatcher is null|invalid hook call/i;
+
+export function isReactDispatcherMismatchError(error: unknown): boolean {
+  if (!error) return false;
+  const message =
+    typeof error === "object" && "message" in error
+      ? String((error as { message?: unknown }).message || "")
+      : String(error);
+  if (!message) return false;
+  const lower = message.toLowerCase();
+  if (lower.includes("invalid hook call")) return true;
+  if (
+    (lower.includes("cannot read properties of null") ||
+      lower.includes("null is not an object") ||
+      lower.includes("dispatcher is null")) &&
+    REACT_DISPATCHER_HOOK_RE.test(message)
+  ) {
+    return true;
+  }
+  return false;
+}
+
+export function isStaleModuleError(error: unknown): boolean {
+  return isChunkLoadError(error) || isReactDispatcherMismatchError(error);
+}
+
 export function shouldAttemptChunkReload(
   storage: Pick<Storage, "getItem"> | null | undefined,
   now = Date.now(),
