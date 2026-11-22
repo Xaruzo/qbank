@@ -6,6 +6,8 @@ import {
   computeViewportInsertPoint,
   computePasteTargetPoint,
   clampCanvasHeight,
+  computeSmartCropRect,
+  computeFitContentLayout,
   findBestConnection,
   buildStraightArrowPath,
   buildCurvedArrowPath,
@@ -48,8 +50,8 @@ describe("canvasMath", () => {
     }
   });
 
-  it("clamps canvas height between 500 and 2400", () => {
-    expect(clampCanvasHeight(200)).toBe(500);
+  it("clamps canvas height between 260 and 2400", () => {
+    expect(clampCanvasHeight(200)).toBe(260);
     expect(clampCanvasHeight(3000)).toBe(2400);
     expect(clampCanvasHeight(950.4)).toBe(950);
   });
@@ -187,5 +189,52 @@ describe("canvasMath", () => {
       })
     ).toEqual({ x: 796, y: 24 });
   });
+
+  it("computes tight smart crop bounds with balanced padding and safe minimums", () => {
+    const crop = computeSmartCropRect(
+      [
+        { left: 150, top: 20, width: 120, height: 140 },
+        { left: 420, top: 24, width: 200, height: 320 },
+      ],
+      820,
+      1300
+    );
+
+    expect(crop.wasCropped).toBe(true);
+    expect(crop.left).toBe(114);
+    expect(crop.top).toBe(0);
+    expect(crop.width).toBe(542);
+    expect(crop.height).toBe(380);
+
+    // Tiny single equation still keeps readable minimum crop width & height
+    const tiny = computeSmartCropRect(
+      [{ left: 300, top: 100, width: 100, height: 40 }],
+      820,
+      700
+    );
+    expect(tiny.width).toBe(380);
+    expect(tiny.height).toBe(180);
+
+    // Empty canvas falls back to full artboard without cropping
+    const empty = computeSmartCropRect([], 820, 700);
+    expect(empty.wasCropped).toBe(false);
+    expect(empty.width).toBe(820);
+    expect(empty.height).toBe(700);
+  });
+
+  it("computes fit-to-content vertical shift and compact target height", () => {
+    const layout = computeFitContentLayout(
+      [
+        { left: 120, top: 120, width: 160, height: 110 },
+        { left: 410, top: 130, width: 200, height: 220 },
+      ],
+      260,
+      2400,
+      36
+    );
+    expect(layout.shiftY).toBe(-84);
+    expect(layout.targetHeight).toBe(302);
+  });
 });
+
 

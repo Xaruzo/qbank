@@ -25,8 +25,10 @@ import {
   Plus,
   Search,
   ShieldCheck,
+  AlertCircle,
 } from "lucide-react";
 import CountUp from "./CountUp";
+import MarkdownText from "./MarkdownText";
 import cseHubWorkbenchImg from "../../assets/images/cse_hub_workbench_1795232246631.jpg";
 import {
   getMasterySummary,
@@ -34,6 +36,10 @@ import {
   getSubjectMasteryBreakdown,
   type SubjectMasteryRow,
 } from "../../models/masteryModel";
+import {
+  formatRecentRelativeTime,
+  type ResolvedRecentQuestion,
+} from "../../models/recentQuestionsModel";
 import type {
   MockExamAttempt,
   Question,
@@ -74,6 +80,9 @@ interface DashboardPageProps {
   onGoMockExam: () => void;
   onOpenSettings: (tab?: string) => void;
   onRequireAuth: () => void;
+  recentQuestions?: ResolvedRecentQuestion[];
+  onSelectQuestion?: (questionId: string) => void;
+  onClearRecentQuestions?: () => void;
 }
 
 const SUBJECT_ICONS: Record<string, typeof Calculator> = {
@@ -181,6 +190,9 @@ export default function DashboardPage({
   onGoMockExam,
   onOpenSettings,
   onRequireAuth,
+  recentQuestions = [],
+  onSelectQuestion,
+  onClearRecentQuestions,
 }: DashboardPageProps) {
   const [hubQuery, setHubQuery] = useState("");
   const [hubImgError, setHubImgError] = useState(false);
@@ -293,6 +305,7 @@ export default function DashboardPage({
   const activeTimeLeftLabel = hasResumableMock ? formatRemainingClock(activeExam) : null;
 
   const recentAttempts = useMemo(() => (mockHistory || []).slice(0, 5), [mockHistory]);
+  const recentOpenedItems = useMemo(() => (recentQuestions || []).slice(0, 5), [recentQuestions]);
   const primaryWeakArea: SubjectMasteryRow | null = weakAreas[0] || null;
   const trackLabel = examTarget === "subprofessional" ? "Subprofessional Track" : "Professional Track";
 
@@ -1534,6 +1547,126 @@ export default function DashboardPage({
                   <SlidersHorizontal size={13} className="text-qb-accent" aria-hidden="true" />
                   <span>Open Mock Exam Center</span>
                 </button>
+              </div>
+            )}
+          </section>
+
+          {/* Recently Checked / Opened Questions */}
+          <section
+            className="rounded-2xl border border-qb-border bg-qb-surface overflow-hidden"
+            aria-label="Recently Checked Questions"
+          >
+            <div className="flex items-center justify-between gap-2 px-3.5 py-3.5 sm:px-5 border-b border-qb-border">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <History size={15} className="shrink-0 text-amber-400 light:text-amber-600" aria-hidden="true" />
+                  <h2 className="text-sm sm:text-base font-bold text-qb-heading leading-tight">
+                    Recently Checked
+                  </h2>
+                </div>
+                <p className="mt-0.5 text-[11px] sm:text-xs text-qb-muted leading-snug">
+                  Last opened &amp; answered items
+                </p>
+              </div>
+              {recentOpenedItems.length > 0 && onClearRecentQuestions ? (
+                <button
+                  type="button"
+                  onClick={onClearRecentQuestions}
+                  className="text-xs font-semibold text-qb-muted hover:text-qb-heading cursor-pointer shrink-0 whitespace-nowrap transition-colors"
+                >
+                  Clear
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onOpenQuestionBank({ topic: "all", mastery: "all" })}
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-qb-accent hover:underline cursor-pointer shrink-0 whitespace-nowrap"
+                >
+                  <span>Browse</span>
+                  <ArrowRight size={13} aria-hidden="true" />
+                </button>
+              )}
+            </div>
+
+            {recentOpenedItems.length > 0 ? (
+              <div className="divide-y divide-qb-border">
+                {recentOpenedItems.map((item) => {
+                  const Icon = SUBJECT_ICONS[item.question.topic] || Layers;
+                  const styles =
+                    SUBJECT_ACCENT_STYLES[item.question.topic] || SUBJECT_ACCENT_STYLES.numerical;
+                  const statusLabel =
+                    item.result === "correct"
+                      ? "Correct"
+                      : item.result === "wrong"
+                        ? "Missed"
+                        : "Opened";
+                  const statusTone =
+                    item.result === "correct"
+                      ? "text-emerald-400 light:text-emerald-700"
+                      : item.result === "wrong"
+                        ? "text-rose-400 light:text-rose-700"
+                        : "text-qb-muted";
+
+                  return (
+                    <button
+                      key={item.question.id}
+                      type="button"
+                      onClick={() => onSelectQuestion?.(item.question.id)}
+                      className="group w-full min-h-[58px] flex items-center justify-between gap-2.5 px-3.5 py-2.5 sm:px-5 text-left transition-colors hover:bg-qb-surface-hover active:bg-qb-surface-hover cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <span
+                          className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${styles.icon}`}
+                        >
+                          <Icon size={14} aria-hidden="true" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-[13px] font-semibold text-qb-heading leading-snug line-clamp-1">
+                            <MarkdownText text={item.question.question} inline />
+                          </div>
+                          <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-qb-muted tabular-nums leading-snug truncate">
+                            <span className="truncate">{item.topicLabel}</span>
+                            {item.question.label && (
+                              <>
+                                <span aria-hidden="true">·</span>
+                                <span className="truncate">{item.question.label}</span>
+                              </>
+                            )}
+                            <span aria-hidden="true">·</span>
+                            <span className="shrink-0">{formatRecentRelativeTime(item.openedAt)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className={`inline-flex items-center gap-1 text-[11px] font-semibold ${statusTone}`}>
+                          {item.result === "correct" && (
+                            <CheckCircle2 size={12} aria-hidden="true" />
+                          )}
+                          {item.result === "wrong" && (
+                            <AlertCircle size={12} aria-hidden="true" />
+                          )}
+                          <span>{statusLabel}</span>
+                        </span>
+                        <ChevronRight
+                          size={15}
+                          className="text-qb-muted transition-transform group-hover:translate-x-0.5 group-hover:text-qb-heading"
+                          aria-hidden="true"
+                        />
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="p-5 sm:p-6 text-center space-y-2.5">
+                <BookOpen size={20} className="mx-auto text-qb-muted" aria-hidden="true" />
+                <p className="text-xs font-semibold text-qb-heading">
+                  No recently opened questions yet.
+                </p>
+                <p className="text-xs text-qb-muted max-w-xs mx-auto leading-relaxed">
+                  Open or check any item in the Question Bank to keep a quick jump list here.
+                </p>
               </div>
             )}
           </section>

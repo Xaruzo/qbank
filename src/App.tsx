@@ -53,6 +53,15 @@ import {
   getDaysUntilExam,
 } from "./models/masteryModel";
 import {
+  RECENT_QUESTIONS_UPDATED_EVENT,
+  readRecentQuestions,
+  recordRecentQuestionOpen,
+  recordRecentQuestionCheck,
+  removeRecentQuestion,
+  clearRecentQuestions,
+  resolveRecentQuestions,
+} from "./models/recentQuestionsModel";
+import {
   buildMockExamAttempt,
   buildReviewExamFromAttempt,
   buildMistakeDrillExam,
@@ -127,6 +136,7 @@ export default function App() {
   const { settings, updateSettings, resetSettings } = useSettingsController();
   
   const [masteryVersion, setMasteryVersion] = useState(0);
+  const [recentVersion, setRecentVersion] = useState(0);
   const [isOnline, setIsOnline] = useState(() =>
     typeof navigator !== "undefined" ? navigator.onLine !== false : true
   );
@@ -134,11 +144,16 @@ export default function App() {
 
   useEffect(() => {
     const bumpMastery = () => setMasteryVersion((v) => v + 1);
+    const bumpRecent = () => setRecentVersion((v) => v + 1);
     window.addEventListener(MASTERY_UPDATED_EVENT, bumpMastery);
+    window.addEventListener(RECENT_QUESTIONS_UPDATED_EVENT, bumpRecent);
     window.addEventListener("storage", bumpMastery);
+    window.addEventListener("storage", bumpRecent);
     return () => {
       window.removeEventListener(MASTERY_UPDATED_EVENT, bumpMastery);
+      window.removeEventListener(RECENT_QUESTIONS_UPDATED_EVENT, bumpRecent);
       window.removeEventListener("storage", bumpMastery);
+      window.removeEventListener("storage", bumpRecent);
     };
   }, []);
 
@@ -146,6 +161,11 @@ export default function App() {
     void masteryVersion;
     return readMasteryMap(user?.id);
   }, [user?.id, masteryVersion]);
+
+  const recentEntries = useMemo(() => {
+    void recentVersion;
+    return readRecentQuestions(user?.id);
+  }, [user?.id, recentVersion]);
 
   const { 
     qs, loading, refreshing, search, setSearch, topicFilter, setTopicFilter, labelFilter, setLabelFilter,
@@ -850,6 +870,7 @@ export default function App() {
   const handleDelete = async (id: string) => {
     if (!canDeleteQuestions) return;
     await deleteQuestion(id);
+    removeRecentQuestion(id, user?.id);
     handleGoHome();
   };
 
@@ -899,6 +920,17 @@ export default function App() {
   };
 
   const selectedQuestion = qs.find(q => q.id === selectedId);
+  const recentQuestions = useMemo(
+    () => resolveRecentQuestions(recentEntries, qs, masteryMap, 6),
+    [recentEntries, qs, masteryMap]
+  );
+
+  useEffect(() => {
+    if (view === "detail" && selectedQuestion?.id) {
+      recordRecentQuestionOpen(selectedQuestion.id, user?.id);
+    }
+  }, [view, selectedQuestion?.id, user?.id]);
+
   const selectedMockAttempt = mockHistory.find((attempt) => attempt.id === selectedMockAttemptId) || null;
   const selectedIndexInFiltered = filteredQuestions.findIndex(q => q.id === selectedId);
   const nextQuestion = selectedIndexInFiltered >= 0 ? filteredQuestions[selectedIndexInFiltered + 1] : null;
@@ -1212,6 +1244,9 @@ export default function App() {
                 onGoMockExam={handleGoMockExam}
                 onOpenSettings={handleGoSettings}
                 onRequireAuth={handleSignIn}
+                recentQuestions={recentQuestions}
+                onSelectQuestion={handleSelectQuestion}
+                onClearRecentQuestions={() => clearRecentQuestions(user?.id)}
               />
             ) : view === "list" ? (
               <div className="fu space-y-5">
@@ -1543,6 +1578,8 @@ export default function App() {
                   isAuthenticated={isAuthenticated}
                   onAddQuestion={handleAddQuestionAction}
                   onNavigateToTips={() => handleGoTips()}
+                  recentQuestions={recentQuestions}
+                  onClearRecentQuestions={() => clearRecentQuestions(user?.id)}
                   resetKey={`${search}|${topicFilter}|${labelFilter}|${favoriteOnly}|${masteryFilter}|${sortBy}`}
                 />
               </div>
@@ -1568,6 +1605,7 @@ export default function App() {
                 onRecordResult={(id: string, isCorrect: boolean) => {
                   setDetailSessionResults((prev) => ({ ...prev, [id]: isCorrect ? "correct" : "wrong" }));
                   recordQuestionOutcome(id, isCorrect, user?.id);
+                  recordRecentQuestionCheck(id, isCorrect, user?.id);
                 }}
                 onPrev={() => {
                   if (prevQuestion) handleSelectQuestion(prevQuestion.id);

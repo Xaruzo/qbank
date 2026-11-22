@@ -21,6 +21,7 @@ import {
 import MarkdownText from "./MarkdownText";
 import usePlainTextCopy from "../../utils/usePlainTextCopy";
 import { computeSelectPlacement } from "../../utils/selectPlacement";
+import { formatRecentRelativeTime } from "../../models/recentQuestionsModel";
 import ModernAddIcon from "./ModernAddIcon";
 import type { QuestionListProps, TopicDef } from "../../types";
 
@@ -115,6 +116,8 @@ export default function QuestionList({
   canManageQuestions = false,
   onAddQuestion,
   onNavigateToTips,
+  recentQuestions = [],
+  onClearRecentQuestions,
   resetKey,
 }: QuestionListProps) {
   const getTopic = (id: string): TopicDef => TOPICS.find((t: TopicDef) => t.id === id) || TOPICS[0];
@@ -127,6 +130,26 @@ export default function QuestionList({
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const metaBarRef = useRef<HTMLDivElement>(null);
   const [showFloatingAdd, setShowFloatingAdd] = useState(false);
+  const [recentCollapsed, setRecentCollapsed] = useState<boolean>(() => {
+    try {
+      return window.localStorage?.getItem("qbank-recent-strip-collapsed") === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleRecentCollapsed = () => {
+    setRecentCollapsed((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage?.setItem("qbank-recent-strip-collapsed", next ? "1" : "0");
+      } catch {
+        // Ignore storage errors
+      }
+      return next;
+    });
+  };
+  const recentStripItems = recentQuestions.slice(0, 4);
 
   // Monitor when meta bar scrolls out of view to gracefully reveal floating docked action
   useEffect(() => {
@@ -189,6 +212,107 @@ export default function QuestionList({
 
   return (
     <section className="space-y-4" ref={copyAreaRef} id="qb-question-feed">
+      {/* Compact Recently Checked / Opened Quick-Jump Strip */}
+      {recentStripItems.length > 0 && (
+        <div
+          className="rounded-2xl border border-qb-border bg-qb-surface overflow-hidden"
+          aria-label="Recently checked questions"
+        >
+          <div className="flex items-center justify-between gap-2 px-3.5 py-2.5 sm:px-4">
+            <button
+              type="button"
+              onClick={toggleRecentCollapsed}
+              aria-expanded={!recentCollapsed}
+              className="flex items-center gap-2 min-w-0 text-left cursor-pointer group"
+            >
+              <History size={14} className="shrink-0 text-amber-400 light:text-amber-600" aria-hidden="true" />
+              <span className="text-xs font-bold uppercase tracking-[0.07em] text-qb-heading">
+                Recently Checked
+              </span>
+              <span className="text-xs font-semibold text-qb-muted tabular-nums">
+                · {recentStripItems.length}
+              </span>
+              <ChevronDown
+                size={14}
+                className={`text-qb-muted transition-transform duration-150 ${
+                  recentCollapsed ? "-rotate-90" : ""
+                }`}
+                aria-hidden="true"
+              />
+            </button>
+            <div className="flex items-center gap-3 shrink-0">
+              {onClearRecentQuestions && (
+                <button
+                  type="button"
+                  onClick={onClearRecentQuestions}
+                  className="text-[11px] font-semibold text-qb-muted hover:text-qb-heading transition-colors cursor-pointer"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+
+          {!recentCollapsed && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2.5 px-3.5 pb-3.5 sm:px-4">
+              {recentStripItems.map((item) => {
+                const statusLabel =
+                  item.result === "correct"
+                    ? "Correct"
+                    : item.result === "wrong"
+                      ? "Missed"
+                      : "Opened";
+                const statusTone =
+                  item.result === "correct"
+                    ? "text-emerald-400 light:text-emerald-700"
+                    : item.result === "wrong"
+                      ? "text-rose-400 light:text-rose-700"
+                      : "text-qb-muted";
+
+                return (
+                  <button
+                    key={item.question.id}
+                    type="button"
+                    onClick={() => onSelect(item.question.id)}
+                    className="group flex flex-col justify-between gap-1.5 rounded-xl border border-qb-border bg-qb-input/65 px-3 py-2.5 text-left transition-colors hover:border-amber-500/45 hover:bg-qb-surface-hover cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between gap-2 text-[11px] leading-none">
+                      <span
+                        className="inline-flex items-center gap-1.5 font-bold truncate"
+                        style={{ color: item.topicColor }}
+                      >
+                        <span
+                          className="h-1.5 w-1.5 rounded-full shrink-0"
+                          style={{ backgroundColor: item.topicColor }}
+                          aria-hidden="true"
+                        />
+                        <span>{item.topicShort}</span>
+                      </span>
+                      <span className={`font-semibold shrink-0 ${statusTone}`}>
+                        {statusLabel}
+                      </span>
+                    </div>
+
+                    <div className="text-xs font-medium text-qb-heading leading-snug line-clamp-1">
+                      <MarkdownText text={item.question.question} inline />
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 text-[10.5px] text-qb-muted tabular-nums">
+                      <span className="truncate">
+                        {item.question.label || item.topicLabel}
+                      </span>
+                      <span className="shrink-0">
+                        {formatRecentRelativeTime(item.openedAt)}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Structured Question Feed Header Toolbar */}
       <div
         ref={metaBarRef}

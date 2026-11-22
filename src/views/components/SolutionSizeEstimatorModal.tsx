@@ -14,6 +14,7 @@ import {
   Info,
   Minus,
   Plus,
+  Crop,
 } from "lucide-react";
 import MarkdownText from "./MarkdownText";
 
@@ -23,6 +24,9 @@ export interface SolutionSizeEstimatorModalProps {
   imageSrc: string | null;
   canvasWidth: number;
   canvasHeight: number;
+  exportWidth?: number;
+  exportHeight?: number;
+  isCropped?: boolean;
   exportMultiplier?: number;
   questionContext?: {
     question?: string;
@@ -36,6 +40,10 @@ export interface SolutionSizeEstimatorModalProps {
   showSafeBounds?: boolean;
   onToggleSafeBounds?: (enabled: boolean) => void;
   onAdjustHeight?: (delta: number) => void;
+  autoTrim?: boolean;
+  onToggleAutoTrim?: (enabled: boolean) => void;
+  onFitToContent?: () => void;
+  hasContent?: boolean;
 }
 
 const LETTERS = ["A", "B", "C", "D", "E"];
@@ -50,11 +58,18 @@ function SolutionSizeEstimatorDialog({
   imageSrc,
   canvasWidth,
   canvasHeight,
+  exportWidth,
+  exportHeight,
+  isCropped = false,
   exportMultiplier = 2,
   questionContext,
   showSafeBounds = false,
   onToggleSafeBounds,
   onAdjustHeight,
+  autoTrim = true,
+  onToggleAutoTrim,
+  onFitToContent,
+  hasContent = true,
 }: SolutionSizeEstimatorModalProps) {
   const [deviceMode, setDeviceMode] = useState<"desktop" | "tablet" | "mobile" | "native">("desktop");
 
@@ -71,10 +86,12 @@ function SolutionSizeEstimatorDialog({
   const topicLabel = questionContext?.topicLabel || "Numerical Ability";
   const label = questionContext?.label || "Ratio & Proportion";
 
-  // Calculations
-  const retinaWidth = Math.round(canvasWidth * exportMultiplier);
-  const retinaHeight = Math.round(canvasHeight * exportMultiplier);
-  const aspectRatio = canvasHeight > 0 ? (canvasWidth / canvasHeight).toFixed(2) : "1.00";
+  // Calculations based on actual exported image dimensions (smart-cropped when enabled)
+  const effectiveWidth = Math.max(1, exportWidth || canvasWidth);
+  const effectiveHeight = Math.max(1, exportHeight || canvasHeight);
+  const retinaWidth = Math.round(effectiveWidth * exportMultiplier);
+  const retinaHeight = Math.round(effectiveHeight * exportMultiplier);
+  const aspectRatio = effectiveHeight > 0 ? (effectiveWidth / effectiveHeight).toFixed(2) : "1.00";
 
   // Estimated file size from base64 string
   const estimatedFileSizeKB = useMemo(() => {
@@ -89,13 +106,13 @@ function SolutionSizeEstimatorDialog({
     desktop: 680,
     tablet: 520,
     mobile: 340,
-    native: canvasWidth,
+    native: effectiveWidth,
   };
   const simulatedContainerWidth = containerWidthMap[deviceMode];
 
   // Rendered height of diagram inside container
-  const renderedDiagramHeight = Math.round((simulatedContainerWidth / canvasWidth) * canvasHeight);
-  const scalePercent = Math.round((simulatedContainerWidth / canvasWidth) * 100);
+  const renderedDiagramHeight = Math.round((simulatedContainerWidth / effectiveWidth) * effectiveHeight);
+  const scalePercent = Math.round((simulatedContainerWidth / effectiveWidth) * 100);
 
   // Sliding focus box indicator (vertical on desktop/tablet, horizontal on mobile)
   const navGroupRef = useRef<HTMLDivElement | null>(null);
@@ -274,7 +291,7 @@ function SolutionSizeEstimatorDialog({
                   </span>
                   <span className="qb-sol-device-label">
                     <span className="qb-sol-device-name">1:1 Native</span>
-                    <span className="qb-sol-device-dim">{canvasWidth}px canvas</span>
+                    <span className="qb-sol-device-dim">{effectiveWidth}px {isCropped ? "cropped" : "canvas"}</span>
                   </span>
                 </button>
               </div>
@@ -291,8 +308,10 @@ function SolutionSizeEstimatorDialog({
                   <div className="qb-sol-metric-val tabular-nums">
                     {retinaWidth} × {retinaHeight} <span className="qb-sol-metric-unit">px</span>
                   </div>
-                  <span className="qb-sol-metric-sub">
-                    {exportMultiplier}× HiDPI · Sharp formulas
+                  <span className="qb-sol-metric-sub" title={isCropped ? `Cropped from ${canvasWidth} × ${canvasHeight}px canvas` : undefined}>
+                    {isCropped
+                      ? `Smart-cropped (${canvasWidth}×${canvasHeight} board)`
+                      : `${exportMultiplier}× HiDPI · Sharp formulas`}
                   </span>
                 </div>
 
@@ -411,7 +430,7 @@ function SolutionSizeEstimatorDialog({
                 <div className="qb-sol-media-box qb-sol-mockup-media-box">
                   <div className="qb-sol-mockup-media-header">
                     <span className="qb-sol-mockup-media-dim tabular-nums">
-                      Diagram: {retinaWidth} × {retinaHeight} px · Rendered: {simulatedContainerWidth} × {renderedDiagramHeight} px
+                      Diagram: {retinaWidth} × {retinaHeight} px{isCropped ? " · Smart-cropped" : ""} · Rendered: {simulatedContainerWidth} × {renderedDiagramHeight} px
                     </span>
                     <span className="qb-sol-mockup-media-scale">
                       Scale: {scalePercent}%
@@ -445,6 +464,20 @@ function SolutionSizeEstimatorDialog({
         {/* Footer Actions */}
         <div className="qb-sol-estimator-footer">
           <div className="qb-sol-estimator-footer-left">
+            {onToggleAutoTrim && (
+              <label className="qb-sol-estimator-toggle-label" title="Automatically trim empty margins around formulas and diagrams on export">
+                <input
+                  type="checkbox"
+                  checked={autoTrim}
+                  onChange={(e) => onToggleAutoTrim(e.target.checked)}
+                  className="qb-sol-estimator-checkbox"
+                />
+                <span className="qb-sol-estimator-toggle-text">
+                  Auto-trim whitespace
+                </span>
+              </label>
+            )}
+
             {onToggleSafeBounds && (
               <label className="qb-sol-estimator-toggle-label">
                 <input
@@ -454,7 +487,7 @@ function SolutionSizeEstimatorDialog({
                   className="qb-sol-estimator-checkbox"
                 />
                 <span className="qb-sol-estimator-toggle-text">
-                  Show Safe Area overlay on canvas
+                  Safe Area overlay
                 </span>
               </label>
             )}
@@ -482,6 +515,18 @@ function SolutionSizeEstimatorDialog({
                     <Plus size={15} />
                     <span>200px</span>
                   </button>
+                  {onFitToContent && (
+                    <button
+                      type="button"
+                      className="qb-sol-estimator-h-btn qb-sol-estimator-fit-btn"
+                      onClick={onFitToContent}
+                      disabled={!hasContent}
+                      title="Fit canvas height tightly to drawing and trim top blank space"
+                    >
+                      <Crop size={14} />
+                      <span>Fit Canvas</span>
+                    </button>
+                  )}
                 </div>
               </div>
             )}

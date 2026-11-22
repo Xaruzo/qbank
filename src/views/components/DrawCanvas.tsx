@@ -58,6 +58,7 @@ import {
   Eye,
   EyeOff,
   HelpCircle,
+  Crop,
 } from "lucide-react";
 import SolutionSizeEstimatorModal from "./SolutionSizeEstimatorModal";
 import ColorPickerPanel from "./ColorPickerPopover";
@@ -87,6 +88,9 @@ import {
   computeFloatingBarPosition,
   computeViewportInsertPoint,
   computePasteTargetPoint,
+  computeSmartCropRect,
+  computeFitContentLayout,
+  type ObjectBounds,
 } from "../../utils/canvas/canvasMath";
 
 const INLINE_ARITHMETIC_PRIMARY = [
@@ -127,6 +131,100 @@ const hasVisibleFill = (obj) => {
   if (!trimmed || trimmed === "transparent" || trimmed === "none") return false;
   if (/^rgba\([^)]+,\s*0(?:\.0+)?\s*\)$/.test(trimmed)) return false;
   return true;
+};
+
+const collectVisibleObjectBounds = (canvas: any): ObjectBounds[] => {
+  if (!canvas) return [];
+  const visibleObjs = canvas.getObjects().filter((o: any) => o && !o.isGuide && o.visible !== false);
+  const boundsList: ObjectBounds[] = [];
+  const active = canvas.getActiveObject();
+
+  if (active && active.type === "activeSelection") {
+    active.setCoords?.();
+    const ab = active.getBoundingRect?.(true, true);
+    if (ab) boundsList.push(ab);
+    visibleObjs.forEach((o: any) => {
+      if (active.contains?.(o)) return;
+      o.setCoords?.();
+      const b = o.getBoundingRect?.(true, true);
+      if (b) boundsList.push(b);
+    });
+  } else {
+    visibleObjs.forEach((o: any) => {
+      o.setCoords?.();
+      const b = o.getBoundingRect?.(true, true);
+      if (b) boundsList.push(b);
+    });
+  }
+
+  return boundsList;
+};
+
+const captureCanvasSnapshot = (
+  canvas: any,
+  canvasWidth: number,
+  canvasHeight: number,
+  trimWhitespace: boolean,
+  options?: { quality?: number; discardSelection?: boolean }
+) => {
+  if (!canvas) return null;
+  const quality = options?.quality ?? 0.9;
+  const discardSelection = options?.discardSelection ?? false;
+  const prevActive = discardSelection ? canvas.getActiveObject() : null;
+  const prevBg = canvas.backgroundColor;
+  const prevVpt = canvas.viewportTransform ? [...canvas.viewportTransform] : [1, 0, 0, 1, 0, 0];
+
+  const guides = canvas.getObjects().filter((o: any) => o?.isGuide);
+  guides.forEach((g: any) => canvas.remove(g));
+
+  if (discardSelection && prevActive) {
+    canvas.discardActiveObject();
+  }
+
+  canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+  canvas.backgroundColor = "#ffffff";
+
+  const boundsList = collectVisibleObjectBounds(canvas);
+  canvas.renderAll();
+
+  const cropRect =
+    trimWhitespace && boundsList.length > 0
+      ? computeSmartCropRect(boundsList, canvasWidth, canvasHeight, {
+          padding: 36,
+          minWidth: 380,
+          minHeight: 180,
+        })
+      : {
+          left: 0,
+          top: 0,
+          width: canvasWidth,
+          height: canvasHeight,
+          wasCropped: false,
+        };
+
+  const dataURL = canvas.toDataURL({
+    format: "png",
+    quality,
+    multiplier: 2,
+    left: cropRect.left,
+    top: cropRect.top,
+    width: cropRect.width,
+    height: cropRect.height,
+  });
+
+  canvas.backgroundColor = prevBg;
+  canvas.setViewportTransform(prevVpt);
+  if (discardSelection && prevActive) {
+    canvas.setActiveObject(prevActive);
+  }
+  canvas.renderAll();
+
+  return {
+    dataURL,
+    exportWidth: cropRect.width,
+    exportHeight: cropRect.height,
+    isCropped: cropRect.wasCropped,
+  };
 };
 
 const isObjectHitByEraser = (obj, px, py, r, parentMatrix = null) => {
@@ -461,11 +559,11 @@ export default function DrawCanvas({
   const sizeRef = useRef(size);
   useEffect(() => { sizeRef.current = size; }, [size]);
   const initialValueHeight = typeof value === "object" && value !== null ? value.canvasHeight : undefined;
-  const [height, setHeight] = useState(() => clampCanvasHeight(initialValueHeight || 700, 500, 2400));
+  const [height, setHeight] = useState(() => clampCanvasHeight(initialValueHeight || 580, 260, 2400));
   const heightRef = useRef(height);
   useEffect(() => { heightRef.current = height; }, [height]);
   const [artboardSize, setArtboardSize] = useState(() =>
-    computeResponsiveBoardSize(820, 820, clampCanvasHeight(initialValueHeight || 700, 500, 2400))
+    computeResponsiveBoardSize(820, 820, clampCanvasHeight(initialValueHeight || 580, 260, 2400))
   );
   const [layersVersion, setLayersVersion] = useState(0);
   const [activeLayerIds, setActiveLayerIds] = useState([]);
@@ -504,30 +602,55 @@ export default function DrawCanvas({
   const stickyNoteMenuRef = useRef(null);
   const [showSolEstimator, setShowSolEstimator] = useState(false);
   const [estimatorSnapshot, setEstimatorSnapshot] = useState(null);
+  const [estimatorSnapshotMeta, setEstimatorSnapshotMeta] = useState<{
+    width: number;
+    height: number;
+    isCropped: boolean;
+  } | null>(null);
   const [showSafeBounds, setShowSafeBounds] = useState(false);
-
-  const openSolutionEstimator = useCallback(() => {
-    const canvas = fabricRef.current;
-    if (!canvas) return;
+  const [autoTrimExport, setAutoTrimExport] = useState<boolean>(() => {
     try {
-      const prevBg = canvas.backgroundColor;
-      const prevVpt = canvas.viewportTransform ? [...canvas.viewportTransform] : [1, 0, 0, 1, 0, 0];
-      const guides = canvas.getObjects().filter(o => o.isGuide);
-      guides.forEach(g => canvas.remove(g));
-      canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
-      canvas.backgroundColor = "#ffffff";
-      canvas.renderAll();
-      const url = canvas.toDataURL({ format: "png", quality: 0.9, multiplier: 2 });
-      canvas.backgroundColor = prevBg;
-      canvas.setViewportTransform(prevVpt);
-      canvas.renderAll();
-      setEstimatorSnapshot(url);
-      setShowSolEstimator(true);
+      const stored = localStorage.getItem("qbank-draw-auto-trim");
+      return stored === null ? true : stored === "true";
+    } catch {
+      return true;
+    }
+  });
+  const autoTrimExportRef = useRef(autoTrimExport);
+  useEffect(() => {
+    autoTrimExportRef.current = autoTrimExport;
+  }, [autoTrimExport]);
+
+  const refreshEstimatorSnapshot = useCallback((trimOverride?: boolean) => {
+    const canvas = fabricRef.current;
+    if (!canvas) return null;
+    try {
+      const snap = captureCanvasSnapshot(
+        canvas,
+        820,
+        heightRef.current || 260,
+        trimOverride !== undefined ? trimOverride : autoTrimExportRef.current,
+        { quality: 0.9, discardSelection: false }
+      );
+      if (snap) {
+        setEstimatorSnapshot(snap.dataURL);
+        setEstimatorSnapshotMeta({
+          width: snap.exportWidth,
+          height: snap.exportHeight,
+          isCropped: snap.isCropped,
+        });
+      }
+      return snap;
     } catch (err) {
       console.warn("Could not capture snapshot for solution estimator:", err);
-      setShowSolEstimator(true);
+      return null;
     }
   }, []);
+
+  const openSolutionEstimator = useCallback(() => {
+    refreshEstimatorSnapshot();
+    setShowSolEstimator(true);
+  }, [refreshEstimatorSnapshot]);
 
   const closeAllToolbarMenus = useCallback(() => {
     setStickyNoteMenuOpen(false);
@@ -568,7 +691,7 @@ export default function DrawCanvas({
   const alignMenuRef = useRef(null);
   const layerDragRef = useRef(null);
   const dragJustEndedRef = useRef(false);
-  const MIN_H = 500;
+  const MIN_H = 260;
   const MAX_H = 2400;
   const BASE_W = 820;
   const HR_LINE_THICKNESS = 2;
@@ -1839,8 +1962,9 @@ export default function DrawCanvas({
               const r = o.getBoundingRect ? o.getBoundingRect(true, true) : null;
               return r ? Math.max(maxB, r.top + r.height) : maxB;
             }, 0);
+            const fallbackTarget = valueObj?.canvasHeight || (maxObjBottom ? maxObjBottom + 60 : 580);
             const fittedH = clampCanvasHeight(
-              Math.max(valueObj?.canvasHeight || MIN_H, maxObjBottom ? maxObjBottom + 60 : MIN_H),
+              Math.max(fallbackTarget, maxObjBottom ? maxObjBottom + 48 : 0),
               MIN_H,
               MAX_H
             );
@@ -1876,16 +2000,14 @@ export default function DrawCanvas({
     }
 
     const exportDataURL = () => {
-      const prevBg = canvas.backgroundColor;
-      const prevVpt = canvas.viewportTransform ? [...canvas.viewportTransform] : [1, 0, 0, 1, 0, 0];
-      canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
-      canvas.backgroundColor = "#ffffff";
-      canvas.renderAll();
-      const url = canvas.toDataURL({ format: "png", quality: 0.85, multiplier: 2 });
-      canvas.backgroundColor = prevBg;
-      canvas.setViewportTransform(prevVpt);
-      canvas.renderAll();
-      return url;
+      const snap = captureCanvasSnapshot(
+        canvas,
+        BASE_W,
+        heightRef.current || MIN_H,
+        autoTrimExportRef.current,
+        { quality: 0.85, discardSelection: false }
+      );
+      return snap?.dataURL || "";
     };
 
     const removeStrayGuides = () => {
@@ -4280,7 +4402,14 @@ export default function DrawCanvas({
     };
 
     const zoomBy = (factor) => {
-      const center = new fabric.Point(canvas.getWidth() / 2, canvas.getHeight() / 2);
+      const el = boardRef.current;
+      const scale = boardScaleRef.current || 1;
+      let viewCenterY = canvas.getHeight() / 2;
+      if (el && el.clientHeight > 0) {
+        const visibleCenterCssY = el.scrollTop + el.clientHeight / 2;
+        viewCenterY = Math.max(0, Math.min(canvas.getHeight(), visibleCenterCssY / scale));
+      }
+      const center = new fabric.Point(canvas.getWidth() / 2, viewCenterY);
       zoomToPoint(center, canvas.getZoom() * factor);
     };
     const resetZoom = () => {
@@ -6652,20 +6781,15 @@ export default function DrawCanvas({
   const renderCleanExportDataURL = useCallback(() => {
     const canvas = fabricRef.current;
     if (!canvas) return null;
-    const prevActive = canvas.getActiveObject();
-    const prevBg = canvas.backgroundColor;
-    const prevVpt = canvas.viewportTransform ? [...canvas.viewportTransform] : [1, 0, 0, 1, 0, 0];
-    canvas.discardActiveObject();
-    canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
-    canvas.backgroundColor = "#ffffff";
-    canvas.renderAll();
-    const dataUrl = canvas.toDataURL({ format: "png", multiplier: 2 });
-    canvas.backgroundColor = prevBg;
-    canvas.setViewportTransform(prevVpt);
-    if (prevActive) canvas.setActiveObject(prevActive);
-    canvas.renderAll();
-    return dataUrl;
-  }, []);
+    const snap = captureCanvasSnapshot(
+      canvas,
+      BASE_W,
+      heightRef.current || MIN_H,
+      autoTrimExportRef.current,
+      { quality: 0.9, discardSelection: true }
+    );
+    return snap?.dataURL || null;
+  }, [BASE_W, MIN_H]);
 
   const copyImageToClipboard = useCallback(async () => {
     if (!fabricRef.current) return;
@@ -7070,8 +7194,91 @@ export default function DrawCanvas({
       if (canvas.getObjects().some(o => !o.isGuide)) {
         canvas.commitHistoryChange?.();
       }
+      if (showSolEstimator) {
+        refreshEstimatorSnapshot();
+      }
     }
   };
+
+  const handleToggleAutoTrim = useCallback((enabled: boolean) => {
+    autoTrimExportRef.current = enabled;
+    setAutoTrimExport(enabled);
+    try {
+      localStorage.setItem("qbank-draw-auto-trim", String(enabled));
+    } catch {}
+    const canvas = fabricRef.current;
+    if (canvas) {
+      if (canvas.getObjects().some((o) => !o.isGuide)) {
+        canvas.commitHistoryChange?.();
+      }
+      refreshEstimatorSnapshot(enabled);
+    }
+  }, [refreshEstimatorSnapshot]);
+
+  const fitCanvasToContent = useCallback(() => {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+
+    const allNonGuides = canvas.getObjects().filter((o: any) => o && !o.isGuide);
+    if (!allNonGuides.length) {
+      showToast("Add math steps or shapes first to fit canvas");
+      return;
+    }
+
+    const prevActive = canvas.getActiveObject();
+    const wasActiveSelection = prevActive?.type === "activeSelection";
+    const selectedItems = wasActiveSelection ? (prevActive.getObjects?.() || []) : [];
+
+    if (wasActiveSelection) {
+      canvas.discardActiveObject();
+    }
+
+    const prevVpt = canvas.viewportTransform ? [...canvas.viewportTransform] : [1, 0, 0, 1, 0, 0];
+    canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+    const boundsList = collectVisibleObjectBounds(canvas);
+    const layout = computeFitContentLayout(boundsList, MIN_H, MAX_H, 36);
+
+    isInternalChange.current = true;
+    try {
+      if (Math.abs(layout.shiftY) >= 1) {
+        allNonGuides.forEach((o: any) => {
+          o.set("top", (o.top || 0) + layout.shiftY);
+          o.setCoords?.();
+        });
+      }
+
+      heightRef.current = layout.targetHeight;
+      setHeight(layout.targetHeight);
+      canvas.setHeight(layout.targetHeight);
+
+      if (wasActiveSelection && selectedItems.length > 1) {
+        const nextSel = new fabric.ActiveSelection(selectedItems, { canvas });
+        canvas.setActiveObject(nextSel);
+        nextSel.setCoords();
+      } else if (prevActive && !wasActiveSelection) {
+        prevActive.setCoords?.();
+      } else {
+        canvas.setViewportTransform(prevVpt);
+      }
+
+      canvas.resetZoom?.();
+      setZoomPercent(100);
+      if (boardRef.current) {
+        boardRef.current.scrollTop = 0;
+      }
+      canvas.calcOffset?.();
+      canvas.requestRenderAll();
+    } finally {
+      isInternalChange.current = false;
+    }
+
+    canvas.commitHistoryChange?.();
+    canvas.refreshUI?.();
+    if (showSolEstimator) {
+      refreshEstimatorSnapshot();
+    }
+    showToast(`Fitted canvas to content (${BASE_W} × ${layout.targetHeight}px)`);
+  }, [BASE_W, MAX_H, MIN_H, refreshEstimatorSnapshot, showSolEstimator, showToast]);
 
   const toggleLayerVisibility = (obj) => {
     const canvas = fabricRef.current;
@@ -9118,6 +9325,17 @@ export default function DrawCanvas({
             >
               <Plus size={12} />
             </button>
+            <button
+              type="button"
+              className="draw-footer-btn draw-footer-fit-btn"
+              onClick={fitCanvasToContent}
+              disabled={!canvasObjects.length}
+              title="Fit canvas height tightly to drawing and trim top blank space"
+              aria-label="Fit canvas to content"
+            >
+              <Crop size={12} />
+              <span>Fit</span>
+            </button>
           </div>
 
           <div className="draw-popover-anchor" ref={shortcutsRef}>
@@ -9172,11 +9390,18 @@ export default function DrawCanvas({
         imageSrc={estimatorSnapshot}
         canvasWidth={BASE_W}
         canvasHeight={height}
+        exportWidth={estimatorSnapshotMeta?.width}
+        exportHeight={estimatorSnapshotMeta?.height}
+        isCropped={estimatorSnapshotMeta?.isCropped}
         exportMultiplier={2}
         questionContext={questionContext}
         showSafeBounds={showSafeBounds}
         onToggleSafeBounds={setShowSafeBounds}
         onAdjustHeight={bumpBoardHeight}
+        autoTrim={autoTrimExport}
+        onToggleAutoTrim={handleToggleAutoTrim}
+        onFitToContent={fitCanvasToContent}
+        hasContent={canvasObjects.length > 0}
       />
     </div>
   );

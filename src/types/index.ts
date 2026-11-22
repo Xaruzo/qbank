@@ -1,6 +1,7 @@
 /**
  * Domain Type Definitions for Civil Service Exam (CSE) Reviewer
  */
+import type { ResolvedRecentQuestion } from "../models/recentQuestionsModel";
 
 export type TopicId = "numerical" | "verbal" | "general" | "analytical" | "clerical" | "strategy" | "all";
 
@@ -294,6 +295,8 @@ export interface QuestionListProps {
   isAuthenticated?: boolean;
   onAddQuestion?: () => void;
   onNavigateToTips?: () => void;
+  recentQuestions?: ResolvedRecentQuestion[];
+  onClearRecentQuestions?: () => void;
   resetKey?: any;
 }
 

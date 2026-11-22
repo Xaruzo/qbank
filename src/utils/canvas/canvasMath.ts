@@ -327,7 +327,7 @@ export const CUSTOM_FABRIC_PROPS: readonly string[] = [
 
 export const clampCanvasHeight = (
   value: number,
-  minH: number = 500,
+  minH: number = 260,
   maxH: number = 2400
 ): number => {
   const num = Number.isFinite(value) ? value : minH;
@@ -518,4 +518,168 @@ export const computePasteTargetPoint = ({
     y: origin.y + cascadeOffset,
   });
 };
+
+export interface ObjectBounds {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+export interface SmartCropRect {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  contentBounds: ObjectBounds;
+  wasCropped: boolean;
+}
+
+export interface SmartCropOptions {
+  padding?: number;
+  minWidth?: number;
+  minHeight?: number;
+}
+
+const computeUnionBounds = (objectBoundsList: ObjectBounds[]): ObjectBounds | null => {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  for (const b of objectBoundsList || []) {
+    if (!b) continue;
+    const { left, top, width, height } = b;
+    if (
+      !Number.isFinite(left) ||
+      !Number.isFinite(top) ||
+      !Number.isFinite(width) ||
+      !Number.isFinite(height)
+    ) {
+      continue;
+    }
+    const right = left + Math.max(0, width);
+    const bottom = top + Math.max(0, height);
+    if (left < minX) minX = left;
+    if (top < minY) minY = top;
+    if (right > maxX) maxX = right;
+    if (bottom > maxY) maxY = bottom;
+  }
+
+  if (!Number.isFinite(minX) || !Number.isFinite(minY)) return null;
+  return {
+    left: minX,
+    top: minY,
+    width: Math.max(1, maxX - minX),
+    height: Math.max(1, maxY - minY),
+  };
+};
+
+export const computeSmartCropRect = (
+  objectBoundsList: ObjectBounds[],
+  canvasWidth: number,
+  canvasHeight: number,
+  options: SmartCropOptions = {}
+): SmartCropRect => {
+  const safeW = Math.max(1, Math.round(canvasWidth || 820));
+  const safeH = Math.max(1, Math.round(canvasHeight || 560));
+  const padding = Math.max(0, Math.round(options.padding ?? 36));
+  const minWidth = Math.min(safeW, Math.max(120, Math.round(options.minWidth ?? 380)));
+  const minHeight = Math.min(safeH, Math.max(100, Math.round(options.minHeight ?? 180)));
+
+  const union = computeUnionBounds(objectBoundsList);
+  if (!union) {
+    return {
+      left: 0,
+      top: 0,
+      width: safeW,
+      height: safeH,
+      contentBounds: { left: 0, top: 0, width: safeW, height: safeH },
+      wasCropped: false,
+    };
+  }
+
+  const clampSpan = (
+    start: number,
+    end: number,
+    minSpan: number,
+    limit: number
+  ): { start: number; span: number } => {
+    let s = Math.max(0, Math.floor(start));
+    let e = Math.min(limit, Math.ceil(end));
+    if (e - s < minSpan) {
+      const center = (s + e) / 2;
+      s = Math.round(center - minSpan / 2);
+      if (s < 0) s = 0;
+      e = s + minSpan;
+      if (e > limit) {
+        e = limit;
+        s = Math.max(0, limit - minSpan);
+      }
+    }
+    return { start: s, span: Math.max(1, e - s) };
+  };
+
+  const xSpan = clampSpan(
+    union.left - padding,
+    union.left + union.width + padding,
+    minWidth,
+    safeW
+  );
+  const ySpan = clampSpan(
+    union.top - padding,
+    union.top + union.height + padding,
+    minHeight,
+    safeH
+  );
+
+  const wasCropped =
+    xSpan.start > 0 ||
+    ySpan.start > 0 ||
+    xSpan.span < safeW ||
+    ySpan.span < safeH;
+
+  return {
+    left: xSpan.start,
+    top: ySpan.start,
+    width: xSpan.span,
+    height: ySpan.span,
+    contentBounds: union,
+    wasCropped,
+  };
+};
+
+export interface FitContentLayout {
+  shiftY: number;
+  targetHeight: number;
+  contentBounds: ObjectBounds | null;
+}
+
+export const computeFitContentLayout = (
+  objectBoundsList: ObjectBounds[],
+  minHeight: number = 260,
+  maxHeight: number = 2400,
+  padding: number = 36
+): FitContentLayout => {
+  const union = computeUnionBounds(objectBoundsList);
+  if (!union) {
+    return {
+      shiftY: 0,
+      targetHeight: clampCanvasHeight(560, minHeight, maxHeight),
+      contentBounds: null,
+    };
+  }
+
+  const safePad = Math.max(12, Math.round(padding));
+  const shiftY = Math.round(safePad - union.top);
+  const rawBottom = union.height + safePad * 2;
+  const targetHeight = clampCanvasHeight(rawBottom, minHeight, maxHeight);
+
+  return {
+    shiftY,
+    targetHeight,
+    contentBounds: union,
+  };
+};
+
 

@@ -74,6 +74,32 @@
   white-space: nowrap;
 }
 
+.draw-footer-fit-btn {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  margin-left: 2px;
+}
+
+.draw-footer-fit-btn:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.22);
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #ffffff;
+}
+
+html.light .draw-footer-fit-btn,
+body.light .draw-footer-fit-btn {
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(217, 119, 6, 0.3);
+}
+
+html.light .draw-footer-fit-btn:hover:not(:disabled),
+body.light .draw-footer-fit-btn:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.2);
+  color: #78350f;
+}
+
 .draw-shortcuts-popover {
   position: absolute;
   bottom: calc(100% + 8px);

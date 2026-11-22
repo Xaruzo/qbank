@@ -897,9 +897,26 @@ body.light .qb-sol-estimator-height-label {
   transition: all 0.16s ease;
 }
 
-.qb-sol-estimator-h-btn:hover {
+.qb-sol-estimator-h-btn:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.15);
   border-color: rgba(255, 255, 255, 0.28);
+}
+
+.qb-sol-estimator-h-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.qb-sol-estimator-fit-btn {
+  background: rgba(245, 158, 11, 0.16);
+  border-color: rgba(245, 158, 11, 0.36);
+  color: #fbbf24;
+}
+
+.qb-sol-estimator-fit-btn:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.26);
+  border-color: rgba(245, 158, 11, 0.56);
+  color: #ffffff;
 }
 
 html.light .qb-sol-estimator-h-btn,
@@ -909,10 +926,24 @@ body.light .qb-sol-estimator-h-btn {
   color: #0f172a;
 }
 
-html.light .qb-sol-estimator-h-btn:hover,
-body.light .qb-sol-estimator-h-btn:hover {
+html.light .qb-sol-estimator-h-btn:hover:not(:disabled),
+body.light .qb-sol-estimator-h-btn:hover:not(:disabled) {
   background: #e2e8f0;
   border-color: #94a3b8;
+}
+
+html.light .qb-sol-estimator-fit-btn,
+body.light .qb-sol-estimator-fit-btn {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(217, 119, 6, 0.36);
+  color: #b45309;
+}
+
+html.light .qb-sol-estimator-fit-btn:hover:not(:disabled),
+body.light .qb-sol-estimator-fit-btn:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.22);
+  border-color: rgba(217, 119, 6, 0.54);
+  color: #78350f;
 }
 
 .qb-sol-estimator-h-val {
