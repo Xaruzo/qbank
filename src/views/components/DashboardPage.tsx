@@ -5,7 +5,6 @@ import {
   Target,
   Calendar,
   CheckCircle2,
-  AlertTriangle,
   PlayCircle,
   ArrowRight,
   Layers,
@@ -808,20 +807,21 @@ export default function DashboardPage({
         </section>
       ) : primaryWeakArea ? (
         <section
-          className="rounded-2xl border border-rose-400/35 bg-rose-500/[0.06] light:border-rose-600/25 light:bg-rose-50/70 px-3.5 sm:px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5"
+          className="rounded-2xl border border-qb-border bg-qb-surface px-3.5 sm:px-5 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors hover:border-qb-border-hover"
           aria-label="Weak area priority"
         >
-          <div className="flex items-start sm:items-center gap-2.5 min-w-0">
-            <AlertTriangle
-              size={16}
-              className="mt-0.5 sm:mt-0 shrink-0 text-rose-400 light:text-rose-700"
+          <div className="flex items-center gap-3 min-w-0">
+            <span
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/12 text-amber-400 light:bg-amber-500/15 light:text-amber-700"
               aria-hidden="true"
-            />
+            >
+              <Target size={15} />
+            </span>
             <div className="min-w-0 text-xs sm:text-sm leading-snug">
               <span className="font-bold text-qb-heading">
-                Focus needed: {primaryWeakArea.label}
+                Recommended focus: {primaryWeakArea.label}
               </span>
-              <span className="text-qb-mid tabular-nums">
+              <span className="text-qb-muted tabular-nums">
                 {" · "}
                 {primaryWeakArea.missed > 0
                   ? `${primaryWeakArea.missed} missed`
@@ -843,7 +843,7 @@ export default function DashboardPage({
                   timed: false,
                 })
               }
-              className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg bg-rose-500 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-rose-400 cursor-pointer whitespace-nowrap"
+              className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg border border-amber-400/35 bg-amber-500/12 px-3 py-1.5 text-xs font-semibold text-amber-300 light:border-amber-600/30 light:bg-amber-500/15 light:text-amber-800 transition-colors hover:bg-amber-500/20 cursor-pointer whitespace-nowrap"
             >
               <Zap size={13} aria-hidden="true" />
               <span>Drill {primaryWeakArea.short}</span>
@@ -856,7 +856,7 @@ export default function DashboardPage({
                   mastery: primaryWeakArea.missed > 0 ? "missed" : "all",
                 })
               }
-              className="inline-flex min-h-[36px] items-center rounded-lg border border-qb-border bg-qb-surface px-2.5 py-1.5 text-xs font-semibold text-qb-heading transition-colors hover:border-qb-border-hover cursor-pointer whitespace-nowrap"
+              className="inline-flex min-h-[36px] items-center rounded-lg border border-qb-border bg-qb-surface px-2.5 py-1.5 text-xs font-semibold text-qb-heading transition-colors hover:border-qb-border-hover hover:bg-qb-surface-hover cursor-pointer whitespace-nowrap"
             >
               Review
             </button>
