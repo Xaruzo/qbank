@@ -8,6 +8,7 @@ import rehypeKatex from "rehype-katex";
 // consumer (this component) instead of render-blocking the entry bundle.
 import "katex/dist/katex.min.css";
 import remarkUnderline from "../../utils/remarkUnderline";
+import { normalizeEmphasisWhitespace } from "../../utils/noteRichFormat";
 import MathText from "./MathText";
 
 function mergeClassNames(...names) {
@@ -249,7 +250,10 @@ function MarkdownText({
   interactiveCheckboxes = false,
 }: MarkdownTextProps) {
   const raw = typeof text === "string" ? text : "";
-  const source = inline ? raw : normalizeSingleLineDisplayMath(autoWrapLatex(raw));
+  const normalized = normalizeEmphasisWhitespace(raw);
+  const source = inline
+    ? normalized
+    : normalizeSingleLineDisplayMath(autoWrapLatex(normalized));
   const RootTag = inline ? "span" : "div";
   const resolvedComponents = inline
     ? inlineComponents

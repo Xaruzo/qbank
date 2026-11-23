@@ -53,6 +53,12 @@ import {
   Palette,
 } from "lucide-react";
 import { editorHtmlToMarkdown, markdownToEditorHtml } from "../../utils/noteRichFormat";
+import {
+  WordSmartFormattingExtension,
+  setHighlightSmart,
+  toggleHighlightSmart,
+  toggleMarkSmart,
+} from "../../utils/tiptapWordFormat";
 
 const HIGHLIGHT_SWATCHES = [
   { id: "yellow", label: "Yellow", color: "rgba(250, 204, 21, 0.32)", chip: "#facc15" },
@@ -441,6 +447,7 @@ export default function NoteRichEditor({
       Placeholder.configure({
         placeholder: "Start writing your study note... Highlight text to format or use the toolbar above.",
       }),
+      WordSmartFormattingExtension,
       MathInlineExtension,
       MathBlockExtension,
     ],
@@ -780,7 +787,7 @@ export default function NoteRichEditor({
               <button
                 type="button"
                 className={`qb-note-fmt-btn${editorState?.bold ? " is-active" : ""}`}
-                onClick={() => editor.chain().focus().toggleBold().run()}
+                onClick={() => toggleMarkSmart(editor, "bold")}
                 title="Bold (Ctrl/Cmd + B)"
                 aria-label="Bold"
                 aria-pressed={editorState?.bold}
@@ -790,7 +797,7 @@ export default function NoteRichEditor({
               <button
                 type="button"
                 className={`qb-note-fmt-btn${editorState?.italic ? " is-active" : ""}`}
-                onClick={() => editor.chain().focus().toggleItalic().run()}
+                onClick={() => toggleMarkSmart(editor, "italic")}
                 title="Italic (Ctrl/Cmd + I)"
                 aria-label="Italic"
                 aria-pressed={editorState?.italic}
@@ -800,7 +807,7 @@ export default function NoteRichEditor({
               <button
                 type="button"
                 className={`qb-note-fmt-btn${editorState?.underline ? " is-active" : ""}`}
-                onClick={() => editor.chain().focus().toggleUnderline().run()}
+                onClick={() => toggleMarkSmart(editor, "underline")}
                 title="Underline (Ctrl/Cmd + U)"
                 aria-label="Underline"
                 aria-pressed={editorState?.underline}
@@ -810,7 +817,7 @@ export default function NoteRichEditor({
               <button
                 type="button"
                 className={`qb-note-fmt-btn${editorState?.strike ? " is-active" : ""}`}
-                onClick={() => editor.chain().focus().toggleStrike().run()}
+                onClick={() => toggleMarkSmart(editor, "strike")}
                 title="Strikethrough (Ctrl/Cmd + Shift + S)"
                 aria-label="Strikethrough"
                 aria-pressed={editorState?.strike}
@@ -837,9 +844,7 @@ export default function NoteRichEditor({
                 <button
                   type="button"
                   className={`qb-note-fmt-btn qb-rich-split-main${editorState?.highlight ? " is-active" : ""}`}
-                  onClick={() =>
-                    editor.chain().focus().toggleHighlight({ color: activeHighlightColor }).run()
-                  }
+                  onClick={() => toggleHighlightSmart(editor, activeHighlightColor)}
                   title="Highlight text"
                   aria-label="Highlight text"
                   aria-pressed={editorState?.highlight}
@@ -1094,7 +1099,7 @@ export default function NoteRichEditor({
                       aria-label={`Highlight ${sw.label}`}
                       onClick={() => {
                         setActiveHighlightColor(sw.color);
-                        editor.chain().focus().setHighlight({ color: sw.color }).run();
+                        setHighlightSmart(editor, sw.color);
                         setOpenPopover(null);
                       }}
                     />

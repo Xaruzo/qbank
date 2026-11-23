@@ -1,10 +1,13 @@
-// @vitest-environment node
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
   markdownToEditorHtml,
+  normalizeEmphasisWhitespace,
   stripNoteFormattingForSnippet,
   markdownToPlainText,
 } from "../src/utils/noteRichFormat";
+import MarkdownText from "../src/views/components/MarkdownText";
 import { DEFAULT_STUDY_NOTES } from "../src/models/notesModel";
 
 describe("noteRichFormat", () => {
@@ -29,6 +32,65 @@ describe("noteRichFormat", () => {
     const html = markdownToEditorHtml("Budget is $50 to $100 per person.");
     expect(html).not.toContain("math-inline");
     expect(html).toContain("$50 to $100");
+  });
+
+  it("normalizes Word-style trailing/leading spaces inside bold, italic, and strike delimiters", () => {
+    expect(
+      normalizeEmphasisWhitespace(
+        "He **UNSCRUPULOUSLY **achieves his goals by using his positions."
+      )
+    ).toBe("He **UNSCRUPULOUSLY** achieves his goals by using his positions.");
+
+    expect(normalizeEmphasisWhitespace("**First** and **Second **word")).toBe(
+      "**First** and **Second** word"
+    );
+    expect(normalizeEmphasisWhitespace("He** UNSCRUPULOUSLY** achieves")).toBe(
+      "He **UNSCRUPULOUSLY** achieves"
+    );
+    expect(normalizeEmphasisWhitespace("He ***UNSCRUPULOUSLY ***achieves")).toBe(
+      "He ***UNSCRUPULOUSLY*** achieves"
+    );
+    expect(normalizeEmphasisWhitespace("He *UNSCRUPULOUSLY *achieves")).toBe(
+      "He *UNSCRUPULOUSLY* achieves"
+    );
+    expect(normalizeEmphasisWhitespace("He ~~UNSCRUPULOUSLY ~~achieves")).toBe(
+      "He ~~UNSCRUPULOUSLY~~ achieves"
+    );
+  });
+
+  it("keeps multiplication asterisks, bullet lists, inline code, fenced code, and LaTeX intact", () => {
+    expect(normalizeEmphasisWhitespace("5 * 3 * 2 = 30 and He *fast *ran")).toBe(
+      "5 * 3 * 2 = 30 and He *fast* ran"
+    );
+    expect(normalizeEmphasisWhitespace("* **Item 1 **text\n* **Item 2 **text")).toBe(
+      "* **Item 1** text\n* **Item 2** text"
+    );
+    expect(normalizeEmphasisWhitespace("Use `**raw **` and $a * b$ with **real **bold")).toBe(
+      "Use `**raw **` and $a * b$ with **real** bold"
+    );
+    expect(normalizeEmphasisWhitespace("```\nHe **UNSCRUPULOUSLY **achieves\n```")).toBe(
+      "```\nHe **UNSCRUPULOUSLY **achieves\n```"
+    );
+    expect(normalizeEmphasisWhitespace("***")).toBe("***");
+  });
+
+  it("moves trailing spaces outside <strong> tags in editor HTML and rendered MarkdownText", () => {
+    const editorHtml = markdownToEditorHtml(
+      "He **UNSCRUPULOUSLY **achieves his goals by using his positions."
+    );
+    expect(editorHtml).toBe(
+      "<p>He <strong>UNSCRUPULOUSLY</strong> achieves his goals by using his positions.</p>"
+    );
+
+    const renderedHtml = renderToStaticMarkup(
+      React.createElement(MarkdownText, {
+        text: "He **UNSCRUPULOUSLY **achieves his goals by using his positions.",
+      })
+    );
+    expect(renderedHtml).toMatch(
+      /<strong[^>]*class="md-strong"[^>]*>UNSCRUPULOUSLY<\/strong> achieves/
+    );
+    expect(renderedHtml).not.toContain("**");
   });
 
   it("converts all DEFAULT_STUDY_NOTES cleanly without leaving raw markdown tokens in paragraphs", () => {

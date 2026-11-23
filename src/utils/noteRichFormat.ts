@@ -48,6 +48,165 @@ function sanitizeAlign(raw: string): "left" | "center" | "right" | "justify" | n
 
 const DEFAULT_HIGHLIGHT_COLOR = "rgba(250, 204, 21, 0.32)";
 
+function wrapInlineWithWhitespacePreserved(
+  content: string,
+  wrap: (core: string) => string
+): string {
+  if (!content) return "";
+  const match = content.match(/^(\s*)([\s\S]*?)(\s*)$/);
+  if (!match) return content;
+  const [, lead, core, trail] = match;
+  if (!core) return content;
+  return `${lead}${wrap(core)}${trail}`;
+}
+
+function wrapDelimiterPair(full: string, inner: string, delim: string): string {
+  const m = inner.match(/^([ \t]*)([\s\S]*?)([ \t]*)$/);
+  if (!m) return full;
+  const [, lead, core, trail] = m;
+  if (!lead && !trail) return full;
+  if (!core) return inner;
+  return `${lead}${delim}${core}${delim}${trail}`;
+}
+
+function normalizeInlineEmphasisLine(line: string): string {
+  if (!line || /^\s*(?:[-*_][ \t]*){3,}$/.test(line)) {
+    return line;
+  }
+
+  const tokens: string[] = [];
+  const hold = (segment: string) => {
+    const id = `\u0001EMPH${tokens.length}\u0001`;
+    tokens.push(segment);
+    return id;
+  };
+
+  let body = line;
+  let listPrefix = "";
+  const listMatch = body.match(/^([ \t]*(?:[*+-]|\d+\.)[ \t]+(?:\[[ xX]\][ \t]+)?)(.*)$/);
+  if (listMatch) {
+    listPrefix = listMatch[1];
+    body = listMatch[2];
+  }
+
+  // 1. Protect inline code spans
+  body = body.replace(/(`+)(?:(?!\1)[^\n])+?\1/g, (m) => hold(m));
+
+  // 2. Protect inline math $...$ (avoid matching currency like $50 and $100)
+  body = body.replace(/(^|[^\\$])\$([^\s$](?:[^$\n]*?[^\s$])?)\$(?![0-9])/g, (m, lead, latex) => {
+    if (!latex.trim()) return m;
+    return `${lead}${hold(m.slice(lead.length))}`;
+  });
+
+  // 3. Protect Markdown link/image URL targets
+  body = body.replace(/(\]\()([^)\n]+)(\))/g, (_m, open, url, close) => `${open}${hold(url)}${close}`);
+
+  // 4. Move leading/trailing spaces out of emphasis delimiters (fixes CommonMark breaks from Word selection)
+  body = body.replace(
+    /(?<!\\)(?<!\*)\*\*\*(?!\*)((?:(?!\*\*\*)[^\n])*?)(?<!\\)(?<!\*)\*\*\*(?!\*)/g,
+    (full, inner) => wrapDelimiterPair(full, inner, "***")
+  );
+  body = body.replace(
+    /(?<!\\)(?<!\*)\*\*(?!\*)((?:(?!\*\*)[^\n])*?)(?<!\\)(?<!\*)\*\*(?!\*)/g,
+    (full, inner) => wrapDelimiterPair(full, inner, "**")
+  );
+  body = body.replace(
+    /(?<!\\)(?<!~)~~(?!~)((?:(?!~~)[^\n])*?)(?<!\\)(?<!~)~~(?!~)/g,
+    (full, inner) => wrapDelimiterPair(full, inner, "~~")
+  );
+  body = body.replace(
+    /(?<!\\)(?<!\+)\+\+(?!\+)((?:(?!\+\+)[^\n])*?)(?<!\\)(?<!\+)\+\+(?!\+)/g,
+    (full, inner) => wrapDelimiterPair(full, inner, "++")
+  );
+  body = body.replace(
+    /(?<!\\)(?<!=)==(?!=)((?:(?!==)[^\n])*?)(?<!\\)(?<!=)==(?!=)/g,
+    (full, inner) => wrapDelimiterPair(full, inner, "==")
+  );
+  // Single * italic: match only when at least one delimiter is flush against non-whitespace
+  // so math expressions like `2 * 3 * 4` remain untouched.
+  body = body.replace(
+    /(?<!\\)(?<!\*)\*(?!\*)(?!\s)((?:[^\n*]|\*{2,})*?)(?<!\\)(?<!\*)\*(?!\*)/g,
+    (full, inner) => wrapDelimiterPair(full, inner, "*")
+  );
+  body = body.replace(
+    /(?<!\\)(?<!\*)\*(?!\*)(?=\s)((?:[^\n*]|\*{2,})*?)(?<!\s)(?<!\\)(?<!\*)\*(?!\*)/g,
+    (full, inner) => wrapDelimiterPair(full, inner, "*")
+  );
+
+  // Restore held tokens
+  for (let pass = 0; pass < 3; pass++) {
+    let changed = false;
+    body = body.replace(/\u0001EMPH(\d+)\u0001/g, (_m, idx) => {
+      changed = true;
+      return tokens[Number(idx)] ?? "";
+    });
+    if (!changed) break;
+  }
+
+  return `${listPrefix}${body}`;
+}
+
+/**
+ * Fixes CommonMark-invalid emphasis where leading/trailing horizontal spaces got trapped
+ * inside `**...**`, `*...*`, `***...***`, `~~...~~`, `++...++`, or `==...==` (for example
+ * when double-clicking a word with Windows/Word trailing-space selection before bolding).
+ * Leaves fenced code blocks, inline code, LaTeX math, and multiplication `*` untouched.
+ */
+export function normalizeEmphasisWhitespace(source: string): string {
+  if (!source || !/[*~+=]/.test(source)) return source;
+
+  const lines = source.split(/\r?\n/);
+  const out: string[] = [];
+  let activeFence: string | null = null;
+  let inDisplayMath = false;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    const fenceMatch = trimmed.match(/^(```|~~~)/);
+    if (fenceMatch) {
+      if (!activeFence) {
+        activeFence = fenceMatch[1];
+      } else if (trimmed.startsWith(activeFence)) {
+        activeFence = null;
+      }
+      out.push(line);
+      continue;
+    }
+
+    if (activeFence) {
+      out.push(line);
+      continue;
+    }
+
+    if (trimmed === "$$") {
+      inDisplayMath = !inDisplayMath;
+      out.push(line);
+      continue;
+    }
+
+    if (trimmed.startsWith("$$") && trimmed.endsWith("$$") && trimmed.length >= 4) {
+      out.push(line);
+      continue;
+    }
+
+    if (trimmed.startsWith("$$") || (inDisplayMath && trimmed.endsWith("$$"))) {
+      inDisplayMath = !inDisplayMath;
+      out.push(line);
+      continue;
+    }
+
+    if (inDisplayMath) {
+      out.push(line);
+      continue;
+    }
+
+    out.push(normalizeInlineEmphasisLine(line));
+  }
+
+  return out.join("\n");
+}
+
 /**
  * Converts inline Markdown + safe inline HTML tags (<u>, <mark>, <span style="color:...">)
  * + inline LaTeX ($...$) into clean HTML for TipTap.
@@ -97,25 +256,42 @@ function renderInlineMarkdownToHtml(raw: string): string {
     }
   };
 
-  replaceInlineTag(/<u>([\s\S]*?)<\/u>/gi, (_m, innerHtml) => `<u>${innerHtml}</u>`);
+  replaceInlineTag(/<u>([\s\S]*?)<\/u>/gi, (_m, innerHtml) =>
+    wrapInlineWithWhitespacePreserved(innerHtml, (core) => `<u>${core}</u>`)
+  );
   replaceInlineTag(
     /<mark(?:\s+data-color=["']([^"']+)["'])?(?:\s+style=["'][^"']*background-color:\s*([^;"']+)[^"']*["'])?[^>]*>([\s\S]*?)<\/mark>/gi,
     (m, innerHtml) => {
       const rawColor = m[1] || m[2] || DEFAULT_HIGHLIGHT_COLOR;
       const safe = sanitizeColor(rawColor) || DEFAULT_HIGHLIGHT_COLOR;
-      return `<mark data-color="${escapeAttr(safe)}" style="background-color: ${escapeAttr(safe)}">${innerHtml}</mark>`;
+      return wrapInlineWithWhitespacePreserved(
+        innerHtml,
+        (core) =>
+          `<mark data-color="${escapeAttr(safe)}" style="background-color: ${escapeAttr(safe)}">${core}</mark>`
+      );
     }
   );
   replaceInlineTag(
     /<span\s+style=["'][^"']*\bcolor:\s*([^;"']+)[^"']*["'][^>]*>([\s\S]*?)<\/span>/gi,
     (m, innerHtml) => {
       const safe = sanitizeColor(m[1] || "");
-      return safe ? `<span style="color: ${escapeAttr(safe)}">${innerHtml}</span>` : innerHtml;
+      return safe
+        ? wrapInlineWithWhitespacePreserved(
+            innerHtml,
+            (core) => `<span style="color: ${escapeAttr(safe)}">${core}</span>`
+          )
+        : innerHtml;
     }
   );
-  replaceInlineTag(/<strong>([\s\S]*?)<\/strong>/gi, (_m, innerHtml) => `<strong>${innerHtml}</strong>`);
-  replaceInlineTag(/<em>([\s\S]*?)<\/em>/gi, (_m, innerHtml) => `<em>${innerHtml}</em>`);
-  replaceInlineTag(/<(?:s|del)>([\s\S]*?)<\/(?:s|del)>/gi, (_m, innerHtml) => `<s>${innerHtml}</s>`);
+  replaceInlineTag(/<strong>([\s\S]*?)<\/strong>/gi, (_m, innerHtml) =>
+    wrapInlineWithWhitespacePreserved(innerHtml, (core) => `<strong>${core}</strong>`)
+  );
+  replaceInlineTag(/<em>([\s\S]*?)<\/em>/gi, (_m, innerHtml) =>
+    wrapInlineWithWhitespacePreserved(innerHtml, (core) => `<em>${core}</em>`)
+  );
+  replaceInlineTag(/<(?:s|del)>([\s\S]*?)<\/(?:s|del)>/gi, (_m, innerHtml) =>
+    wrapInlineWithWhitespacePreserved(innerHtml, (core) => `<s>${core}</s>`)
+  );
 
   // 4. Preserve Markdown links [label](url)
   text = text.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_m, label, url) => {
@@ -129,22 +305,37 @@ function renderInlineMarkdownToHtml(raw: string): string {
     );
   });
 
-  // 5. Escape raw HTML chars in remaining plain text
+  // 5. Normalize stray whitespace inside emphasis delimiters before HTML escaping & regex formatting
+  text = normalizeInlineEmphasisLine(text);
+
+  // 6. Escape raw HTML chars in remaining plain text
   text = escapeHtml(text);
 
-  // 6. Standard inline Markdown formatting
+  // 7. Standard inline Markdown formatting
   // Highlight ==text==
-  text = text.replace(/==([^\n=][\s\S]*?[^\n=]|[^\n=])==/g, (_m, inner) => {
-    return `<mark data-color="${DEFAULT_HIGHLIGHT_COLOR}" style="background-color: ${DEFAULT_HIGHLIGHT_COLOR}">${inner}</mark>`;
-  });
+  text = text.replace(/==([^\n=][\s\S]*?[^\n=]|[^\n=])==/g, (_m, inner) =>
+    wrapInlineWithWhitespacePreserved(
+      inner,
+      (core) =>
+        `<mark data-color="${DEFAULT_HIGHLIGHT_COLOR}" style="background-color: ${DEFAULT_HIGHLIGHT_COLOR}">${core}</mark>`
+    )
+  );
   // Underline ++text++
-  text = text.replace(/\+\+([^\n+][\s\S]*?[^\n+]|[^\n+])\+\+/g, "<u>$1</u>");
+  text = text.replace(/\+\+([^\n+][\s\S]*?[^\n+]|[^\n+])\+\+/g, (_m, inner) =>
+    wrapInlineWithWhitespacePreserved(inner, (core) => `<u>${core}</u>`)
+  );
   // Bold + Italic ***text***
-  text = text.replace(/\*\*\*([^\n*][\s\S]*?[^\n*]|[^\n*])\*\*\*/g, "<strong><em>$1</em></strong>");
+  text = text.replace(/\*\*\*([^\n*][\s\S]*?[^\n*]|[^\n*])\*\*\*/g, (_m, inner) =>
+    wrapInlineWithWhitespacePreserved(inner, (core) => `<strong><em>${core}</em></strong>`)
+  );
   // Bold **text**
-  text = text.replace(/\*\*([^\n*][\s\S]*?[^\n*]|[^\n*])\*\*/g, "<strong>$1</strong>");
+  text = text.replace(/\*\*([^\n*][\s\S]*?[^\n*]|[^\n*])\*\*/g, (_m, inner) =>
+    wrapInlineWithWhitespacePreserved(inner, (core) => `<strong>${core}</strong>`)
+  );
   // Strikethrough ~~text~~
-  text = text.replace(/~~([^\n~][\s\S]*?[^\n~]|[^\n~])~~/g, "<s>$1</s>");
+  text = text.replace(/~~([^\n~][\s\S]*?[^\n~]|[^\n~])~~/g, (_m, inner) =>
+    wrapInlineWithWhitespacePreserved(inner, (core) => `<s>${core}</s>`)
+  );
   // Italic *text* (avoid matching standalone bullet or math multiplication spaces)
   text = text.replace(/(^|[^*])\*([^\s*](?:[^\n*]*?[^\s*])?)\*(?!\*)/g, "$1<em>$2</em>");
 
@@ -438,32 +629,36 @@ function serializeInlineNodes(node: Node): string {
   switch (tag) {
     case "strong":
     case "b":
-      return childrenMd ? `**${childrenMd}**` : "";
+      return wrapInlineWithWhitespacePreserved(childrenMd, (core) => `**${core}**`);
     case "em":
     case "i":
-      return childrenMd ? `*${childrenMd}*` : "";
+      return wrapInlineWithWhitespacePreserved(childrenMd, (core) => `*${core}*`);
     case "u":
-      return childrenMd ? `<u>${childrenMd}</u>` : "";
+      return wrapInlineWithWhitespacePreserved(childrenMd, (core) => `<u>${core}</u>`);
     case "s":
     case "del":
     case "strike":
-      return childrenMd ? `~~${childrenMd}~~` : "";
+      return wrapInlineWithWhitespacePreserved(childrenMd, (core) => `~~${core}~~`);
     case "code":
       return childrenMd ? `\`${childrenMd}\`` : "";
     case "mark": {
       if (!childrenMd) return "";
       const color = el.getAttribute("data-color") || el.style.backgroundColor || DEFAULT_HIGHLIGHT_COLOR;
       const safe = sanitizeColor(color);
-      if (!safe || safe === DEFAULT_HIGHLIGHT_COLOR) {
-        return `<mark data-color="${DEFAULT_HIGHLIGHT_COLOR}">${childrenMd}</mark>`;
-      }
-      return `<mark data-color="${safe}">${childrenMd}</mark>`;
+      const resolvedColor = !safe || safe === DEFAULT_HIGHLIGHT_COLOR ? DEFAULT_HIGHLIGHT_COLOR : safe;
+      return wrapInlineWithWhitespacePreserved(
+        childrenMd,
+        (core) => `<mark data-color="${resolvedColor}">${core}</mark>`
+      );
     }
     case "span": {
       const color = el.style?.color;
       const safe = color ? sanitizeColor(color) : null;
       if (safe && childrenMd) {
-        return `<span style="color: ${safe}">${childrenMd}</span>`;
+        return wrapInlineWithWhitespacePreserved(
+          childrenMd,
+          (core) => `<span style="color: ${safe}">${core}</span>`
+        );
       }
       return childrenMd;
     }
@@ -473,6 +668,52 @@ function serializeInlineNodes(node: Node): string {
     }
     default:
       return childrenMd;
+  }
+}
+
+const MERGEABLE_INLINE_TAGS = new Set(["strong", "b", "em", "i", "u", "s", "del", "strike", "mark"]);
+
+function canonicalMarkKey(el: HTMLElement): string | null {
+  const tag = el.tagName.toLowerCase();
+  if (!MERGEABLE_INLINE_TAGS.has(tag)) return null;
+  if (tag === "b") return "strong";
+  if (tag === "i") return "em";
+  if (tag === "del" || tag === "strike") return "s";
+  if (tag === "mark") {
+    const color = el.getAttribute("data-color") || el.style?.backgroundColor || DEFAULT_HIGHLIGHT_COLOR;
+    return `mark:${sanitizeColor(color) || DEFAULT_HIGHLIGHT_COLOR}`;
+  }
+  return tag;
+}
+
+function mergeAdjacentInlineMarks(root: HTMLElement): void {
+  const children = Array.from(root.childNodes);
+  for (const child of children) {
+    if (child.nodeType === Node.ELEMENT_NODE) {
+      mergeAdjacentInlineMarks(child as HTMLElement);
+    }
+  }
+
+  let cur = root.firstChild;
+  while (cur) {
+    const next = cur.nextSibling;
+    if (
+      cur.nodeType === Node.ELEMENT_NODE &&
+      next &&
+      next.nodeType === Node.ELEMENT_NODE
+    ) {
+      const curKey = canonicalMarkKey(cur as HTMLElement);
+      const nextKey = canonicalMarkKey(next as HTMLElement);
+      if (curKey && curKey === nextKey) {
+        while (next.firstChild) {
+          cur.appendChild(next.firstChild);
+        }
+        root.removeChild(next);
+        mergeAdjacentInlineMarks(cur as HTMLElement);
+        continue;
+      }
+    }
+    cur = next;
   }
 }
 
@@ -544,6 +785,7 @@ export function editorHtmlToMarkdown(html: string): string {
   if (!html || typeof window === "undefined") return "";
   const container = document.createElement("div");
   container.innerHTML = html;
+  mergeAdjacentInlineMarks(container);
 
   const blocks: string[] = [];
 

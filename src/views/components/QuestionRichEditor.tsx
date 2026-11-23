@@ -36,6 +36,12 @@ import {
   X,
 } from "lucide-react";
 import { editorHtmlToMarkdown, markdownToEditorHtml } from "../../utils/noteRichFormat";
+import {
+  WordSmartFormattingExtension,
+  setHighlightSmart,
+  toggleHighlightSmart,
+  toggleMarkSmart,
+} from "../../utils/tiptapWordFormat";
 
 const HIGHLIGHT_SWATCHES = [
   { id: "yellow", label: "Yellow", color: "rgba(250, 204, 21, 0.32)", chip: "#facc15" },
@@ -435,6 +441,7 @@ const QuestionRichEditor = forwardRef<QuestionRichEditorHandle, QuestionRichEdit
         }),
         Highlight.configure({ multicolor: true }),
         Placeholder.configure({ placeholder }),
+        WordSmartFormattingExtension,
         QMathInlineExtension,
         ...(singleLine ? [] : [QMathBlockExtension]),
       ],
@@ -585,16 +592,13 @@ const QuestionRichEditor = forwardRef<QuestionRichEditorHandle, QuestionRichEdit
           chain.run();
         },
         toggleBold: () => {
-          if (!editor) return;
-          editor.chain().focus().toggleBold().run();
+          toggleMarkSmart(editor, "bold");
         },
         toggleItalic: () => {
-          if (!editor) return;
-          editor.chain().focus().toggleItalic().run();
+          toggleMarkSmart(editor, "italic");
         },
         toggleUnderline: () => {
-          if (!editor) return;
-          editor.chain().focus().toggleUnderline().run();
+          toggleMarkSmart(editor, "underline");
         },
       }),
       [editor]
@@ -675,7 +679,7 @@ const QuestionRichEditor = forwardRef<QuestionRichEditorHandle, QuestionRichEdit
               type="button"
               className={`${TOOLBAR_BTN_BASE}${editorState?.bold ? ` ${TOOLBAR_BTN_ACTIVE}` : ""}`}
               onMouseDown={(e) => e.preventDefault()}
-              onClick={() => editor?.chain().focus().toggleBold().run()}
+              onClick={() => toggleMarkSmart(editor, "bold")}
               title="Bold (Ctrl+B)"
               aria-label="Bold"
               aria-pressed={editorState?.bold}
@@ -686,7 +690,7 @@ const QuestionRichEditor = forwardRef<QuestionRichEditorHandle, QuestionRichEdit
               type="button"
               className={`${TOOLBAR_BTN_BASE}${editorState?.italic ? ` ${TOOLBAR_BTN_ACTIVE}` : ""}`}
               onMouseDown={(e) => e.preventDefault()}
-              onClick={() => editor?.chain().focus().toggleItalic().run()}
+              onClick={() => toggleMarkSmart(editor, "italic")}
               title="Italic (Ctrl+I)"
               aria-label="Italic"
               aria-pressed={editorState?.italic}
@@ -697,7 +701,7 @@ const QuestionRichEditor = forwardRef<QuestionRichEditorHandle, QuestionRichEdit
               type="button"
               className={`${TOOLBAR_BTN_BASE}${editorState?.underline ? ` ${TOOLBAR_BTN_ACTIVE}` : ""}`}
               onMouseDown={(e) => e.preventDefault()}
-              onClick={() => editor?.chain().focus().toggleUnderline().run()}
+              onClick={() => toggleMarkSmart(editor, "underline")}
               title="Underline (Ctrl+U)"
               aria-label="Underline"
               aria-pressed={editorState?.underline}
@@ -712,9 +716,7 @@ const QuestionRichEditor = forwardRef<QuestionRichEditorHandle, QuestionRichEdit
                   editorState?.highlight ? ` ${TOOLBAR_BTN_ACTIVE}` : ""
                 }`}
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() =>
-                  editor?.chain().focus().toggleHighlight({ color: activeHighlightColor }).run()
-                }
+                onClick={() => toggleHighlightSmart(editor, activeHighlightColor)}
                 title="Highlight text"
                 aria-label="Highlight text"
                 aria-pressed={editorState?.highlight}
@@ -815,7 +817,7 @@ const QuestionRichEditor = forwardRef<QuestionRichEditorHandle, QuestionRichEdit
                     aria-label={`Highlight ${sw.label}`}
                     onClick={() => {
                       setActiveHighlightColor(sw.color);
-                      editor?.chain().focus().setHighlight({ color: sw.color }).run();
+                      setHighlightSmart(editor, sw.color);
                       setOpenPopover(null);
                     }}
                   />

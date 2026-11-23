@@ -953,8 +953,8 @@ export function MyQuestionsView({
       ? showAnimatedTabGlider
         ? "border-transparent bg-transparent text-[#070c18] font-bold light:text-white"
         : "border-transparent bg-gradient-to-br from-amber-300 via-amber-500 to-orange-500 text-[#070c18] font-bold shadow-[0_4px_20px_rgba(245,158,11,0.45),inset_0_1px_0_rgba(255,255,255,0.38)] light:from-amber-500 light:via-amber-600 light:to-orange-600 light:text-white light:shadow-[0_4px_16px_rgba(217,119,6,0.32),inset_0_1px_0_rgba(255,255,255,0.28)]"
-      : "border-white/[0.08] bg-[#070b15] text-qb-heading shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] hover:border-white/[0.16] hover:bg-[#0b1122] light:border-slate-200/90 light:bg-white light:text-slate-700 light:shadow-[0_1px_2px_rgba(15,23,42,0.05)] light:hover:border-slate-300 light:hover:bg-slate-50 sm:border-transparent sm:bg-transparent sm:text-qb-mid sm:shadow-none sm:hover:bg-transparent sm:hover:text-qb-heading sm:light:bg-transparent sm:light:shadow-none";
-    return `relative z-[2] inline-flex min-h-[38px] w-full shrink-0 cursor-pointer items-center justify-start gap-2 whitespace-nowrap rounded-xl border px-3 py-1.5 text-[11.5px] font-semibold sm:h-[31px] sm:min-h-0 sm:w-auto sm:justify-center sm:gap-1.5 sm:rounded-full sm:px-3 sm:py-0 ${tabButtonMotionClass} ${stateClass} ${extraClass}`.trim();
+      : "border-white/[0.08] bg-[#070b15] text-qb-heading shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] hover:border-white/[0.16] hover:bg-[#0b1122] light:border-slate-200/90 light:bg-white light:text-slate-700 light:shadow-[0_1px_2px_rgba(15,23,42,0.05)] light:hover:border-slate-300 light:hover:bg-slate-50 md:border-transparent md:bg-transparent md:text-qb-mid md:shadow-none md:hover:bg-transparent md:hover:text-qb-heading md:light:bg-transparent md:light:shadow-none";
+    return `relative z-[2] inline-flex min-h-[40px] w-full shrink-0 cursor-pointer items-center justify-start gap-2 whitespace-nowrap rounded-xl border px-3 py-1.5 text-[12px] font-semibold md:h-[32px] md:min-h-0 md:w-auto md:justify-center md:gap-1.5 md:rounded-full md:px-3 md:py-0 ${tabButtonMotionClass} ${stateClass} ${extraClass}`.trim();
   };
 
   return (
@@ -1046,12 +1046,12 @@ export function MyQuestionsView({
           ref={tablistRef}
           role="tablist"
           aria-label="Personal question bank sections"
-          className="relative grid w-full grid-cols-2 gap-1.5 rounded-2xl border border-qb-border bg-[#0e1526] light:bg-slate-200/75 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] light:shadow-[inset_0_1px_2px_rgba(15,23,42,0.06)] sm:inline-flex sm:w-fit sm:max-w-full sm:items-center sm:gap-0.5 sm:overflow-x-auto sm:rounded-full sm:bg-gradient-to-b sm:from-[#0f172a] sm:to-[#080e1a] sm:p-1 sm:light:from-slate-100 sm:light:to-slate-200/85 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="relative grid w-full grid-cols-2 gap-1.5 rounded-2xl border border-qb-border bg-[#0e1526] light:bg-slate-200/75 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] light:shadow-[inset_0_1px_2px_rgba(15,23,42,0.06)] md:inline-flex md:w-fit md:max-w-full md:self-start md:items-center md:gap-0.5 md:overflow-x-auto md:rounded-full md:bg-gradient-to-b md:from-[#0f172a] md:to-[#080e1a] md:p-1 md:light:from-slate-100 md:light:to-slate-200/85 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {showAnimatedTabGlider && (
             <span
               aria-hidden="true"
-              className={`pointer-events-none absolute top-0 left-0 z-[1] box-border rounded-xl bg-gradient-to-br from-amber-300 via-amber-500 to-orange-500 shadow-[0_4px_20px_rgba(245,158,11,0.45),inset_0_1px_0_rgba(255,255,255,0.38)] light:from-amber-500 light:via-amber-600 light:to-orange-600 light:shadow-[0_4px_16px_rgba(217,119,6,0.32),inset_0_1px_0_rgba(255,255,255,0.28)] sm:rounded-full ${
+              className={`pointer-events-none absolute top-0 left-0 z-[1] box-border rounded-xl bg-gradient-to-br from-amber-300 via-amber-500 to-orange-500 shadow-[0_4px_20px_rgba(245,158,11,0.45),inset_0_1px_0_rgba(255,255,255,0.38)] light:from-amber-500 light:via-amber-600 light:to-orange-600 light:shadow-[0_4px_16px_rgba(217,119,6,0.32),inset_0_1px_0_rgba(255,255,255,0.28)] md:rounded-full ${
                 tabGliderReady
                   ? "will-change-[transform,width] transition-[transform,width,height] duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
                   : "transition-none"
@@ -1076,12 +1076,12 @@ export function MyQuestionsView({
           >
             <Lock
               size={13}
-              className={`shrink-0 ${activeTab === "private" ? "text-current" : "text-sky-400 light:text-sky-600 sm:text-current"}`}
+              className={`shrink-0 ${activeTab === "private" ? "text-current" : "text-sky-400 light:text-sky-600 md:text-current"}`}
             />
             <span className="truncate">Private Bank</span>
             <span
               aria-hidden={loading}
-              className={`ml-auto inline-flex h-[16px] min-w-[18px] shrink-0 items-center justify-center rounded-full px-1 text-[10px] font-bold tabular-nums sm:ml-0 ${
+              className={`ml-auto inline-flex h-[18px] min-w-[24px] shrink-0 items-center justify-center rounded-full px-1.5 text-[10.5px] font-bold tabular-nums md:ml-0 ${
                 loading
                   ? `bg-qb-input/80 text-transparent ${isMotionDisabled ? "" : "animate-pulse"}`
                   : activeTab === "private"
@@ -1110,12 +1110,12 @@ export function MyQuestionsView({
           >
             <Globe
               size={13}
-              className={`shrink-0 ${activeTab === "published" ? "text-current" : "text-emerald-400 light:text-emerald-600 sm:text-current"}`}
+              className={`shrink-0 ${activeTab === "published" ? "text-current" : "text-emerald-400 light:text-emerald-600 md:text-current"}`}
             />
             <span className="truncate">Submissions</span>
             <span
               aria-hidden={loading}
-              className={`ml-auto inline-flex h-[16px] min-w-[18px] shrink-0 items-center justify-center rounded-full px-1 text-[10px] font-bold tabular-nums sm:ml-0 ${
+              className={`ml-auto inline-flex h-[18px] min-w-[24px] shrink-0 items-center justify-center rounded-full px-1.5 text-[10.5px] font-bold tabular-nums md:ml-0 ${
                 loading
                   ? `bg-qb-input/80 text-transparent ${isMotionDisabled ? "" : "animate-pulse"}`
                   : activeTab === "published"
@@ -1141,12 +1141,12 @@ export function MyQuestionsView({
           >
             <Layers
               size={13}
-              className={`shrink-0 ${activeTab === "mini-mocks" ? "text-current" : "text-violet-400 light:text-violet-600 sm:text-current"}`}
+              className={`shrink-0 ${activeTab === "mini-mocks" ? "text-current" : "text-violet-400 light:text-violet-600 md:text-current"}`}
             />
             <span className="truncate">Mini Mocks</span>
             <span
               aria-hidden={loadingMocks}
-              className={`ml-auto inline-flex h-[16px] min-w-[18px] shrink-0 items-center justify-center rounded-full px-1 text-[10px] font-bold tabular-nums sm:ml-0 ${
+              className={`ml-auto inline-flex h-[18px] min-w-[24px] shrink-0 items-center justify-center rounded-full px-1.5 text-[10.5px] font-bold tabular-nums md:ml-0 ${
                 loadingMocks
                   ? `bg-qb-input/80 text-transparent ${isMotionDisabled ? "" : "animate-pulse"}`
                   : activeTab === "mini-mocks"
@@ -1173,7 +1173,7 @@ export function MyQuestionsView({
           >
             <Plus
               size={13}
-              className={`shrink-0 ${activeTab === "create" ? "text-current" : "text-amber-400 light:text-amber-600 sm:text-current"}`}
+              className={`shrink-0 ${activeTab === "create" ? "text-current" : "text-amber-400 light:text-amber-600 md:text-current"}`}
             />
             <span className="truncate">{editingId ? "Edit Question" : "Creator"}</span>
           </button>
@@ -1187,16 +1187,16 @@ export function MyQuestionsView({
               role="tab"
               aria-selected={activeTab === "review"}
               onClick={() => setActiveTab("review")}
-              className={getTabButtonClass(activeTab === "review", "col-span-2 sm:col-span-1")}
+              className={getTabButtonClass(activeTab === "review", "col-span-2 md:col-span-1")}
             >
               <ShieldCheck
                 size={13}
-                className={`shrink-0 ${activeTab === "review" ? "text-current" : "text-emerald-400 light:text-emerald-600 sm:text-current"}`}
+                className={`shrink-0 ${activeTab === "review" ? "text-current" : "text-emerald-400 light:text-emerald-600 md:text-current"}`}
               />
               <span className="truncate">Review Queue</span>
               <span
                 aria-hidden={loadingPendingQueue}
-                className={`ml-auto inline-flex h-[16px] min-w-[18px] shrink-0 items-center justify-center rounded-full px-1 text-[10px] font-bold tabular-nums sm:ml-0 ${
+                className={`ml-auto inline-flex h-[18px] min-w-[24px] shrink-0 items-center justify-center rounded-full px-1.5 text-[10.5px] font-bold tabular-nums md:ml-0 ${
                   loadingPendingQueue
                     ? `bg-qb-input/80 text-transparent ${isMotionDisabled ? "" : "animate-pulse"}`
                     : activeTab === "review"
