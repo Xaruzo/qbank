@@ -36,7 +36,7 @@
   --text-mid:#fff; --text-mid2:#fff; --text-low:#fff;
   --text-muted:#fff; --text-faint:#fff;
    --hdr-bg:rgba(7,11,20,.82); --input-bg:#09101d;
-  --scroll-track:transparent; --scroll-thumb:rgba(196,212,236,.22); --scroll-thumb-h:rgba(234,88,12,.45);
+  --scroll-track:#1a2842; --scroll-thumb:rgba(245,166,35,.58); --scroll-thumb-h:#f5a623;
   --glow1:rgba(245,166,35,.10); --glow2:rgba(139,92,246,.08);
   --skeleton-bg:rgba(148,163,184,.14); --skeleton-shine:rgba(148,163,184,.22);
   --font-input:'Noto Sans','Segoe UI Symbol','Cambria Math','Inter',-apple-system,sans-serif;
@@ -55,7 +55,7 @@
   --text-mid:#3a5272; --text-mid2:#4a6280; --text-low:#6a80a0;
   --text-muted:#3a4b66; --text-faint:#647794;
    --hdr-bg:rgba(237,242,251,.82); --input-bg:#f5f8ff;
-  --scroll-track:transparent; --scroll-thumb:rgba(26,37,64,.22); --scroll-thumb-h:rgba(234,88,12,.35);
+  --scroll-track:#cbd5e1; --scroll-thumb:rgba(15,23,42,.45); --scroll-thumb-h:#d97706;
   --glow1:rgba(245,166,35,.06); --glow2:rgba(139,92,246,.04);
   --skeleton-bg:rgba(26,37,64,.10); --skeleton-shine:rgba(26,37,64,.18);
   --surface-grad:linear-gradient(180deg, rgba(255,255,255,.98), rgba(244,247,255,.92));
@@ -99,10 +99,11 @@
   background: transparent !important;
 }
 
-/* Global scrollbars for standard containers */
+/* Global scrollbars for standard containers (matches Landing Page styling) */
 *::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
+  background: var(--scroll-track);
 }
 
 *::-webkit-scrollbar-track {
@@ -120,42 +121,33 @@
   *::-webkit-scrollbar-thumb:hover {
     background: var(--scroll-thumb-h);
     background-clip: padding-box;
-  
   }
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   HOVER-REVEAL SCROLLBARS (SIDEBAR / HAMBURGER MENU & QUESTION BLOCKS)
+   HOVER-REVEAL SCROLLBARS (SIDEBAR & DRAWER NAVIGATION ONLY)
    ══════════════════════════════════════════════════════════════════════════ */
 .qb-side-inner::-webkit-scrollbar,
-.qb-side-drawer::-webkit-scrollbar,
-.qb-det-card-scroll::-webkit-scrollbar,
-.qb-exam-card-scroll::-webkit-scrollbar {
+.qb-side-drawer::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 .qb-side-inner::-webkit-scrollbar-track,
-.qb-side-drawer::-webkit-scrollbar-track,
-.qb-det-card-scroll::-webkit-scrollbar-track,
-.qb-exam-card-scroll::-webkit-scrollbar-track {
+.qb-side-drawer::-webkit-scrollbar-track {
   background: transparent !important;
 }
 
 .qb-side-inner::-webkit-scrollbar-button,
-.qb-side-drawer::-webkit-scrollbar-button,
-.qb-det-card-scroll::-webkit-scrollbar-button,
-.qb-exam-card-scroll::-webkit-scrollbar-button {
+.qb-side-drawer::-webkit-scrollbar-button {
   display: none !important;
   width: 0 !important;
   height: 0 !important;
 }
 
-/* Hidden by default: thumb is completely invisible when mouse is NOT hovering */
+/* Hidden by default: sidebar thumb is invisible when mouse is NOT hovering */
 .qb-side-inner::-webkit-scrollbar-thumb,
-.qb-side-drawer::-webkit-scrollbar-thumb,
-.qb-det-card-scroll::-webkit-scrollbar-thumb,
-.qb-exam-card-scroll::-webkit-scrollbar-thumb {
+.qb-side-drawer::-webkit-scrollbar-thumb {
   background: transparent !important;
   background-color: transparent !important;
   border: 1px solid transparent !important;
@@ -164,53 +156,59 @@
   transition: background-color 0.2s ease;
 }
 
-/* Reveal thumb ONLY when mouse hovers over the sidebar or question block */
 @media (hover: hover) {
   .qb-side:hover .qb-side-inner::-webkit-scrollbar-thumb,
-.qb-side-inner:hover::-webkit-scrollbar-thumb,
-.qb-side-drawer:hover::-webkit-scrollbar-thumb,
-.qb-det-card:hover .qb-det-card-scroll::-webkit-scrollbar-thumb,
-.qb-det-card-scroll:hover::-webkit-scrollbar-thumb,
-.qb-exam-main:hover .qb-exam-card-scroll::-webkit-scrollbar-thumb,
-.qb-exam-card-scroll:hover::-webkit-scrollbar-thumb {
+  .qb-side-inner:hover::-webkit-scrollbar-thumb,
+  .qb-side-drawer:hover::-webkit-scrollbar-thumb {
     background: var(--scroll-thumb) !important;
     background-color: var(--scroll-thumb) !important;
-  
   }
   .qb-side-inner::-webkit-scrollbar-thumb:hover,
-.qb-side-drawer::-webkit-scrollbar-thumb:hover,
-.qb-det-card-scroll::-webkit-scrollbar-thumb:hover,
-.qb-exam-card-scroll::-webkit-scrollbar-thumb:hover {
+  .qb-side-drawer::-webkit-scrollbar-thumb:hover {
     background: var(--scroll-thumb-h) !important;
     background-color: var(--scroll-thumb-h) !important;
-  
   }
 }
 
-/* Firefox standard scrollbars (Firefox never renders arrow buttons on thin scrollbars) */
+/* Question Detail & Mock Exam card scrollbars match the Landing Page card scrollbar */
+.qb-det-card-scroll,
+.qb-exam-card-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(245, 166, 35, 0.58) #1a2842;
+}
+
+.light .qb-det-card-scroll,
+.light .qb-exam-card-scroll {
+  scrollbar-color: rgba(15, 23, 42, 0.45) #cbd5e1;
+}
+
+/* Standard CSS Scrollbars (Chrome 121+ & Firefox) — matches Landing Page */
+.qb {
+  scrollbar-color: rgba(245, 166, 35, 0.58) #1a2842;
+}
+
+.qb.light {
+  scrollbar-color: rgba(15, 23, 42, 0.45) #cbd5e1;
+}
+
+.qb .overflow-y-auto {
+  scrollbar-width: thin;
+}
+
 @supports (-moz-appearance: none) {
   * {
     scrollbar-width: thin;
-    scrollbar-color: var(--scroll-thumb) transparent;
-  
+    scrollbar-color: var(--scroll-thumb) var(--scroll-track);
   }
   .qb-side-inner,
-.qb-side-drawer,
-.qb-det-card-scroll,
-.qb-exam-card-scroll {
+  .qb-side-drawer {
     scrollbar-width: thin;
     scrollbar-color: transparent transparent;
-  
   }
   .qb-side:hover .qb-side-inner,
-.qb-side-inner:hover,
-.qb-side-drawer:hover,
-.qb-det-card:hover .qb-det-card-scroll,
-.qb-det-card-scroll:hover,
-.qb-exam-main:hover .qb-exam-card-scroll,
-.qb-exam-card-scroll:hover {
+  .qb-side-inner:hover,
+  .qb-side-drawer:hover {
     scrollbar-color: var(--scroll-thumb) transparent;
-  
   }
 }
 

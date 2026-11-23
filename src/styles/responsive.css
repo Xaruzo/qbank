@@ -1121,10 +1121,11 @@ body.light .qb-timer-icon {
 
   .qb-det-rail-grid::-webkit-scrollbar {
     width: 6px;
+    background: var(--scroll-track);
   }
 
   .qb-det-rail-grid::-webkit-scrollbar-thumb {
-    background: rgba(148, 163, 184, 0.24);
+    background: var(--scroll-thumb);
     border-radius: 999px;
   }
 

@@ -829,11 +829,12 @@
 }
 
 .qb-notif-list::-webkit-scrollbar {
-  width: 5px;
+  width: 6px;
+  background: var(--scroll-track);
 }
 
 .qb-notif-list::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: var(--scroll-thumb);
   border-radius: 999px;
 }
 

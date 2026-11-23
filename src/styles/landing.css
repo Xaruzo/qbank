@@ -3,17 +3,10 @@
    ══════════════════════════════════════════════════════════════════════════ */
 html.qb-page-scrollable,
 body.qb-page-scrollable,
+html:has(.qb-landing-root),
+body:has(.qb-landing-root),
 html:has(.qb-signin-root),
 body:has(.qb-signin-root) {
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  height: auto !important;
-  min-height: 100vh !important;
-  min-height: 100dvh !important;
-}
-
-html:has(.qb-landing-root),
-body:has(.qb-landing-root) {
   overflow: hidden !important;
   height: 100% !important;
   min-height: 0 !important;
@@ -49,34 +42,34 @@ body:has(.qb-landing-root) {
 
 .qb-landing-scroll::-webkit-scrollbar {
   width: 10px;
-  background: #0d172a;
+  background: #1a2842;
 }
 
 .qb-landing-scroll::-webkit-scrollbar-track {
-  background: #0d172a !important;
-  background-color: #0d172a !important;
-  border-left: 1px solid rgba(245, 166, 35, 0.2);
+  background: #1a2842 !important;
+  background-color: #1a2842 !important;
+  border-left: 1px solid rgba(245, 166, 35, 0.24);
 }
 
 .qb-landing-root.light .qb-landing-scroll::-webkit-scrollbar {
-  background: #dbe4f0;
+  background: #cbd5e1;
 }
 
 .qb-landing-root.light .qb-landing-scroll::-webkit-scrollbar-track {
-  background: #dbe4f0 !important;
-  background-color: #dbe4f0 !important;
-  border-left: 1px solid rgba(15, 23, 42, 0.12);
+  background: #cbd5e1 !important;
+  background-color: #cbd5e1 !important;
+  border-left: 1px solid rgba(15, 23, 42, 0.16);
 }
 
 .qb-landing-scroll::-webkit-scrollbar-thumb {
-  background: rgba(245, 166, 35, 0.45);
+  background: rgba(245, 166, 35, 0.58);
   border: 2px solid transparent;
   border-radius: 999px;
   background-clip: padding-box;
 }
 
 .qb-landing-root.light .qb-landing-scroll::-webkit-scrollbar-thumb {
-  background: rgba(15, 23, 42, 0.35);
+  background: rgba(15, 23, 42, 0.45);
   border: 2px solid transparent;
   border-radius: 999px;
   background-clip: padding-box;
@@ -104,21 +97,21 @@ body:has(.qb-landing-root) {
 }
 
 .qb-landing-scroll {
-  scrollbar-color: rgba(245, 166, 35, 0.45) #0d172a;
+  scrollbar-color: rgba(245, 166, 35, 0.58) #1a2842;
 }
 
 .qb-landing-root.light .qb-landing-scroll {
-  scrollbar-color: rgba(15, 23, 42, 0.35) #dbe4f0;
+  scrollbar-color: rgba(15, 23, 42, 0.45) #cbd5e1;
 }
 
 @supports (-moz-appearance: none) {
   .qb-landing-scroll {
     scrollbar-width: thin;
-    scrollbar-color: rgba(245, 166, 35, 0.45) #0d172a;
+    scrollbar-color: rgba(245, 166, 35, 0.58) #1a2842;
   }
 
   .qb-landing-root.light .qb-landing-scroll {
-    scrollbar-color: rgba(15, 23, 42, 0.35) #dbe4f0;
+    scrollbar-color: rgba(15, 23, 42, 0.45) #cbd5e1;
   }
 }
 

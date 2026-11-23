@@ -40,6 +40,7 @@ export default function SignInPage({
 }: SignInPageProps) {
   const [isRegisterMode, setIsRegisterMode] = useState<boolean>(false);
   const [signupStep, setSignupStep] = useState<"form" | "verify">("form");
+  const [navDirection, setNavDirection] = useState<"forward" | "back" | "initial">("initial");
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
@@ -130,6 +131,7 @@ export default function SignInPage({
         throw new Error(data?.error || "Failed to send verification code.");
       }
       setSuccessMsg(`A 6-digit verification code has been dispatched to ${cleanEmail}. Please enter it below to complete registration.`);
+      setNavDirection("forward");
       setSignupStep("verify");
       setResendCooldown(60);
       setSignupCodeDigits(["", "", "", "", "", ""]);
@@ -307,6 +309,8 @@ export default function SignInPage({
         </div>
       </header>
 
+      {/* Dedicated scroll region below the fixed header (matches LandingPage) */}
+      <div className="qb-signin-scroll">
       {/* Main Container */}
       <main className="qb-signin-main">
         <div className="qb-signin-layout">
@@ -372,13 +376,23 @@ export default function SignInPage({
           {/* Right Form Panel */}
           <div className="qb-signin-card-wrap">
             <div className="qb-signin-card">
-              {/* Card Header & Tab Switcher */}
+              {/* Card Header & Sliding Tab Switcher */}
               <div className="qb-signin-card-header">
-                <div className="qb-signin-tabs">
+                <div
+                  className="qb-signin-tabs"
+                  role="tablist"
+                  aria-label="Account access mode"
+                  data-active={isRegisterMode ? "register" : "signin"}
+                >
+                  <span className="qb-signin-tab-indicator" aria-hidden="true" />
                   <button
                     type="button"
+                    role="tab"
+                    aria-selected={!isRegisterMode}
                     className={`qb-signin-tab${!isRegisterMode ? " active" : ""}`}
                     onClick={() => {
+                      if (!isRegisterMode && signupStep === "form") return;
+                      setNavDirection("back");
                       setIsRegisterMode(false);
                       setSignupStep("form");
                       setErrorMsg("");
@@ -389,8 +403,12 @@ export default function SignInPage({
                   </button>
                   <button
                     type="button"
+                    role="tab"
+                    aria-selected={isRegisterMode}
                     className={`qb-signin-tab${isRegisterMode ? " active" : ""}`}
                     onClick={() => {
+                      if (isRegisterMode && signupStep === "form") return;
+                      setNavDirection(isRegisterMode ? "back" : "forward");
                       setIsRegisterMode(true);
                       setSignupStep("form");
                       setErrorMsg("");
@@ -401,20 +419,31 @@ export default function SignInPage({
                   </button>
                 </div>
 
-                <h2 className="qb-signin-card-title">
-                  {isRegisterMode
-                    ? signupStep === "verify"
-                      ? "Verify Email Ownership"
-                      : "Create your reviewer account"
-                    : "Welcome back to QBANK"}
-                </h2>
-                <p className="qb-signin-card-sub">
-                  {isRegisterMode
-                    ? signupStep === "verify"
-                      ? `Confirm that you own ${email.trim()} to activate your reviewer account.`
-                      : "Enter your email to verify ownership and start saving your exam simulations."
-                    : "Access your questions, mock exam attempts, and personalized study notes."}
-                </p>
+                <div
+                  key={`hdr-${isRegisterMode ? "reg" : "in"}-${signupStep}`}
+                  className={
+                    navDirection === "initial"
+                      ? undefined
+                      : navDirection === "forward"
+                        ? "qb-signin-panel-forward"
+                        : "qb-signin-panel-back"
+                  }
+                >
+                  <h2 className="qb-signin-card-title">
+                    {isRegisterMode
+                      ? signupStep === "verify"
+                        ? "Verify Email Ownership"
+                        : "Create your reviewer account"
+                      : "Welcome back to QBANK"}
+                  </h2>
+                  <p className="qb-signin-card-sub">
+                    {isRegisterMode
+                      ? signupStep === "verify"
+                        ? `Confirm that you own ${email.trim()} to activate your reviewer account.`
+                        : "Enter your email to verify ownership and start saving your exam simulations."
+                      : "Access your questions, mock exam attempts, and personalized study notes."}
+                  </p>
+                </div>
               </div>
 
               {/* Alert Feedback */}
@@ -467,7 +496,13 @@ export default function SignInPage({
 
               {/* Auth Form / Verification Form */}
               {isRegisterMode && signupStep === "verify" ? (
-                <form onSubmit={handleVerifySignupAndCreate} className="qb-signin-form">
+                <form
+                  key="auth-verify-form"
+                  onSubmit={handleVerifySignupAndCreate}
+                  className={`qb-signin-form ${
+                    navDirection === "back" ? "qb-signin-panel-back" : "qb-signin-panel-forward"
+                  }`}
+                >
                   <div className="qb-fp-digits-wrap" onPaste={handleSignupPaste}>
                     <label className="qb-fp-label center" style={{ color: "var(--text-heading)", fontWeight: 700 }}>
                       Enter 6-Digit Email Verification Code
@@ -512,6 +547,7 @@ export default function SignInPage({
                       type="button"
                       className="qb-fp-back-step-btn"
                       onClick={() => {
+                        setNavDirection("back");
                         setSignupStep("form");
                         setErrorMsg("");
                       }}
@@ -537,7 +573,17 @@ export default function SignInPage({
                   </div>
                 </form>
               ) : (
-                <form onSubmit={handleSubmit} className="qb-signin-form">
+                <form
+                  key={`auth-main-${isRegisterMode ? "reg" : "in"}`}
+                  onSubmit={handleSubmit}
+                  className={`qb-signin-form${
+                    navDirection === "initial"
+                      ? ""
+                      : navDirection === "forward"
+                        ? " qb-signin-panel-forward"
+                        : " qb-signin-panel-back"
+                  }`}
+                >
                   <div className="qb-signin-field">
                     <label htmlFor="signin-email" className="qb-signin-label">
                       Email Address
@@ -796,6 +842,7 @@ export default function SignInPage({
           </p>
         </div>
       </footer>
+      </div>
 
       {/* Forgot Password Modal with Brevo Email & 6-Digit Code */}
       <ForgotPasswordModal

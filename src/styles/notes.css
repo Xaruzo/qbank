@@ -406,20 +406,21 @@
   flex-direction: column;
   gap: 7px;
   scrollbar-width: thin;
-  scrollbar-color: var(--scroll-thumb) transparent;
+  scrollbar-color: var(--scroll-thumb) var(--scroll-track);
 }
 
 .qb-notes-list::-webkit-scrollbar,
 .qb-note-textarea::-webkit-scrollbar,
 .qb-note-preview-wrapper::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
+  background: var(--scroll-track);
 }
 
 .qb-notes-list::-webkit-scrollbar-track,
 .qb-note-textarea::-webkit-scrollbar-track,
 .qb-note-preview-wrapper::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--scroll-track);
 }
 
 .qb-notes-list::-webkit-scrollbar-thumb,
@@ -1569,7 +1570,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: thin;
-  scrollbar-color: var(--scroll-thumb) transparent;
+  scrollbar-color: var(--scroll-thumb) var(--scroll-track);
 }
 
 .qb-rich-editor-scroll .qb-rich-editor-content {
