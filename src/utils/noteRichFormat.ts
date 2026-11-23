@@ -923,4 +923,66 @@ export function markdownToPlainText(content: string): string {
     .trim();
 }
 
+/**
+ * Unwraps `<pre>`, `<code>`, `<tt>`, `<kbd>`, and `<samp>` markup from HTML
+ * used inside question/choice/solution editors so copied code-block snippets
+ * paste cleanly as normal editable paragraphs without getting trapped in `<code>` chips.
+ */
+export function unwrapQuestionHtml(
+  html: string,
+  options?: { singleLine?: boolean }
+): string {
+  if (!html) return html;
+  const singleLine = Boolean(options?.singleLine);
+
+  // 1. Convert <pre>...</pre> blocks into clean paragraph lines (or spaces if singleLine)
+  let out = html.replace(/<pre\b[^>]*>([\s\S]*?)<\/pre>/gi, (_match, inner: string) => {
+    const body = inner
+      .replace(/<(?:div|p|li)\b[^>]*>(?:\s|&nbsp;)*<br\s*\/?>(?:\s|&nbsp;)*<\/(?:div|p|li)>/gi, "\n")
+      .replace(/<\/(?:div|p|li)>\s*<(?:div|p|li)\b[^>]*>/gi, "\n")
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/?(?:code|span|div|p|pre|li|tt|kbd|samp)\b[^>]*>/gi, "")
+      .replace(/\r\n/g, "\n")
+      .replace(/^\n+|\n+$/g, "");
+
+    if (!body.trim()) return "";
+
+    if (singleLine) {
+      return body.replace(/\n+/g, " ");
+    }
+
+    const lines = body.split("\n");
+    return lines.map((line) => (line.length > 0 ? `<p>${line}</p>` : "<p></p>")).join("");
+  });
+
+  // 2. Strip any remaining inline code-family wrappers
+  out = out.replace(/<\/?(?:code|tt|kbd|samp)\b[^>]*>/gi, "");
+
+  if (singleLine) {
+    out = out
+      .replace(/<\/(?:p|div|li|h[1-6]|blockquote)>\s*<(?:p|div|li|h[1-6]|blockquote)\b[^>]*>/gi, " ")
+      .replace(/<br\s*\/?>/gi, " ");
+  }
+
+  return out;
+}
+
+/**
+ * Unwraps outer Markdown code fences (```...``` or ~~~...~~~) when pasting plain text
+ * copied from code snippets into question/solution fields.
+ */
+export function unwrapFencedMarkdownText(
+  text: string,
+  options?: { singleLine?: boolean }
+): string {
+  if (!text) return text;
+  const normalized = text.replace(/\r\n/g, "\n");
+  const match = normalized.match(/^\s*(```|~~~)[^\n]*\n([\s\S]*?)\n\1\s*$/);
+  const unwrapped = match ? match[2] : text;
+  if (options?.singleLine) {
+    return unwrapped.replace(/\r?\n+/g, " ");
+  }
+  return unwrapped;
+}
+
 export { unescapeHtml };

@@ -6,6 +6,8 @@ import {
   normalizeEmphasisWhitespace,
   stripNoteFormattingForSnippet,
   markdownToPlainText,
+  unwrapFencedMarkdownText,
+  unwrapQuestionHtml,
 } from "../src/utils/noteRichFormat";
 import MarkdownText from "../src/views/components/MarkdownText";
 import { DEFAULT_STUDY_NOTES } from "../src/models/notesModel";
@@ -112,5 +114,35 @@ describe("noteRichFormat", () => {
     expect(plain).toContain("☑ RA 6713 Section 4");
     expect(plain).not.toContain("<mark");
     expect(plain).not.toContain("**");
+  });
+
+  it("unwraps pasted <pre> and <code> snippet HTML into normal editable paragraphs while preserving line breaks", () => {
+    const pastedCodeBlock =
+      '<pre><code class="language-text">ANSWER: A. Worsen\nSolution: "Mitigate" and "alleviate" are synonyms.</code></pre>';
+    const unwrapped = unwrapQuestionHtml(pastedCodeBlock);
+    expect(unwrapped).toBe(
+      '<p>ANSWER: A. Worsen</p><p>Solution: "Mitigate" and "alleviate" are synonyms.</p>'
+    );
+    expect(unwrapped).not.toContain("<code");
+    expect(unwrapped).not.toContain("<pre");
+
+    const inlineCodeLines = "<p><code>ANSWER: A. Worsen</code></p><p><code>Solution: text</code></p>";
+    expect(unwrapQuestionHtml(inlineCodeLines)).toBe(
+      "<p>ANSWER: A. Worsen</p><p>Solution: text</p>"
+    );
+
+    const singleLine = unwrapQuestionHtml(pastedCodeBlock, { singleLine: true });
+    expect(singleLine).toBe(
+      'ANSWER: A. Worsen Solution: "Mitigate" and "alleviate" are synonyms.'
+    );
+  });
+
+  it("unwraps fenced markdown code snippets when pasting plain text into question editors", () => {
+    const fenced = "```text\nANSWER: A. Worsen\nSolution: Synonyms.\n```";
+    expect(unwrapFencedMarkdownText(fenced)).toBe("ANSWER: A. Worsen\nSolution: Synonyms.");
+    expect(unwrapFencedMarkdownText(fenced, { singleLine: true })).toBe(
+      "ANSWER: A. Worsen Solution: Synonyms."
+    );
+    expect(unwrapFencedMarkdownText("Normal plain text")).toBe("Normal plain text");
   });
 });

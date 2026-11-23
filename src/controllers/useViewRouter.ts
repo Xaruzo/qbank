@@ -14,6 +14,7 @@ export type ViewType =
   | "tips"
   | "tipDetail"
   | "notes"
+  | "reels"
   | "my-questions"
   | "settings";
 
@@ -44,6 +45,7 @@ export function useViewRouter({
       if (page === "my-questions") return "my-questions";
       if (page === "tips") return "tips";
       if (page === "notes") return "notes";
+      if (page === "reels") return "reels";
       if (page === "mock") return "mock";
       if (page === "list" || page === "questions") return "list";
       if (page) return "dashboard";
@@ -69,6 +71,14 @@ export function useViewRouter({
   const [editId, setEditId] = useState<string | null>(null);
   const [selectedMockAttemptId, setSelectedMockAttemptId] = useState<string | null>(null);
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
+  const [selectedReelId, setSelectedReelId] = useState<string | null>(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("page") === "reels" ? params.get("reel") || null : null;
+    } catch {
+      return null;
+    }
+  });
   const [selectedMiniMockId, setSelectedMiniMockId] = useState<string | null>(() => {
     try {
       const params = new URLSearchParams(window.location.search);
@@ -184,6 +194,19 @@ export function useViewRouter({
         setSelectedId(null);
         setSelectedNoteId(noteId || null);
         setView("notes");
+        return;
+      }
+
+      if (page === "reels") {
+        const reelId = params.get("reel");
+        setSelectedMockAttemptId(null);
+        setDeepLinkShowSol(false);
+        setEditId(null);
+        setExam(null);
+        setSelectedId(null);
+        setSelectedNoteId(null);
+        setSelectedReelId(reelId || null);
+        setView("reels");
         return;
       }
 
@@ -368,6 +391,20 @@ export function useViewRouter({
     setView("notes");
   }, []);
 
+  const navigateReels = useCallback((reelId?: string | null) => {
+    const safeReelId = typeof reelId === "string" && reelId.trim() ? reelId.trim() : null;
+    setEditId(null);
+    setSelectedId(null);
+    setSelectedMockAttemptId(null);
+    setSelectedNoteId(null);
+    setDeepLinkShowSol(false);
+    setExam(null);
+    setSelectedReelId(safeReelId);
+    const query = safeReelId ? `?page=reels&reel=${encodeURIComponent(safeReelId)}` : `?page=reels`;
+    window.history.pushState({}, "", query);
+    setView("reels");
+  }, []);
+
   const navigateMyQuestions = useCallback((miniMockId?: string | null) => {
     const safeMiniMockId = typeof miniMockId === "string" && miniMockId.trim() ? miniMockId.trim() : null;
     setEditId(null);
@@ -456,6 +493,7 @@ export function useViewRouter({
     selectedMockAttemptId,
     setSelectedMockAttemptId,
     selectedNoteId,
+    selectedReelId,
     selectedMiniMockId,
     settingsTab,
     deepLinkShowSol,
@@ -469,6 +507,7 @@ export function useViewRouter({
     navigateMockExam,
     navigateTips,
     navigateNotes,
+    navigateReels,
     navigateMyQuestions,
     navigateSettings,
     navigateQuestionDetail,

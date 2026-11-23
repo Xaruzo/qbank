@@ -55,6 +55,7 @@ import {
 import { editorHtmlToMarkdown, markdownToEditorHtml } from "../../utils/noteRichFormat";
 import {
   WordSmartFormattingExtension,
+  clearFormattingSmart,
   setHighlightSmart,
   toggleHighlightSmart,
   toggleMarkSmart,
@@ -999,7 +1000,7 @@ export default function NoteRichEditor({
               <button
                 type="button"
                 className="qb-note-fmt-btn"
-                onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}
+                onClick={() => clearFormattingSmart(editor)}
                 title="Clear formatting"
                 aria-label="Clear formatting"
               >

@@ -208,6 +208,27 @@ export function setHighlightSmart(
     .run();
 }
 
+/**
+ * Clears all inline marks and node formatting even when the caret is collapsed
+ * (TipTap's built-in `unsetAllMarks` is a no-op on empty selections, which would
+ * otherwise leave active/stored marks stuck while typing new lines).
+ */
+export function clearFormattingSmart(editor: Editor | null | undefined): boolean {
+  if (!editor) return false;
+  const { selection } = editor.state;
+  const chain = editor.chain().focus();
+  if (!selection.empty) {
+    chain.unsetAllMarks();
+  }
+  return chain
+    .clearNodes()
+    .command(({ tr }) => {
+      tr.setStoredMarks([]);
+      return true;
+    })
+    .run();
+}
+
 export const WordSmartFormattingExtension = Extension.create({
   name: "wordSmartFormatting",
   priority: 1000,

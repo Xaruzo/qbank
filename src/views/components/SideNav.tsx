@@ -20,13 +20,14 @@ import {
   ShieldCheck,
   FileEdit,
   LayoutDashboard,
+  Clapperboard,
   type LucideIcon,
 } from "lucide-react";
 import brandLogo from "../../assets/logo.png";
 import type { SideNavProps } from "../../types";
 
 interface NavItemDef {
-  id: "dashboard" | "home" | "mock" | "tips" | "notes" | "my-questions";
+  id: "dashboard" | "home" | "mock" | "reels" | "tips" | "notes" | "my-questions";
   label: string;
   shortLabel: string;
   railLabel?: string;
@@ -259,6 +260,7 @@ export default function SideNav({
   onMockExam,
   onTips,
   onNotes,
+  onReels,
   onMyQuestions,
   onClose,
   totalQuestions = 0,
@@ -437,6 +439,7 @@ export default function SideNav({
     dashboard: onDashboard,
     home: onHome,
     mock: onMockExam,
+    reels: onReels,
     tips: onTips,
     notes: onNotes,
     "my-questions": onMyQuestions,
@@ -465,6 +468,14 @@ export default function SideNav({
       railLabel: "Mock",
       title: "Timed Mock Exam (Full CSC Simulation)",
       icon: Timer,
+    },
+    {
+      id: "reels",
+      label: "Reels & Live",
+      shortLabel: "Reels",
+      railLabel: "Reels",
+      title: "Short Review Clips & Live Coaching Streams",
+      icon: Clapperboard,
     },
     {
       id: "notes",

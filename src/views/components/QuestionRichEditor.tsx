@@ -35,9 +35,15 @@ import {
   Undo2,
   X,
 } from "lucide-react";
-import { editorHtmlToMarkdown, markdownToEditorHtml } from "../../utils/noteRichFormat";
+import {
+  editorHtmlToMarkdown,
+  markdownToEditorHtml,
+  unwrapFencedMarkdownText,
+  unwrapQuestionHtml,
+} from "../../utils/noteRichFormat";
 import {
   WordSmartFormattingExtension,
+  clearFormattingSmart,
   setHighlightSmart,
   toggleHighlightSmart,
   toggleMarkSmart,
@@ -428,6 +434,7 @@ const QuestionRichEditor = forwardRef<QuestionRichEditorHandle, QuestionRichEdit
       extensions: [
         StarterKit.configure({
           heading: false,
+          code: false,
           codeBlock: false,
           horizontalRule: false,
           ...(singleLine
@@ -445,12 +452,18 @@ const QuestionRichEditor = forwardRef<QuestionRichEditorHandle, QuestionRichEdit
         QMathInlineExtension,
         ...(singleLine ? [] : [QMathBlockExtension]),
       ],
-      content: markdownToEditorHtml(value),
+      content: unwrapQuestionHtml(markdownToEditorHtml(value), { singleLine }),
       editorProps: {
         attributes: {
           "aria-label": ariaLabel,
           role: "textbox",
           "aria-multiline": singleLine ? "false" : "true",
+        },
+        transformPastedHTML(html) {
+          return unwrapQuestionHtml(html, { singleLine });
+        },
+        transformPastedText(text) {
+          return unwrapFencedMarkdownText(text, { singleLine });
         },
         handleKeyDown(_view, event) {
           if (singleLine && event.key === "Enter") {
@@ -497,9 +510,12 @@ const QuestionRichEditor = forwardRef<QuestionRichEditorHandle, QuestionRichEdit
       if (!editor) return;
       if (value !== lastEmittedRef.current) {
         lastEmittedRef.current = value;
-        editor.commands.setContent(markdownToEditorHtml(value), { emitUpdate: false });
+        editor.commands.setContent(
+          unwrapQuestionHtml(markdownToEditorHtml(value), { singleLine }),
+          { emitUpdate: false }
+        );
       }
-    }, [editor, value]);
+    }, [editor, singleLine, value]);
 
     // Close popovers on outside click / Escape
     useEffect(() => {
@@ -787,7 +803,7 @@ const QuestionRichEditor = forwardRef<QuestionRichEditorHandle, QuestionRichEdit
               type="button"
               className={TOOLBAR_BTN_BASE}
               onMouseDown={(e) => e.preventDefault()}
-              onClick={() => editor?.chain().focus().unsetAllMarks().clearNodes().run()}
+              onClick={() => clearFormattingSmart(editor)}
               title="Clear formatting"
               aria-label="Clear formatting"
             >

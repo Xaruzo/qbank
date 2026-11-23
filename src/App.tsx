@@ -21,6 +21,7 @@ const MockExamRunner = lazyWithRetry(() => import("./views/components/MockExamRu
 const TipsPage = lazyWithRetry(() => import("./views/components/TipsPage"));
 const TipDetailPage = lazyWithRetry(() => import("./views/components/TipDetailPage"));
 const NotesPage = lazyWithRetry(() => import("./views/components/NotesPage"));
+const ReelsPage = lazyWithRetry(() => import("./views/components/ReelsPage"));
 const DashboardPage = lazyWithRetry(() => import("./views/components/DashboardPage"));
 import { MyQuestionsView } from "./views/MyQuestionsView";
 import LoadingSpinner from "./views/components/LoadingSpinner";
@@ -83,6 +84,7 @@ import {
   Calendar,
   CheckCircle2,
   RefreshCw,
+  Clapperboard,
 } from "lucide-react";
 import { QUESTION_ADMIN_UIDS, QUESTION_ADMIN_EMAILS, EXAM_PRESETS } from "./constants/appConstants";
 
@@ -183,6 +185,7 @@ export default function App() {
     selectedMockAttemptId,
     setSelectedMockAttemptId,
     selectedNoteId,
+    selectedReelId,
     selectedMiniMockId,
     settingsTab,
     deepLinkShowSol,
@@ -196,6 +199,7 @@ export default function App() {
     navigateMockExam: handleGoMockExam,
     navigateTips: handleGoTips,
     navigateNotes: handleGoNotes,
+    navigateReels: handleGoReels,
     navigateMyQuestions: handleGoMyQuestions,
     navigateSettings,
     navigateQuestionDetail: goToQuestionDetail,
@@ -939,13 +943,15 @@ export default function App() {
     ? "dashboard"
     : view === "mock" || view === "mockRun" || view === "mockAttempt"
       ? "mock"
-      : view === "tips" || view === "tipDetail"
-        ? "tips"
-        : view === "notes"
-          ? "notes"
-          : view === "my-questions"
-            ? "my-questions"
-            : "home";
+      : view === "reels"
+        ? "reels"
+        : view === "tips" || view === "tipDetail"
+          ? "tips"
+          : view === "notes"
+            ? "notes"
+            : view === "my-questions"
+              ? "my-questions"
+              : "home";
   const SEEN_QUESTIONS_KEY = "qbank-seen-questions-total";
   const [seenQuestionsTotal, setSeenQuestionsTotal] = useState<number | null>(() => {
     try {
@@ -1013,13 +1019,13 @@ export default function App() {
       },
     },
     {
-      id: "tips",
-      label: "Study Tips",
-      shortLabel: "Study Tips",
-      icon: Lightbulb,
+      id: "reels",
+      label: "Reels & Live Review",
+      shortLabel: "Reels",
+      icon: Clapperboard,
       onClick: () => {
-        if (view === "tips") scrollMainToTop();
-        else handleGoTips();
+        if (view === "reels") scrollMainToTop();
+        else handleGoReels();
       },
     },
     {
@@ -1141,6 +1147,7 @@ export default function App() {
             onHome={handleGoHome}
             onLanding={handleGoLanding}
             onMockExam={handleGoMockExam}
+            onReels={handleGoReels}
             onTips={handleGoTips}
             onNotes={handleGoNotes}
             onMyQuestions={handleGoMyQuestions}
@@ -1172,6 +1179,7 @@ export default function App() {
               onHome={handleGoHome}
               onLanding={handleGoLanding}
               onMockExam={handleGoMockExam}
+              onReels={handleGoReels}
               onTips={handleGoTips}
               onNotes={handleGoNotes}
               onMyQuestions={handleGoMyQuestions}
@@ -1642,6 +1650,20 @@ export default function App() {
                 userId={user?.id || null}
                 onBack={handleGoHome}
                 initialNoteId={selectedNoteId}
+              />
+            ) : view === "reels" ? (
+              <ReelsPage
+                questions={qs}
+                currentUser={user}
+                userRole={userRole}
+                isAdmin={isQuestionAdmin}
+                initialReelId={selectedReelId}
+                liteMode={settings.liteMode}
+                onOpenQuestion={(qId) => goToQuestionDetail(qId)}
+                onPracticeTopic={(tId) => {
+                  setTopicFilter(tId);
+                  handleGoHome();
+                }}
               />
             ) : view === "mock" ? (
               isMockHistoryLoading || isActiveMockExamLoading ? (
