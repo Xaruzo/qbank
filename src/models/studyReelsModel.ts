@@ -546,7 +546,12 @@ function mergeReels(custom: StudyReel[], remote: StudyReel[]): StudyReel[] {
 
 export const studyReelsModel = {
   async getReels(): Promise<StudyReel[]> {
-    const localCustom = readJsonArray<StudyReel>(CUSTOM_REELS_KEY).map(normalizeReel);
+    const rawLocal = readJsonArray<StudyReel>(CUSTOM_REELS_KEY).map(normalizeReel);
+    // Discard any stale browser-session blob: URLs that cannot survive page reload
+    const localCustom = rawLocal.filter((r) => !r.mediaUrl?.startsWith("blob:"));
+    if (localCustom.length !== rawLocal.length) {
+      writeJsonArray(CUSTOM_REELS_KEY, localCustom);
+    }
     let remoteReels: StudyReel[] = [];
 
     if (supabase) {
@@ -584,11 +589,13 @@ export const studyReelsModel = {
       createdAt: new Date().toISOString(),
     });
 
-    const localCustom = readJsonArray<StudyReel>(CUSTOM_REELS_KEY).filter((r) => r.id !== record.id);
-    writeJsonArray(CUSTOM_REELS_KEY, [record, ...localCustom]);
+    // Never persist ephemeral browser blob: URLs into localStorage or remote Supabase
+    const isSessionBlob = Boolean(record.mediaUrl?.startsWith("blob:"));
+    if (!isSessionBlob) {
+      const localCustom = readJsonArray<StudyReel>(CUSTOM_REELS_KEY).filter((r) => r.id !== record.id);
+      writeJsonArray(CUSTOM_REELS_KEY, [record, ...localCustom]);
+    }
 
-    // Never upload temporary browser blob: URLs as cross-user remote media
-    const isSessionBlob = record.mediaUrl?.startsWith("blob:");
     if (supabase && user.id && user.id !== "local_user" && !isSessionBlob) {
       try {
         await supabase.from("study_reels").upsert(

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Play,
   Pause,
@@ -31,6 +32,15 @@ import {
   Layers,
   Check,
   Calendar,
+  Copy,
+  Mail,
+  Calculator,
+  BookOpen,
+  Globe,
+  BrainCircuit,
+  ClipboardList,
+  HelpCircle,
+  ArrowUp,
 } from "lucide-react";
 import { TOPICS, LETTERS } from "../../constants/appConstants";
 import {
@@ -65,8 +75,28 @@ interface ReelsPageProps {
 type FeedMode = "all" | "shorts" | "live" | "saved";
 type CompanionTab = "quiz" | "chat" | "queue";
 
+const TOPIC_ICON_MAP: Record<string, typeof Calculator> = {
+  numerical: Calculator,
+  verbal: BookOpen,
+  general: Globe,
+  analytical: BrainCircuit,
+  clerical: ClipboardList,
+};
+
 function getTopicMeta(topicId: string) {
   return TOPICS.find((t) => t.id === topicId) || TOPICS[0];
+}
+
+function renderTopicIcon(topicId: string, color: string, size = 14) {
+  const Icon = TOPIC_ICON_MAP[topicId] || Layers;
+  return (
+    <Icon
+      size={size}
+      data-colored="true"
+      className="qb-topic-icon shrink-0"
+      style={{ color }}
+    />
+  );
 }
 
 function formatRelativeTime(iso: string): string {
@@ -78,6 +108,16 @@ function formatRelativeTime(iso: string): string {
   if (hrs < 24) return `${hrs}h ago`;
   const days = Math.floor(hrs / 24);
   return `${days}d ago`;
+}
+
+function getAuthorInitials(name: string): string {
+  const parts = String(name || "R")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (parts.length === 0) return "R";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 }
 
 interface ReelStageCardProps {
@@ -127,6 +167,8 @@ function ReelStageCard({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isPlaying, setIsPlaying] = useState<boolean>(isActive);
   const [elapsedSec, setElapsedSec] = useState<number>(0);
+  const [videoDurationSec, setVideoDurationSec] = useState<number | null>(null);
+  const [videoError, setVideoError] = useState<boolean>(false);
   const [confirmDelete, setConfirmDelete] = useState<boolean>(false);
 
   const parsedYouTube = useMemo(
@@ -167,12 +209,15 @@ function ReelStageCard({
     return stepTimeline.find((s) => t >= s.start && t < s.end) || stepTimeline[stepTimeline.length - 1];
   }, [elapsedSec, stepTimeline, totalLessonSec]);
 
-  // Reset play state cleanly when slide becomes active / inactive
+  // Reset play state and elapsed progress cleanly whenever switching clips or toggling active state
   useEffect(() => {
     setIsPlaying(isActive);
     setConfirmDelete(false);
-    if (!isActive) {
-      setElapsedSec(0);
+    setElapsedSec(0);
+    setVideoDurationSec(null);
+    setVideoError(false);
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0;
     }
   }, [isActive, reel.id]);
 
@@ -198,19 +243,27 @@ function ReelStageCard({
     ) {
       return undefined;
     }
-    window.speechSynthesis.cancel();
-    if (!isActive || !isPlaying || isMuted) return undefined;
+    try {
+      window.speechSynthesis.cancel();
+      if (!isActive || !isPlaying || isMuted) return undefined;
 
-    const cleanBoard = currentStep.board
-      .replace(/[*_`>#$]/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    const utterance = new SpeechSynthesisUtterance(`${currentStep.heading}. ${cleanBoard}`);
-    utterance.rate = Math.min(1.5, playbackRate);
-    window.speechSynthesis.speak(utterance);
+      const cleanBoard = currentStep.board
+        .replace(/[*_`>#$]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      const utterance = new SpeechSynthesisUtterance(`${currentStep.heading}. ${cleanBoard}`);
+      utterance.rate = Math.min(1.5, playbackRate);
+      window.speechSynthesis.speak(utterance);
+    } catch {
+      // Ignore restricted browser WebView speech synthesis errors
+    }
 
     return () => {
-      window.speechSynthesis.cancel();
+      try {
+        window.speechSynthesis.cancel();
+      } catch {
+        // Ignore cleanup errors
+      }
     };
   }, [isActive, isPlaying, isMuted, currentStep.idx, currentStep.heading, currentStep.board, playbackRate, reel.sourceType]);
 
@@ -244,11 +297,15 @@ function ReelStageCard({
 
   const likeTotal = reel.likesCount + (liked ? 1 : 0);
   const effectiveTotalSec =
-    reel.sourceType === "video" && videoRef.current?.duration
-      ? videoRef.current.duration
-      : reel.sourceType === "lesson"
-        ? totalLessonSec
-        : reel.durationSec;
+    reel.sourceType === "video" && videoDurationSec
+      ? videoDurationSec
+      : reel.sourceType === "video" &&
+          videoRef.current?.duration &&
+          Number.isFinite(videoRef.current.duration)
+        ? videoRef.current.duration
+        : reel.sourceType === "lesson"
+          ? totalLessonSec
+          : reel.durationSec;
 
   const isLiveNow = reel.kind === "live" && reel.liveStatus === "live";
   const isUpcoming = reel.kind === "live" && reel.liveStatus === "upcoming";
@@ -378,38 +435,60 @@ function ReelStageCard({
           className="relative h-full w-full bg-black flex items-center justify-center cursor-pointer"
           onClick={handleTogglePlay}
         >
-          <video
-            ref={videoRef}
-            src={reel.mediaUrl}
-            className="h-full w-full object-contain"
-            playsInline
-            loop={reel.kind === "short"}
-            muted={isMuted}
-            onTimeUpdate={(e) => setElapsedSec(e.currentTarget.currentTime)}
-            onEnded={() => {
-              if (reel.kind === "live") setIsPlaying(false);
-            }}
-          />
-          {!isPlaying && (
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25">
-              <span className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-black/70 text-white border border-white/20">
-                <Play size={24} className="ml-0.5" />
-              </span>
+          {videoError ? (
+            <div className="flex flex-col items-center justify-center gap-2 px-6 text-center text-slate-300">
+              <Clapperboard size={28} className="text-rose-400" />
+              <p className="text-sm font-bold text-white">Video unavailable</p>
+              <p className="text-xs text-slate-400">
+                This clip could not be loaded or is in an unsupported format.
+              </p>
             </div>
+          ) : (
+            <>
+              <video
+                ref={videoRef}
+                src={reel.mediaUrl}
+                className="h-full w-full object-contain"
+                playsInline
+                loop={reel.kind === "short"}
+                muted={isMuted}
+                onLoadedMetadata={(e) => {
+                  const dur = e.currentTarget.duration;
+                  if (Number.isFinite(dur) && dur > 0) {
+                    setVideoDurationSec(dur);
+                  }
+                }}
+                onTimeUpdate={(e) => setElapsedSec(e.currentTarget.currentTime)}
+                onError={() => {
+                  setVideoError(true);
+                  setIsPlaying(false);
+                }}
+                onEnded={() => {
+                  if (reel.kind === "live") setIsPlaying(false);
+                }}
+              />
+              {!isPlaying && (
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25">
+                  <span className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-black/70 text-white border border-white/20">
+                    <Play size={24} className="ml-0.5" />
+                  </span>
+                </div>
+              )}
+            </>
           )}
         </div>
       ) : (
         /* Interactive CSE Micro-Lesson Stage */
         <div
           onClick={handleTogglePlay}
-          className="relative flex h-full w-full cursor-pointer flex-col justify-center px-5 pt-16 pb-32 sm:px-6"
+          className="relative flex h-full w-full cursor-pointer flex-col overflow-y-auto px-4 pt-14 pb-52 sm:px-5 sm:pb-56"
           style={{
             background: `radial-gradient(circle at 20% 15%, ${topicMeta.color}22 0%, transparent 48%), linear-gradient(165deg, #0b1326 0%, #070b14 60%, #0a101f 100%)`,
           }}
         >
           <div
             key={`${reel.id}-${currentStep.idx}`}
-            className={`mr-12 space-y-3 rounded-2xl border border-white/12 bg-slate-900/75 p-4 sm:p-5 backdrop-blur-sm ${
+            className={`my-auto mr-14 sm:mr-16 space-y-2 rounded-2xl border border-white/12 bg-slate-900/80 p-3.5 sm:p-4 backdrop-blur-sm ${
               liteMode ? "" : "transition-opacity duration-200"
             }`}
           >
@@ -447,9 +526,9 @@ function ReelStageCard({
         </div>
       )}
 
-      {/* Right-Edge Shorts Action Rail (44px+ touch targets) */}
+      {/* Right-Edge Docked Action Rail (fixed width prevents horizontal shift on label change) */}
       <div
-        className="absolute right-2.5 bottom-20 z-30 flex flex-col items-center gap-2.5"
+        className="absolute right-2.5 bottom-20 z-30 flex w-[54px] flex-col items-stretch gap-2"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -457,23 +536,27 @@ function ReelStageCard({
           onClick={onToggleLike}
           aria-pressed={liked}
           aria-label={liked ? "Unlike reel" : "Like reel"}
-          className="flex min-h-[44px] min-w-[44px] flex-col items-center justify-center gap-0.5 rounded-xl bg-black/55 px-2 py-1.5 text-white hover:bg-black/75 transition-colors cursor-pointer"
+          className="flex h-[50px] w-full flex-col items-center justify-center gap-0.5 rounded-xl bg-black/55 px-1 py-1.5 text-white hover:bg-black/75 transition-colors cursor-pointer"
         >
           <Heart
-            size={19}
+            size={18}
             className={liked ? "text-rose-400 fill-rose-400" : "text-white"}
           />
-          <span className="text-[10px] font-bold tabular-nums">{likeTotal}</span>
+          <span className="text-[10px] leading-none font-bold tabular-nums whitespace-nowrap">
+            {likeTotal}
+          </span>
         </button>
 
         <button
           type="button"
           onClick={() => onOpenCompanion("chat")}
           aria-label={`Open Q&A (${commentCount})`}
-          className="flex min-h-[44px] min-w-[44px] flex-col items-center justify-center gap-0.5 rounded-xl bg-black/55 px-2 py-1.5 text-white hover:bg-black/75 transition-colors cursor-pointer"
+          className="flex h-[50px] w-full flex-col items-center justify-center gap-0.5 rounded-xl bg-black/55 px-1 py-1.5 text-white hover:bg-black/75 transition-colors cursor-pointer"
         >
-          <MessageCircle size={19} />
-          <span className="text-[10px] font-bold tabular-nums">{commentCount}</span>
+          <MessageCircle size={18} />
+          <span className="text-[10px] leading-none font-bold tabular-nums whitespace-nowrap">
+            {commentCount}
+          </span>
         </button>
 
         {reel.quizCheck && (
@@ -482,10 +565,10 @@ function ReelStageCard({
             onClick={() => onOpenCompanion("quiz")}
             aria-label="Quick recall quiz"
             title="Practice Quick Check"
-            className="flex min-h-[44px] min-w-[44px] flex-col items-center justify-center gap-0.5 rounded-xl bg-amber-500/90 px-2 py-1.5 text-[#070c18] hover:bg-amber-400 transition-colors cursor-pointer"
+            className="flex h-[50px] w-full flex-col items-center justify-center gap-0.5 rounded-xl bg-amber-500/90 px-1 py-1.5 text-[#070c18] hover:bg-amber-400 transition-colors cursor-pointer"
           >
-            <Target size={19} />
-            <span className="text-[10px] font-extrabold">Quiz</span>
+            <Target size={18} />
+            <span className="text-[10px] leading-none font-extrabold whitespace-nowrap">Quiz</span>
           </button>
         )}
 
@@ -494,27 +577,37 @@ function ReelStageCard({
           onClick={onToggleBookmark}
           aria-pressed={bookmarked}
           aria-label={bookmarked ? "Remove from saved" : "Save reel"}
-          className="flex min-h-[44px] min-w-[44px] flex-col items-center justify-center gap-0.5 rounded-xl bg-black/55 px-2 py-1.5 text-white hover:bg-black/75 transition-colors cursor-pointer"
+          className={`flex h-[50px] w-full flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1.5 transition-colors cursor-pointer ${
+            bookmarked
+              ? "bg-amber-500/20 border border-amber-400/50 text-amber-300 hover:bg-amber-500/30"
+              : "bg-black/55 text-white hover:bg-black/75"
+          }`}
         >
           <Bookmark
-            size={19}
+            size={18}
             className={bookmarked ? "text-amber-400 fill-amber-400" : "text-white"}
           />
-          <span className="text-[10px] font-bold">{bookmarked ? "Saved" : "Save"}</span>
+          <span className="text-[10px] leading-none font-bold whitespace-nowrap">
+            {bookmarked ? "Saved" : "Save"}
+          </span>
         </button>
 
         <button
           type="button"
           onClick={onShare}
-          aria-label="Copy link to reel"
-          className="flex min-h-[44px] min-w-[44px] flex-col items-center justify-center gap-0.5 rounded-xl bg-black/55 px-2 py-1.5 text-white hover:bg-black/75 transition-colors cursor-pointer"
+          aria-label="Share reel"
+          className={`flex h-[50px] w-full flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1.5 transition-colors cursor-pointer ${
+            copiedId === reel.id
+              ? "bg-emerald-500/20 border border-emerald-400/50 text-emerald-300"
+              : "bg-black/55 text-white hover:bg-black/75"
+          }`}
         >
           {copiedId === reel.id ? (
-            <Check size={18} className="text-emerald-400" />
+            <Check size={17} className="text-emerald-400" />
           ) : (
-            <Share2 size={18} />
+            <Share2 size={17} />
           )}
-          <span className="text-[10px] font-bold">
+          <span className="text-[10px] leading-none font-bold whitespace-nowrap">
             {copiedId === reel.id ? "Copied" : "Share"}
           </span>
         </button>
@@ -525,7 +618,7 @@ function ReelStageCard({
               type="button"
               onClick={onDelete}
               aria-label="Confirm delete reel"
-              className="flex min-h-[40px] min-w-[44px] items-center justify-center rounded-xl bg-rose-600 px-2 text-[10px] font-bold text-white cursor-pointer"
+              className="flex h-10 w-full items-center justify-center rounded-xl bg-rose-600 px-1 text-[10px] font-bold text-white cursor-pointer whitespace-nowrap"
             >
               Delete?
             </button>
@@ -535,7 +628,7 @@ function ReelStageCard({
               onClick={() => setConfirmDelete(true)}
               aria-label="Delete reel"
               title="Delete clip"
-              className="flex min-h-[40px] min-w-[44px] items-center justify-center rounded-xl bg-black/55 text-slate-300 hover:text-rose-400 cursor-pointer"
+              className="flex h-10 w-full items-center justify-center rounded-xl bg-black/55 text-slate-300 hover:text-rose-400 cursor-pointer"
             >
               <Trash2 size={16} />
             </button>
@@ -545,10 +638,10 @@ function ReelStageCard({
 
       {/* Bottom Scrim Metadata + Scrubber */}
       <div
-        className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black/95 via-black/70 to-transparent px-4 pt-10 pb-3"
+        className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black/95 via-black/75 to-transparent px-4 pt-10 pb-3"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mr-14 space-y-1.5">
+        <div className="mr-16 space-y-1.5">
           <div className="flex flex-wrap items-center gap-2 text-xs text-slate-300">
             <span className="font-bold text-white">{reel.creatorName}</span>
             <span aria-hidden="true">·</span>
@@ -666,6 +759,8 @@ export default function ReelsPage({
     studyReelsModel.getCommentsForReels()
   );
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [shareReel, setShareReel] = useState<StudyReel | null>(null);
+  const [shareNoteCopied, setShareNoteCopied] = useState<boolean>(false);
 
   // Desktop companion & mobile bottom sheet
   const [companionTab, setCompanionTab] = useState<CompanionTab>("quiz");
@@ -747,13 +842,33 @@ export default function ReelsPage({
     setActiveIndex((idx) => Math.min(Math.max(0, filteredReels.length - 1), idx + 1));
   }, [filteredReels.length]);
 
-  // Keyboard navigation when not typing
+  // Keyboard navigation when not typing & Escape to close overlays
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (shareReel) {
+          setShareReel(null);
+          return;
+        }
+        if (composerOpen) {
+          setComposerOpen(false);
+          return;
+        }
+        if (mobileSheetOpen) {
+          setMobileSheetOpen(false);
+          return;
+        }
+      }
+
       const target = e.target as HTMLElement | null;
       const tag = target?.tagName?.toLowerCase();
       if (
+        e.metaKey ||
+        e.ctrlKey ||
+        e.altKey ||
         composerOpen ||
+        shareReel ||
+        mobileSheetOpen ||
         tag === "input" ||
         tag === "textarea" ||
         tag === "select" ||
@@ -773,7 +888,17 @@ export default function ReelsPage({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [composerOpen, goNext, goPrev]);
+  }, [composerOpen, mobileSheetOpen, shareReel, goNext, goPrev]);
+
+  // Lock background scroll while full-screen modal / bottom sheet is open
+  useEffect(() => {
+    if (!composerOpen && !mobileSheetOpen && !shareReel) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [composerOpen, mobileSheetOpen, shareReel]);
 
   // Touch swipe vertical navigation on the stage
   const touchStartY = useRef<number | null>(null);
@@ -805,14 +930,53 @@ export default function ReelsPage({
     setReminderIds(new Set(res.reminderIds));
   };
 
-  const handleShareReel = async (reel: StudyReel) => {
-    const url = `${window.location.origin}${window.location.pathname}?page=reels&reel=${encodeURIComponent(reel.id)}`;
+  const buildShareUrl = useCallback((reel: StudyReel) => {
+    return `${window.location.origin}${window.location.pathname}?page=reels&reel=${encodeURIComponent(reel.id)}`;
+  }, []);
+
+  const copyShareUrl = useCallback(
+    async (reel: StudyReel) => {
+      const url = buildShareUrl(reel);
+      try {
+        await navigator.clipboard.writeText(url);
+      } catch {
+        // Fallback ignored if clipboard permissions are restricted
+      }
+      setCopiedId(reel.id);
+      window.setTimeout(() => setCopiedId((prev) => (prev === reel.id ? null : prev)), 2200);
+    },
+    [buildShareUrl]
+  );
+
+  const handleShareReel = (reel: StudyReel) => {
+    setShareNoteCopied(false);
+    setShareReel(reel);
+  };
+
+  const handleCopyStudyInvite = async (reel: StudyReel) => {
+    const url = buildShareUrl(reel);
+    const topicLabel = getTopicMeta(reel.topic).label;
+    const summary = `${reel.kind === "live" ? "Live CSE Coaching" : "CSE Study Reel"}: ${reel.title} (${topicLabel} · ${reel.label})\n${url}`;
     try {
-      await navigator.clipboard.writeText(url);
-      setCopiedId(reel.id);
-      window.setTimeout(() => setCopiedId((prev) => (prev === reel.id ? null : prev)), 2000);
+      await navigator.clipboard.writeText(summary);
     } catch {
-      setCopiedId(reel.id);
+      // Ignore restricted clipboard
+    }
+    setShareNoteCopied(true);
+    window.setTimeout(() => setShareNoteCopied(false), 2200);
+  };
+
+  const handleNativeShare = async (reel: StudyReel) => {
+    if (typeof navigator === "undefined" || typeof navigator.share !== "function") return;
+    const url = buildShareUrl(reel);
+    try {
+      await navigator.share({
+        title: reel.title,
+        text: `${reel.title} — ${getTopicMeta(reel.topic).label} CSE Review`,
+        url,
+      });
+    } catch {
+      // User dismissed native share sheet
     }
   };
 
@@ -830,7 +994,7 @@ export default function ReelsPage({
       authorName: currentUser?.full_name || currentUser?.email?.split("@")[0] || "Reviewer",
       authorRole: isAdmin ? "Admin" : userRole === "superadmin" ? "Superadmin" : "Reviewer",
       text: commentText.trim(),
-      isQuestion: activeReel.kind === "live" ? askHostFlag : false,
+      isQuestion: askHostFlag,
     });
     setCommentsByReel((prev) => ({
       ...prev,
@@ -854,6 +1018,9 @@ export default function ReelsPage({
     if (!file.type.startsWith("video/")) {
       setPostError("Please choose a valid .mp4 or .webm video file.");
       return;
+    }
+    if (postUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(postUrl);
     }
     const blobUrl = URL.createObjectURL(file);
     setPostUrl(blobUrl);
@@ -883,7 +1050,12 @@ export default function ReelsPage({
         return;
       }
       finalSourceType = parsed.sourceType;
-      finalMediaUrl = parsed.sourceType === "youtube" ? postUrl.trim() : parsed.mediaUrl;
+      if (parsed.sourceType === "youtube") {
+        const rawTrimmed = postUrl.trim();
+        finalMediaUrl = /^https?:\/\//i.test(rawTrimmed) ? rawTrimmed : `https://${rawTrimmed}`;
+      } else {
+        finalMediaUrl = parsed.mediaUrl;
+      }
     } else if (!postSlideText.trim()) {
       setPostError("Add study board notes for your micro-lesson clip.");
       return;
@@ -891,15 +1063,22 @@ export default function ReelsPage({
 
     let quizCheck: StudyReel["quizCheck"] = null;
     if (postQuizPrompt.trim()) {
-      const filledChoices = postQuizChoices.map((c) => c.trim()).filter(Boolean);
-      if (filledChoices.length < 2) {
+      const indexedChoices = postQuizChoices
+        .map((c, origIdx) => ({ text: c.trim(), origIdx }))
+        .filter((item) => Boolean(item.text));
+      if (indexedChoices.length < 2) {
         setPostError("Quick Check requires at least 2 answer choices (or leave the quiz prompt blank).");
+        return;
+      }
+      const mappedCorrect = indexedChoices.findIndex((item) => item.origIdx === postQuizCorrect);
+      if (mappedCorrect < 0) {
+        setPostError(`Choice ${LETTERS[postQuizCorrect]} is marked correct but is currently empty.`);
         return;
       }
       quizCheck = {
         prompt: postQuizPrompt.trim(),
-        choices: filledChoices,
-        correct: Math.min(postQuizCorrect, filledChoices.length - 1),
+        choices: indexedChoices.map((item) => item.text),
+        correct: mappedCorrect,
         explanation: postDescription.trim() || "Review the explanation in the clip above.",
       };
     }
@@ -958,12 +1137,32 @@ export default function ReelsPage({
     }
   };
 
+  const composerTopicOptions = useMemo(
+    () =>
+      TOPICS.map((t) => ({
+        value: t.id,
+        label: t.label,
+        icon: renderTopicIcon(t.id, t.color, 14),
+      })),
+    []
+  );
+
   const topicSelectOptions = useMemo(
     () => [
-      { value: "all", label: "All Subjects" },
-      ...TOPICS.map((t) => ({ value: t.id, label: t.label })),
+      {
+        value: "all",
+        label: "All Subjects",
+        icon: (
+          <Layers
+            size={14}
+            data-colored="true"
+            className="qb-topic-icon shrink-0 text-qb-accent"
+          />
+        ),
+      },
+      ...composerTopicOptions,
     ],
-    []
+    [composerTopicOptions]
   );
 
   const activeComments = activeReel ? commentsByReel[activeReel.id] || [] : [];
@@ -973,10 +1172,10 @@ export default function ReelsPage({
     if (!activeReel) return null;
 
     return (
-      <div className="flex h-full flex-col">
+      <div className="flex h-full min-h-0 flex-col">
         {/* Segmented Companion Tabs */}
         <div
-          className="grid grid-cols-3 gap-1 rounded-xl border border-qb-border bg-qb-input p-1"
+          className="shrink-0 grid grid-cols-3 gap-1 rounded-xl border border-qb-border bg-qb-input p-1"
           role="tablist"
           aria-label="Reel companion panel"
         >
@@ -1021,9 +1220,10 @@ export default function ReelsPage({
           </button>
         </div>
 
-        <div className="mt-4 flex-1 overflow-y-auto pr-0.5">
-          {companionTab === "quiz" && (
-            <div className="space-y-4">
+        {/* Quick Check Tab (scrollable question body, docked bottom action bar) */}
+        {companionTab === "quiz" && (
+          <div className="relative mt-3 flex flex-1 min-h-0 flex-col">
+            <div className="flex-1 min-h-0 overflow-y-auto pr-1 pb-6 space-y-4">
               {activeReel.quizCheck ? (
                 <div className="space-y-3 rounded-xl border border-qb-border bg-qb-input p-4">
                   <div className="flex items-center justify-between gap-2 text-xs font-semibold text-qb-muted">
@@ -1104,9 +1304,19 @@ export default function ReelsPage({
                   </p>
                 </div>
               )}
+            </div>
 
-              {/* Direct Links into Bank / Practice */}
-              <div className="flex flex-wrap items-center gap-2">
+            {/* Docked Quick Actions with Soft Top Fade */}
+            <div className="relative shrink-0 pt-2">
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute -top-7 left-0 right-0 h-7"
+                style={{
+                  background:
+                    "linear-gradient(to top, var(--surface) 18%, color-mix(in srgb, var(--surface) 82%, transparent) 58%, transparent 100%)",
+                }}
+              />
+              <div className="relative z-10 flex flex-wrap items-center gap-2">
                 {activeReel.quizCheck?.linkedQuestionId &&
                   questions.some((q) => q.id === activeReel.quizCheck?.linkedQuestionId) &&
                   onOpenQuestion && (
@@ -1123,7 +1333,7 @@ export default function ReelsPage({
                   <button
                     type="button"
                     onClick={() => onPracticeTopic(activeReel.topic)}
-                    className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-qb-border bg-qb-surface px-3.5 py-2.5 text-xs font-semibold text-qb-heading hover:border-qb-border-hover hover:bg-qb-surface-hover transition-colors cursor-pointer min-h-[42px]"
+                    className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-qb-border bg-qb-input px-3.5 py-2.5 text-xs font-semibold text-qb-heading hover:border-qb-border-hover hover:bg-qb-surface-hover transition-colors cursor-pointer min-h-[42px]"
                   >
                     <Layers size={14} className="text-qb-accent" />
                     <span>Drill {getTopicMeta(activeReel.topic).label}</span>
@@ -1131,94 +1341,177 @@ export default function ReelsPage({
                 )}
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {companionTab === "chat" && (
-            <div className="flex h-full flex-col gap-3">
-              <div className="space-y-2.5 flex-1">
-                {activeComments.length === 0 ? (
-                  <div className="rounded-xl border border-qb-border bg-qb-input p-5 text-center text-xs text-qb-muted">
-                    No notes or Q&A messages yet. Ask a question or share a memory shortcut below.
-                  </div>
-                ) : (
-                  activeComments.map((c) => {
-                    const isMine =
-                      (currentUser?.id && c.userId === currentUser.id) || c.userId === "local_user";
-                    return (
-                      <div
-                        key={c.id}
-                        className="rounded-xl border border-qb-border bg-qb-input p-3 space-y-1"
-                      >
-                        <div className="flex items-center justify-between gap-2 text-[11px] text-qb-muted">
-                          <span className="font-bold text-qb-heading">
-                            {c.authorName}
-                            <span className="font-normal text-qb-muted"> · {c.authorRole}</span>
+        {/* Q&A Tab (Scroll ends cleanly on comment body, fading smoothly into docked modern composer) */}
+        {companionTab === "chat" && (
+          <div className="relative mt-3 flex flex-1 min-h-0 flex-col">
+            <div className="flex-1 min-h-0 overflow-y-auto pr-1 pb-8 space-y-2.5">
+              {activeComments.length === 0 ? (
+                <div className="rounded-2xl border border-qb-border bg-qb-input/70 p-6 text-center space-y-1.5">
+                  <MessageCircle size={20} className="mx-auto text-qb-accent" />
+                  <p className="text-xs font-bold text-qb-heading">Start the study thread</p>
+                  <p className="text-xs text-qb-muted">
+                    Ask a question for the host or drop a quick memory shortcut below.
+                  </p>
+                </div>
+              ) : (
+                activeComments.map((c) => {
+                  const isMine =
+                    (currentUser?.id && c.userId === currentUser.id) || c.userId === "local_user";
+                  const isHost = /host|instructor|admin|specialist/i.test(c.authorRole || "");
+                  return (
+                    <div
+                      key={c.id}
+                      className={`group rounded-2xl border p-3.5 space-y-1.5 transition-colors ${
+                        c.isQuestion
+                          ? "border-amber-500/30 bg-amber-500/[0.05]"
+                          : "border-qb-border bg-qb-input/85 hover:border-qb-border-hover"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span
+                            className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold tracking-tight ${
+                              isHost
+                                ? "bg-amber-500/20 text-amber-300 light:text-amber-700 border border-amber-500/35"
+                                : "bg-qb-surface text-qb-heading border border-qb-border"
+                            }`}
+                          >
+                            {getAuthorInitials(c.authorName)}
                           </span>
-                          <div className="flex items-center gap-2 shrink-0">
-                            {c.isQuestion && (
-                              <span className="font-bold text-amber-400 light:text-amber-700">
-                                Question
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-x-1.5 text-xs">
+                              <span className="font-bold text-qb-heading truncate">
+                                {c.authorName}
                               </span>
-                            )}
-                            <span>{formatRelativeTime(c.createdAt)}</span>
-                            {isMine && !c.id.startsWith("rc-") && (
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteComment(activeReel.id, c.id)}
-                                aria-label="Delete comment"
-                                className="text-qb-muted hover:text-rose-400 cursor-pointer"
-                              >
-                                <Trash2 size={12} />
-                              </button>
-                            )}
+                              <span className="text-[11px] text-qb-muted truncate">
+                                · {c.authorRole}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                        <p className="text-xs leading-relaxed text-qb-text">{c.text}</p>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
 
-              <form onSubmit={handleAddComment} className="space-y-2 border-t border-qb-border pt-3">
-                {activeReel.kind === "live" && (
-                  <label className="inline-flex items-center gap-2 text-xs font-medium text-qb-muted cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={askHostFlag}
-                      onChange={(e) => setAskHostFlag(e.target.checked)}
-                      className="h-4 w-4 rounded accent-amber-500"
-                    />
-                    <span>Tag as Question for Live Host</span>
-                  </label>
-                )}
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={commentText}
-                    onChange={(e) => setCommentText(e.target.value)}
-                    placeholder={
-                      activeReel.kind === "live"
-                        ? "Ask a live review question..."
-                        : "Add a mnemonic or study note..."
+                        <div className="flex items-center gap-2 shrink-0 text-[11px] text-qb-muted">
+                          {c.isQuestion && (
+                            <span className="inline-flex items-center gap-1 font-bold text-amber-400 light:text-amber-700">
+                              <HelpCircle size={12} />
+                              Question
+                            </span>
+                          )}
+                          <span className="tabular-nums">{formatRelativeTime(c.createdAt)}</span>
+                          {isMine && !c.id.startsWith("rc-") && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteComment(activeReel.id, c.id)}
+                              aria-label="Delete comment"
+                              title="Delete comment"
+                              className="inline-flex h-6 w-6 items-center justify-center rounded-md text-qb-muted hover:bg-rose-500/15 hover:text-rose-400 transition-colors cursor-pointer"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <p className="pl-9 text-xs sm:text-[13px] leading-relaxed text-qb-text break-words">
+                        {c.text}
+                      </p>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Docked Floating-Style Composer with Top Fade Mask */}
+            <div className="relative shrink-0 pt-2">
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute -top-10 left-0 right-0 h-10"
+                style={{
+                  background:
+                    "linear-gradient(to top, var(--surface) 18%, color-mix(in srgb, var(--surface) 84%, transparent) 58%, transparent 100%)",
+                }}
+              />
+
+              <form
+                onSubmit={handleAddComment}
+                className="relative z-10 rounded-2xl border border-qb-border bg-qb-input/95 shadow-[0_10px_28px_rgba(0,0,0,0.24)] focus-within:border-amber-500/60 focus-within:ring-2 focus-within:ring-amber-500/15 transition-all"
+              >
+                <textarea
+                  rows={2}
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      if (commentText.trim()) {
+                        e.currentTarget.form?.requestSubmit();
+                      }
                     }
-                    className="flex-1 rounded-xl border border-qb-border bg-qb-input px-3 py-2.5 text-xs text-qb-heading placeholder:text-qb-muted focus:border-amber-500/60 focus:outline-none min-h-[42px]"
-                  />
+                  }}
+                  placeholder={
+                    activeReel.kind === "live"
+                      ? "Ask a live review question or share a shortcut..."
+                      : "Add a mnemonic, shortcut, or study note..."
+                  }
+                  aria-label={
+                    activeReel.kind === "live"
+                      ? "Ask a live review question"
+                      : "Add a mnemonic or study note"
+                  }
+                  className="w-full resize-none bg-transparent px-3.5 pt-3 pb-1.5 text-xs sm:text-[13px] leading-relaxed text-qb-heading placeholder:text-qb-muted focus:outline-none max-h-24"
+                />
+
+                <div className="flex items-center justify-between gap-2 px-3 pb-2.5 pt-1">
                   <button
-                    type="submit"
-                    disabled={!commentText.trim()}
-                    aria-label="Send message"
-                    className="inline-flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-xl bg-amber-500 text-[#070c18] hover:bg-amber-400 disabled:opacity-40 cursor-pointer"
+                    type="button"
+                    onClick={() => setAskHostFlag((prev) => !prev)}
+                    aria-pressed={askHostFlag}
+                    className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition-colors cursor-pointer whitespace-nowrap ${
+                      askHostFlag
+                        ? "border-amber-500/50 bg-amber-500/15 text-amber-300 light:text-amber-700"
+                        : "border-qb-border bg-qb-surface/80 text-qb-muted hover:border-qb-border-hover hover:text-qb-heading"
+                    }`}
                   >
-                    <Send size={15} />
+                    <HelpCircle
+                      size={13}
+                      className={askHostFlag ? "text-amber-400 light:text-amber-600 shrink-0" : "shrink-0"}
+                    />
+                    <span>
+                      {activeReel.kind === "live" ? "Tag for Live Host" : "Mark as Question"}
+                    </span>
                   </button>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="hidden sm:inline text-[11px] text-qb-muted">
+                      Enter to send
+                    </span>
+                    <button
+                      type="submit"
+                      disabled={!commentText.trim()}
+                      aria-label="Send message"
+                      title="Send message"
+                      className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-all ${
+                        commentText.trim()
+                          ? "bg-amber-500 text-[#070c18] hover:bg-amber-400 shadow-sm cursor-pointer"
+                          : "bg-qb-surface text-qb-muted opacity-45 cursor-not-allowed"
+                      }`}
+                    >
+                      <ArrowUp size={15} strokeWidth={2.5} />
+                    </button>
+                  </div>
                 </div>
               </form>
             </div>
-          )}
+          </div>
+        )}
 
-          {companionTab === "queue" && (
-            <div className="space-y-2">
+        {/* Queue Tab (Scrollable list with soft bottom fade edge) */}
+        {companionTab === "queue" && (
+          <div className="relative mt-3 flex flex-1 min-h-0 flex-col">
+            <div className="flex-1 min-h-0 overflow-y-auto pr-1 pb-8 space-y-2">
               {filteredReels.map((item, idx) => {
                 const selected = idx === activeIndex;
                 const topic = getTopicMeta(item.topic);
@@ -1259,40 +1552,46 @@ export default function ReelsPage({
                 );
               })}
             </div>
-          )}
-        </div>
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute bottom-0 left-0 right-0 h-8"
+              style={{
+                background:
+                  "linear-gradient(to top, var(--surface) 10%, color-mix(in srgb, var(--surface) 75%, transparent) 55%, transparent 100%)",
+              }}
+            />
+          </div>
+        )}
       </div>
     );
   };
 
   return (
-    <div className="fu space-y-4 pb-6">
-      {/* Compact Workspace Header + Segmented Controls */}
-      <div className="flex flex-col gap-3 border-b border-qb-border pb-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2 text-xs text-qb-muted">
-            <span className="font-bold text-qb-accent">Study Reels & Live Review</span>
-            <span aria-hidden="true">·</span>
-            <span className="tabular-nums">{reels.length} review sessions</span>
+    <div className="fu space-y-2.5 pb-4">
+      {/* Compact Single-Row Workspace Header + Toolbar */}
+      <div className="flex flex-col gap-2 border-b border-qb-border pb-2.5 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 min-w-0">
+          <h1 className="text-base sm:text-lg font-extrabold tracking-tight text-qb-heading whitespace-nowrap">
+            Micro-Lessons & Live Coaching
+          </h1>
+          <div className="flex items-center gap-1.5 text-xs text-qb-muted whitespace-nowrap">
+            <span className="tabular-nums">{reels.length} clips</span>
             {liveNowCount > 0 && (
               <>
                 <span aria-hidden="true">·</span>
                 <span className="inline-flex items-center gap-1 font-bold text-rose-400 light:text-rose-600 tabular-nums">
-                  <Radio size={12} aria-hidden="true" />
-                  {liveNowCount} Live Now
+                  <Radio size={11} aria-hidden="true" />
+                  {liveNowCount} Live
                 </span>
               </>
             )}
           </div>
-          <h1 className="mt-0.5 text-xl sm:text-2xl font-extrabold tracking-tight text-qb-heading">
-            Micro-Lessons & Live Coaching
-          </h1>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           {/* Segmented Feed Mode */}
           <div
-            className="inline-flex items-center gap-1 rounded-xl border border-qb-border bg-qb-input p-1"
+            className="inline-flex h-[36px] items-center gap-0.5 rounded-xl border border-qb-border bg-qb-input p-0.5"
             role="group"
             aria-label="Filter feed type"
           >
@@ -1311,7 +1610,7 @@ export default function ReelsPage({
                   setFeedMode(tab.id);
                   setActiveIndex(0);
                 }}
-                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
+                className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
                   feedMode === tab.id
                     ? "bg-qb-surface text-qb-heading shadow-sm border border-qb-border"
                     : "text-qb-muted hover:text-qb-heading"
@@ -1322,7 +1621,7 @@ export default function ReelsPage({
             ))}
           </div>
 
-          <div className="w-[150px]">
+          <div className="w-[148px] sm:w-[158px] [&_.qb-select-btn]:!min-h-[36px] [&_.qb-select-btn]:!h-[36px] [&_.qb-select-btn]:!py-1 [&_.qb-select-btn]:!px-2.5 [&_.qb-select-btn]:!rounded-xl [&_.qb-select-btn]:!text-xs">
             <CustomSelect
               value={topicFilter}
               onChange={(val) => {
@@ -1334,10 +1633,10 @@ export default function ReelsPage({
             />
           </div>
 
-          <div className="relative flex-1 sm:flex-initial sm:w-48">
+          <div className="relative flex-1 min-w-[140px] sm:flex-initial sm:w-44">
             <Search
-              size={14}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-qb-muted"
+              size={13}
+              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-qb-muted"
             />
             <input
               type="search"
@@ -1346,18 +1645,18 @@ export default function ReelsPage({
                 setSearch(e.target.value);
                 setActiveIndex(0);
               }}
-              placeholder="Search clips or live..."
+              placeholder="Search clips..."
               aria-label="Search clips or live streams"
-              className="h-[38px] w-full rounded-xl border border-qb-border bg-qb-input pl-8 pr-3 text-xs text-qb-heading placeholder:text-qb-muted focus:border-amber-500/60 focus:outline-none"
+              className="h-[36px] w-full rounded-xl border border-qb-border bg-qb-input pl-8 pr-2.5 text-xs text-qb-heading placeholder:text-qb-muted focus:border-amber-500/60 focus:outline-none"
             />
           </div>
 
           <button
             type="button"
             onClick={() => setComposerOpen(true)}
-            className="inline-flex h-[38px] items-center justify-center gap-1.5 rounded-xl bg-amber-500 px-3.5 text-xs font-bold text-[#070c18] hover:bg-amber-400 transition-colors cursor-pointer whitespace-nowrap"
+            className="inline-flex h-[36px] items-center justify-center gap-1.5 rounded-xl bg-amber-500 px-3 text-xs font-bold text-[#070c18] hover:bg-amber-400 transition-colors cursor-pointer whitespace-nowrap shrink-0"
           >
-            <Plus size={15} />
+            <Plus size={14} />
             <span>Post Clip / Go Live</span>
           </button>
         </div>
@@ -1367,9 +1666,9 @@ export default function ReelsPage({
       {loading ? (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
           <div className="lg:col-span-6 xl:col-span-7 flex justify-center">
-            <div className="h-[min(74vh,680px)] w-full max-w-[390px] animate-pulse rounded-2xl border border-qb-border bg-qb-surface" />
+            <div className="h-[min(77vh,720px)] w-full max-w-[400px] animate-pulse rounded-2xl border border-qb-border bg-qb-surface" />
           </div>
-          <div className="hidden lg:block lg:col-span-6 xl:col-span-5 h-[min(74vh,680px)] animate-pulse rounded-2xl border border-qb-border bg-qb-surface" />
+          <div className="hidden lg:block lg:col-span-6 xl:col-span-5 h-[min(77vh,720px)] animate-pulse rounded-2xl border border-qb-border bg-qb-surface" />
         </div>
       ) : filteredReels.length === 0 ? (
         <div className="rounded-2xl border border-qb-border bg-qb-surface p-10 text-center space-y-3">
@@ -1404,12 +1703,13 @@ export default function ReelsPage({
           {/* Left / Center: Vertical 9:16 Reels Stage + Up/Down Controls */}
           <div className="lg:col-span-6 xl:col-span-7 flex items-center justify-center gap-3">
             <div
-              className="relative h-[min(72vh,680px)] w-full max-w-[400px] aspect-[9/16]"
+              className="relative h-[min(77vh,720px)] w-full max-w-[410px] aspect-[9/16]"
               onTouchStart={handleTouchStart}
               onTouchEnd={handleTouchEnd}
             >
               {activeReel && (
                 <ReelStageCard
+                  key={activeReel.id}
                   reel={activeReel}
                   isActive={true}
                   isMuted={isMuted}
@@ -1473,7 +1773,7 @@ export default function ReelsPage({
 
           {/* Right Companion Panel (Desktop/Tablet Large) */}
           <aside
-            className="hidden lg:flex lg:col-span-6 xl:col-span-5 h-[min(72vh,680px)] flex-col rounded-2xl border border-qb-border bg-qb-surface p-4 sm:p-5"
+            className="hidden lg:flex lg:col-span-6 xl:col-span-5 h-[min(77vh,720px)] flex-col overflow-hidden rounded-2xl border border-qb-border bg-qb-surface p-4 sm:p-5"
             aria-label="Study companion and live Q&A"
           >
             {renderCompanionContent()}
@@ -1481,342 +1781,616 @@ export default function ReelsPage({
         </div>
       )}
 
-      {/* Mobile Bottom Sheet for Quiz / Live Q&A / Queue */}
-      {mobileSheetOpen && activeReel && (
-        <div
-          className="fixed inset-0 z-50 flex items-end bg-black/60 backdrop-blur-xs lg:hidden"
-          onClick={() => setMobileSheetOpen(false)}
-        >
+      {/* Mobile Bottom Sheet for Quiz / Live Q&A / Queue (Portaled to root so header/sidepanel dim & blur) */}
+      {mobileSheetOpen &&
+        activeReel &&
+        typeof document !== "undefined" &&
+        createPortal(
           <div
-            className="w-full max-h-[78vh] rounded-t-3xl border-t border-qb-border bg-qb-surface p-4 pb-6 flex flex-col"
-            onClick={(e) => e.stopPropagation()}
+            className={`fixed inset-0 z-[700] flex items-end lg:hidden ${
+              liteMode ? "bg-black/80" : "bg-black/70 backdrop-blur-md"
+            }`}
+            onClick={() => setMobileSheetOpen(false)}
           >
-            <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-qb-border" />
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <span className="text-sm font-extrabold text-qb-heading truncate">
-                {activeReel.title}
-              </span>
-              <button
-                type="button"
-                onClick={() => setMobileSheetOpen(false)}
-                aria-label="Close panel"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-qb-border bg-qb-input text-qb-heading cursor-pointer"
-              >
-                <X size={16} />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto">{renderCompanionContent()}</div>
-          </div>
-        </div>
-      )}
-
-      {/* Post Review Clip / Go Live Modal */}
-      {composerOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-xs"
-          onClick={() => setComposerOpen(false)}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Post review clip or live stream"
-            className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl border border-qb-border bg-qb-surface p-5 sm:p-6 space-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between gap-3 border-b border-qb-border pb-3">
-              <div>
-                <h2 className="text-lg font-extrabold text-qb-heading">
-                  Post Review Clip or Live Stream
-                </h2>
-                <p className="text-xs text-qb-muted">
-                  Share a YouTube Short, direct video, live coaching link, or step-by-step micro-lesson.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setComposerOpen(false)}
-                aria-label="Close modal"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-qb-border bg-qb-input text-qb-heading cursor-pointer"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateReel} className="space-y-4">
-              {/* Format Toggle: Short vs Live */}
-              <div className="grid grid-cols-2 gap-2">
+            <div
+              className="w-full h-[80dvh] max-h-[82dvh] rounded-t-3xl border-t border-qb-border bg-qb-surface p-4 pb-5 flex flex-col overflow-hidden shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="mx-auto mb-3 h-1.5 w-10 shrink-0 rounded-full bg-qb-border" />
+              <div className="mb-3 flex shrink-0 items-center justify-between gap-2">
+                <span className="text-sm font-extrabold text-qb-heading truncate">
+                  {activeReel.title}
+                </span>
                 <button
                   type="button"
-                  onClick={() => setPostKind("short")}
-                  className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-bold cursor-pointer ${
-                    postKind === "short"
-                      ? "border-amber-500/60 bg-amber-500/12 text-qb-heading"
-                      : "border-qb-border bg-qb-input text-qb-muted"
-                  }`}
+                  onClick={() => setMobileSheetOpen(false)}
+                  aria-label="Close panel"
+                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-qb-border bg-qb-input text-qb-heading cursor-pointer"
                 >
-                  <Clapperboard size={15} />
-                  <span>Review Short</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPostKind("live")}
-                  className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-bold cursor-pointer ${
-                    postKind === "live"
-                      ? "border-rose-500/60 bg-rose-500/12 text-qb-heading"
-                      : "border-qb-border bg-qb-input text-qb-muted"
-                  }`}
-                >
-                  <Radio size={15} className="text-rose-400" />
-                  <span>Live Review Stream</span>
+                  <X size={16} />
                 </button>
               </div>
+              <div className="flex-1 min-h-0 flex flex-col overflow-hidden">{renderCompanionContent()}</div>
+            </div>
+          </div>,
+          document.querySelector(".qb") || document.body
+        )}
 
-              {/* Source Picker */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-qb-heading">Media Source</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(
-                    [
-                      { id: "youtube", label: "Video / Live URL", icon: Link2 },
-                      { id: "video", label: "Upload Clip", icon: Upload },
-                      { id: "lesson", label: "Lesson Board", icon: Layers },
-                    ] as const
-                  ).map((opt) => {
-                    const Icon = opt.icon;
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => {
-                          setPostSourceType(opt.id);
-                          setPostError("");
-                        }}
-                        className={`flex items-center justify-center gap-1.5 rounded-xl border px-2.5 py-2 text-xs font-semibold cursor-pointer ${
-                          postSourceType === opt.id
-                            ? "border-amber-500/60 bg-amber-500/12 text-qb-heading"
-                            : "border-qb-border bg-qb-input text-qb-muted"
-                        }`}
-                      >
-                        <Icon size={13} />
-                        <span className="truncate">{opt.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {postSourceType === "youtube" && (
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-qb-heading">
-                    YouTube / Shorts / Live or .mp4 URL
-                  </label>
-                  <input
-                    type="url"
-                    value={postUrl}
-                    onChange={(e) => setPostUrl(e.target.value)}
-                    placeholder="https://youtube.com/shorts/... or https://youtube.com/live/..."
-                    className="w-full rounded-xl border border-qb-border bg-qb-input px-3 py-2.5 text-xs text-qb-heading placeholder:text-qb-muted focus:border-amber-500/60 focus:outline-none"
-                  />
-                </div>
-              )}
-
-              {postSourceType === "video" && (
-                <div className="space-y-2">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="video/mp4,video/webm,video/quicktime"
-                    onChange={handleSelectVideoFile}
-                    className="hidden"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-qb-border-hover bg-qb-input px-4 py-4 text-xs font-semibold text-qb-heading hover:border-amber-500/60 cursor-pointer"
+      {/* Post Review Clip / Go Live Modal (Portaled to root so header & sidepanel dim & blur properly) */}
+      {composerOpen &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className={`fixed inset-0 z-[700] flex items-center justify-center p-2.5 sm:p-5 ${
+              liteMode ? "bg-black/80" : "bg-slate-950/75 backdrop-blur-md"
+            }`}
+            onClick={() => setComposerOpen(false)}
+          >
+            <form
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="reels-composer-title"
+              onSubmit={handleCreateReel}
+              onClick={(e) => e.stopPropagation()}
+              className="flex w-full max-w-[min(880px,calc(100vw-1.25rem))] sm:max-w-[min(880px,calc(100vw-2.5rem))] max-h-[calc(100dvh-1.25rem)] sm:max-h-[min(92dvh,680px)] flex-col overflow-hidden rounded-2xl border border-qb-border bg-qb-surface shadow-[0_28px_75px_rgba(0,0,0,0.65)]"
+            >
+              {/* Fixed Modal Header */}
+              <div className="flex shrink-0 items-start justify-between gap-3 border-b border-qb-border px-4 py-3 sm:px-6 sm:py-3.5">
+                <div className="min-w-0">
+                  <h2
+                    id="reels-composer-title"
+                    className="text-base sm:text-lg font-extrabold tracking-tight text-qb-heading"
                   >
-                    <Upload size={15} className="text-qb-accent" />
-                    <span>
-                      {postUrl ? "Video clip ready — click to replace" : "Choose .mp4 or .webm review clip"}
-                    </span>
-                  </button>
+                    Post Review Clip or Live Stream
+                  </h2>
+                  <p className="mt-0.5 text-xs text-qb-muted">
+                    Share a YouTube Short, video clip, live coaching link, or interactive lesson board.
+                  </p>
                 </div>
-              )}
-
-              {postSourceType === "lesson" && (
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-qb-heading">
-                    Micro-Lesson Board Content (Markdown & KaTeX supported)
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={postSlideText}
-                    onChange={(e) => setPostSlideText(e.target.value)}
-                    className="w-full rounded-xl border border-qb-border bg-qb-input px-3 py-2 text-xs text-qb-heading focus:border-amber-500/60 focus:outline-none"
-                  />
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-qb-heading">Title</label>
-                  <input
-                    type="text"
-                    value={postTitle}
-                    onChange={(e) => setPostTitle(e.target.value)}
-                    placeholder="e.g. Double Word Analogy Shortcut"
-                    className="w-full rounded-xl border border-qb-border bg-qb-input px-3 py-2 text-xs text-qb-heading placeholder:text-qb-muted focus:border-amber-500/60 focus:outline-none"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-qb-heading">CSE Subject</label>
-                  <CustomSelect
-                    value={postTopic}
-                    onChange={(val) => setPostTopic(val as TopicId)}
-                    options={TOPICS.map((t) => ({ value: t.id, label: t.label }))}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-qb-heading">Sub-Topic Label</label>
-                  <input
-                    type="text"
-                    value={postLabel}
-                    onChange={(e) => setPostLabel(e.target.value)}
-                    placeholder="e.g. Word Analogy, Ratio, RA 6713"
-                    className="w-full rounded-xl border border-qb-border bg-qb-input px-3 py-2 text-xs text-qb-heading focus:border-amber-500/60 focus:outline-none"
-                  />
-                </div>
-                {postKind === "live" && (
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-qb-heading">Live Status</label>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => setPostLiveStatus("live")}
-                        className={`rounded-lg border py-2 text-xs font-bold cursor-pointer ${
-                          postLiveStatus === "live"
-                            ? "border-rose-500/60 bg-rose-500/15 text-qb-heading"
-                            : "border-qb-border bg-qb-input text-qb-muted"
-                        }`}
-                      >
-                        Live Now
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPostLiveStatus("upcoming")}
-                        className={`rounded-lg border py-2 text-xs font-bold cursor-pointer ${
-                          postLiveStatus === "upcoming"
-                            ? "border-amber-500/60 bg-amber-500/15 text-qb-heading"
-                            : "border-qb-border bg-qb-input text-qb-muted"
-                        }`}
-                      >
-                        Schedule
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {postKind === "live" && postLiveStatus === "upcoming" && (
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-qb-heading flex items-center gap-1.5">
-                    <Clock size={13} />
-                    <span>Scheduled Date & Time</span>
-                  </label>
-                  <input
-                    type="datetime-local"
-                    value={postScheduledAt}
-                    onChange={(e) => setPostScheduledAt(e.target.value)}
-                    className="w-full rounded-xl border border-qb-border bg-qb-input px-3 py-2 text-xs text-qb-heading focus:border-amber-500/60 focus:outline-none"
-                  />
-                </div>
-              )}
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-qb-heading">Short Caption</label>
-                <input
-                  type="text"
-                  value={postDescription}
-                  onChange={(e) => setPostDescription(e.target.value)}
-                  placeholder="Key takeaway viewers should remember..."
-                  className="w-full rounded-xl border border-qb-border bg-qb-input px-3 py-2 text-xs text-qb-heading placeholder:text-qb-muted focus:border-amber-500/60 focus:outline-none"
-                />
-              </div>
-
-              {/* Optional Active Recall Quick Check */}
-              <div className="space-y-2 rounded-xl border border-qb-border bg-qb-input p-3.5">
-                <div className="text-xs font-bold text-qb-heading flex items-center gap-1.5">
-                  <Target size={13} className="text-qb-accent" />
-                  <span>Optional Quick Check Question (Recommended)</span>
-                </div>
-                <input
-                  type="text"
-                  value={postQuizPrompt}
-                  onChange={(e) => setPostQuizPrompt(e.target.value)}
-                  placeholder="Quick practice question tied to this clip..."
-                  className="w-full rounded-lg border border-qb-border bg-qb-surface px-3 py-2 text-xs text-qb-heading placeholder:text-qb-muted focus:border-amber-500/60 focus:outline-none"
-                />
-                {postQuizPrompt.trim() && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                    {postQuizChoices.map((ch, idx) => (
-                      <div key={idx} className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => setPostQuizCorrect(idx)}
-                          title="Mark as correct answer"
-                          className={`h-7 w-7 shrink-0 rounded-md border text-xs font-bold cursor-pointer ${
-                            postQuizCorrect === idx
-                              ? "border-emerald-500 bg-emerald-500/20 text-emerald-300 light:text-emerald-700"
-                              : "border-qb-border bg-qb-surface text-qb-muted"
-                          }`}
-                        >
-                          {LETTERS[idx]}
-                        </button>
-                        <input
-                          type="text"
-                          value={ch}
-                          onChange={(e) => {
-                            const next = [...postQuizChoices];
-                            next[idx] = e.target.value;
-                            setPostQuizChoices(next);
-                          }}
-                          placeholder={`Choice ${LETTERS[idx]}`}
-                          className="w-full rounded-lg border border-qb-border bg-qb-surface px-2.5 py-1.5 text-xs text-qb-heading placeholder:text-qb-muted focus:outline-none"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {postError && (
-                <p className="text-xs font-semibold text-rose-400 light:text-rose-600">
-                  {postError}
-                </p>
-              )}
-
-              <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setComposerOpen(false)}
-                  className="rounded-xl border border-qb-border bg-qb-input px-4 py-2 text-xs font-bold text-qb-heading hover:bg-qb-surface-hover cursor-pointer"
+                  aria-label="Close modal"
+                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-qb-border bg-qb-input text-qb-muted hover:text-qb-heading hover:border-qb-border-hover transition-colors cursor-pointer"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={posting}
-                  className="rounded-xl bg-amber-500 px-4 py-2 text-xs font-bold text-[#070c18] hover:bg-amber-400 disabled:opacity-50 cursor-pointer"
-                >
-                  {posting ? "Publishing..." : postKind === "live" ? "Publish Live Room" : "Publish Short"}
+                  <X size={16} />
                 </button>
               </div>
+
+              {/* Scrollable Responsive Two-Column Body */}
+              <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3.5 sm:px-6 sm:py-4">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-5 items-start">
+                  {/* Left Column: Session Format, Media Source & Core Copy */}
+                  <div className="md:col-span-7 space-y-3">
+                    {/* Session Format Switch */}
+                    <div className="space-y-1.5">
+                      <span className="block text-xs font-bold text-qb-heading">Session Format</span>
+                      <div className="grid grid-cols-2 gap-1.5 rounded-xl border border-qb-border bg-qb-input p-1">
+                        <button
+                          type="button"
+                          onClick={() => setPostKind("short")}
+                          className={`flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-bold transition-colors cursor-pointer whitespace-nowrap min-h-[38px] ${
+                            postKind === "short"
+                              ? "bg-qb-surface text-qb-heading border border-amber-500/55 shadow-sm"
+                              : "text-qb-muted hover:text-qb-heading"
+                          }`}
+                        >
+                          <Clapperboard size={14} className={postKind === "short" ? "text-amber-400 light:text-amber-600 shrink-0" : "shrink-0"} />
+                          <span>Review Short</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPostKind("live")}
+                          className={`flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-bold transition-colors cursor-pointer whitespace-nowrap min-h-[38px] ${
+                            postKind === "live"
+                              ? "bg-qb-surface text-qb-heading border border-rose-500/55 shadow-sm"
+                              : "text-qb-muted hover:text-qb-heading"
+                          }`}
+                        >
+                          <Radio size={14} className="text-rose-400 light:text-rose-600 shrink-0" />
+                          <span>Live Stream</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Inline Live Timing Controls when Live Stream is selected */}
+                    {postKind === "live" && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 rounded-xl border border-qb-border bg-qb-input/60 p-2.5">
+                        <div className="space-y-1">
+                          <span className="block text-xs font-bold text-qb-heading">Live Status</span>
+                          <div className="grid grid-cols-2 gap-1 rounded-lg border border-qb-border bg-qb-surface p-0.5">
+                            <button
+                              type="button"
+                              onClick={() => setPostLiveStatus("live")}
+                              className={`rounded-md py-1.5 text-xs font-bold cursor-pointer whitespace-nowrap ${
+                                postLiveStatus === "live"
+                                  ? "bg-rose-500/18 text-rose-300 light:text-rose-700"
+                                  : "text-qb-muted hover:text-qb-heading"
+                              }`}
+                            >
+                              Live Now
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setPostLiveStatus("upcoming")}
+                              className={`rounded-md py-1.5 text-xs font-bold cursor-pointer whitespace-nowrap ${
+                                postLiveStatus === "upcoming"
+                                  ? "bg-amber-500/18 text-amber-300 light:text-amber-700"
+                                  : "text-qb-muted hover:text-qb-heading"
+                              }`}
+                            >
+                              Schedule
+                            </button>
+                          </div>
+                        </div>
+
+                        {postLiveStatus === "upcoming" ? (
+                          <div className="space-y-1">
+                            <label
+                              htmlFor="reel-scheduled-at"
+                              className="text-xs font-bold text-qb-heading flex items-center gap-1.5"
+                            >
+                              <Clock size={12} className="text-qb-accent shrink-0" />
+                              <span>Start Date & Time</span>
+                            </label>
+                            <input
+                              id="reel-scheduled-at"
+                              type="datetime-local"
+                              value={postScheduledAt}
+                              onChange={(e) => setPostScheduledAt(e.target.value)}
+                              className="w-full rounded-lg border border-qb-border bg-qb-surface px-2.5 py-1.5 text-xs text-qb-heading focus:border-amber-500/60 focus:outline-none min-h-[34px]"
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex items-center text-xs leading-snug text-qb-muted">
+                            Pinned near the top of the Reels & Live feed right away.
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Segmented Media Source Picker */}
+                    <div className="space-y-1.5">
+                      <span className="block text-xs font-bold text-qb-heading">Media Source</span>
+                      <div className="grid grid-cols-3 gap-1 rounded-xl border border-qb-border bg-qb-input p-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (postUrl.startsWith("blob:")) {
+                              setPostUrl("");
+                            }
+                            setPostSourceType("youtube");
+                            setPostError("");
+                          }}
+                          className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[11px] sm:text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap min-h-[38px] ${
+                            postSourceType === "youtube"
+                              ? "bg-qb-surface text-qb-heading border border-amber-500/55 shadow-sm"
+                              : "text-qb-muted hover:text-qb-heading"
+                          }`}
+                        >
+                          <Link2 size={13} className={postSourceType === "youtube" ? "text-qb-accent shrink-0" : "shrink-0"} />
+                          <span>Video URL</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (postUrl && !postUrl.startsWith("blob:")) {
+                              setPostUrl("");
+                            }
+                            setPostSourceType("video");
+                            setPostError("");
+                          }}
+                          className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[11px] sm:text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap min-h-[38px] ${
+                            postSourceType === "video"
+                              ? "bg-qb-surface text-qb-heading border border-amber-500/55 shadow-sm"
+                              : "text-qb-muted hover:text-qb-heading"
+                          }`}
+                        >
+                          <Upload size={13} className={postSourceType === "video" ? "text-qb-accent shrink-0" : "shrink-0"} />
+                          <span className="sm:hidden">Upload</span>
+                          <span className="hidden sm:inline">Upload Clip</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPostSourceType("lesson");
+                            setPostError("");
+                          }}
+                          className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[11px] sm:text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap min-h-[38px] ${
+                            postSourceType === "lesson"
+                              ? "bg-qb-surface text-qb-heading border border-amber-500/55 shadow-sm"
+                              : "text-qb-muted hover:text-qb-heading"
+                          }`}
+                        >
+                          <Layers size={13} className={postSourceType === "lesson" ? "text-qb-accent shrink-0" : "shrink-0"} />
+                          <span className="sm:hidden">Board</span>
+                          <span className="hidden sm:inline">Lesson Board</span>
+                        </button>
+                      </div>
+
+                      {postSourceType === "youtube" && (
+                        <div className="space-y-1 pt-0.5">
+                          <label htmlFor="reel-media-url" className="block text-xs font-semibold text-qb-muted">
+                            YouTube / Shorts / Live or .mp4 URL
+                          </label>
+                          <input
+                            id="reel-media-url"
+                            type="url"
+                            value={postUrl}
+                            onChange={(e) => setPostUrl(e.target.value)}
+                            placeholder="https://youtube.com/shorts/... or https://youtube.com/live/..."
+                            className="w-full rounded-xl border border-qb-border bg-qb-input px-3 py-2 text-xs text-qb-heading placeholder:text-qb-muted focus:border-amber-500/60 focus:outline-none min-h-[38px]"
+                          />
+                        </div>
+                      )}
+
+                      {postSourceType === "video" && (
+                        <div className="pt-0.5">
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="video/mp4,video/webm,video/quicktime"
+                            onChange={handleSelectVideoFile}
+                            className="hidden"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-qb-border-hover bg-qb-input px-4 py-2.5 text-xs font-semibold text-qb-heading hover:border-amber-500/60 transition-colors cursor-pointer min-h-[42px]"
+                          >
+                            <Upload size={15} className="text-qb-accent shrink-0" />
+                            <span>
+                              {postUrl ? "Video clip ready — click to replace" : "Choose .mp4 or .webm review clip"}
+                            </span>
+                          </button>
+                        </div>
+                      )}
+
+                      {postSourceType === "lesson" && (
+                        <div className="space-y-1 pt-0.5">
+                          <label htmlFor="reel-lesson-board" className="block text-xs font-semibold text-qb-muted">
+                            Micro-Lesson Board Content (Markdown & KaTeX supported)
+                          </label>
+                          <textarea
+                            id="reel-lesson-board"
+                            rows={2}
+                            value={postSlideText}
+                            onChange={(e) => setPostSlideText(e.target.value)}
+                            className="w-full rounded-xl border border-qb-border bg-qb-input px-3 py-2 text-xs text-qb-heading focus:border-amber-500/60 focus:outline-none"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Title & Short Caption */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 gap-2.5">
+                      <div className="space-y-1">
+                        <label htmlFor="reel-title" className="block text-xs font-bold text-qb-heading">
+                          Title
+                        </label>
+                        <input
+                          id="reel-title"
+                          type="text"
+                          value={postTitle}
+                          onChange={(e) => setPostTitle(e.target.value)}
+                          placeholder="e.g. Double Word Analogy Shortcut"
+                          className="w-full rounded-xl border border-qb-border bg-qb-input px-3 py-2 text-xs text-qb-heading placeholder:text-qb-muted focus:border-amber-500/60 focus:outline-none min-h-[38px]"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label htmlFor="reel-caption" className="block text-xs font-bold text-qb-heading">
+                          Short Caption
+                        </label>
+                        <input
+                          id="reel-caption"
+                          type="text"
+                          value={postDescription}
+                          onChange={(e) => setPostDescription(e.target.value)}
+                          placeholder="Key takeaway viewers should remember..."
+                          className="w-full rounded-xl border border-qb-border bg-qb-input px-3 py-2 text-xs text-qb-heading placeholder:text-qb-muted focus:border-amber-500/60 focus:outline-none min-h-[38px]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Classification & Active Recall Check */}
+                  <div className="md:col-span-5 space-y-3 md:border-l md:border-qb-border md:pl-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 gap-3">
+                      <div className="space-y-1 [&_.qb-select-btn]:!min-h-[38px] [&_.qb-select-btn]:!rounded-xl [&_.qb-select-btn]:!text-xs">
+                        <span className="block text-xs font-bold text-qb-heading">CSE Subject</span>
+                        <CustomSelect
+                          value={postTopic}
+                          onChange={(val) => setPostTopic(val as TopicId)}
+                          options={composerTopicOptions}
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label htmlFor="reel-subtopic" className="block text-xs font-bold text-qb-heading">
+                          Sub-Topic Label
+                        </label>
+                        <input
+                          id="reel-subtopic"
+                          type="text"
+                          value={postLabel}
+                          onChange={(e) => setPostLabel(e.target.value)}
+                          placeholder="e.g. Word Analogy, Ratio, RA 6713"
+                          className="w-full rounded-xl border border-qb-border bg-qb-input px-3 py-2 text-xs text-qb-heading placeholder:text-qb-muted focus:border-amber-500/60 focus:outline-none min-h-[38px]"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Optional Active Recall Quick Check */}
+                    <div className="space-y-2 rounded-xl border border-qb-border bg-qb-input/65 p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-qb-heading">
+                          <Target size={14} className="text-qb-accent shrink-0" />
+                          <span>Optional Quick Check</span>
+                        </div>
+                        <span className="text-[11px] font-medium text-qb-muted">Recommended</span>
+                      </div>
+                      <input
+                        type="text"
+                        value={postQuizPrompt}
+                        onChange={(e) => setPostQuizPrompt(e.target.value)}
+                        placeholder="Quick practice question tied to this clip..."
+                        aria-label="Quick check practice question"
+                        className="w-full rounded-lg border border-qb-border bg-qb-surface px-3 py-2 text-xs text-qb-heading placeholder:text-qb-muted focus:border-amber-500/60 focus:outline-none min-h-[38px]"
+                      />
+                      {postQuizPrompt.trim() ? (
+                        <div className="space-y-1.5 pt-0.5">
+                          <div className="text-[11px] text-qb-muted">
+                            Tap A–D to mark the correct answer:
+                          </div>
+                          <div className="grid grid-cols-1 gap-1.5">
+                            {postQuizChoices.map((ch, idx) => (
+                              <div key={idx} className="flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => setPostQuizCorrect(idx)}
+                                  title="Mark as correct answer"
+                                  className={`h-8 w-8 shrink-0 rounded-lg border text-xs font-bold cursor-pointer ${
+                                    postQuizCorrect === idx
+                                      ? "border-emerald-500 bg-emerald-500/20 text-emerald-300 light:text-emerald-700"
+                                      : "border-qb-border bg-qb-surface text-qb-muted hover:text-qb-heading"
+                                  }`}
+                                >
+                                  {LETTERS[idx]}
+                                </button>
+                                <input
+                                  type="text"
+                                  value={ch}
+                                  onChange={(e) => {
+                                    const next = [...postQuizChoices];
+                                    next[idx] = e.target.value;
+                                    setPostQuizChoices(next);
+                                  }}
+                                  placeholder={`Choice ${LETTERS[idx]}`}
+                                  className="w-full rounded-lg border border-qb-border bg-qb-surface px-2.5 py-1.5 text-xs text-qb-heading placeholder:text-qb-muted focus:border-amber-500/60 focus:outline-none min-h-[34px]"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-[11px] leading-relaxed text-qb-muted">
+                          Enter a question above to unlock A–D answer choices for active recall right beside your video.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Sticky Modal Footer (Always Visible) */}
+              <div className="flex shrink-0 flex-wrap items-center justify-between gap-2.5 border-t border-qb-border bg-qb-surface px-4 py-2.5 sm:px-6 sm:py-3">
+                <div className="min-w-0 flex-1">
+                  {postError ? (
+                    <p className="text-xs font-semibold text-rose-400 light:text-rose-600">
+                      {postError}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-qb-muted">
+                      {postKind === "live"
+                        ? "Live sessions prioritize near the top of the Review Reels feed."
+                        : "Clips appear immediately in Study Reels & Live Review."}
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setComposerOpen(false)}
+                    className="rounded-xl border border-qb-border bg-qb-input px-4 py-2 text-xs font-bold text-qb-heading hover:bg-qb-surface-hover transition-colors cursor-pointer min-h-[38px] whitespace-nowrap"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={posting}
+                    className="rounded-xl bg-amber-500 px-4 sm:px-5 py-2 text-xs font-bold text-[#070c18] hover:bg-amber-400 disabled:opacity-50 transition-colors cursor-pointer min-h-[38px] whitespace-nowrap"
+                  >
+                    {posting ? "Publishing..." : postKind === "live" ? "Publish Live Room" : "Publish Short"}
+                  </button>
+                </div>
+              </div>
             </form>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.querySelector(".qb") || document.body
+        )}
+
+      {/* Share Study Session Modal */}
+      {shareReel &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className={`fixed inset-0 z-[700] flex items-center justify-center p-4 ${
+              liteMode ? "bg-black/80" : "bg-slate-950/75 backdrop-blur-md"
+            }`}
+            onClick={() => setShareReel(null)}
+          >
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="share-reel-title"
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md overflow-hidden rounded-2xl border border-qb-border bg-qb-surface shadow-[0_28px_75px_rgba(0,0,0,0.65)]"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between gap-3 border-b border-qb-border px-5 py-4">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Share2 size={16} className="text-qb-accent shrink-0" />
+                  <h2 id="share-reel-title" className="text-base font-extrabold text-qb-heading truncate">
+                    Share Review Session
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShareReel(null)}
+                  aria-label="Close share dialog"
+                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-qb-border bg-qb-input text-qb-muted hover:text-qb-heading cursor-pointer"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="space-y-4 p-5">
+                {/* Session Preview */}
+                <div className="rounded-xl border border-qb-border bg-qb-input p-3.5 space-y-1">
+                  <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-semibold text-qb-muted">
+                    {shareReel.kind === "live" && shareReel.liveStatus === "live" && (
+                      <span className="font-bold text-rose-400 light:text-rose-600">LIVE ·</span>
+                    )}
+                    <span style={{ color: getTopicMeta(shareReel.topic).color }}>
+                      {getTopicMeta(shareReel.topic).label}
+                    </span>
+                    <span aria-hidden="true">·</span>
+                    <span>{shareReel.label}</span>
+                  </div>
+                  <div className="text-sm font-extrabold text-qb-heading leading-snug line-clamp-2">
+                    {shareReel.title}
+                  </div>
+                  <div className="text-xs text-qb-muted">
+                    by {shareReel.creatorName}
+                  </div>
+                </div>
+
+                {/* Copy Direct Link Row */}
+                <div className="space-y-1.5">
+                  <label htmlFor="share-reel-url-input" className="block text-xs font-bold text-qb-heading">
+                    Direct Session Link
+                  </label>
+                  <div className="flex items-center gap-2 rounded-xl border border-qb-border bg-qb-input p-1.5">
+                    <input
+                      id="share-reel-url-input"
+                      type="text"
+                      readOnly
+                      value={buildShareUrl(shareReel)}
+                      onFocus={(e) => e.currentTarget.select()}
+                      className="min-w-0 flex-1 bg-transparent px-2 text-xs text-qb-heading focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => copyShareUrl(shareReel)}
+                      className={`inline-flex h-9 w-[102px] shrink-0 items-center justify-center gap-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
+                        copiedId === shareReel.id
+                          ? "bg-emerald-500 text-[#071510]"
+                          : "bg-amber-500 text-[#070c18] hover:bg-amber-400"
+                      }`}
+                    >
+                      {copiedId === shareReel.id ? (
+                        <>
+                          <Check size={14} />
+                          <span>Copied</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={14} />
+                          <span>Copy Link</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Quick Share Channels */}
+                <div className="space-y-2">
+                  <span className="block text-xs font-bold text-qb-heading">Quick Share</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleCopyStudyInvite(shareReel)}
+                      className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-bold transition-colors cursor-pointer min-h-[42px] whitespace-nowrap ${
+                        shareNoteCopied
+                          ? "border-emerald-500/60 bg-emerald-500/15 text-emerald-300 light:text-emerald-700"
+                          : "border-qb-border bg-qb-input text-qb-heading hover:bg-qb-surface-hover"
+                      }`}
+                    >
+                      {shareNoteCopied ? <Check size={14} /> : <Copy size={14} className="text-qb-accent" />}
+                      <span>{shareNoteCopied ? "Invite Copied" : "Copy Study Invite"}</span>
+                    </button>
+
+                    <a
+                      href={`https://t.me/share/url?url=${encodeURIComponent(buildShareUrl(shareReel))}&text=${encodeURIComponent(shareReel.title)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 rounded-xl border border-qb-border bg-qb-input px-3 py-2.5 text-xs font-bold text-qb-heading hover:bg-qb-surface-hover transition-colors min-h-[42px] whitespace-nowrap"
+                    >
+                      <Send size={14} className="text-sky-400 light:text-sky-600" />
+                      <span>Telegram</span>
+                    </a>
+
+                    <a
+                      href={`https://wa.me/?text=${encodeURIComponent(`${shareReel.title} — ${buildShareUrl(shareReel)}`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 rounded-xl border border-qb-border bg-qb-input px-3 py-2.5 text-xs font-bold text-qb-heading hover:bg-qb-surface-hover transition-colors min-h-[42px] whitespace-nowrap"
+                    >
+                      <MessageCircle size={14} className="text-emerald-400 light:text-emerald-600" />
+                      <span>WhatsApp</span>
+                    </a>
+
+                    <a
+                      href={`mailto:?subject=${encodeURIComponent(`CSE Review: ${shareReel.title}`)}&body=${encodeURIComponent(`Check out this ${getTopicMeta(shareReel.topic).label} review session on CSE QBANK:\n\n${shareReel.title}\n${buildShareUrl(shareReel)}`)}`}
+                      className="flex items-center justify-center gap-2 rounded-xl border border-qb-border bg-qb-input px-3 py-2.5 text-xs font-bold text-qb-heading hover:bg-qb-surface-hover transition-colors min-h-[42px] whitespace-nowrap"
+                    >
+                      <Mail size={14} className="text-qb-accent" />
+                      <span>Email</span>
+                    </a>
+                  </div>
+
+                  {typeof navigator !== "undefined" && typeof navigator.share === "function" && (
+                    <button
+                      type="button"
+                      onClick={() => handleNativeShare(shareReel)}
+                      className="flex w-full items-center justify-center gap-2 rounded-xl border border-qb-border bg-qb-input px-3 py-2.5 text-xs font-bold text-qb-heading hover:bg-qb-surface-hover transition-colors cursor-pointer min-h-[42px]"
+                    >
+                      <Share2 size={14} className="text-qb-accent" />
+                      <span>More Sharing Apps…</span>
+                    </button>
+                  )}
+
+                  {shareReel.mediaUrl && !shareReel.mediaUrl.startsWith("blob:") && (
+                    <a
+                      href={shareReel.mediaUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex w-full items-center justify-center gap-1.5 pt-1 text-xs font-semibold text-qb-muted hover:text-qb-heading transition-colors"
+                    >
+                      <ExternalLink size={13} />
+                      <span>Open Original Video Source</span>
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.querySelector(".qb") || document.body
+        )}
     </div>
   );
 }

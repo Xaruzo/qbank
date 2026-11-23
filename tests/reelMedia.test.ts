@@ -26,6 +26,12 @@ describe("reelMedia utilities", () => {
     if (live.valid && live.sourceType === "youtube") {
       expect(live.providerLabel).toBe("YouTube Live");
     }
+
+    const noScheme = parseVideoSource("youtube.com/shorts/AbCdEf12345");
+    expect(noScheme.valid).toBe(true);
+    if (noScheme.valid && noScheme.sourceType === "youtube") {
+      expect(noScheme.videoId).toBe("AbCdEf12345");
+    }
   });
 
   it("accepts direct video files and rejects invalid links cleanly", () => {

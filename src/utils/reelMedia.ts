@@ -20,8 +20,25 @@ export type ParsedVideoSource =
 
 const YOUTUBE_ID_RE = /^[A-Za-z0-9_-]{6,20}$/;
 
-export function extractYouTubeVideoId(rawUrl: string): string | null {
+function normalizeUrlCandidate(rawUrl: string): string {
   const trimmed = rawUrl.trim();
+  if (!trimmed) return "";
+  if (
+    trimmed.startsWith("http://") ||
+    trimmed.startsWith("https://") ||
+    trimmed.startsWith("blob:") ||
+    trimmed.startsWith("data:")
+  ) {
+    return trimmed;
+  }
+  if (/^(?:www\.)?(?:youtube\.com|m\.youtube\.com|youtube-nocookie\.com|youtu\.be)\//i.test(trimmed)) {
+    return `https://${trimmed}`;
+  }
+  return trimmed;
+}
+
+export function extractYouTubeVideoId(rawUrl: string): string | null {
+  const trimmed = normalizeUrlCandidate(rawUrl);
   if (!trimmed) return null;
   let parsed: URL;
   try {
@@ -61,7 +78,7 @@ export function extractYouTubeVideoId(rawUrl: string): string | null {
 }
 
 export function parseVideoSource(rawUrl: string): ParsedVideoSource {
-  const trimmed = rawUrl.trim();
+  const trimmed = normalizeUrlCandidate(rawUrl);
   if (!trimmed) {
     return {
       valid: false,
