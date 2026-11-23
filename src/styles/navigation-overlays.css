@@ -586,6 +586,8 @@
 
 .qb-main.qb-main-detail { overflow:hidden; }
 
+.qb-main.qb-main-reels { overflow:hidden; }
+
 .qb-main-inner { max-width:1380px; margin:0 auto; padding:28px 32px 36px; padding-bottom:calc(36px + env(safe-area-inset-bottom, 0px)); min-height:100%; }
 
 .qb-main-inner.qb-main-inner-editor { max-width:none; margin:0; padding:20px clamp(14px, 2vw, 28px) 32px; padding-bottom:calc(32px + env(safe-area-inset-bottom, 0px)); min-height:auto; display:block; }
@@ -594,6 +596,34 @@
 .qb-main-inner.qb-main-inner-exam { max-width:none; margin:0; padding:22px 18px 22px 18px; padding-right:28px; padding-bottom:calc(22px + env(safe-area-inset-bottom, 0px)); min-height:100%; height:100%; display:flex; flex-direction:column; overflow:hidden; }
 
 .qb-main-inner.qb-main-inner-detail { max-width:1040px; margin:0 auto; padding:20px 24px; padding-bottom:calc(20px + env(safe-area-inset-bottom, 0px)); min-height:100%; height:100%; display:flex; flex-direction:column; overflow:hidden; }
+
+.qb-main-inner.qb-main-inner-reels { max-width:1380px; width:100%; margin:0 auto; padding:14px 20px; min-height:0; height:100%; display:flex; flex-direction:column; overflow:hidden; }
+
+.qb .qb-reels-snap-feed,
+.qb-reels-snap-feed {
+  scrollbar-width: none !important;
+  scrollbar-color: transparent transparent !important;
+  -ms-overflow-style: none !important;
+  scroll-snap-type: y mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.qb .qb-reels-snap-feed::-webkit-scrollbar,
+.qb-reels-snap-feed::-webkit-scrollbar,
+.qb .qb-no-scrollbar::-webkit-scrollbar,
+.qb-no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+.qb .qb-no-scrollbar,
+.qb-no-scrollbar {
+  scrollbar-width: none !important;
+  scrollbar-color: transparent transparent !important;
+  -ms-overflow-style: none !important;
+}
 
 .qb-main-inner.qb-main-inner-mock-attempt { max-width:1180px; }
 .qb-main-inner.qb-main-inner-settings { max-width:none; margin:0; padding:0; padding-bottom:0; min-height:100%; }

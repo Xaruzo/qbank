@@ -314,6 +314,14 @@
     padding: 12px 10px calc(12px + env(safe-area-inset-bottom, 0px)) !important;
   
   }
+  .qb-main-inner.qb-main-inner-reels {
+    padding: 6px 8px 6px !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
   .qb-main-inner.qb-main-inner-exam {
     padding: 16px 12px calc(24px + env(safe-area-inset-bottom, 0px)) !important;
   

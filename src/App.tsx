@@ -10,6 +10,7 @@ import QuestionList from "./views/components/QuestionList";
 import QuestionDetail from "./views/components/QuestionDetail";
 import SideNav from "./views/components/SideNav";
 import MobileTabBar from "./views/components/MobileTabBar";
+import MobileScrollIndicator from "./views/components/MobileScrollIndicator";
 import { lazyWithRetry } from "./utils/lazyWithRetry";
 
 import QuestionForm from "./views/components/QuestionForm";
@@ -1058,46 +1059,52 @@ export default function App() {
 
   if (view === "landing") {
     return (
-      <LandingPage
-        isDark={isDark}
-        onToggleTheme={toggleTheme}
-        onStartReview={() => {
-          try { sessionStorage.setItem("qbank-session-active", "true"); } catch (_) {}
-          handleGoDashboard();
-        }}
-        onSignIn={handleSignIn}
-        onStartMock={(presetId) => {
-          try { sessionStorage.setItem("qbank-session-active", "true"); } catch (_) {}
-          handleStartExam(presetId || "professional");
-        }}
-        onNavigateToTips={() => {
-          try { sessionStorage.setItem("qbank-session-active", "true"); } catch (_) {}
-          handleGoTips();
-        }}
-        totalQuestions={qs.length}
-        isAuthenticated={isAuthenticated}
-        profile={profile}
-      />
+      <>
+        <LandingPage
+          isDark={isDark}
+          onToggleTheme={toggleTheme}
+          onStartReview={() => {
+            try { sessionStorage.setItem("qbank-session-active", "true"); } catch (_) {}
+            handleGoDashboard();
+          }}
+          onSignIn={handleSignIn}
+          onStartMock={(presetId) => {
+            try { sessionStorage.setItem("qbank-session-active", "true"); } catch (_) {}
+            handleStartExam(presetId || "professional");
+          }}
+          onNavigateToTips={() => {
+            try { sessionStorage.setItem("qbank-session-active", "true"); } catch (_) {}
+            handleGoTips();
+          }}
+          totalQuestions={qs.length}
+          isAuthenticated={isAuthenticated}
+          profile={profile}
+        />
+        <MobileScrollIndicator isDark={isDark} />
+      </>
     );
   }
 
   if (view === "signIn") {
     return (
-      <SignInPage
-        isDark={isDark}
-        onToggleTheme={toggleTheme}
-        onBackToLanding={handleGoLanding}
-        onSuccessLogin={() => {
-          try { sessionStorage.setItem("qbank-session-active", "true"); } catch (_) {}
-          handleGoDashboard();
-        }}
-        onSignInWithEmail={signInWithEmail}
-        onSignInWithGoogle={signInWithGoogle}
-        onGoHome={handleGoHome}
-        onGoMockExam={handleGoMockExam}
-        onGoTips={handleGoTips}
-        onGoNotes={handleGoNotes}
-      />
+      <>
+        <SignInPage
+          isDark={isDark}
+          onToggleTheme={toggleTheme}
+          onBackToLanding={handleGoLanding}
+          onSuccessLogin={() => {
+            try { sessionStorage.setItem("qbank-session-active", "true"); } catch (_) {}
+            handleGoDashboard();
+          }}
+          onSignInWithEmail={signInWithEmail}
+          onSignInWithGoogle={signInWithGoogle}
+          onGoHome={handleGoHome}
+          onGoMockExam={handleGoMockExam}
+          onGoTips={handleGoTips}
+          onGoNotes={handleGoNotes}
+        />
+        <MobileScrollIndicator isDark={isDark} />
+      </>
     );
   }
 
@@ -1199,7 +1206,7 @@ export default function App() {
               userRole={userRole}
             />
           )}
-          <main ref={mainRef} className={`qb-main${view === "mockRun" ? " qb-main-exam" : view === "detail" ? " qb-main-detail" : view === "notes" ? " qb-main-notes" : ""}`}>
+          <main ref={mainRef} className={`qb-main${view === "mockRun" ? " qb-main-exam" : view === "detail" ? " qb-main-detail" : view === "notes" ? " qb-main-notes" : view === "reels" ? " qb-main-reels" : ""}`}>
             <div
               className={`qb-main-inner${
                 view === "add"
@@ -1212,6 +1219,8 @@ export default function App() {
                   ? " qb-main-inner-mock-attempt"
                   : view === "detail"
                   ? " qb-main-inner-detail"
+                  : view === "reels"
+                  ? " qb-main-inner-reels"
                   : view === "settings" || view === "my-questions"
                   ? " qb-main-inner-settings"
                   : ""
@@ -1828,6 +1837,8 @@ export default function App() {
         onSignInWithGoogle={signInWithGoogle}
         isDark={isDark}
       />
+
+      <MobileScrollIndicator isDark={isDark} />
     </div>
   );
 }

@@ -4,7 +4,7 @@ import {
   Menu,
   UserCircle2,
   X,
-  Sparkles,
+  Compass,
   Bell,
   WifiOff,
   CloudUpload,
@@ -141,7 +141,7 @@ export default function Header({
           </button>
         )}
 
-        {onLanding && !isAuthenticated && (
+        {onLanding && !isAuthenticated && !isAuthLoading && (
           <button
             type="button"
             className={`qb-hdr-landing-link${currentView === "landing" ? " is-active" : ""}`}
@@ -149,7 +149,7 @@ export default function Header({
             title="View Landing Page & Exam Overview"
             aria-label="View Landing Page & Exam Overview"
           >
-            <Sparkles size={14} className="qb-hdr-landing-icon" />
+            <Compass size={14} className="qb-hdr-landing-icon" />
             <span>Overview</span>
           </button>
         )}
@@ -215,16 +215,20 @@ export default function Header({
           >
             {accountIcon}
           </button>
+        ) : isAuthLoading ? (
+          <div
+            aria-hidden="true"
+            className="h-[34px] w-[34px] shrink-0 rounded-full bg-slate-800/70 light:bg-slate-200/80 animate-pulse"
+          />
         ) : (
           <button
             type="button"
             className="qb-auth-btn qb-auth-signin-btn"
             onClick={onSignIn}
-            disabled={isAuthLoading}
             title="Sign in with your Google account"
           >
             <LogIn size={15} />
-            <span>{isAuthLoading ? "Signing in..." : "Sign In"}</span>
+            <span>Sign In</span>
           </button>
         )}
       </div>

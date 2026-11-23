@@ -9,8 +9,6 @@ import {
   Bookmark,
   MessageCircle,
   Share2,
-  ChevronUp,
-  ChevronDown,
   Plus,
   Radio,
   Clapperboard,
@@ -128,6 +126,7 @@ function getAuthorInitials(name: string): string {
 interface ReelStageCardProps {
   reel: StudyReel;
   isActive: boolean;
+  shouldMountMedia?: boolean;
   isMuted: boolean;
   playbackRate: 1 | 1.25 | 1.5;
   liked: boolean;
@@ -150,6 +149,7 @@ interface ReelStageCardProps {
 function ReelStageCard({
   reel,
   isActive,
+  shouldMountMedia = true,
   isMuted,
   playbackRate,
   liked,
@@ -177,7 +177,64 @@ function ReelStageCard({
   const [resolvedVideoSrc, setResolvedVideoSrc] = useState<string | null>(() =>
     reel.mediaUrl && !isIndexedDbReelUrl(reel.mediaUrl) ? reel.mediaUrl : null
   );
-  const [confirmDelete, setConfirmDelete] = useState<boolean>(false);
+  const [isHovering, setIsHovering] = useState<boolean>(false);
+  const [controlsRevealed, setControlsRevealed] = useState<boolean>(false);
+  const [isScrubbing, setIsScrubbing] = useState<boolean>(false);
+  const revealTimerRef = useRef<number | null>(null);
+  const holdTimerRef = useRef<number | null>(null);
+  const holdStartPosRef = useRef<{ x: number; y: number } | null>(null);
+  const longPressTriggeredRef = useRef<boolean>(false);
+
+  const clearRevealTimer = useCallback(() => {
+    if (revealTimerRef.current !== null) {
+      window.clearTimeout(revealTimerRef.current);
+      revealTimerRef.current = null;
+    }
+  }, []);
+
+  const clearHoldTimer = useCallback(() => {
+    if (holdTimerRef.current !== null) {
+      window.clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+  }, []);
+
+  const revealTimelineTemporarily = useCallback(
+    (durationMs = 4000) => {
+      clearRevealTimer();
+      setControlsRevealed(true);
+      revealTimerRef.current = window.setTimeout(() => {
+        setControlsRevealed(false);
+        revealTimerRef.current = null;
+      }, durationMs);
+    },
+    [clearRevealTimer]
+  );
+
+  useEffect(() => {
+    return () => {
+      clearRevealTimer();
+      clearHoldTimer();
+    };
+  }, [clearRevealTimer, clearHoldTimer]);
+
+  useEffect(() => {
+    if (!isScrubbing) return undefined;
+    const handleFinishScrub = () => {
+      setIsScrubbing(false);
+      if (!isHovering) revealTimelineTemporarily(3500);
+    };
+    window.addEventListener("pointerup", handleFinishScrub);
+    window.addEventListener("pointercancel", handleFinishScrub);
+    window.addEventListener("touchend", handleFinishScrub);
+    window.addEventListener("touchcancel", handleFinishScrub);
+    return () => {
+      window.removeEventListener("pointerup", handleFinishScrub);
+      window.removeEventListener("pointercancel", handleFinishScrub);
+      window.removeEventListener("touchend", handleFinishScrub);
+      window.removeEventListener("touchcancel", handleFinishScrub);
+    };
+  }, [isScrubbing, isHovering, revealTimelineTemporarily]);
 
   const parsedYouTube = useMemo(
     () => (reel.sourceType === "youtube" && reel.mediaUrl ? parseVideoSource(reel.mediaUrl) : null),
@@ -220,14 +277,19 @@ function ReelStageCard({
   // Reset play state and elapsed progress cleanly whenever switching clips or toggling active state
   useEffect(() => {
     setIsPlaying(isActive);
-    setConfirmDelete(false);
+    setIsHovering(false);
+    setControlsRevealed(false);
+    setIsScrubbing(false);
+    clearRevealTimer();
+    clearHoldTimer();
+    longPressTriggeredRef.current = false;
     setElapsedSec(0);
     setVideoDurationSec(null);
     setVideoError(false);
     if (videoRef.current) {
       videoRef.current.currentTime = 0;
     }
-  }, [isActive, reel.id]);
+  }, [isActive, reel.id, clearRevealTimer, clearHoldTimer]);
 
   // Timer tick for interactive micro-lesson playback
   useEffect(() => {
@@ -280,7 +342,7 @@ function ReelStageCard({
     let cancelled = false;
     let objectUrlToRevoke: string | null = null;
 
-    if (reel.sourceType !== "video" || !reel.mediaUrl) {
+    if (!shouldMountMedia || reel.sourceType !== "video" || !reel.mediaUrl) {
       setResolvedVideoSrc(null);
       return undefined;
     }
@@ -314,7 +376,7 @@ function ReelStageCard({
         URL.revokeObjectURL(objectUrlToRevoke);
       }
     };
-  }, [reel.id, reel.sourceType, reel.mediaUrl]);
+  }, [reel.id, reel.sourceType, reel.mediaUrl, shouldMountMedia]);
 
   // Sync HTML5 video playback with active state, mute, and rate
   useEffect(() => {
@@ -331,6 +393,14 @@ function ReelStageCard({
 
   const handleTogglePlay = () => {
     setIsPlaying((prev) => !prev);
+  };
+
+  const handleStageMediaClick = () => {
+    if (longPressTriggeredRef.current) {
+      longPressTriggeredRef.current = false;
+      return;
+    }
+    handleTogglePlay();
   };
 
   const handleSeekLesson = (sec: number) => {
@@ -358,11 +428,67 @@ function ReelStageCard({
 
   const isLiveNow = reel.kind === "live" && reel.liveStatus === "live";
   const isUpcoming = reel.kind === "live" && reel.liveStatus === "upcoming";
+  const showTimeline =
+    reel.sourceType !== "youtube" && (isHovering || controlsRevealed || isScrubbing);
 
   return (
     <article
       className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-2xl border border-qb-border bg-[#070b14] text-slate-100 select-none"
       aria-label={reel.title}
+      onPointerEnter={(e) => {
+        if (e.pointerType === "mouse") setIsHovering(true);
+      }}
+      onPointerMove={(e) => {
+        if (e.pointerType === "mouse" && !isHovering) setIsHovering(true);
+      }}
+      onPointerLeave={(e) => {
+        if (e.pointerType === "mouse") setIsHovering(false);
+      }}
+      onTouchStart={(e) => {
+        if (reel.sourceType === "youtube") return;
+        const targetEl = e.target as HTMLElement | null;
+        if (targetEl?.closest("button, input, a")) return;
+        const touch = e.touches[0];
+        if (!touch) return;
+        holdStartPosRef.current = { x: touch.clientX, y: touch.clientY };
+        longPressTriggeredRef.current = false;
+        clearHoldTimer();
+        holdTimerRef.current = window.setTimeout(() => {
+          longPressTriggeredRef.current = true;
+          revealTimelineTemporarily(4000);
+          holdTimerRef.current = null;
+        }, 380);
+      }}
+      onTouchMove={(e) => {
+        if (!holdStartPosRef.current) return;
+        const touch = e.touches[0];
+        if (!touch) return;
+        const dx = Math.abs(touch.clientX - holdStartPosRef.current.x);
+        const dy = Math.abs(touch.clientY - holdStartPosRef.current.y);
+        if (dx > 10 || dy > 10) {
+          clearHoldTimer();
+          holdStartPosRef.current = null;
+        }
+      }}
+      onTouchEnd={() => {
+        clearHoldTimer();
+        holdStartPosRef.current = null;
+        if (longPressTriggeredRef.current) {
+          window.setTimeout(() => {
+            longPressTriggeredRef.current = false;
+          }, 120);
+        }
+      }}
+      onTouchCancel={() => {
+        clearHoldTimer();
+        holdStartPosRef.current = null;
+        longPressTriggeredRef.current = false;
+      }}
+      onContextMenu={(e) => {
+        if (reel.sourceType !== "youtube") {
+          e.preventDefault();
+        }
+      }}
     >
       {/* Top Story-style Step Segments (for micro-lessons) */}
       {reel.sourceType === "lesson" && (
@@ -419,7 +545,7 @@ function ReelStageCard({
             <span className="truncate text-slate-300">{reel.label}</span>
           </div>
 
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-1 shrink-0 [filter:drop-shadow(0_1px_4px_rgba(0,0,0,0.85))]">
             {reel.sourceType !== "youtube" && (
               <>
                 <button
@@ -429,7 +555,7 @@ function ReelStageCard({
                     onCycleRate();
                   }}
                   title="Playback speed"
-                  className="inline-flex h-8 min-w-[38px] items-center justify-center rounded-lg bg-black/50 px-2 text-[11px] font-bold text-white/90 hover:bg-black/75 transition-colors tabular-nums cursor-pointer"
+                  className="inline-flex h-8 min-w-[32px] items-center justify-center rounded-full px-1.5 text-xs font-extrabold text-white/95 hover:text-white active:scale-90 transition-all tabular-nums cursor-pointer"
                 >
                   {playbackRate}x
                 </button>
@@ -441,9 +567,9 @@ function ReelStageCard({
                   }}
                   aria-label={isMuted ? "Unmute audio" : "Mute audio"}
                   title={isMuted ? "Unmute voice / sound" : "Mute voice / sound"}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-black/50 text-white/90 hover:bg-black/75 transition-colors cursor-pointer"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full text-white/95 hover:text-white active:scale-90 transition-all cursor-pointer"
                 >
-                  {isMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+                  {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
                 </button>
               </>
             )}
@@ -454,7 +580,7 @@ function ReelStageCard({
       {/* Main Media Stage */}
       {reel.sourceType === "youtube" && parsedYouTube?.valid && parsedYouTube.sourceType === "youtube" ? (
         <div className="relative h-full w-full bg-black flex items-center justify-center">
-          {isActive ? (
+          {isActive && shouldMountMedia ? (
             <iframe
               key={reel.id}
               src={`${parsedYouTube.embedUrl}&mute=${isMuted ? 1 : 0}`}
@@ -473,7 +599,7 @@ function ReelStageCard({
             href={reel.mediaUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="absolute top-16 left-4 z-20 inline-flex items-center gap-1 rounded-lg bg-black/65 px-2.5 py-1 text-[11px] font-semibold text-slate-200 hover:bg-black/85"
+            className="absolute top-14 left-4 z-20 inline-flex items-center gap-1 rounded-lg bg-black/65 px-2.5 py-1 text-[11px] font-semibold text-slate-200 hover:bg-black/85"
           >
             <ExternalLink size={11} />
             Open Stream
@@ -482,9 +608,14 @@ function ReelStageCard({
       ) : reel.sourceType === "video" && reel.mediaUrl ? (
         <div
           className="relative h-full w-full bg-black flex items-center justify-center cursor-pointer"
-          onClick={handleTogglePlay}
+          onClick={handleStageMediaClick}
         >
-          {videoError ? (
+          {!shouldMountMedia ? (
+            <div className="flex flex-col items-center justify-center gap-2 px-6 text-center text-slate-300">
+              <Clapperboard size={28} className="text-amber-400" />
+              <p className="text-sm font-semibold text-white line-clamp-2">{reel.title}</p>
+            </div>
+          ) : videoError ? (
             <div className="flex flex-col items-center justify-center gap-2 px-6 text-center text-slate-300">
               <Clapperboard size={28} className="text-rose-400" />
               <p className="text-sm font-bold text-white">Video unavailable</p>
@@ -502,6 +633,7 @@ function ReelStageCard({
               <video
                 ref={videoRef}
                 src={resolvedVideoSrc}
+                preload="metadata"
                 className="h-full w-full object-contain"
                 playsInline
                 loop={reel.kind === "short"}
@@ -522,10 +654,11 @@ function ReelStageCard({
                 }}
               />
               {!isPlaying && (
-                <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25">
-                  <span className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-black/70 text-white border border-white/20">
-                    <Play size={24} className="ml-0.5" />
-                  </span>
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/15">
+                  <Play
+                    size={46}
+                    className="ml-1 text-white/90 fill-white/85 [filter:drop-shadow(0_4px_16px_rgba(0,0,0,0.75))]"
+                  />
                 </div>
               )}
             </>
@@ -534,15 +667,15 @@ function ReelStageCard({
       ) : (
         /* Interactive CSE Micro-Lesson Stage */
         <div
-          onClick={handleTogglePlay}
-          className="relative flex h-full w-full cursor-pointer flex-col overflow-y-auto px-4 pt-14 pb-52 sm:px-5 sm:pb-56"
+          onClick={handleStageMediaClick}
+          className="qb-no-scrollbar relative flex h-full w-full cursor-pointer flex-col overflow-y-auto overscroll-y-auto px-3.5 pt-14 pb-48 sm:px-5 sm:pt-16 sm:pb-52"
           style={{
             background: `radial-gradient(circle at 20% 15%, ${topicMeta.color}22 0%, transparent 48%), linear-gradient(165deg, #0b1326 0%, #070b14 60%, #0a101f 100%)`,
           }}
         >
           <div
             key={`${reel.id}-${currentStep.idx}`}
-            className={`my-auto mr-14 sm:mr-16 space-y-2 rounded-2xl border border-white/12 bg-slate-900/80 p-3.5 sm:p-4 backdrop-blur-sm ${
+            className={`mt-1 mb-auto mr-14 sm:mr-16 space-y-2 rounded-2xl border border-white/12 bg-slate-900/80 p-3.5 sm:p-4 backdrop-blur-sm ${
               liteMode ? "" : "transition-opacity duration-200"
             }`}
           >
@@ -571,18 +704,19 @@ function ReelStageCard({
           </div>
 
           {!isPlaying && (
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/20">
-              <span className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-black/75 text-white border border-white/25">
-                <Play size={24} className="ml-0.5" />
-              </span>
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/15">
+              <Play
+                size={46}
+                className="ml-1 text-white/90 fill-white/85 [filter:drop-shadow(0_4px_16px_rgba(0,0,0,0.75))]"
+              />
             </div>
           )}
         </div>
       )}
 
-      {/* Right-Edge Docked Action Rail (fixed width prevents horizontal shift on label change) */}
+      {/* Right-Edge Docked Action Rail (transparent industry-standard floating icons) */}
       <div
-        className="absolute right-2.5 bottom-20 z-30 flex w-[54px] flex-col items-stretch gap-2"
+        className="absolute right-2 bottom-14 sm:right-2.5 sm:bottom-16 z-30 flex w-[48px] sm:w-[54px] flex-col items-center gap-3 sm:gap-3.5"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -590,13 +724,14 @@ function ReelStageCard({
           onClick={onToggleLike}
           aria-pressed={liked}
           aria-label={liked ? "Unlike reel" : "Like reel"}
-          className="flex h-[50px] w-full flex-col items-center justify-center gap-0.5 rounded-xl bg-black/55 px-1 py-1.5 text-white hover:bg-black/75 transition-colors cursor-pointer"
+          className="flex w-full flex-col items-center justify-center gap-0.5 bg-transparent py-0.5 text-white hover:opacity-90 active:scale-90 transition-all cursor-pointer [filter:drop-shadow(0_2px_6px_rgba(0,0,0,0.85))]"
         >
           <Heart
-            size={18}
-            className={liked ? "text-rose-400 fill-rose-400" : "text-white"}
+            size={23}
+            strokeWidth={2.1}
+            className={liked ? "text-rose-500 fill-rose-500" : "text-white"}
           />
-          <span className="text-[10px] leading-none font-bold tabular-nums whitespace-nowrap">
+          <span className="text-[11px] leading-none font-bold tabular-nums whitespace-nowrap">
             {likeTotal}
           </span>
         </button>
@@ -605,10 +740,10 @@ function ReelStageCard({
           type="button"
           onClick={() => onOpenCompanion("chat")}
           aria-label={`Open Q&A (${commentCount})`}
-          className="flex h-[50px] w-full flex-col items-center justify-center gap-0.5 rounded-xl bg-black/55 px-1 py-1.5 text-white hover:bg-black/75 transition-colors cursor-pointer"
+          className="flex w-full flex-col items-center justify-center gap-0.5 bg-transparent py-0.5 text-white hover:opacity-90 active:scale-90 transition-all cursor-pointer [filter:drop-shadow(0_2px_6px_rgba(0,0,0,0.85))]"
         >
-          <MessageCircle size={18} />
-          <span className="text-[10px] leading-none font-bold tabular-nums whitespace-nowrap">
+          <MessageCircle size={23} strokeWidth={2.1} />
+          <span className="text-[11px] leading-none font-bold tabular-nums whitespace-nowrap">
             {commentCount}
           </span>
         </button>
@@ -619,10 +754,10 @@ function ReelStageCard({
             onClick={() => onOpenCompanion("quiz")}
             aria-label="Quick recall quiz"
             title="Practice Quick Check"
-            className="flex h-[50px] w-full flex-col items-center justify-center gap-0.5 rounded-xl bg-amber-500/90 px-1 py-1.5 text-[#070c18] hover:bg-amber-400 transition-colors cursor-pointer"
+            className="flex w-full flex-col items-center justify-center gap-0.5 bg-transparent py-0.5 text-amber-400 hover:text-amber-300 active:scale-90 transition-all cursor-pointer [filter:drop-shadow(0_2px_6px_rgba(0,0,0,0.85))]"
           >
-            <Target size={18} />
-            <span className="text-[10px] leading-none font-extrabold whitespace-nowrap">Quiz</span>
+            <Target size={23} strokeWidth={2.2} />
+            <span className="text-[11px] leading-none font-extrabold text-white whitespace-nowrap">Quiz</span>
           </button>
         )}
 
@@ -631,17 +766,18 @@ function ReelStageCard({
           onClick={onToggleBookmark}
           aria-pressed={bookmarked}
           aria-label={bookmarked ? "Remove from saved" : "Save reel"}
-          className={`flex h-[50px] w-full flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1.5 transition-colors cursor-pointer ${
-            bookmarked
-              ? "bg-amber-500/20 border border-amber-400/50 text-amber-300 hover:bg-amber-500/30"
-              : "bg-black/55 text-white hover:bg-black/75"
-          }`}
+          className="flex w-full flex-col items-center justify-center gap-0.5 bg-transparent py-0.5 text-white hover:opacity-90 active:scale-90 transition-all cursor-pointer [filter:drop-shadow(0_2px_6px_rgba(0,0,0,0.85))]"
         >
           <Bookmark
-            size={18}
+            size={23}
+            strokeWidth={2.1}
             className={bookmarked ? "text-amber-400 fill-amber-400" : "text-white"}
           />
-          <span className="text-[10px] leading-none font-bold whitespace-nowrap">
+          <span
+            className={`text-[11px] leading-none font-bold whitespace-nowrap ${
+              bookmarked ? "text-amber-300" : "text-white"
+            }`}
+          >
             {bookmarked ? "Saved" : "Save"}
           </span>
         </button>
@@ -650,52 +786,41 @@ function ReelStageCard({
           type="button"
           onClick={onShare}
           aria-label="Share reel"
-          className={`flex h-[50px] w-full flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1.5 transition-colors cursor-pointer ${
-            copiedId === reel.id
-              ? "bg-emerald-500/20 border border-emerald-400/50 text-emerald-300"
-              : "bg-black/55 text-white hover:bg-black/75"
-          }`}
+          className="flex w-full flex-col items-center justify-center gap-0.5 bg-transparent py-0.5 text-white hover:opacity-90 active:scale-90 transition-all cursor-pointer [filter:drop-shadow(0_2px_6px_rgba(0,0,0,0.85))]"
         >
           {copiedId === reel.id ? (
-            <Check size={17} className="text-emerald-400" />
+            <Check size={22} strokeWidth={2.2} className="text-emerald-400" />
           ) : (
-            <Share2 size={17} />
+            <Share2 size={22} strokeWidth={2.1} />
           )}
-          <span className="text-[10px] leading-none font-bold whitespace-nowrap">
+          <span
+            className={`text-[11px] leading-none font-bold whitespace-nowrap ${
+              copiedId === reel.id ? "text-emerald-300" : "text-white"
+            }`}
+          >
             {copiedId === reel.id ? "Copied" : "Share"}
           </span>
         </button>
 
         {canDelete && !reel.isStarter && (
-          confirmDelete ? (
-            <button
-              type="button"
-              onClick={onDelete}
-              aria-label="Confirm delete reel"
-              className="flex h-10 w-full items-center justify-center rounded-xl bg-rose-600 px-1 text-[10px] font-bold text-white cursor-pointer whitespace-nowrap"
-            >
-              Delete?
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setConfirmDelete(true)}
-              aria-label="Delete reel"
-              title="Delete clip"
-              className="flex h-10 w-full items-center justify-center rounded-xl bg-black/55 text-slate-300 hover:text-rose-400 cursor-pointer"
-            >
-              <Trash2 size={16} />
-            </button>
-          )
+          <button
+            type="button"
+            onClick={onDelete}
+            aria-label="Delete reel"
+            title="Delete clip"
+            className="flex w-full items-center justify-center bg-transparent py-0.5 text-white/85 hover:text-rose-400 active:scale-90 transition-all cursor-pointer [filter:drop-shadow(0_2px_6px_rgba(0,0,0,0.85))]"
+          >
+            <Trash2 size={20} strokeWidth={2} />
+          </button>
         )}
       </div>
 
-      {/* Bottom Scrim Metadata + Scrubber */}
+      {/* Bottom Scrim Metadata + Hover/Hold Scrubber */}
       <div
-        className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black/95 via-black/75 to-transparent px-4 pt-10 pb-3"
+        className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black/95 via-black/75 to-transparent px-3.5 pt-8 pb-2.5 sm:px-4 sm:pt-10 sm:pb-3"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mr-16 space-y-1.5">
+        <div className="mr-14 sm:mr-16 space-y-1 sm:space-y-1.5">
           <div className="flex flex-wrap items-center gap-2 text-xs text-slate-300">
             <span className="font-bold text-white">{reel.creatorName}</span>
             <span aria-hidden="true">·</span>
@@ -748,34 +873,68 @@ function ReelStageCard({
           </div>
         </div>
 
-        {/* Interactive Scrubber for Lesson & Direct Video */}
+        {/* Interactive Scrubber for Lesson & Direct Video (hidden by default; reveals on hover or mobile hold) */}
         {reel.sourceType !== "youtube" && (
-          <div className="mt-2.5 flex items-center gap-2.5">
-            <button
-              type="button"
-              onClick={handleTogglePlay}
-              aria-label={isPlaying ? "Pause" : "Play"}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-white hover:bg-white/10 cursor-pointer shrink-0"
-            >
-              {isPlaying ? <Pause size={14} /> : <Play size={14} />}
-            </button>
-            <input
-              type="range"
-              min={0}
-              max={Math.max(1, effectiveTotalSec)}
-              step={0.5}
-              value={Math.min(effectiveTotalSec, elapsedSec)}
-              onChange={(e) => {
-                const val = Number(e.target.value);
-                if (reel.sourceType === "video") handleSeekVideo(val);
-                else handleSeekLesson(val);
-              }}
-              aria-label="Seek clip timeline"
-              className="h-1 flex-1 cursor-pointer accent-amber-400"
-            />
-            <span className="text-[11px] font-medium text-slate-300 tabular-nums shrink-0">
-              {formatReelDuration(elapsedSec)} / {formatReelDuration(effectiveTotalSec)}
-            </span>
+          <div
+            aria-hidden={!showTimeline}
+            className={`overflow-hidden transition-all duration-200 ease-out ${
+              showTimeline
+                ? "mt-2.5 max-h-12 opacity-100 translate-y-0 pointer-events-auto"
+                : "mt-0 max-h-0 opacity-0 translate-y-1 pointer-events-none"
+            }`}
+          >
+            <div className="flex items-center gap-2.5 py-0.5">
+              <button
+                type="button"
+                onClick={() => {
+                  handleTogglePlay();
+                  if (!isHovering) revealTimelineTemporarily(3500);
+                }}
+                aria-label={isPlaying ? "Pause" : "Play"}
+                className="inline-flex h-7 w-7 items-center justify-center rounded-md text-white hover:bg-white/10 cursor-pointer shrink-0"
+              >
+                {isPlaying ? <Pause size={14} /> : <Play size={14} />}
+              </button>
+              <input
+                type="range"
+                min={0}
+                max={Math.max(1, effectiveTotalSec)}
+                step={0.5}
+                value={Math.min(effectiveTotalSec, elapsedSec)}
+                onPointerDown={() => {
+                  setIsScrubbing(true);
+                  clearRevealTimer();
+                }}
+                onPointerUp={() => {
+                  setIsScrubbing(false);
+                  if (!isHovering) revealTimelineTemporarily(3500);
+                }}
+                onPointerCancel={() => {
+                  setIsScrubbing(false);
+                }}
+                onTouchStart={() => {
+                  setIsScrubbing(true);
+                  clearRevealTimer();
+                }}
+                onTouchEnd={() => {
+                  setIsScrubbing(false);
+                  revealTimelineTemporarily(3500);
+                }}
+                onBlur={() => {
+                  setIsScrubbing(false);
+                }}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  if (reel.sourceType === "video") handleSeekVideo(val);
+                  else handleSeekLesson(val);
+                }}
+                aria-label="Seek clip timeline"
+                className="h-1 flex-1 cursor-pointer accent-amber-400"
+              />
+              <span className="text-[11px] font-medium text-slate-300 tabular-nums shrink-0">
+                {formatReelDuration(elapsedSec)} / {formatReelDuration(effectiveTotalSec)}
+              </span>
+            </div>
           </div>
         )}
       </div>
@@ -815,6 +974,9 @@ export default function ReelsPage({
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [shareReel, setShareReel] = useState<StudyReel | null>(null);
   const [shareNoteCopied, setShareNoteCopied] = useState<boolean>(false);
+  const [deleteTargetReel, setDeleteTargetReel] = useState<StudyReel | null>(null);
+  const [deletingReel, setDeletingReel] = useState<boolean>(false);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState<boolean>(false);
 
   // Desktop companion & mobile bottom sheet
   const [companionTab, setCompanionTab] = useState<CompanionTab>("quiz");
@@ -849,6 +1011,12 @@ export default function ReelsPage({
   const [posting, setPosting] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  const feedScrollRef = useRef<HTMLDivElement | null>(null);
+  const isProgrammaticScrollRef = useRef<boolean>(false);
+  const programmaticTimerRef = useRef<number | null>(null);
+  const scrollSettleTimerRef = useRef<number | null>(null);
+  const initialReelTargetRef = useRef<string | null>(initialReelId);
+
   useEffect(() => {
     let active = true;
     studyReelsModel.getReels().then((loaded) => {
@@ -857,7 +1025,10 @@ export default function ReelsPage({
       setLoading(false);
       if (initialReelId) {
         const idx = loaded.findIndex((r) => r.id === initialReelId);
-        if (idx >= 0) setActiveIndex(idx);
+        if (idx >= 0) {
+          setActiveIndex(idx);
+          initialReelTargetRef.current = initialReelId;
+        }
       }
     });
     return () => {
@@ -883,6 +1054,105 @@ export default function ReelsPage({
     }
   }, [activeIndex, filteredReels.length]);
 
+  const scrollToReelIndex = useCallback(
+    (idx: number, behavior: ScrollBehavior = "smooth") => {
+      const clamped = Math.max(0, Math.min(Math.max(0, filteredReels.length - 1), idx));
+      setActiveIndex(clamped);
+      const el = feedScrollRef.current;
+      if (!el) return;
+      const slideHeight = el.clientHeight;
+      if (slideHeight <= 0) return;
+      if (programmaticTimerRef.current) {
+        window.clearTimeout(programmaticTimerRef.current);
+      }
+      if (behavior === "smooth") {
+        isProgrammaticScrollRef.current = true;
+        programmaticTimerRef.current = window.setTimeout(() => {
+          isProgrammaticScrollRef.current = false;
+        }, 450);
+      } else {
+        isProgrammaticScrollRef.current = false;
+      }
+      el.scrollTo({ top: clamped * slideHeight, behavior });
+    },
+    [filteredReels.length]
+  );
+
+  // Jump immediately to initial deep-linked reel once feed container renders
+  useEffect(() => {
+    if (loading || !initialReelTargetRef.current) return;
+    const targetId = initialReelTargetRef.current;
+    const idx = filteredReels.findIndex((r) => r.id === targetId);
+    initialReelTargetRef.current = null;
+    if (idx > 0) {
+      window.requestAnimationFrame(() => {
+        scrollToReelIndex(idx, "auto");
+      });
+    }
+  }, [loading, filteredReels, scrollToReelIndex]);
+
+  const syncActiveIndexFromScroll = useCallback(() => {
+    const el = feedScrollRef.current;
+    if (!el || el.clientHeight <= 0 || filteredReels.length === 0) return;
+    const nextIdx = Math.round(el.scrollTop / el.clientHeight);
+    const clamped = Math.max(0, Math.min(filteredReels.length - 1, nextIdx));
+    setActiveIndex((prev) => (prev === clamped ? prev : clamped));
+  }, [filteredReels.length]);
+
+  const handleFeedScroll = useCallback(() => {
+    if (isProgrammaticScrollRef.current) return;
+    if (scrollSettleTimerRef.current) {
+      window.clearTimeout(scrollSettleTimerRef.current);
+    }
+    scrollSettleTimerRef.current = window.setTimeout(() => {
+      syncActiveIndexFromScroll();
+    }, 90);
+  }, [syncActiveIndexFromScroll]);
+
+  // Listen for native scrollend and preserve slide alignment on container resize
+  useEffect(() => {
+    const el = feedScrollRef.current;
+    if (!el) return undefined;
+
+    const onScrollEnd = () => {
+      if (programmaticTimerRef.current) {
+        window.clearTimeout(programmaticTimerRef.current);
+      }
+      if (scrollSettleTimerRef.current) {
+        window.clearTimeout(scrollSettleTimerRef.current);
+      }
+      isProgrammaticScrollRef.current = false;
+      syncActiveIndexFromScroll();
+    };
+
+    el.addEventListener("scrollend", onScrollEnd);
+
+    let lastHeight = el.clientHeight;
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(() => {
+        const nextHeight = el.clientHeight;
+        if (nextHeight > 0 && nextHeight !== lastHeight) {
+          lastHeight = nextHeight;
+          el.scrollTo({ top: activeIndex * nextHeight, behavior: "auto" });
+        }
+      });
+      resizeObserver.observe(el);
+    }
+
+    return () => {
+      el.removeEventListener("scrollend", onScrollEnd);
+      resizeObserver?.disconnect();
+    };
+  }, [activeIndex, syncActiveIndexFromScroll, loading, filteredReels.length]);
+
+  useEffect(() => {
+    return () => {
+      if (programmaticTimerRef.current) window.clearTimeout(programmaticTimerRef.current);
+      if (scrollSettleTimerRef.current) window.clearTimeout(scrollSettleTimerRef.current);
+    };
+  }, []);
+
   const activeReel = filteredReels[activeIndex] || null;
   const liveNowCount = useMemo(
     () => reels.filter((r) => r.kind === "live" && r.liveStatus === "live").length,
@@ -890,17 +1160,21 @@ export default function ReelsPage({
   );
 
   const goPrev = useCallback(() => {
-    setActiveIndex((idx) => Math.max(0, idx - 1));
-  }, []);
+    scrollToReelIndex(activeIndex - 1, "smooth");
+  }, [activeIndex, scrollToReelIndex]);
 
   const goNext = useCallback(() => {
-    setActiveIndex((idx) => Math.min(Math.max(0, filteredReels.length - 1), idx + 1));
-  }, [filteredReels.length]);
+    scrollToReelIndex(activeIndex + 1, "smooth");
+  }, [activeIndex, scrollToReelIndex]);
 
   // Keyboard navigation when not typing & Escape to close overlays
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        if (deleteTargetReel && !deletingReel) {
+          setDeleteTargetReel(null);
+          return;
+        }
         if (shareReel) {
           setShareReel(null);
           return;
@@ -921,6 +1195,7 @@ export default function ReelsPage({
         e.metaKey ||
         e.ctrlKey ||
         e.altKey ||
+        deleteTargetReel ||
         composerOpen ||
         shareReel ||
         mobileSheetOpen ||
@@ -943,32 +1218,17 @@ export default function ReelsPage({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [composerOpen, mobileSheetOpen, shareReel, goNext, goPrev]);
+  }, [composerOpen, deleteTargetReel, deletingReel, mobileSheetOpen, shareReel, goNext, goPrev]);
 
   // Lock background scroll while full-screen modal / bottom sheet is open
   useEffect(() => {
-    if (!composerOpen && !mobileSheetOpen && !shareReel) return;
+    if (!composerOpen && !mobileSheetOpen && !shareReel && !deleteTargetReel) return;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = prevOverflow;
     };
-  }, [composerOpen, mobileSheetOpen, shareReel]);
-
-  // Touch swipe vertical navigation on the stage
-  const touchStartY = useRef<number | null>(null);
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartY.current = e.touches[0]?.clientY ?? null;
-  };
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartY.current == null) return;
-    const endY = e.changedTouches[0]?.clientY ?? touchStartY.current;
-    const delta = touchStartY.current - endY;
-    touchStartY.current = null;
-    if (Math.abs(delta) < 48) return;
-    if (delta > 0) goNext();
-    else goPrev();
-  };
+  }, [composerOpen, mobileSheetOpen, shareReel, deleteTargetReel]);
 
   const handleToggleLike = (reelId: string) => {
     const res = studyReelsModel.toggleLike(reelId);
@@ -1035,9 +1295,16 @@ export default function ReelsPage({
     }
   };
 
-  const handleDeleteReel = async (reelId: string) => {
-    await studyReelsModel.deleteReel(reelId);
-    setReels((prev) => prev.filter((r) => r.id !== reelId));
+  const handleConfirmDeleteReel = async () => {
+    if (!deleteTargetReel || deletingReel) return;
+    setDeletingReel(true);
+    try {
+      await studyReelsModel.deleteReel(deleteTargetReel.id);
+      setReels((prev) => prev.filter((r) => r.id !== deleteTargetReel.id));
+      setDeleteTargetReel(null);
+    } finally {
+      setDeletingReel(false);
+    }
   };
 
   const handleAddComment = (e: React.FormEvent) => {
@@ -1205,7 +1472,7 @@ export default function ReelsPage({
       setFeedMode("all");
       setTopicFilter("all");
       setSearch("");
-      setActiveIndex(0);
+      scrollToReelIndex(0, "auto");
       setComposerOpen(false);
       setPostTitle("");
       setPostDescription("");
@@ -1603,7 +1870,7 @@ export default function ReelsPage({
                     key={item.id}
                     type="button"
                     onClick={() => {
-                      setActiveIndex(idx);
+                      scrollToReelIndex(idx, "smooth");
                       setMobileSheetOpen(false);
                     }}
                     className={`flex w-full items-start justify-between gap-3 rounded-xl border p-3 text-left transition-colors cursor-pointer ${
@@ -1649,11 +1916,13 @@ export default function ReelsPage({
     );
   };
 
+  const hasActiveSearchOrTopic = topicFilter !== "all" || search.trim().length > 0;
+
   return (
-    <div className="fu space-y-2.5 pb-4">
-      {/* Compact Single-Row Workspace Header + Toolbar */}
-      <div className="flex flex-col gap-2 border-b border-qb-border pb-2.5 xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 min-w-0">
+    <div className="fu relative flex h-full min-h-0 flex-col gap-1.5 sm:gap-2.5 overflow-hidden">
+      {/* Compact Workspace Header + Toolbar */}
+      <div className="shrink-0 relative z-30 flex flex-col gap-1.5 sm:gap-2 border-b border-qb-border pb-1 sm:pb-2 xl:flex-row xl:items-center xl:justify-between">
+        <div className="hidden sm:flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 min-w-0">
           <h1 className="text-base sm:text-lg font-extrabold tracking-tight text-qb-heading whitespace-nowrap">
             Micro-Lessons & Live Coaching
           </h1>
@@ -1671,7 +1940,132 @@ export default function ReelsPage({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Mobile Ultra-Compact Single-Row Top Bar */}
+        <div className="flex sm:hidden items-center justify-between gap-2 h-8">
+          <div
+            className="flex items-center gap-3 min-w-0 overflow-x-auto qb-no-scrollbar"
+            role="group"
+            aria-label="Filter feed type"
+          >
+            {(
+              [
+                { id: "all", label: "All" },
+                { id: "shorts", label: "Shorts" },
+                { id: "live", label: "Live" },
+                { id: "saved", label: "Saved" },
+              ] as const
+            ).map((tab) => {
+              const active = feedMode === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => {
+                    setFeedMode(tab.id);
+                    scrollToReelIndex(0, "auto");
+                  }}
+                  className={`relative flex h-8 items-center px-0.5 text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
+                    active ? "text-qb-heading" : "text-qb-muted hover:text-qb-heading"
+                  }`}
+                >
+                  <span>{tab.label}</span>
+                  {active && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute bottom-0 left-0 right-0 h-[2px] rounded-full bg-amber-400"
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => setMobileFiltersOpen((prev) => !prev)}
+              aria-expanded={mobileFiltersOpen}
+              aria-label="Search and subject filter"
+              title="Search & Filter"
+              className={`relative inline-flex h-7 w-7 items-center justify-center rounded-lg border transition-colors cursor-pointer ${
+                mobileFiltersOpen || hasActiveSearchOrTopic
+                  ? "border-amber-500/60 bg-amber-500/15 text-amber-300 light:text-amber-700"
+                  : "border-qb-border bg-qb-input text-qb-muted hover:text-qb-heading"
+              }`}
+            >
+              {mobileFiltersOpen ? <X size={14} /> : <Search size={14} />}
+              {hasActiveSearchOrTopic && !mobileFiltersOpen && (
+                <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-amber-400" />
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setMobileFiltersOpen(false);
+                setComposerOpen(true);
+              }}
+              className="inline-flex h-7 items-center justify-center gap-1 rounded-lg bg-amber-500 px-2.5 text-[11px] font-bold text-[#070c18] hover:bg-amber-400 transition-colors cursor-pointer whitespace-nowrap shrink-0"
+            >
+              <Plus size={13} />
+              <span>Post</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Floating Search & Subject Popover (takes 0px vertical space when closed) */}
+        {mobileFiltersOpen && (
+          <div className="sm:hidden absolute top-full left-0 right-0 mt-1.5 z-40 rounded-xl border border-qb-border bg-qb-surface/95 backdrop-blur-md p-2 shadow-xl space-y-2">
+            <div className="flex items-center gap-1.5">
+              <div className="w-[132px] shrink-0 [&_.qb-select-btn]:!min-h-[34px] [&_.qb-select-btn]:!h-[34px] [&_.qb-select-btn]:!py-1 [&_.qb-select-btn]:!px-2.5 [&_.qb-select-btn]:!rounded-lg [&_.qb-select-btn]:!text-[11px]">
+                <CustomSelect
+                  value={topicFilter}
+                  onChange={(val) => {
+                    setTopicFilter(val);
+                    scrollToReelIndex(0, "auto");
+                  }}
+                  options={topicSelectOptions}
+                  placeholder="All Subjects"
+                />
+              </div>
+
+              <div className="relative flex-1 min-w-0">
+                <Search
+                  size={13}
+                  className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-qb-muted"
+                />
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    scrollToReelIndex(0, "auto");
+                  }}
+                  placeholder="Search clips..."
+                  aria-label="Search clips or live streams"
+                  className="h-[34px] w-full rounded-lg border border-qb-border bg-qb-input pl-8 pr-2.5 text-[11px] text-qb-heading placeholder:text-qb-muted focus:border-amber-500/60 focus:outline-none"
+                />
+              </div>
+
+              {hasActiveSearchOrTopic && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTopicFilter("all");
+                    setSearch("");
+                    scrollToReelIndex(0, "auto");
+                  }}
+                  className="h-[34px] shrink-0 rounded-lg border border-qb-border bg-qb-input px-2 text-[11px] font-semibold text-qb-muted hover:text-qb-heading cursor-pointer"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Desktop / Tablet Full Toolbar */}
+        <div className="hidden sm:flex flex-wrap items-center gap-2">
           {/* Segmented Feed Mode */}
           <div
             className="inline-flex h-[36px] items-center gap-0.5 rounded-xl border border-qb-border bg-qb-input p-0.5"
@@ -1691,7 +2085,7 @@ export default function ReelsPage({
                 type="button"
                 onClick={() => {
                   setFeedMode(tab.id);
-                  setActiveIndex(0);
+                  scrollToReelIndex(0, "auto");
                 }}
                 className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
                   feedMode === tab.id
@@ -1704,19 +2098,19 @@ export default function ReelsPage({
             ))}
           </div>
 
-          <div className="w-[148px] sm:w-[158px] [&_.qb-select-btn]:!min-h-[36px] [&_.qb-select-btn]:!h-[36px] [&_.qb-select-btn]:!py-1 [&_.qb-select-btn]:!px-2.5 [&_.qb-select-btn]:!rounded-xl [&_.qb-select-btn]:!text-xs">
+          <div className="w-[158px] shrink-0 [&_.qb-select-btn]:!min-h-[36px] [&_.qb-select-btn]:!h-[36px] [&_.qb-select-btn]:!py-1 [&_.qb-select-btn]:!px-2.5 [&_.qb-select-btn]:!rounded-xl [&_.qb-select-btn]:!text-xs">
             <CustomSelect
               value={topicFilter}
               onChange={(val) => {
                 setTopicFilter(val);
-                setActiveIndex(0);
+                scrollToReelIndex(0, "auto");
               }}
               options={topicSelectOptions}
               placeholder="All Subjects"
             />
           </div>
 
-          <div className="relative flex-1 min-w-[140px] sm:flex-initial sm:w-44">
+          <div className="relative flex-initial w-44">
             <Search
               size={13}
               className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-qb-muted"
@@ -1726,7 +2120,7 @@ export default function ReelsPage({
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
-                setActiveIndex(0);
+                scrollToReelIndex(0, "auto");
               }}
               placeholder="Search clips..."
               aria-label="Search clips or live streams"
@@ -1747,14 +2141,14 @@ export default function ReelsPage({
 
       {/* Main Theater + Companion Grid */}
       {loading ? (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-          <div className="lg:col-span-6 xl:col-span-7 flex justify-center">
-            <div className="h-[min(77vh,720px)] w-full max-w-[400px] animate-pulse rounded-2xl border border-qb-border bg-qb-surface" />
+        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+          <div className="lg:col-span-6 xl:col-span-7 flex h-full min-h-0 justify-center">
+            <div className="h-full w-full max-w-[440px] lg:max-w-[410px] animate-pulse rounded-2xl border border-qb-border bg-qb-surface" />
           </div>
-          <div className="hidden lg:block lg:col-span-6 xl:col-span-5 h-[min(77vh,720px)] animate-pulse rounded-2xl border border-qb-border bg-qb-surface" />
+          <div className="hidden lg:block lg:col-span-6 xl:col-span-5 h-full animate-pulse rounded-2xl border border-qb-border bg-qb-surface" />
         </div>
       ) : filteredReels.length === 0 ? (
-        <div className="rounded-2xl border border-qb-border bg-qb-surface p-10 text-center space-y-3">
+        <div className="flex-1 min-h-0 flex flex-col items-center justify-center rounded-2xl border border-qb-border bg-qb-surface p-8 sm:p-10 text-center space-y-3">
           <Clapperboard size={28} className="mx-auto text-qb-accent" />
           <h2 className="text-lg font-bold text-qb-heading">No matching clips or live sessions</h2>
           <p className="text-xs sm:text-sm text-qb-muted max-w-md mx-auto">
@@ -1767,6 +2161,7 @@ export default function ReelsPage({
                 setFeedMode("all");
                 setTopicFilter("all");
                 setSearch("");
+                scrollToReelIndex(0, "auto");
               }}
               className="rounded-xl border border-qb-border bg-qb-input px-4 py-2 text-xs font-bold text-qb-heading hover:bg-qb-surface-hover cursor-pointer"
             >
@@ -1782,81 +2177,60 @@ export default function ReelsPage({
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-          {/* Left / Center: Vertical 9:16 Reels Stage + Up/Down Controls */}
-          <div className="lg:col-span-6 xl:col-span-7 flex items-center justify-center gap-3">
+        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5 items-stretch">
+          {/* Left / Center: Native CSS Scroll-Snap Vertical Reels Stage */}
+          <div className="lg:col-span-6 xl:col-span-7 flex h-full min-h-0 justify-center">
             <div
-              className="relative h-[min(77vh,720px)] w-full max-w-[410px] aspect-[9/16]"
-              onTouchStart={handleTouchStart}
-              onTouchEnd={handleTouchEnd}
+              ref={feedScrollRef}
+              onScroll={handleFeedScroll}
+              aria-label="Vertical study reels feed"
+              className="qb-reels-snap-feed h-full w-full max-w-[440px] lg:max-w-[410px] min-h-0 overflow-y-auto overscroll-y-contain rounded-2xl"
             >
-              {activeReel && (
-                <ReelStageCard
-                  key={activeReel.id}
-                  reel={activeReel}
-                  isActive={true}
-                  isMuted={isMuted}
-                  playbackRate={playbackRate}
-                  liked={likedIds.has(activeReel.id)}
-                  bookmarked={bookmarkedIds.has(activeReel.id)}
-                  reminded={reminderIds.has(activeReel.id)}
-                  commentCount={(commentsByReel[activeReel.id] || []).length}
-                  copiedId={copiedId}
-                  canDelete={
-                    !activeReel.isStarter &&
-                    (isAdmin ||
-                      (currentUser?.id && activeReel.userId === currentUser.id) ||
-                      activeReel.userId === "local_user")
-                  }
-                  liteMode={liteMode}
-                  onToggleMute={() => setIsMuted((m) => !m)}
-                  onCycleRate={() =>
-                    setPlaybackRate((r) => (r === 1 ? 1.25 : r === 1.25 ? 1.5 : 1))
-                  }
-                  onToggleLike={() => handleToggleLike(activeReel.id)}
-                  onToggleBookmark={() => handleToggleBookmark(activeReel.id)}
-                  onToggleReminder={() => handleToggleReminder(activeReel.id)}
-                  onShare={() => handleShareReel(activeReel)}
-                  onOpenCompanion={(tab) => {
-                    setCompanionTab(tab);
-                    setMobileSheetOpen(true);
-                  }}
-                  onDelete={() => handleDeleteReel(activeReel.id)}
-                />
-              )}
-            </div>
-
-            {/* Vertical Reel Stepper Buttons */}
-            <div className="flex flex-col items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={goPrev}
-                disabled={activeIndex === 0}
-                aria-label="Previous reel"
-                title="Previous clip (Up arrow)"
-                className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-qb-border bg-qb-surface text-qb-heading hover:bg-qb-surface-hover disabled:opacity-30 transition-colors cursor-pointer"
-              >
-                <ChevronUp size={20} />
-              </button>
-              <span className="text-[11px] font-bold text-qb-muted tabular-nums">
-                {activeIndex + 1}/{filteredReels.length}
-              </span>
-              <button
-                type="button"
-                onClick={goNext}
-                disabled={activeIndex >= filteredReels.length - 1}
-                aria-label="Next reel"
-                title="Next clip (Down arrow)"
-                className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-qb-border bg-qb-surface text-qb-heading hover:bg-qb-surface-hover disabled:opacity-30 transition-colors cursor-pointer"
-              >
-                <ChevronDown size={20} />
-              </button>
+              {filteredReels.map((reel, idx) => (
+                <div
+                  key={reel.id}
+                  className="h-full w-full shrink-0 snap-start snap-always"
+                >
+                  <ReelStageCard
+                    reel={reel}
+                    isActive={idx === activeIndex}
+                    shouldMountMedia={Math.abs(idx - activeIndex) <= 1}
+                    isMuted={isMuted}
+                    playbackRate={playbackRate}
+                    liked={likedIds.has(reel.id)}
+                    bookmarked={bookmarkedIds.has(reel.id)}
+                    reminded={reminderIds.has(reel.id)}
+                    commentCount={(commentsByReel[reel.id] || []).length}
+                    copiedId={copiedId}
+                    canDelete={
+                      !reel.isStarter &&
+                      (isAdmin ||
+                        (currentUser?.id && reel.userId === currentUser.id) ||
+                        reel.userId === "local_user")
+                    }
+                    liteMode={liteMode}
+                    onToggleMute={() => setIsMuted((m) => !m)}
+                    onCycleRate={() =>
+                      setPlaybackRate((r) => (r === 1 ? 1.25 : r === 1.25 ? 1.5 : 1))
+                    }
+                    onToggleLike={() => handleToggleLike(reel.id)}
+                    onToggleBookmark={() => handleToggleBookmark(reel.id)}
+                    onToggleReminder={() => handleToggleReminder(reel.id)}
+                    onShare={() => handleShareReel(reel)}
+                    onOpenCompanion={(tab) => {
+                      setCompanionTab(tab);
+                      setMobileSheetOpen(true);
+                    }}
+                    onDelete={() => setDeleteTargetReel(reel)}
+                  />
+                </div>
+              ))}
             </div>
           </div>
 
           {/* Right Companion Panel (Desktop/Tablet Large) */}
           <aside
-            className="hidden lg:flex lg:col-span-6 xl:col-span-5 h-[min(77vh,720px)] flex-col overflow-hidden rounded-2xl border border-qb-border bg-qb-surface p-4 sm:p-5"
+            className="hidden lg:flex lg:col-span-6 xl:col-span-5 h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-qb-border bg-qb-surface p-4 sm:p-5"
             aria-label="Study companion and live Q&A"
           >
             {renderCompanionContent()}
@@ -2470,6 +2844,81 @@ export default function ReelsPage({
                       <span>Open Original Video Source</span>
                     </a>
                   )}
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.querySelector(".qb") || document.body
+        )}
+
+      {/* Delete Clip Confirmation Modal */}
+      {deleteTargetReel &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className={`fixed inset-0 z-[720] flex items-center justify-center p-4 ${
+              liteMode ? "bg-black/80" : "bg-slate-950/75 backdrop-blur-md"
+            }`}
+            onClick={() => {
+              if (!deletingReel) setDeleteTargetReel(null);
+            }}
+          >
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="delete-reel-modal-title"
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm overflow-hidden rounded-2xl border border-qb-border bg-qb-surface shadow-[0_28px_75px_rgba(0,0,0,0.65)]"
+            >
+              <div className="flex items-center justify-between gap-3 border-b border-qb-border px-5 py-3.5">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Trash2 size={16} className="text-rose-400 shrink-0" />
+                  <h2 id="delete-reel-modal-title" className="text-sm sm:text-base font-extrabold text-qb-heading truncate">
+                    Delete Study Clip
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  disabled={deletingReel}
+                  onClick={() => setDeleteTargetReel(null)}
+                  aria-label="Close delete dialog"
+                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-qb-border bg-qb-input text-qb-muted hover:text-qb-heading disabled:opacity-50 cursor-pointer"
+                >
+                  <X size={15} />
+                </button>
+              </div>
+
+              <div className="space-y-3.5 p-5">
+                <div className="rounded-xl border border-qb-border bg-qb-input p-3 space-y-1">
+                  <div className="text-[11px] font-semibold" style={{ color: getTopicMeta(deleteTargetReel.topic).color }}>
+                    {getTopicMeta(deleteTargetReel.topic).label} · {deleteTargetReel.label}
+                  </div>
+                  <div className="text-xs sm:text-sm font-bold text-qb-heading line-clamp-2">
+                    {deleteTargetReel.title}
+                  </div>
+                </div>
+
+                <p className="text-xs leading-relaxed text-qb-muted">
+                  Are you sure you want to permanently remove this clip from Study Reels? This action cannot be undone.
+                </p>
+
+                <div className="flex items-center justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    disabled={deletingReel}
+                    onClick={() => setDeleteTargetReel(null)}
+                    className="rounded-xl border border-qb-border bg-qb-input px-4 py-2 text-xs font-bold text-qb-heading hover:bg-qb-surface-hover disabled:opacity-50 transition-colors cursor-pointer min-h-[38px]"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={deletingReel}
+                    onClick={handleConfirmDeleteReel}
+                    className="rounded-xl bg-rose-600 px-4 py-2 text-xs font-bold text-white hover:bg-rose-500 disabled:opacity-50 transition-colors cursor-pointer min-h-[38px]"
+                  >
+                    {deletingReel ? "Deleting..." : "Delete Clip"}
+                  </button>
                 </div>
               </div>
             </div>

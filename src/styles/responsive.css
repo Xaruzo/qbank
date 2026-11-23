@@ -2570,3 +2570,59 @@ body.light .qb-timer-icon {
   }
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   MOBILE THIN OVERLAY SCROLLBAR MODE (<= 768px)
+   Hides permanent native tracks & arrows on body/main scrollers (handled by
+   MobileScrollIndicator fade-on-scroll pill), EXCEPT dropdown menus.
+   ══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  html,
+  body,
+  .qb-main,
+  .qb.light .qb-main,
+  .qb-landing-scroll,
+  .qb-landing-root.light .qb-landing-scroll,
+  .qb-signin-scroll,
+  .qb-signin-root.light .qb-signin-scroll,
+  .qb-det-card-scroll,
+  .qb-exam-card-scroll,
+  .qb-side-drawer,
+  .qb .overflow-y-auto:not(.qb-select-menu-scroll),
+  .qb *:not(.qb-select-menu-scroll):not(.qb-select-menu-scroll *),
+  .qb-landing-root *:not(.qb-select-menu-scroll):not(.qb-select-menu-scroll *),
+  .qb-signin-root *:not(.qb-select-menu-scroll):not(.qb-select-menu-scroll *) {
+    scrollbar-width: none !important;
+    scrollbar-color: transparent transparent !important;
+    -ms-overflow-style: none !important;
+  }
+
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar,
+  .qb-main::-webkit-scrollbar,
+  .qb-landing-scroll::-webkit-scrollbar,
+  .qb-signin-scroll::-webkit-scrollbar,
+  .qb-det-card-scroll::-webkit-scrollbar,
+  .qb-exam-card-scroll::-webkit-scrollbar,
+  .qb-side-drawer::-webkit-scrollbar,
+  .qb *:not(.qb-select-menu-scroll)::-webkit-scrollbar,
+  .qb-landing-root *:not(.qb-select-menu-scroll)::-webkit-scrollbar,
+  .qb-signin-root *:not(.qb-select-menu-scroll)::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+  }
+
+  html::-webkit-scrollbar-button,
+  body::-webkit-scrollbar-button,
+  .qb-main::-webkit-scrollbar-button,
+  .qb-landing-scroll::-webkit-scrollbar-button,
+  .qb-signin-scroll::-webkit-scrollbar-button,
+  .qb *:not(.qb-select-menu-scroll)::-webkit-scrollbar-button,
+  .qb-landing-root *:not(.qb-select-menu-scroll)::-webkit-scrollbar-button,
+  .qb-signin-root *:not(.qb-select-menu-scroll)::-webkit-scrollbar-button {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+}
