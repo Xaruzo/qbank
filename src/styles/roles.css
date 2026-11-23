@@ -237,7 +237,7 @@
 
 .qb-roster-list-scroll {
   flex: 1;
-  min-height: 220px;
+  min-height: 0;
   max-height: 386px;
   overflow-y: auto;
   overflow-x: hidden;
@@ -1002,7 +1002,7 @@
   }
 
   .qb-roster-list-scroll {
-    min-height: 200px;
+    min-height: 0;
     max-height: 440px;
   }
 

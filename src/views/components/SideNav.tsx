@@ -592,9 +592,16 @@ export default function SideNav({
               {profile?.email || (isAuthenticated ? "Online Account" : "Local Workspace")}
             </span>
             <div className="qb-profile-popover-persona-line">
-              <span className="persona-label">Persona:</span>
-              <span className="persona-val">
-                {profile?.examTarget === "subprofessional" ? "Subprofessional · 165 Qs" : "Professional · 170 Qs"}
+              <span className="persona-label">Target:</span>
+              <span
+                className="persona-val"
+                title={
+                  profile?.examTarget === "subprofessional"
+                    ? "Subprofessional · 165 Qs"
+                    : "Professional · 170 Qs"
+                }
+              >
+                {profile?.examTarget === "subprofessional" ? "Sub-Pro · 165 Qs" : "Pro · 170 Qs"}
               </span>
             </div>
           </div>

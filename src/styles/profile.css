@@ -384,15 +384,22 @@
   gap: 4px;
   font-size: 10.5px;
   margin-top: 1px;
+  min-width: 0;
+  white-space: nowrap;
 }
 
 .qb-profile-popover-persona-line .persona-label {
   color: var(--text-muted);
+  flex-shrink: 0;
 }
 
 .qb-profile-popover-persona-line .persona-val {
   color: #f5a623;
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .qb-profile-popover-divider {

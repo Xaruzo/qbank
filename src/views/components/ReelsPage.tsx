@@ -2864,28 +2864,17 @@ export default function ReelsPage({
             }}
           >
             <div
-              role="dialog"
+              role="alertdialog"
               aria-modal="true"
               aria-labelledby="delete-reel-modal-title"
               onClick={(e) => e.stopPropagation()}
               className="w-full max-w-sm overflow-hidden rounded-2xl border border-qb-border bg-qb-surface shadow-[0_28px_75px_rgba(0,0,0,0.65)]"
             >
-              <div className="flex items-center justify-between gap-3 border-b border-qb-border px-5 py-3.5">
-                <div className="flex items-center gap-2 min-w-0">
-                  <Trash2 size={16} className="text-rose-400 shrink-0" />
-                  <h2 id="delete-reel-modal-title" className="text-sm sm:text-base font-extrabold text-qb-heading truncate">
-                    Delete Study Clip
-                  </h2>
-                </div>
-                <button
-                  type="button"
-                  disabled={deletingReel}
-                  onClick={() => setDeleteTargetReel(null)}
-                  aria-label="Close delete dialog"
-                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-qb-border bg-qb-input text-qb-muted hover:text-qb-heading disabled:opacity-50 cursor-pointer"
-                >
-                  <X size={15} />
-                </button>
+              <div className="flex items-center gap-2 border-b border-qb-border px-5 py-3.5">
+                <Trash2 size={16} className="text-rose-400 shrink-0" />
+                <h2 id="delete-reel-modal-title" className="text-sm sm:text-base font-extrabold text-qb-heading truncate">
+                  Delete Study Clip
+                </h2>
               </div>
 
               <div className="space-y-3.5 p-5">
