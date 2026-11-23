@@ -805,7 +805,20 @@
 
 .qb-exam-qgrid-hs { font-family:'Fira Mono',monospace; font-size:10px; color:var(--text-muted); border:1px solid var(--border); background:var(--input-bg); padding:4px 8px; border-radius:999px; }
 
-.qb-exam-qgrid { display:grid; grid-template-columns:repeat(5, 1fr); gap:6px; overflow:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; padding:6px 8px 12px; min-height:0; flex:1; max-height:none; align-content:start; }
+.qb-exam-qgrid { display:grid; grid-template-columns:repeat(5, 1fr); gap:6px; overflow:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; padding:6px 8px 12px; min-height:0; flex:1; max-height:none; align-content:start; scrollbar-width:auto; scrollbar-color:auto; }
+
+.qb-exam-qgrid::-webkit-scrollbar { width:5px; background:transparent; }
+.qb-exam-qgrid::-webkit-scrollbar-track { background:transparent; }
+.qb-exam-qgrid::-webkit-scrollbar-thumb { background:rgba(245, 166, 35, 0.45); border-radius:999px; }
+.qb-exam-qgrid::-webkit-scrollbar-thumb:hover { background:rgba(245, 166, 35, 0.85); }
+.light .qb-exam-qgrid::-webkit-scrollbar-thumb { background:rgba(15, 23, 42, 0.28); }
+.light .qb-exam-qgrid::-webkit-scrollbar-thumb:hover { background:rgba(15, 23, 42, 0.5); }
+.qb-exam-qgrid::-webkit-scrollbar-button { display:none !important; width:0 !important; height:0 !important; }
+
+@supports (-moz-appearance: none) {
+  .qb-exam-qgrid { scrollbar-width:thin; scrollbar-color:rgba(245, 166, 35, 0.45) transparent; }
+  .light .qb-exam-qgrid { scrollbar-color:rgba(15, 23, 42, 0.28) transparent; }
+}
 
 .qb-qnum-btn { height:40px; border-radius:10px; border:1px solid var(--border); background:var(--input-bg); color:var(--text-muted); font-family:'Fira Mono',monospace; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; }
 

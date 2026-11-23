@@ -1115,18 +1115,53 @@ body.light .qb-timer-icon {
     gap: 6px;
     max-height: 214px;
     overflow-y: auto;
-    padding-right: 4px;
+    padding-right: 6px;
     overscroll-behavior: contain;
+    scrollbar-width: auto;
+    scrollbar-color: auto;
   }
 
   .qb-det-rail-grid::-webkit-scrollbar {
-    width: 6px;
-    background: var(--scroll-track);
+    width: 5px;
+    background: transparent;
+  }
+
+  .qb-det-rail-grid::-webkit-scrollbar-track {
+    background: transparent;
   }
 
   .qb-det-rail-grid::-webkit-scrollbar-thumb {
-    background: var(--scroll-thumb);
+    background: rgba(245, 166, 35, 0.45);
     border-radius: 999px;
+  }
+
+  .qb-det-rail-grid::-webkit-scrollbar-thumb:hover {
+    background: rgba(245, 166, 35, 0.85);
+  }
+
+  .light .qb-det-rail-grid::-webkit-scrollbar-thumb {
+    background: rgba(15, 23, 42, 0.28);
+  }
+
+  .light .qb-det-rail-grid::-webkit-scrollbar-thumb:hover {
+    background: rgba(15, 23, 42, 0.5);
+  }
+
+  .qb-det-rail-grid::-webkit-scrollbar-button {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  @supports (-moz-appearance: none) {
+    .qb-det-rail-grid {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(245, 166, 35, 0.45) transparent;
+    }
+
+    .light .qb-det-rail-grid {
+      scrollbar-color: rgba(15, 23, 42, 0.28) transparent;
+    }
   }
 
   .qb-det-nav-cell {
