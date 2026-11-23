@@ -1,4 +1,5 @@
 import { supabase, isNetworkOrFetchError } from "../utils/supabaseClient";
+import { deleteStoredReelMedia, isIndexedDbReelUrl } from "../utils/reelStorage";
 import type { TopicId } from "../types";
 
 export type ReelKind = "short" | "live";
@@ -589,14 +590,15 @@ export const studyReelsModel = {
       createdAt: new Date().toISOString(),
     });
 
-    // Never persist ephemeral browser blob: URLs into localStorage or remote Supabase
+    // Never persist ephemeral browser blob: URLs; idb-reel:// and https:// URLs persist locally
     const isSessionBlob = Boolean(record.mediaUrl?.startsWith("blob:"));
+    const isLocalIndexedDb = isIndexedDbReelUrl(record.mediaUrl);
     if (!isSessionBlob) {
       const localCustom = readJsonArray<StudyReel>(CUSTOM_REELS_KEY).filter((r) => r.id !== record.id);
       writeJsonArray(CUSTOM_REELS_KEY, [record, ...localCustom]);
     }
 
-    if (supabase && user.id && user.id !== "local_user" && !isSessionBlob) {
+    if (supabase && user.id && user.id !== "local_user" && !isSessionBlob && !isLocalIndexedDb) {
       try {
         await supabase.from("study_reels").upsert(
           {
@@ -633,8 +635,14 @@ export const studyReelsModel = {
   },
 
   async deleteReel(id: string): Promise<void> {
-    const remaining = readJsonArray<StudyReel>(CUSTOM_REELS_KEY).filter((r) => r.id !== id);
+    const existing = readJsonArray<StudyReel>(CUSTOM_REELS_KEY);
+    const target = existing.find((r) => r.id === id);
+    const remaining = existing.filter((r) => r.id !== id);
     writeJsonArray(CUSTOM_REELS_KEY, remaining);
+
+    if (target?.mediaUrl) {
+      await deleteStoredReelMedia(target.mediaUrl);
+    }
 
     if (supabase) {
       try {

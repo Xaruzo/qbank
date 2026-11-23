@@ -27,7 +27,8 @@ function normalizeUrlCandidate(rawUrl: string): string {
     trimmed.startsWith("http://") ||
     trimmed.startsWith("https://") ||
     trimmed.startsWith("blob:") ||
-    trimmed.startsWith("data:")
+    trimmed.startsWith("data:") ||
+    trimmed.startsWith("idb-reel://")
   ) {
     return trimmed;
   }
@@ -87,7 +88,11 @@ export function parseVideoSource(rawUrl: string): ParsedVideoSource {
     };
   }
 
-  if (trimmed.startsWith("blob:") || trimmed.startsWith("data:video/")) {
+  if (
+    trimmed.startsWith("blob:") ||
+    trimmed.startsWith("data:video/") ||
+    trimmed.startsWith("idb-reel://")
+  ) {
     return {
       valid: true,
       sourceType: "video",

@@ -34,13 +34,21 @@ describe("reelMedia utilities", () => {
     }
   });
 
-  it("accepts direct video files and rejects invalid links cleanly", () => {
+  it("accepts direct video files, persisted idb-reel URLs, and rejects invalid links cleanly", () => {
     const mp4 = parseVideoSource("https://cdn.example.com/review/analogy-clip.mp4");
     expect(mp4).toEqual({
       valid: true,
       sourceType: "video",
       mediaUrl: "https://cdn.example.com/review/analogy-clip.mp4",
       providerLabel: "Direct Video",
+    });
+
+    const idbClip = parseVideoSource("idb-reel://clip_123456_abc");
+    expect(idbClip).toEqual({
+      valid: true,
+      sourceType: "video",
+      mediaUrl: "idb-reel://clip_123456_abc",
+      providerLabel: "Uploaded Video",
     });
 
     const invalid = parseVideoSource("not-a-url");

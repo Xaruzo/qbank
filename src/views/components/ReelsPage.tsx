@@ -57,6 +57,11 @@ import {
   formatLiveSchedule,
   filterStudyReels,
 } from "../../utils/reelMedia";
+import {
+  uploadReelVideo,
+  loadLocalReelVideoUrl,
+  isIndexedDbReelUrl,
+} from "../../utils/reelStorage";
 import CustomSelect from "./CustomSelect";
 import MarkdownText from "./MarkdownText";
 import type { Question, TopicId } from "../../types";
@@ -169,6 +174,9 @@ function ReelStageCard({
   const [elapsedSec, setElapsedSec] = useState<number>(0);
   const [videoDurationSec, setVideoDurationSec] = useState<number | null>(null);
   const [videoError, setVideoError] = useState<boolean>(false);
+  const [resolvedVideoSrc, setResolvedVideoSrc] = useState<string | null>(() =>
+    reel.mediaUrl && !isIndexedDbReelUrl(reel.mediaUrl) ? reel.mediaUrl : null
+  );
   const [confirmDelete, setConfirmDelete] = useState<boolean>(false);
 
   const parsedYouTube = useMemo(
@@ -267,10 +275,51 @@ function ReelStageCard({
     };
   }, [isActive, isPlaying, isMuted, currentStep.idx, currentStep.heading, currentStep.board, playbackRate, reel.sourceType]);
 
+  // Resolve persisted local IndexedDB clip URLs (idb-reel://...) into playable object URLs
+  useEffect(() => {
+    let cancelled = false;
+    let objectUrlToRevoke: string | null = null;
+
+    if (reel.sourceType !== "video" || !reel.mediaUrl) {
+      setResolvedVideoSrc(null);
+      return undefined;
+    }
+
+    if (!isIndexedDbReelUrl(reel.mediaUrl)) {
+      setResolvedVideoSrc(reel.mediaUrl);
+      return undefined;
+    }
+
+    setResolvedVideoSrc(null);
+    loadLocalReelVideoUrl(reel.mediaUrl)
+      .then((objUrl) => {
+        if (cancelled) {
+          if (objUrl && objUrl.startsWith("blob:")) URL.revokeObjectURL(objUrl);
+          return;
+        }
+        if (objUrl) {
+          objectUrlToRevoke = objUrl.startsWith("blob:") ? objUrl : null;
+          setResolvedVideoSrc(objUrl);
+        } else {
+          setVideoError(true);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setVideoError(true);
+      });
+
+    return () => {
+      cancelled = true;
+      if (objectUrlToRevoke) {
+        URL.revokeObjectURL(objectUrlToRevoke);
+      }
+    };
+  }, [reel.id, reel.sourceType, reel.mediaUrl]);
+
   // Sync HTML5 video playback with active state, mute, and rate
   useEffect(() => {
     const vid = videoRef.current;
-    if (!vid || reel.sourceType !== "video") return;
+    if (!vid || reel.sourceType !== "video" || !resolvedVideoSrc) return;
     vid.muted = isMuted;
     vid.playbackRate = playbackRate;
     if (isActive && isPlaying) {
@@ -278,7 +327,7 @@ function ReelStageCard({
     } else {
       vid.pause();
     }
-  }, [isActive, isPlaying, isMuted, playbackRate, reel.sourceType]);
+  }, [isActive, isPlaying, isMuted, playbackRate, reel.sourceType, resolvedVideoSrc]);
 
   const handleTogglePlay = () => {
     setIsPlaying((prev) => !prev);
@@ -443,11 +492,16 @@ function ReelStageCard({
                 This clip could not be loaded or is in an unsupported format.
               </p>
             </div>
+          ) : !resolvedVideoSrc ? (
+            <div className="flex flex-col items-center justify-center gap-2 px-6 text-center text-slate-300">
+              <Clapperboard size={24} className="animate-pulse text-amber-400" />
+              <p className="text-xs font-medium text-slate-300">Loading video clip…</p>
+            </div>
           ) : (
             <>
               <video
                 ref={videoRef}
-                src={reel.mediaUrl}
+                src={resolvedVideoSrc}
                 className="h-full w-full object-contain"
                 playsInline
                 loop={reel.kind === "short"}
@@ -782,6 +836,7 @@ export default function ReelsPage({
   const [postTopic, setPostTopic] = useState<TopicId>("analytical");
   const [postLabel, setPostLabel] = useState<string>("Word Analogy");
   const [postUrl, setPostUrl] = useState<string>("");
+  const [postVideoFile, setPostVideoFile] = useState<File | null>(null);
   const [postLiveStatus, setPostLiveStatus] = useState<LiveStatus>("live");
   const [postScheduledAt, setPostScheduledAt] = useState<string>("");
   const [postSlideText, setPostSlideText] = useState<string>(
@@ -1023,6 +1078,7 @@ export default function ReelsPage({
       URL.revokeObjectURL(postUrl);
     }
     const blobUrl = URL.createObjectURL(file);
+    setPostVideoFile(file);
     setPostUrl(blobUrl);
     setPostError("");
     if (!postTitle.trim()) {
@@ -1043,7 +1099,12 @@ export default function ReelsPage({
     let finalSourceType: ReelSourceType = postSourceType;
     let finalMediaUrl: string | undefined;
 
-    if (postSourceType === "youtube" || postSourceType === "video") {
+    if (postSourceType === "video") {
+      if (!postVideoFile && !postUrl.trim()) {
+        setPostError("Please choose a .mp4 or .webm video clip to upload.");
+        return;
+      }
+    } else if (postSourceType === "youtube") {
       const parsed = parseVideoSource(postUrl);
       if (!parsed.valid) {
         setPostError(parsed.error);
@@ -1085,6 +1146,22 @@ export default function ReelsPage({
 
     setPosting(true);
     try {
+      if (postSourceType === "video") {
+        if (postVideoFile) {
+          const uploaded = await uploadReelVideo(postVideoFile, currentUser?.id);
+          finalSourceType = "video";
+          finalMediaUrl = uploaded.mediaUrl;
+        } else {
+          const parsed = parseVideoSource(postUrl);
+          if (!parsed.valid || parsed.sourceType !== "video") {
+            setPostError("Please choose a valid .mp4 or .webm video clip.");
+            return;
+          }
+          finalSourceType = "video";
+          finalMediaUrl = parsed.mediaUrl;
+        }
+      }
+
       const created = await studyReelsModel.createReel(
         {
           kind: postKind,
@@ -1121,6 +1198,9 @@ export default function ReelsPage({
         }
       );
 
+      if (postUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(postUrl);
+      }
       setReels((prev) => [created, ...prev]);
       setFeedMode("all");
       setTopicFilter("all");
@@ -1130,8 +1210,11 @@ export default function ReelsPage({
       setPostTitle("");
       setPostDescription("");
       setPostUrl("");
+      setPostVideoFile(null);
       setPostQuizPrompt("");
       setPostQuizChoices(["", "", "", ""]);
+    } catch (err) {
+      setPostError(err instanceof Error ? err.message : "Could not save your video clip.");
     } finally {
       setPosting(false);
     }
@@ -1957,8 +2040,10 @@ export default function ReelsPage({
                           type="button"
                           onClick={() => {
                             if (postUrl.startsWith("blob:")) {
+                              URL.revokeObjectURL(postUrl);
                               setPostUrl("");
                             }
+                            setPostVideoFile(null);
                             setPostSourceType("youtube");
                             setPostError("");
                           }}
