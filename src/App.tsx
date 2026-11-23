@@ -12,6 +12,7 @@ import SideNav from "./views/components/SideNav";
 import MobileTabBar from "./views/components/MobileTabBar";
 import MobileScrollIndicator from "./views/components/MobileScrollIndicator";
 import { lazyWithRetry } from "./utils/lazyWithRetry";
+import { isFocusShellView } from "./utils/focusShell";
 
 import QuestionForm from "./views/components/QuestionForm";
 // Route-level code splitting: heavy screens (mock exam runner,
@@ -1109,43 +1110,47 @@ export default function App() {
   }
 
 
+  const isFocusShell = isFocusShellView(view);
+
   return (
-    <div className={`qb${isDark ? "" : " light"}`}>
+    <div className={`qb${isDark ? "" : " light"}${isFocusShell ? " qb-focus-shell" : ""}`}>
       <div className="qb-wrap">
-        <Header 
-          isDark={isDark} 
-          onToggleTheme={toggleTheme} 
-          onDashboard={handleGoDashboard}
-          onHome={handleGoHome}
-          onLanding={handleGoLanding}
-          currentView={view}
-          showNavToggle={true}
-          navOpen={navOpen}
-          onToggleNav={toggleNav}
-          authAvailable={authAvailable}
-          isAuthLoading={isAuthLoading}
-          isAuthenticated={isAuthenticated}
-          profile={profile}
-          onSignIn={handleSignIn}
-          onSignOut={handleSignOut}
-          onOpenHelp={handleOpenHelp}
-          onOpenSettings={handleGoSettings}
-          onMockExam={handleGoMockExam}
-          onTips={handleGoTips}
-          onNotes={handleGoNotes}
-          onFilterMissed={handleFilterMissed}
-          missedCount={masteryCounts.missed}
-          unseenCount={masteryCounts.unseen}
-          todayAnsweredCount={todayAnsweredCount}
-          dailyStudyGoal={dailyStudyGoal}
-          daysUntilExam={daysUntilExam}
-          hasResumableMock={hasResumableMock}
-          isOnline={isOnline}
-          pendingSyncCount={pendingSyncCount}
-        />
+        {!isFocusShell && (
+          <Header 
+            isDark={isDark} 
+            onToggleTheme={toggleTheme} 
+            onDashboard={handleGoDashboard}
+            onHome={handleGoHome}
+            onLanding={handleGoLanding}
+            currentView={view}
+            showNavToggle={true}
+            navOpen={navOpen}
+            onToggleNav={toggleNav}
+            authAvailable={authAvailable}
+            isAuthLoading={isAuthLoading}
+            isAuthenticated={isAuthenticated}
+            profile={profile}
+            onSignIn={handleSignIn}
+            onSignOut={handleSignOut}
+            onOpenHelp={handleOpenHelp}
+            onOpenSettings={handleGoSettings}
+            onMockExam={handleGoMockExam}
+            onTips={handleGoTips}
+            onNotes={handleGoNotes}
+            onFilterMissed={handleFilterMissed}
+            missedCount={masteryCounts.missed}
+            unseenCount={masteryCounts.unseen}
+            todayAnsweredCount={todayAnsweredCount}
+            dailyStudyGoal={dailyStudyGoal}
+            daysUntilExam={daysUntilExam}
+            hasResumableMock={hasResumableMock}
+            isOnline={isOnline}
+            pendingSyncCount={pendingSyncCount}
+          />
+        )}
 
         {/* Unified Overlay Navigation Drawer for Mobile & Tablet/Compact */}
-        {(isMobile || isCompact) && (
+        {!isFocusShell && (isMobile || isCompact) && (
           <SideNav
             variant="overlay"
             open={navOpen}
@@ -1177,7 +1182,7 @@ export default function App() {
         )}
 
         <div className="qb-shell">
-          {!isMobile && !isCompact && (
+          {!isFocusShell && !isMobile && !isCompact && (
             <SideNav
               variant="rail"
               open={navOpen}
