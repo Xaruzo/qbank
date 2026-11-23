@@ -1165,7 +1165,7 @@
   }
 }
 
-.qb-select-menu { position:absolute; left:0; right:0; top:calc(100% + 6px); background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:4px; box-shadow:0 18px 45px rgba(0,0,0,0.35); z-index:260; opacity:0; backdrop-filter:none; isolation:isolate; overflow:hidden; display:none; pointer-events:none; transition:opacity 0.12s ease, transform 0.12s ease; transform:translateY(-6px); }
+.qb-select-menu { position:absolute; left:0; right:0; top:calc(100% + 6px); background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:6px; box-shadow:0 18px 45px rgba(0,0,0,0.35); z-index:260; opacity:0; backdrop-filter:none; isolation:isolate; overflow:hidden; display:none; pointer-events:none; transition:opacity 0.12s ease, transform 0.12s ease; transform:translateY(-6px); }
 
 .qb-select-menu.open,
 .qb-select[data-open=true] .qb-select-menu { display:block; opacity:1; pointer-events:auto; transform:translateY(0); }
@@ -1182,70 +1182,129 @@
   overscroll-behavior:contain;
   -webkit-overflow-scrolling:touch;
   border-radius:8px;
-  padding-right:4px;
+  padding-right:5px;
   scrollbar-gutter:auto;
-  scrollbar-width:thin;
-  scrollbar-color:rgba(245, 166, 35, 0.58) #1a2842;
+  /* Reset inherited standard scrollbar-color/width so Chromium uses custom ::-webkit-scrollbar curved capsule styling */
+  scrollbar-width:auto;
+  scrollbar-color:auto;
 }
 
-.light .qb-select-menu-scroll {
-  scrollbar-color:rgba(15, 23, 42, 0.45) #cbd5e1;
+.qb-select-menu .qb-select-menu-scroll::-webkit-scrollbar {
+  width:12px;
+  background:transparent;
 }
 
-.qb-select-menu-scroll::-webkit-scrollbar {
-  width:10px;
-  background:#1a2842;
+.qb-select-menu .qb-select-menu-scroll::-webkit-scrollbar-track {
+  background:#131e33 !important;
+  background-color:#131e33 !important;
+  border-left:1px solid rgba(148, 163, 184, 0.24) !important;
+  border-right:1px solid rgba(148, 163, 184, 0.24) !important;
+  border-top:none !important;
+  border-bottom:none !important;
+  border-radius:0 !important;
 }
 
-.qb-select-menu-scroll::-webkit-scrollbar-track {
-  background:#1a2842 !important;
-  background-color:#1a2842 !important;
-  border-left:1px solid rgba(245, 166, 35, 0.24);
+.light .qb-select-menu .qb-select-menu-scroll::-webkit-scrollbar-track {
+  background:#e8eef7 !important;
+  background-color:#e8eef7 !important;
+  border-left:1px solid rgba(100, 116, 139, 0.3) !important;
+  border-right:1px solid rgba(100, 116, 139, 0.3) !important;
+  border-top:none !important;
+  border-bottom:none !important;
+  border-radius:0 !important;
 }
 
-.light .qb-select-menu-scroll::-webkit-scrollbar {
-  background:#cbd5e1;
-}
-
-.light .qb-select-menu-scroll::-webkit-scrollbar-track {
-  background:#cbd5e1 !important;
-  background-color:#cbd5e1 !important;
-  border-left:1px solid rgba(15, 23, 42, 0.16);
-}
-
-.qb-select-menu-scroll::-webkit-scrollbar-thumb {
-  background:rgba(245, 166, 35, 0.58);
-  border:2px solid transparent;
+.qb-select-menu .qb-select-menu-scroll::-webkit-scrollbar-thumb {
+  background:rgba(245, 166, 35, 0.62);
+  border:3px solid transparent;
   border-radius:999px;
   background-clip:padding-box;
 }
 
-.light .qb-select-menu-scroll::-webkit-scrollbar-thumb {
+.light .qb-select-menu .qb-select-menu-scroll::-webkit-scrollbar-thumb {
   background:rgba(15, 23, 42, 0.45);
-  border:2px solid transparent;
+  border:3px solid transparent;
   border-radius:999px;
   background-clip:padding-box;
 }
 
 @media (hover: hover) {
-  .qb-select-menu-scroll::-webkit-scrollbar-thumb:hover {
+  .qb-select-menu .qb-select-menu-scroll::-webkit-scrollbar-thumb:hover {
     background:#f5a623 !important;
-    background-clip:padding-box;
+    background-clip:padding-box !important;
   }
 
-  .light .qb-select-menu-scroll::-webkit-scrollbar-thumb:hover {
+  .light .qb-select-menu .qb-select-menu-scroll::-webkit-scrollbar-thumb:hover {
     background:#d97706 !important;
-    background-clip:padding-box;
+    background-clip:padding-box !important;
   }
 }
 
-.qb-select-menu-scroll::-webkit-scrollbar-button {
-  display:none !important;
-  width:0 !important;
-  height:0 !important;
+.qb-select-menu .qb-select-menu-scroll::-webkit-scrollbar-button:single-button:vertical:decrement {
+  display:block !important;
+  width:12px !important;
+  height:15px !important;
+  background-color:#131e33 !important;
+  border:1px solid rgba(148, 163, 184, 0.24) !important;
+  border-bottom:none !important;
+  border-radius:999px 999px 0 0 !important;
+  background-repeat:no-repeat !important;
+  background-position:center 6px !important;
+  background-size:8px 5px !important;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 5'%3E%3Cpath d='M4 0L8 5H0Z' fill='%23f5a623' fill-opacity='0.82'/%3E%3C/svg%3E") !important;
 }
 
-.qb-select-menu-scroll::-webkit-scrollbar-corner {
+.qb-select-menu .qb-select-menu-scroll::-webkit-scrollbar-button:single-button:vertical:increment {
+  display:block !important;
+  width:12px !important;
+  height:15px !important;
+  background-color:#131e33 !important;
+  border:1px solid rgba(148, 163, 184, 0.24) !important;
+  border-top:none !important;
+  border-radius:0 0 999px 999px !important;
+  background-repeat:no-repeat !important;
+  background-position:center 4px !important;
+  background-size:8px 5px !important;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 5'%3E%3Cpath d='M0 0H8L4 5Z' fill='%23f5a623' fill-opacity='0.82'/%3E%3C/svg%3E") !important;
+}
+
+.light .qb-select-menu .qb-select-menu-scroll::-webkit-scrollbar-button:single-button:vertical:decrement {
+  background-color:#e8eef7 !important;
+  border:1px solid rgba(100, 116, 139, 0.3) !important;
+  border-bottom:none !important;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 5'%3E%3Cpath d='M4 0L8 5H0Z' fill='%23334155' fill-opacity='0.82'/%3E%3C/svg%3E") !important;
+}
+
+.light .qb-select-menu .qb-select-menu-scroll::-webkit-scrollbar-button:single-button:vertical:increment {
+  background-color:#e8eef7 !important;
+  border:1px solid rgba(100, 116, 139, 0.3) !important;
+  border-top:none !important;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 5'%3E%3Cpath d='M0 0H8L4 5Z' fill='%23334155' fill-opacity='0.82'/%3E%3C/svg%3E") !important;
+}
+
+@media (hover: hover) {
+  .qb-select-menu .qb-select-menu-scroll::-webkit-scrollbar-button:single-button:vertical:decrement:hover {
+    background-color:#1a2842 !important;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 5'%3E%3Cpath d='M4 0L8 5H0Z' fill='%23f5a623'/%3E%3C/svg%3E") !important;
+  }
+
+  .qb-select-menu .qb-select-menu-scroll::-webkit-scrollbar-button:single-button:vertical:increment:hover {
+    background-color:#1a2842 !important;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 5'%3E%3Cpath d='M0 0H8L4 5Z' fill='%23f5a623'/%3E%3C/svg%3E") !important;
+  }
+
+  .light .qb-select-menu .qb-select-menu-scroll::-webkit-scrollbar-button:single-button:vertical:decrement:hover {
+    background-color:#dbe4f3 !important;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 5'%3E%3Cpath d='M4 0L8 5H0Z' fill='%23d97706'/%3E%3C/svg%3E") !important;
+  }
+
+  .light .qb-select-menu .qb-select-menu-scroll::-webkit-scrollbar-button:single-button:vertical:increment:hover {
+    background-color:#dbe4f3 !important;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 5'%3E%3Cpath d='M0 0H8L4 5Z' fill='%23d97706'/%3E%3C/svg%3E") !important;
+  }
+}
+
+.qb-select-menu .qb-select-menu-scroll::-webkit-scrollbar-corner {
   display:none !important;
   background:transparent !important;
 }
@@ -1253,11 +1312,11 @@
 @supports (-moz-appearance: none) {
   .qb-select-menu-scroll {
     scrollbar-width:thin;
-    scrollbar-color:rgba(245, 166, 35, 0.58) #1a2842;
+    scrollbar-color:rgba(245, 166, 35, 0.58) #131e33;
   }
 
   .light .qb-select-menu-scroll {
-    scrollbar-color:rgba(15, 23, 42, 0.45) #cbd5e1;
+    scrollbar-color:rgba(15, 23, 42, 0.45) #e8eef7;
   }
 }
 
