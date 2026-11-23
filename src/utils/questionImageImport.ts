@@ -26,13 +26,24 @@ export function normalizeTopicId(rawTopic: unknown): string {
   if (!val) return "numerical";
   if (VALID_TOPICS.has(val)) return val;
 
+  // Check analytical synonyms before verbal so "Verbal Analogy" / "Word Analogy" maps to analytical.
+  if (
+    val.includes("analyt") ||
+    val.includes("analog") ||
+    val.includes("logic") ||
+    val.includes("syllog") ||
+    val.includes("series") ||
+    val.includes("word assoc")
+  ) {
+    return "analytical";
+  }
   if (val.includes("numer") || val.includes("math") || val.includes("quant") || val.includes("arith")) {
     return "numerical";
   }
   if (val.includes("verb") || val.includes("vocab") || val.includes("grammar") || val.includes("read") || val.includes("english")) {
     return "verbal";
   }
-  if (val.includes("analyt") || val.includes("logic") || val.includes("reason") || val.includes("series") || val.includes("syllog")) {
+  if (val.includes("reason")) {
     return "analytical";
   }
   if (val.includes("cleric") || val.includes("filing") || val.includes("alphabet") || val.includes("spell")) {
@@ -49,6 +60,29 @@ export function normalizeProblemLabel(rawLabel: unknown): string {
   if (!clean) return "";
   const exactPreset = PROBLEM_LABELS.find((p) => p.toLowerCase() === clean.toLowerCase());
   return exactPreset || clean;
+}
+
+function isWordAnalogyContent(question: string, choices: string[], label: string): boolean {
+  if (/\banalog(?:y|ies)\b/i.test(label) || /\bword\s+association\b/i.test(label)) {
+    return true;
+  }
+
+  const hasDoubleColonWordStem =
+    /[A-Za-z][A-Za-z\s'-]*\s*:\s*(?:[A-Za-z][A-Za-z\s'-]*|_{2,})[\s\S]*::/.test(question) ||
+    /::[\s\S]*[A-Za-z_][A-Za-z\s'_-]*\s*:\s*(?:[A-Za-z][A-Za-z\s'-]*|_{2,})/.test(question);
+
+  if (hasDoubleColonWordStem) {
+    return true;
+  }
+
+  const pairedWordChoices = choices.filter((c) =>
+    /^[A-Za-z][A-Za-z\s'-]{0,35}\s*:\s*[A-Za-z_][A-Za-z\s'_-]{0,35}$/.test(c.trim())
+  );
+  if (pairedWordChoices.length >= 3) {
+    return true;
+  }
+
+  return false;
 }
 
 export function normalizeExtractedQuestion(
@@ -85,11 +119,27 @@ export function normalizeExtractedQuestion(
 
   const solution = includeSolution ? String(raw?.solution ?? "").trim() : "";
 
+  let topic = normalizeTopicId(raw?.topic);
+  let label = normalizeProblemLabel(raw?.label);
+
+  // Under the Philippine Civil Service Exam, Word Analogy / Word Association / Syllogisms
+  // belong to Analytical Ability rather than Verbal Ability.
+  if (topic === "verbal") {
+    if (isWordAnalogyContent(question, cleanedChoices, label)) {
+      topic = "analytical";
+      if (!label || /^(vocabulary|verbal)$/i.test(label)) {
+        label = "Word Analogy";
+      }
+    } else if (/\b(?:syllogism|logical\s+reasoning|assumptions?\s+and\s+conclusions?)\b/i.test(label)) {
+      topic = "analytical";
+    }
+  }
+
   return {
     question,
     choices: cleanedChoices,
-    topic: normalizeTopicId(raw?.topic),
-    label: normalizeProblemLabel(raw?.label),
+    topic,
+    label,
     correctIndex,
     solution,
   };

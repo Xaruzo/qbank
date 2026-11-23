@@ -164,10 +164,15 @@ export async function extractQuestionFromImage(
     "You are a fast, accurate Philippine Civil Service Exam (CSE) question transcriber and solver.",
     "Given an image, extract the multiple-choice question cleanly into JSON.",
     "Rules:",
-    "1. question: Exact question stem only. Omit decorative banners ('CIVIL SERVICE EXAM REVIEW'), icons, page numbers, or watermarks. Include any numbers/details needed from embedded tables/charts.",
+    "1. question: Exact printed/typed question stem only. Omit decorative banners ('CIVIL SERVICE EXAM REVIEW'), icons, page numbers, watermarks, or handwritten margin annotations/scribbles/teacher notes overlaid on the image. Include any numbers/details needed from embedded tables/charts.",
     "2. choices: Up to 5 options in order (A–E), stripping letter prefixes like 'A.', 'B)', '(C)'.",
-    "3. topic: Strictly one of: 'numerical', 'verbal', 'general', 'analytical', 'clerical'.",
-    "4. label: Short problem tag (e.g. 'Ratio Problem', 'Age Problem', 'Percentage', 'Number Series', 'Vocabulary', 'Alphabetical Filing', 'Government Term'), or '' if unclear.",
+    "3. topic: Strictly one of: 'numerical', 'verbal', 'general', 'analytical', 'clerical' following official Philippine Civil Service Exam (CSE) sections:",
+    "   - 'analytical': Word Analogy / Single or Double Analogy (e.g. 'Zimbabwe : Africa :: ___ : ___'), Word Association, Number/Letter Series, Logical Reasoning, Syllogisms, Assumptions & Conclusions, Cause & Effect, Pattern Recognition, and Data Interpretation (graphs/charts/tables). NOTE: In the Philippine CSE, Word Analogy belongs strictly to 'analytical', NEVER 'verbal'.",
+    "   - 'verbal': English/Filipino Grammar & Correct Usage, Error Identification, Vocabulary / Synonyms / Antonyms, Idioms, Paragraph Organization, and Reading Comprehension.",
+    "   - 'numerical': Basic operations, Fractions, Decimals, Percentages, Ratios & Proportions, Algebra, Geometry, Rate/Work/Age/Mixture word problems.",
+    "   - 'general': 1987 Philippine Constitution, RA 6713 (Code of Conduct), Peace & Human Rights, Environmental Management, Philippine Civics/History.",
+    "   - 'clerical': Alphabetical Filing & Indexing, Spelling, Office/Clerical Procedures, Following Directions.",
+    "4. label: Short problem tag (e.g. 'Word Analogy', 'Logical Reasoning', 'Number Series', 'Ratio', 'Age Problem', 'Percentage', 'Vocabulary', 'Alphabetical Filing', 'Government Term'), or '' if unclear.",
     includeSolution
       ? "5. correctIndex & solution: Solve quickly and accurately, set correctIndex (0=A..4=E), and write a brief, crisp step-by-step solution (2–4 short lines) ending with 'Answer: <LETTER>. <OPTION_TEXT>' using ÷, ×, −, =, %."
       : "5. correctIndex & solution: Do NOT generate a solution; set solution to '' and set correctIndex to -1 unless the answer is visibly marked in the image.",
@@ -175,8 +180,8 @@ export async function extractQuestionFromImage(
   ].join("\n");
 
   const promptText = includeSolution
-    ? "Extract the question, choices, topic, and label, then provide correctIndex and a brief step-by-step solution."
-    : "Extract only the question, choices, topic, and label (no solution).";
+    ? "Extract the question, choices, CSE topic ('analytical' for Word Analogy / Logic / Series), and label, then provide correctIndex and a brief step-by-step solution."
+    : "Extract only the question, choices, CSE topic ('analytical' for Word Analogy / Logic / Series), and label (no solution).";
 
   const imagePart = {
     inlineData: {
@@ -201,7 +206,7 @@ export async function extractQuestionFromImage(
             properties: {
               question: {
                 type: Type.STRING,
-                description: "Extracted question stem without decorative headers.",
+                description: "Extracted printed question stem without decorative headers or handwritten notes.",
               },
               choices: {
                 type: Type.ARRAY,
@@ -210,11 +215,12 @@ export async function extractQuestionFromImage(
               },
               topic: {
                 type: Type.STRING,
-                description: "One of: numerical, verbal, general, analytical, clerical.",
+                enum: ["numerical", "verbal", "general", "analytical", "clerical"],
+                description: "Philippine CSE subject: numerical, verbal, general, analytical (includes Word Analogy & Logic), or clerical.",
               },
               label: {
                 type: Type.STRING,
-                description: "Short problem type label, or empty string.",
+                description: "Short problem type label (e.g. Word Analogy, Logical Reasoning, Ratio), or empty string.",
               },
               correctIndex: {
                 type: Type.INTEGER,

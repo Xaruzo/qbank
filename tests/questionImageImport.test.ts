@@ -80,4 +80,63 @@ describe("questionImageImport", () => {
     expect(result.solution).toBe("");
     expect(result.topic).toBe("numerical");
   });
+
+  it("classifies Word Analogy and :: analogy questions as analytical even if returned as verbal", () => {
+    expect(normalizeTopicId("Word Analogy")).toBe("analytical");
+    expect(normalizeTopicId("Verbal Analogy")).toBe("analytical");
+
+    const analogyFromStem = normalizeExtractedQuestion(
+      {
+        question: "Zimbabwe : Africa :: _____ : _____",
+        choices: [
+          "a. Philippines : Asia",
+          "b. Cebu : Visayas",
+          "c. Manila : Philippines",
+          "d. USA : Europe",
+        ],
+        topic: "verbal",
+        label: "Word Analogy",
+        correctIndex: 0,
+        solution: "Zimbabwe is a country in Africa; Philippines is a country in Asia.",
+      },
+      true
+    );
+
+    expect(analogyFromStem.topic).toBe("analytical");
+    expect(analogyFromStem.label).toBe("Word Analogy");
+    expect(analogyFromStem.choices).toEqual([
+      "Philippines : Asia",
+      "Cebu : Visayas",
+      "Manila : Philippines",
+      "USA : Europe",
+    ]);
+
+    const analogyFromVocabularyLabel = normalizeExtractedQuestion(
+      {
+        question: "Author is to Book as Composer is to ____",
+        choices: ["A. Symphony : Sound", "B. Brush : Canvas", "C. Poet : Verse", "D. Painter : Easel"],
+        topic: "verbal",
+        label: "Vocabulary",
+        correctIndex: 0,
+        solution: "",
+      },
+      false
+    );
+    expect(analogyFromVocabularyLabel.topic).toBe("analytical");
+    expect(analogyFromVocabularyLabel.label).toBe("Word Analogy");
+
+    const trueVerbal = normalizeExtractedQuestion(
+      {
+        question: "The word BENEVOLENT most nearly means:",
+        choices: ["A. Charitable", "B. Hostile", "C. Indifferent", "D. Arrogant"],
+        topic: "verbal",
+        label: "Vocabulary",
+        correctIndex: 0,
+        solution: "",
+      },
+      false
+    );
+    expect(trueVerbal.topic).toBe("verbal");
+    expect(trueVerbal.label).toBe("Vocabulary");
+  });
 });
