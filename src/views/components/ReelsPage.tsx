@@ -39,6 +39,8 @@ import {
   ClipboardList,
   HelpCircle,
   ArrowUp,
+  MoreHorizontal,
+  Pencil,
 } from "lucide-react";
 import { TOPICS, LETTERS } from "../../constants/appConstants";
 import {
@@ -123,6 +125,16 @@ function getAuthorInitials(name: string): string {
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 }
 
+function toDateTimeLocalInput(iso?: string | null): string {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
+    date.getHours()
+  )}:${pad(date.getMinutes())}`;
+}
+
 interface ReelStageCardProps {
   reel: StudyReel;
   isActive: boolean;
@@ -134,7 +146,7 @@ interface ReelStageCardProps {
   reminded: boolean;
   commentCount: number;
   copiedId: string | null;
-  canDelete: boolean;
+  canManage: boolean;
   liteMode?: boolean;
   onToggleMute: () => void;
   onCycleRate: () => void;
@@ -143,7 +155,7 @@ interface ReelStageCardProps {
   onToggleReminder: () => void;
   onShare: () => void;
   onOpenCompanion: (tab: CompanionTab) => void;
-  onDelete: () => void;
+  onMoreOptions: () => void;
 }
 
 function ReelStageCard({
@@ -157,7 +169,7 @@ function ReelStageCard({
   reminded,
   commentCount,
   copiedId,
-  canDelete,
+  canManage,
   liteMode = false,
   onToggleMute,
   onCycleRate,
@@ -166,7 +178,7 @@ function ReelStageCard({
   onToggleReminder,
   onShare,
   onOpenCompanion,
-  onDelete,
+  onMoreOptions,
 }: ReelStageCardProps) {
   const topicMeta = getTopicMeta(reel.topic);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -180,6 +192,11 @@ function ReelStageCard({
   const [isHovering, setIsHovering] = useState<boolean>(false);
   const [controlsRevealed, setControlsRevealed] = useState<boolean>(false);
   const [isScrubbing, setIsScrubbing] = useState<boolean>(false);
+  const [captionExpanded, setCaptionExpanded] = useState<boolean>(false);
+  const [isCaptionOverflowing, setIsCaptionOverflowing] = useState<boolean>(false);
+  const titleRef = useRef<HTMLHeadingElement | null>(null);
+  const descRef = useRef<HTMLParagraphElement | null>(null);
+  const metaWrapRef = useRef<HTMLDivElement | null>(null);
   const revealTimerRef = useRef<number | null>(null);
   const holdTimerRef = useRef<number | null>(null);
   const holdStartPosRef = useRef<{ x: number; y: number } | null>(null);
@@ -217,6 +234,50 @@ function ReelStageCard({
       clearHoldTimer();
     };
   }, [clearRevealTimer, clearHoldTimer]);
+
+  useEffect(() => {
+    if (!isActive) {
+      setCaptionExpanded(false);
+    }
+  }, [isActive]);
+
+  useEffect(() => {
+    if (captionExpanded) return;
+
+    const measureOverflow = () => {
+      const titleEl = titleRef.current;
+      const descEl = descRef.current;
+      const titleOverflows = titleEl
+        ? titleEl.scrollHeight > titleEl.clientHeight + 2 ||
+          titleEl.scrollWidth > titleEl.clientWidth + 2
+        : false;
+      const descOverflows = descEl
+        ? descEl.scrollHeight > descEl.clientHeight + 2 ||
+          descEl.scrollWidth > descEl.clientWidth + 2
+        : false;
+      const fallbackLong =
+        reel.title.length > 68 || (reel.description ? reel.description.length > 110 : false);
+      setIsCaptionOverflowing(titleOverflows || descOverflows || fallbackLong);
+    };
+
+    measureOverflow();
+    const rafId = window.requestAnimationFrame(measureOverflow);
+
+    if (typeof ResizeObserver !== "undefined" && metaWrapRef.current) {
+      const observer = new ResizeObserver(measureOverflow);
+      observer.observe(metaWrapRef.current);
+      return () => {
+        window.cancelAnimationFrame(rafId);
+        observer.disconnect();
+      };
+    }
+
+    window.addEventListener("resize", measureOverflow);
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      window.removeEventListener("resize", measureOverflow);
+    };
+  }, [reel.title, reel.description, captionExpanded]);
 
   useEffect(() => {
     if (!isScrubbing) return undefined;
@@ -802,25 +863,29 @@ function ReelStageCard({
           </span>
         </button>
 
-        {canDelete && !reel.isStarter && (
+        {canManage && !reel.isStarter && (
           <button
             type="button"
-            onClick={onDelete}
-            aria-label="Delete reel"
-            title="Delete clip"
-            className="flex w-full items-center justify-center bg-transparent py-0.5 text-white/85 hover:text-rose-400 active:scale-90 transition-all cursor-pointer [filter:drop-shadow(0_2px_6px_rgba(0,0,0,0.85))]"
+            onClick={onMoreOptions}
+            aria-label="More reel options"
+            title="Edit or delete reel"
+            className="flex w-full flex-col items-center justify-center gap-0.5 bg-transparent py-0.5 text-white/90 hover:text-amber-300 active:scale-90 transition-all cursor-pointer [filter:drop-shadow(0_2px_6px_rgba(0,0,0,0.85))]"
           >
-            <Trash2 size={20} strokeWidth={2} />
+            <MoreHorizontal size={22} strokeWidth={2.2} />
           </button>
         )}
       </div>
 
       {/* Bottom Scrim Metadata + Hover/Hold Scrubber */}
       <div
-        className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black/95 via-black/75 to-transparent px-3.5 pt-8 pb-2.5 sm:px-4 sm:pt-10 sm:pb-3"
+        className={`absolute bottom-0 left-0 right-0 z-20 px-3.5 pt-8 pb-2.5 sm:px-4 sm:pt-10 sm:pb-3 transition-colors duration-200 ${
+          captionExpanded
+            ? "bg-gradient-to-t from-black/95 via-black/90 to-black/35"
+            : "bg-gradient-to-t from-black/95 via-black/75 to-transparent"
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mr-14 sm:mr-16 space-y-1 sm:space-y-1.5">
+        <div ref={metaWrapRef} className="mr-14 sm:mr-16 space-y-1 sm:space-y-1.5">
           <div className="flex flex-wrap items-center gap-2 text-xs text-slate-300">
             <span className="font-bold text-white">{reel.creatorName}</span>
             <span aria-hidden="true">·</span>
@@ -835,14 +900,43 @@ function ReelStageCard({
             )}
           </div>
 
-          <h2 className="text-sm sm:text-base font-extrabold leading-snug text-white line-clamp-2">
-            {reel.title}
-          </h2>
+          <div
+            className={
+              captionExpanded
+                ? "max-h-[34dvh] overflow-y-auto qb-no-scrollbar pr-1 space-y-1"
+                : "space-y-1"
+            }
+          >
+            <h2
+              ref={titleRef}
+              className={`text-sm sm:text-base font-extrabold leading-snug text-white break-words [overflow-wrap:anywhere] ${
+                captionExpanded ? "" : "line-clamp-2"
+              }`}
+            >
+              {reel.title}
+            </h2>
 
-          {reel.description && (
-            <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
-              {reel.description}
-            </p>
+            {reel.description && (
+              <p
+                ref={descRef}
+                className={`text-xs text-slate-300 leading-relaxed break-words [overflow-wrap:anywhere] ${
+                  captionExpanded ? "" : "line-clamp-2"
+                }`}
+              >
+                {reel.description}
+              </p>
+            )}
+          </div>
+
+          {(isCaptionOverflowing || captionExpanded) && (
+            <button
+              type="button"
+              onClick={() => setCaptionExpanded((prev) => !prev)}
+              aria-expanded={captionExpanded}
+              className="inline-flex items-center text-[11px] sm:text-xs font-bold text-amber-300 hover:text-amber-200 cursor-pointer select-none py-0.5 transition-colors"
+            >
+              {captionExpanded ? "Show less" : "Show more"}
+            </button>
           )}
 
           <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -974,6 +1068,7 @@ export default function ReelsPage({
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [shareReel, setShareReel] = useState<StudyReel | null>(null);
   const [shareNoteCopied, setShareNoteCopied] = useState<boolean>(false);
+  const [actionMenuReel, setActionMenuReel] = useState<StudyReel | null>(null);
   const [deleteTargetReel, setDeleteTargetReel] = useState<StudyReel | null>(null);
   const [deletingReel, setDeletingReel] = useState<boolean>(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState<boolean>(false);
@@ -989,8 +1084,9 @@ export default function ReelsPage({
   const [commentText, setCommentText] = useState<string>("");
   const [askHostFlag, setAskHostFlag] = useState<boolean>(false);
 
-  // Post Clip / Go Live modal
+  // Post / Edit Clip modal
   const [composerOpen, setComposerOpen] = useState<boolean>(false);
+  const [editingReel, setEditingReel] = useState<StudyReel | null>(null);
   const [postKind, setPostKind] = useState<ReelKind>("short");
   const [postSourceType, setPostSourceType] = useState<ReelSourceType>("youtube");
   const [postTitle, setPostTitle] = useState<string>("");
@@ -1175,12 +1271,16 @@ export default function ReelsPage({
           setDeleteTargetReel(null);
           return;
         }
+        if (actionMenuReel) {
+          setActionMenuReel(null);
+          return;
+        }
         if (shareReel) {
           setShareReel(null);
           return;
         }
         if (composerOpen) {
-          setComposerOpen(false);
+          closeComposer();
           return;
         }
         if (mobileSheetOpen) {
@@ -1196,6 +1296,7 @@ export default function ReelsPage({
         e.ctrlKey ||
         e.altKey ||
         deleteTargetReel ||
+        actionMenuReel ||
         composerOpen ||
         shareReel ||
         mobileSheetOpen ||
@@ -1218,17 +1319,17 @@ export default function ReelsPage({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [composerOpen, deleteTargetReel, deletingReel, mobileSheetOpen, shareReel, goNext, goPrev]);
+  }, [composerOpen, actionMenuReel, deleteTargetReel, deletingReel, mobileSheetOpen, shareReel, goNext, goPrev]);
 
   // Lock background scroll while full-screen modal / bottom sheet is open
   useEffect(() => {
-    if (!composerOpen && !mobileSheetOpen && !shareReel && !deleteTargetReel) return;
+    if (!composerOpen && !mobileSheetOpen && !shareReel && !actionMenuReel && !deleteTargetReel) return;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = prevOverflow;
     };
-  }, [composerOpen, mobileSheetOpen, shareReel, deleteTargetReel]);
+  }, [composerOpen, mobileSheetOpen, shareReel, actionMenuReel, deleteTargetReel]);
 
   const handleToggleLike = (reelId: string) => {
     const res = studyReelsModel.toggleLike(reelId);
@@ -1353,6 +1454,72 @@ export default function ReelsPage({
     }
   };
 
+  const closeComposer = useCallback(() => {
+    setPostUrl((prev) => {
+      if (prev.startsWith("blob:")) {
+        URL.revokeObjectURL(prev);
+      }
+      return "";
+    });
+    setComposerOpen(false);
+    setEditingReel(null);
+    setPostVideoFile(null);
+    setPostError("");
+  }, []);
+
+  const openCreateComposer = useCallback(() => {
+    setEditingReel(null);
+    setPostKind("short");
+    setPostSourceType("youtube");
+    setPostTitle("");
+    setPostDescription("");
+    setPostTopic("analytical");
+    setPostLabel("Word Analogy");
+    setPostUrl((prev) => {
+      if (prev.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return "";
+    });
+    setPostVideoFile(null);
+    setPostLiveStatus("live");
+    setPostScheduledAt("");
+    setPostSlideText(
+      "State the main shortcut or rule first, then show a fast worked example."
+    );
+    setPostQuizPrompt("");
+    setPostQuizChoices(["", "", "", ""]);
+    setPostQuizCorrect(0);
+    setPostError("");
+    setComposerOpen(true);
+  }, []);
+
+  const openEditComposer = useCallback((reel: StudyReel) => {
+    setEditingReel(reel);
+    setPostKind(reel.kind);
+    setPostSourceType(reel.sourceType);
+    setPostTitle(reel.title);
+    setPostDescription(reel.description || "");
+    setPostTopic(reel.topic);
+    setPostLabel(reel.label || "");
+    setPostUrl((prev) => {
+      if (prev.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return reel.mediaUrl || "";
+    });
+    setPostVideoFile(null);
+    setPostLiveStatus(reel.liveStatus || "live");
+    setPostScheduledAt(toDateTimeLocalInput(reel.scheduledAt));
+    setPostSlideText(
+      reel.lessonSteps?.[0]?.board ||
+        "State the main shortcut or rule first, then show a fast worked example."
+    );
+    setPostQuizPrompt(reel.quizCheck?.prompt || "");
+    setPostQuizChoices(
+      [0, 1, 2, 3].map((idx) => reel.quizCheck?.choices?.[idx] || "")
+    );
+    setPostQuizCorrect(reel.quizCheck?.correct ?? 0);
+    setPostError("");
+    setComposerOpen(true);
+  }, []);
+
   const handleCreateReel = async (e: React.FormEvent) => {
     e.preventDefault();
     setPostError("");
@@ -1429,6 +1596,68 @@ export default function ReelsPage({
         }
       }
 
+      const nextLabel = postLabel.trim() || (postKind === "live" ? "Live Coaching" : "Quick Review");
+      const nextScheduledAt =
+        postKind === "live" && postLiveStatus === "upcoming" && postScheduledAt
+          ? new Date(postScheduledAt).toISOString()
+          : null;
+
+      if (editingReel) {
+        const existingSteps =
+          editingReel.lessonSteps.length > 0 ? [...editingReel.lessonSteps] : [];
+        const nextSteps =
+          finalSourceType === "lesson"
+            ? existingSteps.length > 0
+              ? [
+                  {
+                    ...existingSteps[0],
+                    heading: cleanTitle,
+                    board: postSlideText.trim(),
+                    highlight: `${getTopicMeta(postTopic).label} · ${nextLabel}`,
+                  },
+                  ...existingSteps.slice(1),
+                ]
+              : [
+                  {
+                    heading: cleanTitle,
+                    board: postSlideText.trim(),
+                    highlight: `${getTopicMeta(postTopic).label} · ${nextLabel}`,
+                    durationSec: 18,
+                  },
+                ]
+            : [];
+
+        const updated = await studyReelsModel.updateReel(
+          editingReel.id,
+          {
+            kind: postKind,
+            sourceType: finalSourceType,
+            title: cleanTitle,
+            description: postDescription.trim(),
+            topic: postTopic,
+            label: nextLabel,
+            mediaUrl: finalMediaUrl,
+            liveStatus: postKind === "live" ? postLiveStatus : undefined,
+            scheduledAt: nextScheduledAt,
+            durationSec:
+              editingReel.sourceType === finalSourceType && editingReel.durationSec
+                ? editingReel.durationSec
+                : postKind === "live"
+                  ? 60
+                  : 30,
+            lessonSteps: nextSteps,
+            quizCheck,
+          },
+          editingReel
+        );
+
+        if (updated) {
+          setReels((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+        }
+        closeComposer();
+        return;
+      }
+
       const created = await studyReelsModel.createReel(
         {
           kind: postKind,
@@ -1436,13 +1665,10 @@ export default function ReelsPage({
           title: cleanTitle,
           description: postDescription.trim(),
           topic: postTopic,
-          label: postLabel.trim() || (postKind === "live" ? "Live Coaching" : "Quick Review"),
+          label: nextLabel,
           mediaUrl: finalMediaUrl,
           liveStatus: postKind === "live" ? postLiveStatus : undefined,
-          scheduledAt:
-            postKind === "live" && postLiveStatus === "upcoming" && postScheduledAt
-              ? new Date(postScheduledAt).toISOString()
-              : null,
+          scheduledAt: nextScheduledAt,
           durationSec: postKind === "live" ? 60 : 30,
           lessonSteps:
             finalSourceType === "lesson"
@@ -1474,6 +1700,7 @@ export default function ReelsPage({
       setSearch("");
       scrollToReelIndex(0, "auto");
       setComposerOpen(false);
+      setEditingReel(null);
       setPostTitle("");
       setPostDescription("");
       setPostUrl("");
@@ -2003,7 +2230,7 @@ export default function ReelsPage({
               type="button"
               onClick={() => {
                 setMobileFiltersOpen(false);
-                setComposerOpen(true);
+                openCreateComposer();
               }}
               className="inline-flex h-7 items-center justify-center gap-1 rounded-lg bg-amber-500 px-2.5 text-[11px] font-bold text-[#070c18] hover:bg-amber-400 transition-colors cursor-pointer whitespace-nowrap shrink-0"
             >
@@ -2130,7 +2357,7 @@ export default function ReelsPage({
 
           <button
             type="button"
-            onClick={() => setComposerOpen(true)}
+            onClick={openCreateComposer}
             className="inline-flex h-[36px] items-center justify-center gap-1.5 rounded-xl bg-amber-500 px-3 text-xs font-bold text-[#070c18] hover:bg-amber-400 transition-colors cursor-pointer whitespace-nowrap shrink-0"
           >
             <Plus size={14} />
@@ -2169,7 +2396,7 @@ export default function ReelsPage({
             </button>
             <button
               type="button"
-              onClick={() => setComposerOpen(true)}
+              onClick={openCreateComposer}
               className="rounded-xl bg-amber-500 px-4 py-2 text-xs font-bold text-[#070c18] hover:bg-amber-400 cursor-pointer"
             >
               Post Clip / Go Live
@@ -2202,7 +2429,7 @@ export default function ReelsPage({
                     reminded={reminderIds.has(reel.id)}
                     commentCount={(commentsByReel[reel.id] || []).length}
                     copiedId={copiedId}
-                    canDelete={
+                    canManage={
                       !reel.isStarter &&
                       (isAdmin ||
                         (currentUser?.id && reel.userId === currentUser.id) ||
@@ -2221,7 +2448,7 @@ export default function ReelsPage({
                       setCompanionTab(tab);
                       setMobileSheetOpen(true);
                     }}
-                    onDelete={() => setDeleteTargetReel(reel)}
+                    onMoreOptions={() => setActionMenuReel(reel)}
                   />
                 </div>
               ))}
@@ -2281,7 +2508,7 @@ export default function ReelsPage({
             className={`fixed inset-0 z-[700] flex items-center justify-center p-2.5 sm:p-5 ${
               liteMode ? "bg-black/80" : "bg-slate-950/75 backdrop-blur-md"
             }`}
-            onClick={() => setComposerOpen(false)}
+            onClick={closeComposer}
           >
             <form
               role="dialog"
@@ -2298,15 +2525,17 @@ export default function ReelsPage({
                     id="reels-composer-title"
                     className="text-base sm:text-lg font-extrabold tracking-tight text-qb-heading"
                   >
-                    Post Review Clip or Live Stream
+                    {editingReel ? "Edit Study Reel" : "Post Review Clip or Live Stream"}
                   </h2>
                   <p className="mt-0.5 text-xs text-qb-muted">
-                    Share a YouTube Short, video clip, live coaching link, or interactive lesson board.
+                    {editingReel
+                      ? "Update the title, caption, subject, media, or quick check for this reel."
+                      : "Share a YouTube Short, video clip, live coaching link, or interactive lesson board."}
                   </p>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setComposerOpen(false)}
+                  onClick={closeComposer}
                   aria-label="Close modal"
                   className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-qb-border bg-qb-input text-qb-muted hover:text-qb-heading hover:border-qb-border-hover transition-colors cursor-pointer"
                 >
@@ -2501,7 +2730,11 @@ export default function ReelsPage({
                           >
                             <Upload size={15} className="text-qb-accent shrink-0" />
                             <span>
-                              {postUrl ? "Video clip ready — click to replace" : "Choose .mp4 or .webm review clip"}
+                              {postVideoFile
+                                ? "New video clip ready — click to replace"
+                                : postUrl
+                                  ? "Current video clip ready — click to replace"
+                                  : "Choose .mp4 or .webm review clip"}
                             </span>
                           </button>
                         </div>
@@ -2662,7 +2895,7 @@ export default function ReelsPage({
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     type="button"
-                    onClick={() => setComposerOpen(false)}
+                    onClick={closeComposer}
                     className="rounded-xl border border-qb-border bg-qb-input px-4 py-2 text-xs font-bold text-qb-heading hover:bg-qb-surface-hover transition-colors cursor-pointer min-h-[38px] whitespace-nowrap"
                   >
                     Cancel
@@ -2672,7 +2905,15 @@ export default function ReelsPage({
                     disabled={posting}
                     className="rounded-xl bg-amber-500 px-4 sm:px-5 py-2 text-xs font-bold text-[#070c18] hover:bg-amber-400 disabled:opacity-50 transition-colors cursor-pointer min-h-[38px] whitespace-nowrap"
                   >
-                    {posting ? "Publishing..." : postKind === "live" ? "Publish Live Room" : "Publish Short"}
+                    {posting
+                      ? editingReel
+                        ? "Saving..."
+                        : "Publishing..."
+                      : editingReel
+                        ? "Save Changes"
+                        : postKind === "live"
+                          ? "Publish Live Room"
+                          : "Publish Short"}
                   </button>
                 </div>
               </div>
@@ -2851,6 +3092,104 @@ export default function ReelsPage({
           document.querySelector(".qb") || document.body
         )}
 
+      {/* Reel Manage Options Action Sheet / Modal (Edit or Delete) */}
+      {actionMenuReel &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className={`fixed inset-0 z-[715] flex items-end sm:items-center justify-center sm:p-4 ${
+              liteMode ? "bg-black/80" : "bg-slate-950/75 backdrop-blur-md"
+            }`}
+            onClick={() => setActionMenuReel(null)}
+          >
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="reel-actions-title"
+              onClick={(e) => e.stopPropagation()}
+              className="w-full sm:max-w-xs overflow-hidden rounded-t-3xl sm:rounded-2xl border border-qb-border bg-qb-surface shadow-[0_28px_75px_rgba(0,0,0,0.65)] pb-[env(safe-area-inset-bottom,0px)]"
+            >
+              <div className="mx-auto mt-2.5 mb-1 h-1 w-10 rounded-full bg-qb-border sm:hidden" />
+              <div className="flex items-center justify-between gap-3 border-b border-qb-border px-4 py-3">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-qb-muted">
+                    Manage Reel
+                  </p>
+                  <h2
+                    id="reel-actions-title"
+                    className="text-xs sm:text-sm font-bold text-qb-heading truncate"
+                  >
+                    {actionMenuReel.title}
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActionMenuReel(null)}
+                  aria-label="Close options"
+                  className="hidden sm:inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-qb-border bg-qb-input text-qb-muted hover:text-qb-heading cursor-pointer"
+                >
+                  <X size={15} />
+                </button>
+              </div>
+
+              <div className="p-3 space-y-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = actionMenuReel;
+                    setActionMenuReel(null);
+                    openEditComposer(target);
+                  }}
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-qb-surface-hover transition-colors cursor-pointer"
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-qb-border bg-qb-input text-amber-400">
+                    <Pencil size={16} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs sm:text-sm font-bold text-qb-heading">
+                      Edit Reel Details
+                    </div>
+                    <div className="text-[11px] text-qb-muted truncate">
+                      Update title, caption, subject, or clip
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = actionMenuReel;
+                    setActionMenuReel(null);
+                    setDeleteTargetReel(target);
+                  }}
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-rose-500/10 transition-colors cursor-pointer"
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-rose-500/30 bg-rose-500/12 text-rose-400">
+                    <Trash2 size={16} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs sm:text-sm font-bold text-rose-400 light:text-rose-600">
+                      Delete Clip
+                    </div>
+                    <div className="text-[11px] text-qb-muted truncate">
+                      Permanently remove from Study Reels
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActionMenuReel(null)}
+                  className="sm:hidden mt-1 w-full rounded-xl border border-qb-border bg-qb-input py-2.5 text-xs font-bold text-qb-heading hover:bg-qb-surface-hover cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.querySelector(".qb") || document.body
+        )}
+
       {/* Delete Clip Confirmation Modal */}
       {deleteTargetReel &&
         typeof document !== "undefined" &&
@@ -2882,7 +3221,7 @@ export default function ReelsPage({
                   <div className="text-[11px] font-semibold" style={{ color: getTopicMeta(deleteTargetReel.topic).color }}>
                     {getTopicMeta(deleteTargetReel.topic).label} · {deleteTargetReel.label}
                   </div>
-                  <div className="text-xs sm:text-sm font-bold text-qb-heading line-clamp-2">
+                  <div className="text-xs sm:text-sm font-bold text-qb-heading line-clamp-2 break-words [overflow-wrap:anywhere]">
                     {deleteTargetReel.title}
                   </div>
                 </div>

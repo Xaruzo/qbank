@@ -634,6 +634,76 @@ export const studyReelsModel = {
     return record;
   },
 
+  async updateReel(
+    id: string,
+    updates: Partial<StudyReel>,
+    baseRecord?: StudyReel
+  ): Promise<StudyReel | null> {
+    const localList = readJsonArray<StudyReel>(CUSTOM_REELS_KEY);
+    const localIdx = localList.findIndex((r) => r.id === id);
+    const existing = (localIdx >= 0 ? normalizeReel(localList[localIdx]) : null) || baseRecord || null;
+    if (!existing || existing.isStarter) return null;
+
+    const updated = normalizeReel({
+      ...existing,
+      ...updates,
+      id: existing.id,
+      userId: existing.userId,
+      userEmail: existing.userEmail,
+      creatorName: existing.creatorName,
+      creatorRole: existing.creatorRole,
+      likesCount: existing.likesCount,
+      bookmarksCount: existing.bookmarksCount,
+      commentsCount: existing.commentsCount,
+      createdAt: existing.createdAt,
+      isStarter: false,
+    });
+
+    if (
+      existing.mediaUrl &&
+      existing.mediaUrl !== updated.mediaUrl &&
+      isIndexedDbReelUrl(existing.mediaUrl)
+    ) {
+      await deleteStoredReelMedia(existing.mediaUrl);
+    }
+
+    const isSessionBlob = Boolean(updated.mediaUrl?.startsWith("blob:"));
+    const isLocalIndexedDb = isIndexedDbReelUrl(updated.mediaUrl);
+    if (!isSessionBlob && (localIdx >= 0 || isLocalIndexedDb || !supabase)) {
+      const nextLocal =
+        localIdx >= 0
+          ? localList.map((r) => (r.id === id ? updated : r))
+          : [updated, ...localList];
+      writeJsonArray(CUSTOM_REELS_KEY, nextLocal);
+    }
+
+    if (supabase && !isSessionBlob && !isLocalIndexedDb) {
+      try {
+        await supabase
+          .from("study_reels")
+          .update({
+            kind: updated.kind,
+            source_type: updated.sourceType,
+            title: updated.title,
+            description: updated.description,
+            topic: updated.topic,
+            label: updated.label,
+            media_url: updated.mediaUrl || null,
+            duration_sec: updated.durationSec,
+            live_status: updated.liveStatus || null,
+            scheduled_at: updated.scheduledAt || null,
+            lesson_steps: updated.lessonSteps,
+            quiz_check: updated.quizCheck || null,
+          })
+          .eq("id", id);
+      } catch {
+        // Fallback silently if remote update is unavailable
+      }
+    }
+
+    return updated;
+  },
+
   async deleteReel(id: string): Promise<void> {
     const existing = readJsonArray<StudyReel>(CUSTOM_REELS_KEY);
     const target = existing.find((r) => r.id === id);
