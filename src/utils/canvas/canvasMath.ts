@@ -437,7 +437,8 @@ export const computeViewportInsertPoint = (
   canvasWidth: number,
   canvasHeight: number,
   viewportTransform?: number[] | null,
-  staggerIndex: number = 0
+  staggerIndex: number = 0,
+  visibleCenterY?: number
 ): Point2D => {
   const vpt = Array.isArray(viewportTransform) && viewportTransform.length >= 6
     ? viewportTransform
@@ -446,7 +447,10 @@ export const computeViewportInsertPoint = (
   const panX = vpt[4] || 0;
   const panY = vpt[5] || 0;
   const screenCenterX = (canvasWidth || 820) / 2;
-  const screenCenterY = Math.min(canvasHeight || 700, 620) / 2;
+  const screenCenterY =
+    typeof visibleCenterY === "number" && Number.isFinite(visibleCenterY)
+      ? Math.max(40, Math.min(canvasHeight || 700, visibleCenterY))
+      : Math.min(canvasHeight || 700, 620) / 2;
   const sceneX = (screenCenterX - panX) / zoom;
   const sceneY = (screenCenterY - panY) / zoom;
   const step = (staggerIndex % 5) - 2;
@@ -454,6 +458,36 @@ export const computeViewportInsertPoint = (
     x: Math.round(Math.max(40, Math.min((canvasWidth || 820) - 40, sceneX + step * 16))),
     y: Math.round(Math.max(40, Math.min((canvasHeight || 700) - 40, sceneY + step * 14))),
   };
+};
+
+export const clampViewportTransform = (
+  vpt: number[],
+  canvasWidth: number,
+  canvasHeight: number,
+  panMargin: number = 60
+): [number, number, number, number, number, number] => {
+  const raw = Array.isArray(vpt) && vpt.length >= 6 ? vpt : [1, 0, 0, 1, 0, 0];
+  const z = Math.max(0.25, Math.min(4, Number.isFinite(raw[0]) ? raw[0] : 1));
+  const w = Math.max(200, canvasWidth || 820);
+  const h = Math.max(200, canvasHeight || 580);
+  const margin = Math.max(0, panMargin);
+
+  let tx = Number.isFinite(raw[4]) ? raw[4] : 0;
+  let ty = Number.isFinite(raw[5]) ? raw[5] : 0;
+
+  if (z <= 1.001) {
+    tx = z >= 0.999 ? 0 : Math.round((w - w * z) / 2);
+    ty = z >= 0.999 ? 0 : Math.max(0, Math.min(margin, Math.round((h - h * z) / 2)));
+  } else {
+    const minTx = w - w * z - margin;
+    const maxTx = margin;
+    const minTy = h - h * z - margin;
+    const maxTy = margin;
+    tx = Math.max(minTx, Math.min(maxTx, tx));
+    ty = Math.max(minTy, Math.min(maxTy, ty));
+  }
+
+  return [z, 0, 0, z, tx, ty];
 };
 
 export interface PasteTargetInput {
@@ -650,6 +684,7 @@ export const computeSmartCropRect = (
 };
 
 export interface FitContentLayout {
+  shiftX: number;
   shiftY: number;
   targetHeight: number;
   contentBounds: ObjectBounds | null;
@@ -659,23 +694,38 @@ export const computeFitContentLayout = (
   objectBoundsList: ObjectBounds[],
   minHeight: number = 260,
   maxHeight: number = 2400,
-  padding: number = 36
+  padding: number = 36,
+  canvasWidth: number = 820
 ): FitContentLayout => {
   const union = computeUnionBounds(objectBoundsList);
   if (!union) {
     return {
+      shiftX: 0,
       shiftY: 0,
       targetHeight: clampCanvasHeight(560, minHeight, maxHeight),
       contentBounds: null,
     };
   }
 
+  const safeW = Math.max(200, canvasWidth || 820);
   const safePad = Math.max(12, Math.round(padding));
+  let shiftX = 0;
+  if (union.width > safeW - safePad * 2) {
+    if (union.left < 0 || union.left + union.width > safeW) {
+      shiftX = Math.round((safeW - union.width) / 2 - union.left);
+    }
+  } else if (union.left < safePad) {
+    shiftX = Math.round(safePad - union.left);
+  } else if (union.left + union.width > safeW - safePad) {
+    shiftX = Math.round(safeW - safePad - (union.left + union.width));
+  }
+
   const shiftY = Math.round(safePad - union.top);
   const rawBottom = union.height + safePad * 2;
   const targetHeight = clampCanvasHeight(rawBottom, minHeight, maxHeight);
 
   return {
+    shiftX,
     shiftY,
     targetHeight,
     contentBounds: union,

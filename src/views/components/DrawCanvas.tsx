@@ -84,6 +84,7 @@ import {
   distToSegment,
   CUSTOM_FABRIC_PROPS,
   clampCanvasHeight,
+  clampViewportTransform,
   computeResponsiveBoardSize,
   computeFloatingBarPosition,
   computeViewportInsertPoint,
@@ -181,43 +182,49 @@ const captureCanvasSnapshot = (
     canvas.discardActiveObject();
   }
 
-  canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
-  canvas.backgroundColor = "#ffffff";
+  let dataURL = "";
+  let cropRect = {
+    left: 0,
+    top: 0,
+    width: canvasWidth,
+    height: canvasHeight,
+    wasCropped: false,
+  };
 
-  const boundsList = collectVisibleObjectBounds(canvas);
-  canvas.renderAll();
+  (canvas as any).__isExportingSnapshot = true;
+  try {
+    canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+    canvas.backgroundColor = "#ffffff";
 
-  const cropRect =
-    trimWhitespace && boundsList.length > 0
-      ? computeSmartCropRect(boundsList, canvasWidth, canvasHeight, {
-          padding: 36,
-          minWidth: 380,
-          minHeight: 180,
-        })
-      : {
-          left: 0,
-          top: 0,
-          width: canvasWidth,
-          height: canvasHeight,
-          wasCropped: false,
-        };
+    const boundsList = collectVisibleObjectBounds(canvas);
+    canvas.renderAll();
 
-  const dataURL = canvas.toDataURL({
-    format: "png",
-    quality,
-    multiplier: 2,
-    left: cropRect.left,
-    top: cropRect.top,
-    width: cropRect.width,
-    height: cropRect.height,
-  });
+    if (trimWhitespace && boundsList.length > 0) {
+      cropRect = computeSmartCropRect(boundsList, canvasWidth, canvasHeight, {
+        padding: 36,
+        minWidth: 380,
+        minHeight: 180,
+      });
+    }
 
-  canvas.backgroundColor = prevBg;
-  canvas.setViewportTransform(prevVpt);
-  if (discardSelection && prevActive) {
-    canvas.setActiveObject(prevActive);
+    dataURL = canvas.toDataURL({
+      format: "png",
+      quality,
+      multiplier: 2,
+      left: cropRect.left,
+      top: cropRect.top,
+      width: cropRect.width,
+      height: cropRect.height,
+    });
+  } finally {
+    (canvas as any).__isExportingSnapshot = false;
+    canvas.backgroundColor = prevBg;
+    canvas.setViewportTransform(prevVpt);
+    if (discardSelection && prevActive) {
+      canvas.setActiveObject(prevActive);
+    }
+    canvas.renderAll();
   }
-  canvas.renderAll();
 
   return {
     dataURL,
@@ -584,6 +591,8 @@ export default function DrawCanvas({
   const [alignMenuOpen, setAlignMenuOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [zoomPercent, setZoomPercent] = useState(100);
+  const [isPanned, setIsPanned] = useState(false);
+  const panHintTimerRef = useRef<number>(0);
   const [historyState, setHistoryState] = useState({ canUndo: false, canRedo: false });
   const [selectionBounds, setSelectionBounds] = useState(null);
   const floatingBarRef = useRef(null);
@@ -608,6 +617,11 @@ export default function DrawCanvas({
     isCropped: boolean;
   } | null>(null);
   const [showSafeBounds, setShowSafeBounds] = useState(false);
+  const showSafeBoundsRef = useRef(showSafeBounds);
+  useEffect(() => {
+    showSafeBoundsRef.current = showSafeBounds;
+    fabricRef.current?.requestRenderAll?.();
+  }, [showSafeBounds]);
   const [autoTrimExport, setAutoTrimExport] = useState<boolean>(() => {
     try {
       const stored = localStorage.getItem("qbank-draw-auto-trim");
@@ -919,12 +933,125 @@ export default function DrawCanvas({
     const canvas = new fabric.Canvas(canvasEl, {
       width: BASE_W,
       height: height,
-      backgroundColor: "#ffffff",
+      backgroundColor: "transparent",
       isDrawingMode: false,
     });
     canvas.uniformScaling = true;
     canvas.centeredRotation = true;
     canvas.centeredKey = null;
+
+    // Scene-synced paper sheet, desk backdrop, dot/line grid, and Safe Area guide
+    const drawArtboardSceneBackdrop = (opt: any) => {
+      const ctx: CanvasRenderingContext2D | undefined = opt?.ctx;
+      if (!ctx || (canvas as any).__isExportingSnapshot) return;
+      const v = canvas.viewportTransform || [1, 0, 0, 1, 0, 0];
+      const cw = canvas.getWidth() || BASE_W;
+      const ch = canvas.getHeight() || heightRef.current || MIN_H;
+      const isTransformed = Math.abs(v[0] - 1) > 0.002 || Math.abs(v[4]) > 0.5 || Math.abs(v[5]) > 0.5;
+
+      ctx.save();
+      if (isTransformed) {
+        ctx.fillStyle = "#dbe4f0";
+        ctx.fillRect(0, 0, cw, ch);
+      }
+
+      ctx.transform(v[0], v[1], v[2], v[3], v[4], v[5]);
+
+      if (isTransformed) {
+        ctx.save();
+        ctx.shadowColor = "rgba(15, 23, 42, 0.2)";
+        ctx.shadowBlur = 18 / Math.max(0.4, v[0]);
+        ctx.shadowOffsetY = 4 / Math.max(0.4, v[0]);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, cw, ch);
+        ctx.restore();
+      } else {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, cw, ch);
+      }
+
+      const mode = gridModeRef.current;
+      if (mode === "dots" || mode === "grid") {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, 0, cw, ch);
+        ctx.clip();
+        const step = 20;
+        if (mode === "dots") {
+          ctx.fillStyle = "rgba(100, 116, 139, 0.34)";
+          const r = Math.max(0.9, 1.25 / Math.sqrt(Math.max(0.4, v[0])));
+          for (let x = step; x < cw; x += step) {
+            for (let y = step; y < ch; y += step) {
+              ctx.beginPath();
+              ctx.arc(x, y, r, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+        } else {
+          ctx.strokeStyle = "rgba(100, 116, 139, 0.16)";
+          ctx.lineWidth = 1 / Math.max(0.4, v[0]);
+          ctx.beginPath();
+          for (let x = step; x < cw; x += step) {
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, ch);
+          }
+          for (let y = step; y < ch; y += step) {
+            ctx.moveTo(0, y);
+            ctx.lineTo(cw, y);
+          }
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      if (isTransformed) {
+        ctx.strokeStyle = "rgba(15, 23, 42, 0.22)";
+        ctx.lineWidth = 1 / Math.max(0.4, v[0]);
+        ctx.strokeRect(0.5 / v[0], 0.5 / v[0], cw - 1 / v[0], ch - 1 / v[0]);
+      }
+      ctx.restore();
+    };
+
+    const drawArtboardSceneOverlay = (opt: any) => {
+      const ctx: CanvasRenderingContext2D | undefined = opt?.ctx;
+      if (!ctx || (canvas as any).__isExportingSnapshot) return;
+      if (!showSafeBoundsRef.current) return;
+      const v = canvas.viewportTransform || [1, 0, 0, 1, 0, 0];
+      const cw = canvas.getWidth() || BASE_W;
+      const ch = canvas.getHeight() || heightRef.current || MIN_H;
+      const foldH = Math.min(580, ch);
+      const invZ = 1 / Math.max(0.4, v[0]);
+
+      ctx.save();
+      ctx.transform(v[0], v[1], v[2], v[3], v[4], v[5]);
+      ctx.strokeStyle = "rgba(245, 158, 11, 0.72)";
+      ctx.lineWidth = 2 * invZ;
+      ctx.setLineDash([7 * invZ, 5 * invZ]);
+      ctx.strokeRect(1 * invZ, 1 * invZ, cw - 2 * invZ, foldH - 2 * invZ);
+      ctx.setLineDash([]);
+
+      const labelText = `Standard Solution Viewport (Fold: ${cw} × ${foldH}px)`;
+      const fontPx = Math.max(9, 10 * invZ);
+      ctx.font = `700 ${fontPx}px "DM Sans", sans-serif`;
+      const textW = ctx.measureText(labelText).width;
+      const padX = 8 * invZ;
+      const boxH = 19 * invZ;
+      const boxW = textW + padX * 2;
+      const bx = cw - boxW - 8 * invZ;
+      const by = foldH - boxH - 8 * invZ;
+      ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
+      ctx.fillRect(bx, by, boxW, boxH);
+      ctx.strokeStyle = "rgba(245, 158, 11, 0.45)";
+      ctx.lineWidth = 1 * invZ;
+      ctx.strokeRect(bx, by, boxW, boxH);
+      ctx.fillStyle = "#fde68a";
+      ctx.textBaseline = "middle";
+      ctx.fillText(labelText, bx + padX, by + boxH / 2 + 0.5 * invZ);
+      ctx.restore();
+    };
+
+    canvas.on("before:render", drawArtboardSceneBackdrop);
+    canvas.on("after:render", drawArtboardSceneOverlay);
 
     // Canva-style selection handles
     fabric.Object.prototype.transparentCorners = false;
@@ -1329,12 +1456,39 @@ export default function DrawCanvas({
       if (isPanningRef.current) {
         const p = getClientPoint(ev);
         const scale = boardScaleRef.current || 1;
+        const zoom = canvas.getZoom() || 1;
         const dx = (p.x - panLastRef.current.x) / scale;
         const dy = (p.y - panLastRef.current.y) / scale;
-        const vpt = canvas.viewportTransform;
-        if (vpt) {
-          vpt[4] += dx;
-          vpt[5] += dy;
+
+        if (zoom <= 1.001) {
+          const el = boardRef.current;
+          const canScrollVertically = !!(el && el.scrollHeight > el.clientHeight + 2);
+          if (canScrollVertically && el) {
+            el.scrollTop -= (p.y - panLastRef.current.y);
+            updateFloatingCoords();
+          } else if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+            const now = Date.now();
+            if (now - panHintTimerRef.current > 4500) {
+              panHintTimerRef.current = now;
+              showToast("Full page is visible — zoom in (+) to pan around, or press V to move shapes");
+            }
+          }
+          const clamped = clampViewportTransform(
+            canvas.viewportTransform || [1, 0, 0, 1, 0, 0],
+            canvas.getWidth(),
+            canvas.getHeight(),
+            60
+          );
+          canvas.setViewportTransform(clamped);
+          setIsPanned(Math.abs(clamped[4]) > 1 || Math.abs(clamped[5]) > 1);
+          canvas.requestRenderAll();
+        } else {
+          const rawVpt = [...(canvas.viewportTransform || [1, 0, 0, 1, 0, 0])];
+          rawVpt[4] += dx;
+          rawVpt[5] += dy;
+          const clamped = clampViewportTransform(rawVpt, canvas.getWidth(), canvas.getHeight(), 60);
+          canvas.setViewportTransform(clamped);
+          setIsPanned(Math.abs(clamped[4]) > 1 || Math.abs(clamped[5]) > 1);
           canvas.requestRenderAll();
           updateFloatingCoords();
         }
@@ -1393,8 +1547,16 @@ export default function DrawCanvas({
     const zoomToPoint = (point, nextZoom) => {
       const z = clampZoom(nextZoom);
       canvas.zoomToPoint(point, z);
+      const clamped = clampViewportTransform(
+        canvas.viewportTransform || [z, 0, 0, z, 0, 0],
+        canvas.getWidth(),
+        canvas.getHeight(),
+        60
+      );
+      canvas.setViewportTransform(clamped);
       canvas.requestRenderAll();
       setZoomPercent(Math.round(z * 100));
+      setIsPanned(Math.abs(clamped[4]) > 1 || Math.abs(clamped[5]) > 1);
       updateFloatingCoords();
     };
 
@@ -1931,8 +2093,6 @@ export default function DrawCanvas({
     // Load initial value if exists
     if (value) {
       const valueObj = typeof value === "object" && value !== null ? value : null;
-      const savedZoom = valueObj?.zoom || null;
-      const savedVpt = valueObj?.vpt || null;
       const data = typeof value === "string" ? value : JSON.stringify(valueObj?.state || value);
       try {
         if (data.startsWith("data:image")) {
@@ -1951,12 +2111,10 @@ export default function DrawCanvas({
           canvas.loadFromJSON(data, () => {
             migrateLegacyTextOnCanvas();
             canvas.getObjects().forEach(ensureLayerId);
-            if (Array.isArray(savedVpt) && savedVpt.length === 6) {
-              canvas.setViewportTransform(savedVpt);
-            } else if (savedZoom) {
-              canvas.setZoom(savedZoom);
-            }
-            setZoomPercent(Math.round((canvas.getZoom() || 1) * 100));
+            // Always open saved solutions centered at 100% view so editing matches Solution Preview
+            canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
+            setZoomPercent(100);
+            setIsPanned(false);
             const maxObjBottom = canvas.getObjects().reduce((maxB, o) => {
               if (!o || o.isGuide) return maxB;
               const r = o.getBoundingRect ? o.getBoundingRect(true, true) : null;
@@ -2073,7 +2231,7 @@ export default function DrawCanvas({
       textExportTimer.current = window.setTimeout(() => {
         textExportTimer.current = null;
         handleLiveExport();
-      }, 600);
+      }, 280);
     };
 
     const scheduleCommitChange = () => {
@@ -3704,10 +3862,12 @@ export default function DrawCanvas({
         canvas.forEachObject(obj => obj._fromUndo = true);
         migrateLegacyTextOnCanvas();
         canvas.getObjects().forEach(ensureLayerId);
-        canvas.backgroundColor = gridModeRef.current === "none" ? "#ffffff" : "transparent";
+        canvas.backgroundColor = "transparent";
         canvas.renderAll();
         isInternalChange.current = false;
+        const vptNow = canvas.viewportTransform || [1, 0, 0, 1, 0, 0];
         setZoomPercent(Math.round((canvas.getZoom() || 1) * 100));
+        setIsPanned(Math.abs(vptNow[4]) > 1 || Math.abs(vptNow[5]) > 1);
         syncHistoryFlags();
         const state = serializeCanvas();
         const dataURL = exportDataURL();
@@ -3736,10 +3896,12 @@ export default function DrawCanvas({
         canvas.forEachObject(obj => obj._fromUndo = true);
         migrateLegacyTextOnCanvas();
         canvas.getObjects().forEach(ensureLayerId);
-        canvas.backgroundColor = gridModeRef.current === "none" ? "#ffffff" : "transparent";
+        canvas.backgroundColor = "transparent";
         canvas.renderAll();
         isInternalChange.current = false;
+        const vptNow = canvas.viewportTransform || [1, 0, 0, 1, 0, 0];
         setZoomPercent(Math.round((canvas.getZoom() || 1) * 100));
+        setIsPanned(Math.abs(vptNow[4]) > 1 || Math.abs(vptNow[5]) > 1);
         syncHistoryFlags();
         const state = serializeCanvas();
         const dataURL = exportDataURL();
@@ -4416,6 +4578,7 @@ export default function DrawCanvas({
       canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
       canvas.requestRenderAll();
       setZoomPercent(100);
+      setIsPanned(false);
       updateFloatingCoords();
     };
 
@@ -4771,7 +4934,7 @@ export default function DrawCanvas({
     gridModeRef.current = gridMode;
     const canvas = fabricRef.current;
     if (!canvas) return;
-    canvas.backgroundColor = gridMode === "none" ? "#ffffff" : "transparent";
+    canvas.backgroundColor = "transparent";
     canvas.requestRenderAll();
   }, [gridMode]);
 
@@ -4974,7 +5137,19 @@ export default function DrawCanvas({
   const getNextInsertPoint = useCallback(() => {
     const canvas = fabricRef.current;
     const vpt = canvas?.viewportTransform || [1, 0, 0, 1, 0, 0];
-    return computeViewportInsertPoint(BASE_W, heightRef.current || MIN_H, vpt, insertSeqRef.current++);
+    const el = boardRef.current;
+    const scale = boardScaleRef.current || 1;
+    let visibleCenterY: number | undefined;
+    if (el && el.clientHeight > 0) {
+      visibleCenterY = (el.scrollTop + el.clientHeight / 2) / scale;
+    }
+    return computeViewportInsertPoint(
+      BASE_W,
+      heightRef.current || MIN_H,
+      vpt,
+      insertSeqRef.current++,
+      visibleCenterY
+    );
   }, [BASE_W, MIN_H]);
 
   const commitCanvasChange = useCallback((obj) => {
@@ -7132,7 +7307,8 @@ export default function DrawCanvas({
     objs.forEach(o => canvas.remove(o));
     canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
     setZoomPercent(100);
-    canvas.backgroundColor = gridModeRef.current === "none" ? "#ffffff" : "transparent";
+    setIsPanned(false);
+    canvas.backgroundColor = "transparent";
     canvas.requestRenderAll();
     isInternalChange.current = false;
     canvas.commitHistoryChange?.();
@@ -7233,16 +7409,16 @@ export default function DrawCanvas({
       canvas.discardActiveObject();
     }
 
-    const prevVpt = canvas.viewportTransform ? [...canvas.viewportTransform] : [1, 0, 0, 1, 0, 0];
     canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
     const boundsList = collectVisibleObjectBounds(canvas);
-    const layout = computeFitContentLayout(boundsList, MIN_H, MAX_H, 36);
+    const layout = computeFitContentLayout(boundsList, MIN_H, MAX_H, 36, BASE_W);
 
     isInternalChange.current = true;
     try {
-      if (Math.abs(layout.shiftY) >= 1) {
+      if (Math.abs(layout.shiftX) >= 1 || Math.abs(layout.shiftY) >= 1) {
         allNonGuides.forEach((o: any) => {
-          o.set("top", (o.top || 0) + layout.shiftY);
+          if (Math.abs(layout.shiftX) >= 1) o.set("left", (o.left || 0) + layout.shiftX);
+          if (Math.abs(layout.shiftY) >= 1) o.set("top", (o.top || 0) + layout.shiftY);
           o.setCoords?.();
         });
       }
@@ -7257,12 +7433,11 @@ export default function DrawCanvas({
         nextSel.setCoords();
       } else if (prevActive && !wasActiveSelection) {
         prevActive.setCoords?.();
-      } else {
-        canvas.setViewportTransform(prevVpt);
       }
 
-      canvas.resetZoom?.();
+      canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
       setZoomPercent(100);
+      setIsPanned(false);
       if (boardRef.current) {
         boardRef.current.scrollTop = 0;
       }
@@ -9223,41 +9398,7 @@ export default function DrawCanvas({
               height: artboardSize.displayHeight,
             }}
           >
-            <div className={`draw-canvas-host${gridMode !== "none" ? ` draw-grid-${gridMode}` : ""}`} ref={canvasHostRef} />
-            {showSafeBounds && (
-              <div
-                className="draw-safe-bounds-overlay"
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  height: Math.round(Math.min(580, height) * (artboardSize.scale || 1)),
-                  border: "2px dashed rgba(245, 158, 11, 0.65)",
-                  pointerEvents: "none",
-                  zIndex: 2,
-                  boxSizing: "border-box",
-                }}
-              >
-                <span
-                  style={{
-                    position: "absolute",
-                    bottom: 8,
-                    right: 8,
-                    background: "rgba(15, 23, 42, 0.85)",
-                    color: "#fde68a",
-                    fontSize: 10,
-                    fontWeight: 700,
-                    padding: "3px 8px",
-                    borderRadius: 6,
-                    border: "1px solid rgba(245, 158, 11, 0.4)",
-                    pointerEvents: "none",
-                  }}
-                >
-                  Standard Solution Viewport (Fold: 820 × 580px)
-                </span>
-              </div>
-            )}
+            <div className="draw-canvas-host" ref={canvasHostRef} />
           </div>
         </div>
 
@@ -9285,9 +9426,9 @@ export default function DrawCanvas({
             </button>
             <button
               type="button"
-              className="draw-footer-btn"
+              className={`draw-footer-btn${zoomPercent !== 100 || isPanned ? " is-active" : ""}`}
               onClick={handleResetZoom}
-              title="Reset Zoom to 100%"
+              title={zoomPercent !== 100 || isPanned ? "View is zoomed/panned — click to reset to 100% page view (Ctrl+0)" : "Reset Zoom to 100% (Ctrl+0)"}
               aria-label={`Reset zoom, currently ${zoomPercent}%`}
             >
               {zoomPercent}%
@@ -9301,6 +9442,18 @@ export default function DrawCanvas({
             >
               <ZoomIn size={13} />
             </button>
+            {(zoomPercent !== 100 || isPanned) && (
+              <button
+                type="button"
+                className="draw-footer-btn is-active"
+                onClick={handleResetZoom}
+                title="Center and reset view to 100% (Ctrl+0)"
+                aria-label="Reset View"
+              >
+                <RotateCcw size={12} />
+                <span>Reset View</span>
+              </button>
+            )}
           </div>
 
           <div className="draw-footer-cluster">

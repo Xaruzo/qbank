@@ -170,7 +170,12 @@ export default function QuestionForm({ initialData, onSave, onCancel, sideRailHo
   };
 
   const handleDrawChange = (val: any) => {
-    setTempDraw(val);
+    setTempDraw((prev: any) => {
+      if (val && typeof val === "object" && !val.dataURL && prev && typeof prev === "object" && prev.dataURL) {
+        return { ...val, dataURL: prev.dataURL };
+      }
+      return val;
+    });
     setIsDrawDirty(true);
   };
 

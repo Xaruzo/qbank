@@ -6,6 +6,7 @@ import {
   computeViewportInsertPoint,
   computePasteTargetPoint,
   clampCanvasHeight,
+  clampViewportTransform,
   computeSmartCropRect,
   computeFitContentLayout,
   findBestConnection,
@@ -232,8 +233,25 @@ describe("canvasMath", () => {
       2400,
       36
     );
+    expect(layout.shiftX).toBe(0);
     expect(layout.shiftY).toBe(-84);
     expect(layout.targetHeight).toBe(302);
+
+    const offPage = computeFitContentLayout(
+      [{ left: -60, top: 80, width: 200, height: 100 }],
+      260,
+      2400,
+      36,
+      820
+    );
+    expect(offPage.shiftX).toBe(96);
+    expect(offPage.shiftY).toBe(-44);
+  });
+
+  it("clamps viewport pan cleanly across 100%, zoomed-in, and zoomed-out views", () => {
+    expect(clampViewportTransform([1, 0, 0, 1, 240, -180], 820, 600, 60)).toEqual([1, 0, 0, 1, 0, 0]);
+    expect(clampViewportTransform([0.5, 0, 0, 0.5, 10, 10], 820, 600, 60)).toEqual([0.5, 0, 0, 0.5, 205, 60]);
+    expect(clampViewportTransform([2, 0, 0, 2, 500, -2000], 820, 600, 60)).toEqual([2, 0, 0, 2, 60, -660]);
   });
 });
 
