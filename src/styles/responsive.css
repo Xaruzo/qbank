@@ -1007,6 +1007,17 @@ body.light .qb-timer-icon {
     padding: 0 clamp(20px, 2.2vw, 32px) 16px;
   }
 
+  .qb-focus-shell .qb-main-inner.qb-main-inner-detail {
+    max-width: none;
+    width: 100%;
+    margin: 0;
+    padding: 0 24px 16px;
+  }
+
+  .qb-focus-shell .qb-det-q {
+    max-width: 78ch;
+  }
+
   .qb-det-hdr {
     justify-content: space-between;
   }
@@ -1361,7 +1372,7 @@ body.light .qb-timer-icon {
 
 @media (min-width: 1400px) {
   .qb-det-workspace {
-    grid-template-columns: minmax(0, 1fr) 356px;
+    grid-template-columns: minmax(0, 1fr) 368px;
     gap: 24px;
   }
 }

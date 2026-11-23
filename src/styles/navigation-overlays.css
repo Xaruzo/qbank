@@ -596,7 +596,7 @@
 .qb-main-inner.qb-main-inner-notes { max-width:none; margin:0; width:100%; padding:16px clamp(16px, 2vw, 32px) 24px; padding-bottom:calc(24px + env(safe-area-inset-bottom, 0px)); min-height:auto; display:block; box-sizing:border-box; }
 
 .qb-main-inner.qb-main-inner-exam { max-width:none; margin:0; padding:22px 18px 22px 18px; padding-right:28px; padding-bottom:calc(22px + env(safe-area-inset-bottom, 0px)); min-height:100%; height:100%; display:flex; flex-direction:column; overflow:hidden; }
-.qb-focus-shell .qb-main-inner.qb-main-inner-exam { max-width:1540px; width:100%; margin:0 auto; padding:20px 24px; padding-bottom:calc(20px + env(safe-area-inset-bottom, 0px)); }
+.qb-focus-shell .qb-main-inner.qb-main-inner-exam { max-width:none; width:100%; margin:0; padding:20px 24px; padding-bottom:calc(20px + env(safe-area-inset-bottom, 0px)); }
 
 .qb-main-inner.qb-main-inner-detail { max-width:1040px; margin:0 auto; padding:20px 24px; padding-bottom:calc(20px + env(safe-area-inset-bottom, 0px)); min-height:100%; height:100%; display:flex; flex-direction:column; overflow:hidden; }
 
