@@ -1277,11 +1277,11 @@ export default function App() {
                 onClearRecentQuestions={() => clearRecentQuestions(user?.id)}
               />
             ) : view === "list" ? (
-              <div className="fu space-y-5">
+              <div className="fu @container space-y-5">
                 {/* Structured Workspace Header & Bento Summary Hub */}
                 <section className="space-y-4" aria-label="Civil Service Reviewer Workspace">
-                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-5 border-b border-qb-border">
-                    <div className="flex items-start gap-3.5 min-w-0">
+                  <div className="flex flex-col @[940px]:flex-row @[940px]:items-center @[940px]:justify-between gap-4 pb-5 border-b border-qb-border">
+                    <div className="flex items-start gap-3.5 min-w-0 flex-1">
                       <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-amber-500/35 bg-amber-500/12 text-amber-400 light:border-amber-600/30 light:bg-amber-500/10 light:text-amber-700 mt-0.5">
                         <ShieldCheck size={20} aria-hidden="true" />
                       </span>
@@ -1307,7 +1307,7 @@ export default function App() {
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2 shrink-0">
+                    <div className="flex flex-wrap items-center gap-2 @[940px]:shrink-0">
                       <button
                         type="button"
                         onClick={handleGoMockExam}
@@ -1339,8 +1339,8 @@ export default function App() {
                   </div>
 
                   {/* Bento Metric Tiles + Official CSC Exam Presets */}
-                  <div className="grid grid-cols-1 xl:grid-cols-12 gap-3.5 items-stretch">
-                    <div className="xl:col-span-7 grid grid-cols-2 gap-3" aria-label="Question Bank Summary">
+                  <div className="grid grid-cols-1 @[920px]:grid-cols-12 gap-3.5 items-stretch">
+                    <div className="@[920px]:col-span-7 grid grid-cols-2 gap-3" aria-label="Question Bank Summary">
                       {/* Tile 1: Total Questions */}
                       <div className="relative overflow-hidden rounded-2xl border border-qb-border bg-qb-surface p-4 flex flex-col justify-between gap-2">
                         <div className="flex items-center justify-between gap-2">
@@ -1494,7 +1494,7 @@ export default function App() {
                     </div>
 
                     {/* Official CSC Exam Formats Bento Launcher */}
-                    <div className="xl:col-span-5 relative overflow-hidden rounded-2xl border border-qb-border bg-qb-surface p-4 sm:p-5 flex flex-col justify-between gap-3">
+                    <div className="@[920px]:col-span-5 relative overflow-hidden rounded-2xl border border-qb-border bg-qb-surface p-4 sm:p-5 flex flex-col justify-between gap-3">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-qb-accent">
