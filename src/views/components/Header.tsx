@@ -93,8 +93,9 @@ export default function Header({
               type="button"
               className={`qb-hdr-menu-btn${navOpen ? " is-active" : ""}`}
               onClick={onToggleNav}
-              aria-label={navOpen ? "Close sidebar menu" : "Open sidebar menu"}
-              title={navOpen ? "Close sidebar menu" : "Open sidebar menu"}
+              aria-expanded={navOpen}
+              aria-label={navOpen ? "Collapse sidebar menu" : "Expand sidebar menu"}
+              title={navOpen ? "Collapse sidebar menu" : "Expand sidebar menu"}
             >
               {navOpen ? <X size={20} /> : <Menu size={20} />}
             </button>

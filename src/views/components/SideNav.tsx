@@ -24,6 +24,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import brandLogo from "../../assets/logo.png";
+import { getProfilePopoverWidth } from "../../utils/sidebarMode";
 import type { SideNavProps } from "../../types";
 
 interface NavItemDef {
@@ -284,7 +285,7 @@ export default function SideNav({
   const railPopoverRef = useRef<HTMLDivElement>(null);
   const railBtnRef = useRef<HTMLButtonElement>(null);
   const [profileMenuOpen, setProfileMenuOpen] = useState<boolean>(false);
-  const [railCoords, setRailCoords] = useState<{ top: number; left: number } | null>(null);
+  const [railCoords, setRailCoords] = useState<{ top: number; left: number; width: number } | null>(null);
 
   // PolicyPulse unread logic: track how many questions were present at the
   // last bank visit; additions since then surface as a "new" indicator that
@@ -366,20 +367,19 @@ export default function SideNav({
   const updateRailCoords = () => {
     if (railBtnRef.current) {
       const rect = railBtnRef.current.getBoundingClientRect();
-      const popoverHeight = 350;
-      const popoverWidth = Math.min(320, window.innerWidth - 24);
+      const popoverHeight = railPopoverRef.current?.offsetHeight || 360;
+      const popoverWidth = getProfilePopoverWidth(0, window.innerWidth);
       const top = Math.max(12, Math.min(window.innerHeight - popoverHeight - 12, rect.bottom - popoverHeight));
       const maxLeft = Math.max(12, window.innerWidth - popoverWidth - 12);
       const left = Math.min(rect.right + 12, maxLeft);
-      setRailCoords({ top, left });
+      setRailCoords({ top, left, width: popoverWidth });
     }
   };
 
   const updateExpandedCoords = () => {
     if (popoverRef.current) {
       const rect = popoverRef.current.getBoundingClientRect();
-      const targetWidth = Math.min(320, Math.max(rect.width, 275));
-      const popoverWidth = Math.min(targetWidth, window.innerWidth - 24);
+      const popoverWidth = getProfilePopoverWidth(rect.width, window.innerWidth);
       const maxLeft = Math.max(12, window.innerWidth - popoverWidth - 12);
       const left = Math.max(12, Math.min(rect.left, maxLeft));
       setExpandedCoords({
@@ -391,14 +391,13 @@ export default function SideNav({
   };
 
   useLayoutEffect(() => {
-    if (profileMenuOpen) {
-      if (!open) updateRailCoords();
-      else updateExpandedCoords();
-    }
-  }, [profileMenuOpen, open]);
+    if (variant !== "rail" || !profileMenuOpen) return;
+    if (!open) updateRailCoords();
+    else updateExpandedCoords();
+  }, [variant, profileMenuOpen, open]);
 
   useEffect(() => {
-    if (!profileMenuOpen) return;
+    if (variant !== "rail" || !profileMenuOpen) return;
     const handleResize = () => setProfileMenuOpen(false);
     const handleScroll = () => {
       if (!open) updateRailCoords();
@@ -410,7 +409,7 @@ export default function SideNav({
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("scroll", handleScroll, true);
     };
-  }, [profileMenuOpen, open]);
+  }, [variant, profileMenuOpen, open]);
 
   // Click outside to dismiss PolicyPulse profile tooltip popover
   useEffect(() => {
@@ -891,7 +890,7 @@ export default function SideNav({
                       position: "fixed",
                       top: `${railCoords.top}px`,
                       left: `${railCoords.left}px`,
-                      width: `${Math.min(320, typeof window !== "undefined" ? window.innerWidth - 24 : 320)}px`,
+                      width: `${railCoords.width}px`,
                       maxWidth: "calc(100vw - 24px)",
                       boxSizing: "border-box",
                       zIndex: 999999,

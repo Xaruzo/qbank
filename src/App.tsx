@@ -13,6 +13,11 @@ import MobileTabBar from "./views/components/MobileTabBar";
 import MobileScrollIndicator from "./views/components/MobileScrollIndicator";
 import { lazyWithRetry } from "./utils/lazyWithRetry";
 import { isFocusShellView } from "./utils/focusShell";
+import {
+  getDesktopRestoreOpen,
+  getInitialSidebarOpen,
+  getSidebarVariant,
+} from "./utils/sidebarMode";
 
 import QuestionForm from "./views/components/QuestionForm";
 // Route-level code splitting: heavy screens (mock exam runner,
@@ -240,14 +245,14 @@ export default function App() {
   // tablet/compact breakpoint auto-collapses unless the user flipped it
   // manually during this session.
   const [navOpen, setNavOpen] = useState(() => {
+    let stored: string | null = null;
     try {
-      const stored = window.localStorage?.getItem("qbank-nav-open");
-      if (stored === "1") return true;
-      if (stored === "0") return false;
+      stored = window.localStorage?.getItem("qbank-nav-open") ?? null;
     } catch (error) {
       void error;
     }
-    return !(window.matchMedia && (window.matchMedia("(max-width: 600px)").matches || window.matchMedia("(min-width: 601px) and (max-width: 1099px)").matches));
+    const width = typeof window !== "undefined" ? window.innerWidth : 1440;
+    return getInitialSidebarOpen(width, stored);
   });
   const navManualOverrideRef = useRef(false);
   const toggleNav = useCallback(() => {
@@ -419,8 +424,8 @@ export default function App() {
       if (navManualOverrideRef.current) return;
       try {
         const stored = window.localStorage?.getItem("qbank-nav-open");
-        if (stored === "1") setNavOpen((prev) => (prev ? prev : true));
-        else if (stored === "0") setNavOpen((prev) => (prev ? false : prev));
+        const shouldOpen = getDesktopRestoreOpen(stored);
+        setNavOpen((prev) => (prev === shouldOpen ? prev : shouldOpen));
       } catch (error) {
         void error;
       }
@@ -1149,8 +1154,8 @@ export default function App() {
           />
         )}
 
-        {/* Unified Overlay Navigation Drawer for Mobile & Tablet/Compact */}
-        {!isFocusShell && (isMobile || isCompact) && (
+        {/* Overlay Navigation Drawer reserved strictly for Mobile (<= 600px) */}
+        {!isFocusShell && getSidebarVariant(isMobile) === "overlay" && (
           <SideNav
             variant="overlay"
             open={navOpen}
@@ -1182,7 +1187,8 @@ export default function App() {
         )}
 
         <div className="qb-shell">
-          {!isFocusShell && !isMobile && !isCompact && (
+          {/* Persistent In-Flow Collapsible Sidebar for Desktop, Reduced-Width Desktop & Tablet */}
+          {!isFocusShell && getSidebarVariant(isMobile) === "rail" && (
             <SideNav
               variant="rail"
               open={navOpen}

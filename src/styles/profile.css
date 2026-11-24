@@ -164,8 +164,8 @@
   position: absolute;
   bottom: calc(100% + 10px);
   left: 0;
-  width: 320px;
-  max-width: 100%;
+  width: 316px;
+  max-width: calc(100vw - 24px);
   box-sizing: border-box;
   background-color: var(--surface, #0f172a) !important;
   background: linear-gradient(180deg, #111a2e 0%, #0c1222 100%) !important;
@@ -178,16 +178,16 @@
   animation: qbPopoverFadeUp 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* In the sidebar overlay drawer or popover anchor, make it fit 100% of the tile without sticking out */
+/* Float cleanly beyond narrow mobile drawers / anchors (clamped to viewport) instead of cramping */
 .qb-profile-popover-anchor > .qb-profile-popover,
 .qb-side-drawer .qb-profile-popover {
   position: absolute !important;
   bottom: calc(100% + 10px) !important;
   left: 0 !important;
-  right: 0 !important;
-  width: 100% !important;
+  right: auto !important;
+  width: min(316px, calc(100vw - 24px)) !important;
   min-width: 0 !important;
-  max-width: 100% !important;
+  max-width: calc(100vw - 24px) !important;
   box-sizing: border-box !important;
 }
 
