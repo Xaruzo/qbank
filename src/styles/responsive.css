@@ -2672,3 +2672,15 @@ body.light .qb-timer-icon {
     height: 0 !important;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TABLET & REDUCED-WIDTH DESKTOP OUTER PADDING (601px – 1099px)
+   Prevents horizontal padding from squeezing dashboard & list workspaces
+   when the left sidebar is expanded.
+   ══════════════════════════════════════════════════════════════════════════ */
+@media (min-width: 601px) and (max-width: 1099px) {
+  .qb-main-inner:not(.qb-main-inner-detail):not(.qb-main-inner-editor):not(.qb-main-inner-notes):not(.qb-main-inner-exam):not(.qb-main-inner-reels):not(.qb-main-inner-settings) {
+    padding: 20px 20px 28px;
+    padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+  }
+}

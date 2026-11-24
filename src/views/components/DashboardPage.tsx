@@ -359,10 +359,10 @@ export default function DashboardPage({
   ];
 
   return (
-    <div className="fu space-y-4 sm:space-y-5 pb-3 sm:pb-0">
-      {/* Studio Command Hub: Clean Top Context Bar + Mobile-First Workflow Order + Desktop 2-Column Split */}
+    <div className="fu @container space-y-4 sm:space-y-5 pb-3 sm:pb-0">
+      {/* Studio Command Hub: Clean Top Context Bar + Container-Aware Workflow Split */}
       <section
-        className="relative overflow-hidden rounded-2xl border border-qb-border bg-qb-surface p-3.5 sm:p-6"
+        className="relative overflow-hidden rounded-2xl border border-qb-border bg-qb-surface p-3.5 sm:p-5 @[840px]:p-6"
         aria-label="Study Command Hub"
       >
         <div
@@ -370,7 +370,7 @@ export default function DashboardPage({
           aria-hidden="true"
         />
 
-        <div className="relative space-y-4 sm:space-y-5">
+        <div className="relative @container space-y-4 sm:space-y-5">
           {/* Full-Width Single-Row Header Bar (prevents wrapping/orphaning on mobile) */}
           <div className="flex items-center justify-between gap-2 border-b border-qb-border/75 pb-3">
             <div className="min-w-0 flex items-center gap-1.5 text-[11.5px] sm:text-xs font-semibold text-qb-muted">
@@ -406,10 +406,10 @@ export default function DashboardPage({
             )}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 lg:gap-7 items-stretch">
-            {/* Workbench Showcase: Second on mobile (after greeting/search/actions), Left (5/12) on desktop */}
-            <div className="order-2 lg:order-1 lg:col-span-5 flex flex-col justify-between overflow-hidden rounded-xl border border-qb-border bg-[#070d19] light:bg-slate-900">
-              <div className="relative h-[156px] sm:h-[190px] lg:h-auto lg:flex-1 lg:min-h-[210px] w-full overflow-hidden">
+          <div className="grid grid-cols-1 @[840px]:grid-cols-12 gap-4 sm:gap-5 @[840px]:gap-7 items-stretch">
+            {/* Workbench Showcase: Second on narrow/tablet/reduced-desktop, Left (5/12) when container >= 840px */}
+            <div className="order-2 @[840px]:order-1 @[840px]:col-span-5 min-w-0 flex flex-col justify-between overflow-hidden rounded-xl border border-qb-border bg-[#070d19] light:bg-slate-900">
+              <div className="relative h-[156px] sm:h-[184px] @[840px]:h-auto @[840px]:flex-1 @[840px]:min-h-[210px] w-full overflow-hidden">
                 {!hubImgError ? (
                   <img
                     src={cseHubWorkbenchImg}
@@ -484,8 +484,8 @@ export default function DashboardPage({
               </div>
             </div>
 
-            {/* Primary Workspace Flow: First on mobile, Right (7/12) on desktop */}
-            <div className="order-1 lg:order-2 lg:col-span-7 flex flex-col justify-between gap-4 sm:gap-5">
+            {/* Primary Workspace Flow: First when stacked, Right (7/12) when container >= 840px */}
+            <div className="order-1 @[840px]:order-2 @[840px]:col-span-7 min-w-0 @container flex flex-col justify-between gap-4 sm:gap-5">
               {/* Balanced Headline + Context Line */}
               <div className="space-y-1.5">
                 <h1 className="text-[22px] sm:text-[28px] font-bold tracking-tight text-qb-heading text-balance leading-[1.2]">
@@ -533,47 +533,47 @@ export default function DashboardPage({
                   </button>
                 </form>
 
-                <div className="space-y-1.5 sm:space-y-0 sm:flex sm:flex-wrap sm:items-center sm:gap-1.5">
-                  <span className="block sm:inline text-[11px] font-semibold text-qb-muted sm:mr-1">
+                <div className="space-y-1.5 @[420px]:space-y-0 @[420px]:flex @[420px]:flex-wrap @[420px]:items-center @[420px]:gap-1.5">
+                  <span className="block @[420px]:inline text-[11px] font-semibold text-qb-muted @[420px]:mr-1 whitespace-nowrap">
                     Jump to subject
                   </span>
-                  <div className="grid grid-cols-2 gap-1.5 sm:contents">
+                  <div className="grid grid-cols-2 gap-1.5 @[420px]:contents">
                     {topicQuickFilters.map((topicItem) => (
                       <button
                         key={topicItem.id}
                         type="button"
                         onClick={() => onOpenQuestionBank({ topic: topicItem.id, mastery: "all" })}
-                        className="inline-flex min-h-[40px] sm:min-h-[32px] items-center justify-between sm:justify-center gap-1.5 rounded-lg border border-qb-border bg-qb-input/75 px-3 py-1.5 sm:px-2.5 sm:py-1 text-xs font-medium text-qb-heading transition-colors hover:border-amber-500/45 hover:bg-qb-surface-hover cursor-pointer whitespace-nowrap"
+                        className="inline-flex min-h-[40px] @[420px]:min-h-[32px] items-center justify-between @[420px]:justify-center gap-1.5 rounded-lg border border-qb-border bg-qb-input/75 px-3 py-1.5 @[420px]:px-2.5 @[420px]:py-1 text-xs font-medium text-qb-heading transition-colors hover:border-amber-500/45 hover:bg-qb-surface-hover cursor-pointer whitespace-nowrap"
                       >
                         <span className="truncate">{topicItem.label}</span>
-                        <ChevronRight size={12} className="text-qb-muted shrink-0 sm:hidden" aria-hidden="true" />
+                        <ChevronRight size={12} className="text-qb-muted shrink-0 @[420px]:hidden" aria-hidden="true" />
                       </button>
                     ))}
                   </div>
                 </div>
               </div>
 
-              {/* Bottom Hairline Footer: Quiet Telemetry + Clean Equal-Width Mobile CTAs */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-qb-border/75 pt-3.5 sm:pt-4">
-                <div className="flex items-center gap-3.5 text-xs tabular-nums">
-                  <div>
+              {/* Bottom Hairline Footer: Quiet Telemetry + Container-Aware Action Row */}
+              <div className="flex flex-col @[475px]:flex-row @[475px]:items-center justify-between gap-3 border-t border-qb-border/75 pt-3.5 sm:pt-4">
+                <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-xs tabular-nums min-w-0">
+                  <div className="whitespace-nowrap">
                     <span className="text-qb-muted">Daily Goal </span>
                     <strong className={goalMet ? "font-bold text-emerald-400 light:text-emerald-700" : "font-bold text-qb-heading"}>
                       {dailyPct}%
                     </strong>
                   </div>
                   <span className="text-qb-border" aria-hidden="true">·</span>
-                  <div>
+                  <div className="whitespace-nowrap">
                     <span className="text-qb-muted">Unseen </span>
                     <strong className="font-bold text-qb-heading">{masterySummary.unseen}</strong>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 sm:flex items-center gap-2 shrink-0">
+                <div className="grid grid-cols-2 @[440px]:flex @[440px]:flex-wrap items-center gap-2 shrink-0">
                   <button
                     type="button"
                     onClick={() => onOpenQuestionBank({ topic: "all", mastery: "all" })}
-                    className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-xl border border-qb-border bg-qb-input px-3 sm:px-3.5 py-2 text-xs sm:text-sm font-semibold text-qb-heading transition-colors hover:border-qb-border-hover hover:bg-qb-surface-hover active:scale-[0.98] cursor-pointer whitespace-nowrap"
+                    className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-xl border border-qb-border bg-qb-input px-3 @[560px]:px-3.5 py-2 text-xs @[560px]:text-sm font-semibold text-qb-heading transition-colors hover:border-qb-border-hover hover:bg-qb-surface-hover active:scale-[0.98] cursor-pointer whitespace-nowrap"
                   >
                     <Layers size={15} className="text-qb-muted shrink-0" aria-hidden="true" />
                     <span>Question Bank</span>
@@ -581,7 +581,7 @@ export default function DashboardPage({
                   <button
                     type="button"
                     onClick={handlePrimaryAction}
-                    className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-xl bg-amber-500 px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold text-[#070c18] shadow-[0_6px_20px_rgba(245,166,35,0.22)] transition-colors hover:bg-amber-400 active:scale-[0.98] cursor-pointer whitespace-nowrap"
+                    className="inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-xl bg-amber-500 px-3 @[560px]:px-4 py-2 text-xs @[560px]:text-sm font-bold text-[#070c18] shadow-[0_6px_20px_rgba(245,166,35,0.22)] transition-colors hover:bg-amber-400 active:scale-[0.98] cursor-pointer whitespace-nowrap"
                   >
                     {hasResumableMock ? (
                       <>
@@ -607,8 +607,8 @@ export default function DashboardPage({
         </div>
       </section>
 
-      {/* 4-Metric Telemetry Strip: 2x2 compact grid on mobile, 4-across on desktop */}
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5" aria-label="Study Metrics">
+      {/* 4-Metric Telemetry Strip: 2x2 compact grid below 760px container width, 4-across on wide workspace */}
+      <section className="grid grid-cols-2 @[760px]:grid-cols-4 gap-2.5 sm:gap-3.5" aria-label="Study Metrics">
         {/* Daily Goal */}
         <div className="rounded-2xl border border-qb-border bg-qb-surface p-3 sm:p-4 flex flex-col justify-between gap-2.5 transition-colors hover:border-qb-border-hover">
           <div className="flex items-center justify-between gap-2">
@@ -767,7 +767,7 @@ export default function DashboardPage({
       {/* Single-Elevation Continuity or Weak-Area Priority Strip */}
       {hasResumableMock ? (
         <section
-          className="rounded-2xl border border-amber-500/35 bg-qb-surface p-3.5 sm:px-5 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+          className="rounded-2xl border border-amber-500/35 bg-qb-surface p-3.5 sm:px-5 sm:py-4 flex flex-col @[600px]:flex-row @[600px]:items-center justify-between gap-3"
           aria-label="Session in progress"
         >
           <div className="flex items-start gap-3 min-w-0 flex-1">
@@ -820,7 +820,7 @@ export default function DashboardPage({
         </section>
       ) : primaryWeakArea ? (
         <section
-          className="rounded-2xl border border-qb-border bg-qb-surface px-3.5 sm:px-5 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors hover:border-qb-border-hover"
+          className="rounded-2xl border border-qb-border bg-qb-surface px-3.5 sm:px-5 py-3 flex flex-col @[600px]:flex-row @[600px]:items-center justify-between gap-3 transition-colors hover:border-qb-border-hover"
           aria-label="Weak area priority"
         >
           <div className="flex items-center gap-3 min-w-0">
@@ -878,9 +878,9 @@ export default function DashboardPage({
       ) : null}
 
       {/* Main 12-Column Workspace Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+      <div className="grid grid-cols-1 @[840px]:grid-cols-12 gap-4 items-start">
         {/* Left Column (7/12): Subject Mastery & 7-Day Activity */}
-        <div className="lg:col-span-7 space-y-4">
+        <div className="@[840px]:col-span-7 min-w-0 space-y-4">
           {/* Subject Mastery */}
           <section
             className="rounded-2xl border border-qb-border bg-qb-surface overflow-hidden"
@@ -1337,7 +1337,7 @@ export default function DashboardPage({
         </div>
 
         {/* Right Column (5/12): Practice & Mock Simulators + Recent Scores */}
-        <div className="lg:col-span-5 space-y-4">
+        <div className="@[840px]:col-span-5 min-w-0 space-y-4">
           {/* Quick Practice & Official Simulators */}
           <section
             className="rounded-2xl border border-qb-border bg-qb-surface overflow-hidden"
