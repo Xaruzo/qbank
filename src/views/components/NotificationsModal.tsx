@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import {
   Bell,
@@ -93,34 +93,43 @@ export default function NotificationsModal({
   const [notifState, setNotifState] = useState<NotificationPersistedState>(() => readPersistedState());
   const [activeTab, setActiveTab] = useState<"all" | "unread" | "exam" | "study" | "system">("all");
   const [indicatorStyle, setIndicatorStyle] = useState<{ left: number; width: number }>({ left: 0, width: 0 });
-  const [portalCoords, setPortalCoords] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [portalCoords, setPortalCoords] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    arrowLeft: number;
+  } | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const tabContainerRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const computePortalCoords = useCallback(() => {
     if (typeof window === "undefined") return;
-    const anchor = document.querySelector(".qb-hdr-notif-wrap");
+    const anchor =
+      document.querySelector(".qb-hdr-notif-btn") ||
+      document.querySelector(".qb-hdr-notif-wrap");
     const anchorRect = anchor?.getBoundingClientRect();
     const vw = window.innerWidth;
-    const top = Math.max(58, (anchorRect?.bottom ?? 56) + 10);
+    const top = Math.max(58, Math.round((anchorRect?.bottom ?? 48) + 11));
+    const width = vw <= 640 ? Math.max(260, vw - 24) : Math.min(430, vw - 24);
 
-    if (vw <= 640) {
-      setPortalCoords({
-        top,
-        left: 12,
-        width: Math.max(260, vw - 24),
-      });
-      return;
+    let left = 12;
+    if (vw > 640) {
+      const targetRight = anchorRect ? anchorRect.right + 14 : vw - 16;
+      left = Math.max(12, Math.min(targetRight - width, vw - width - 12));
     }
 
-    const width = Math.min(430, vw - 24);
-    const anchorRight = anchorRect ? anchorRect.right : vw - 16;
-    const left = Math.max(12, Math.min(anchorRight - width, vw - width - 12));
-    setPortalCoords({ top, left, width });
+    const anchorCenterX = anchorRect
+      ? anchorRect.left + anchorRect.width / 2
+      : left + width - 32;
+    const arrowLeft = Math.round(
+      Math.max(24, Math.min(width - 24, anchorCenterX - left))
+    );
+
+    setPortalCoords({ top, left, width, arrowLeft });
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!isOpen) return;
     computePortalCoords();
     window.addEventListener("resize", computePortalCoords);
@@ -415,10 +424,17 @@ export default function NotificationsModal({
               right: "auto",
               width: `${portalCoords.width}px`,
               maxWidth: "calc(100vw - 24px)",
+              transformOrigin: `${portalCoords.arrowLeft}px top`,
             }
           : undefined
       }
     >
+      <span
+        className="qb-notif-arrow"
+        aria-hidden="true"
+        style={portalCoords ? { left: `${portalCoords.arrowLeft}px` } : undefined}
+      />
+      <div className="qb-notifications-surface">
       {/* Header */}
       <div className="qb-notif-header">
         <div className="qb-notif-title-row">
@@ -607,6 +623,7 @@ export default function NotificationsModal({
         >
           Restore alerts
         </button>
+      </div>
       </div>
     </div>
   );

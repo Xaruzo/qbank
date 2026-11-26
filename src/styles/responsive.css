@@ -2533,6 +2533,10 @@ body.light .qb-timer-icon {
     border-radius: 16px;
   }
 
+  .qb-notifications-surface {
+    border-radius: 15px;
+  }
+
   .qb-notif-header {
     padding: 12px 14px 10px;
     gap: 10px;

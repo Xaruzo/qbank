@@ -197,6 +197,12 @@
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65) !important;
 }
 
+.qb:not(.light) .qb-notif-arrow {
+  background: #080e1a !important;
+  border-top-color: #2a3d5e !important;
+  border-left-color: #2a3d5e !important;
+}
+
 .qb:not(.light) .qb-notif-header,
 .qb:not(.light) .qb-notif-footer {
   background: #080e1a !important;
@@ -302,6 +308,13 @@
   background: #ffffff !important;
   border-color: #cbd5e1 !important;
   box-shadow: 0 20px 45px rgba(0, 0, 0, 0.14) !important;
+}
+
+.light .qb-notif-arrow,
+.qb.light .qb-notif-arrow {
+  background: #f8fafc !important;
+  border-top-color: #cbd5e1 !important;
+  border-left-color: #cbd5e1 !important;
 }
 
 .light .qb-notif-header,
