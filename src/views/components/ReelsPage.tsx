@@ -2145,26 +2145,105 @@ export default function ReelsPage({
 
   const hasActiveSearchOrTopic = topicFilter !== "all" || search.trim().length > 0;
 
+  const renderDesktopToolbarControls = (searchMinWidthClass: string) => (
+    <div className="flex flex-wrap items-center gap-2">
+      {/* Segmented Feed Mode */}
+      <div
+        className="inline-flex h-[36px] shrink-0 items-center gap-0.5 rounded-xl border border-qb-border bg-qb-input p-0.5"
+        role="group"
+        aria-label="Filter feed type"
+      >
+        {(
+          [
+            { id: "all", label: "All" },
+            { id: "shorts", label: "Shorts" },
+            { id: "live", label: "Live" },
+            { id: "saved", label: "Saved" },
+          ] as const
+        ).map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => {
+              setFeedMode(tab.id);
+              scrollToReelIndex(0, "auto");
+            }}
+            className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
+              feedMode === tab.id
+                ? "bg-qb-surface text-qb-heading shadow-sm border border-qb-border"
+                : "text-qb-muted hover:text-qb-heading"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="w-[148px] shrink-0 [&_.qb-select-btn]:!min-h-[36px] [&_.qb-select-btn]:!h-[36px] [&_.qb-select-btn]:!py-1 [&_.qb-select-btn]:!px-2.5 [&_.qb-select-btn]:!rounded-xl [&_.qb-select-btn]:!text-xs">
+        <CustomSelect
+          portal
+          minMenuWidth={184}
+          value={topicFilter}
+          onChange={(val) => {
+            setTopicFilter(val);
+            scrollToReelIndex(0, "auto");
+          }}
+          options={topicSelectOptions}
+          placeholder="All Subjects"
+        />
+      </div>
+
+      <div className={`relative ${searchMinWidthClass}`}>
+        <Search
+          size={13}
+          className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-qb-muted"
+        />
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            scrollToReelIndex(0, "auto");
+          }}
+          placeholder="Search clips..."
+          aria-label="Search clips or live streams"
+          className="h-[36px] w-full rounded-xl border border-qb-border bg-qb-input pl-8 pr-2.5 text-xs text-qb-heading placeholder:text-qb-muted focus:border-amber-500/60 focus:outline-none"
+        />
+      </div>
+    </div>
+  );
+
   return (
     <div className="fu relative flex h-full min-h-0 flex-col gap-1.5 sm:gap-2.5 overflow-hidden">
-      {/* Compact Workspace Header + Toolbar */}
-      <div className="shrink-0 relative z-30 flex flex-col gap-1.5 sm:gap-2 border-b border-qb-border pb-1 sm:pb-2 xl:flex-row xl:items-center xl:justify-between">
-        <div className="hidden sm:flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 min-w-0">
-          <h1 className="text-base sm:text-lg font-extrabold tracking-tight text-qb-heading whitespace-nowrap">
-            Micro-Lessons & Live Coaching
-          </h1>
-          <div className="flex items-center gap-1.5 text-xs text-qb-muted whitespace-nowrap">
-            <span className="tabular-nums">{reels.length} clips</span>
-            {liveNowCount > 0 && (
-              <>
-                <span aria-hidden="true">·</span>
-                <span className="inline-flex items-center gap-1 font-bold text-rose-400 light:text-rose-600 tabular-nums">
-                  <Radio size={11} aria-hidden="true" />
-                  {liveNowCount} Live
-                </span>
-              </>
-            )}
+      {/* Compact Workspace Header + Toolbar for Mobile / Tablet (< lg); on lg+ it lives on the right column */}
+      <div className="lg:hidden shrink-0 relative z-30 flex flex-col gap-1.5 sm:gap-2 border-b border-qb-border pb-1 sm:pb-2">
+        <div className="hidden sm:flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 min-w-0">
+            <h1 className="text-base sm:text-lg font-extrabold tracking-tight text-qb-heading whitespace-nowrap">
+              Micro-Lessons & Live Coaching
+            </h1>
+            <div className="flex items-center gap-1.5 text-xs text-qb-muted whitespace-nowrap">
+              <span className="tabular-nums">{reels.length} clips</span>
+              {liveNowCount > 0 && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span className="inline-flex items-center gap-1 font-bold text-rose-400 light:text-rose-600 tabular-nums">
+                    <Radio size={11} aria-hidden="true" />
+                    {liveNowCount} Live
+                  </span>
+                </>
+              )}
+            </div>
           </div>
+
+          <button
+            type="button"
+            onClick={openCreateComposer}
+            className="inline-flex h-[36px] items-center justify-center gap-1.5 rounded-xl bg-amber-500 px-3 text-xs font-bold text-[#070c18] hover:bg-amber-400 transition-colors cursor-pointer whitespace-nowrap shrink-0"
+          >
+            <Plus size={14} />
+            <span>Post Clip / Go Live</span>
+          </button>
         </div>
 
         {/* Mobile Ultra-Compact Single-Row Top Bar */}
@@ -2246,6 +2325,8 @@ export default function ReelsPage({
             <div className="flex items-center gap-1.5">
               <div className="w-[132px] shrink-0 [&_.qb-select-btn]:!min-h-[34px] [&_.qb-select-btn]:!h-[34px] [&_.qb-select-btn]:!py-1 [&_.qb-select-btn]:!px-2.5 [&_.qb-select-btn]:!rounded-lg [&_.qb-select-btn]:!text-[11px]">
                 <CustomSelect
+                  portal
+                  minMenuWidth={184}
                   value={topicFilter}
                   onChange={(val) => {
                     setTopicFilter(val);
@@ -2291,127 +2372,53 @@ export default function ReelsPage({
           </div>
         )}
 
-        {/* Desktop / Tablet Full Toolbar */}
+        {/* Tablet Toolbar (sm to < lg) */}
         <div className="hidden sm:flex flex-wrap items-center gap-2">
-          {/* Segmented Feed Mode */}
-          <div
-            className="inline-flex h-[36px] items-center gap-0.5 rounded-xl border border-qb-border bg-qb-input p-0.5"
-            role="group"
-            aria-label="Filter feed type"
-          >
-            {(
-              [
-                { id: "all", label: "All" },
-                { id: "shorts", label: "Shorts" },
-                { id: "live", label: "Live" },
-                { id: "saved", label: "Saved" },
-              ] as const
-            ).map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => {
-                  setFeedMode(tab.id);
-                  scrollToReelIndex(0, "auto");
-                }}
-                className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-colors cursor-pointer whitespace-nowrap ${
-                  feedMode === tab.id
-                    ? "bg-qb-surface text-qb-heading shadow-sm border border-qb-border"
-                    : "text-qb-muted hover:text-qb-heading"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="w-[158px] shrink-0 [&_.qb-select-btn]:!min-h-[36px] [&_.qb-select-btn]:!h-[36px] [&_.qb-select-btn]:!py-1 [&_.qb-select-btn]:!px-2.5 [&_.qb-select-btn]:!rounded-xl [&_.qb-select-btn]:!text-xs">
-            <CustomSelect
-              value={topicFilter}
-              onChange={(val) => {
-                setTopicFilter(val);
-                scrollToReelIndex(0, "auto");
-              }}
-              options={topicSelectOptions}
-              placeholder="All Subjects"
-            />
-          </div>
-
-          <div className="relative flex-initial w-44">
-            <Search
-              size={13}
-              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-qb-muted"
-            />
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                scrollToReelIndex(0, "auto");
-              }}
-              placeholder="Search clips..."
-              aria-label="Search clips or live streams"
-              className="h-[36px] w-full rounded-xl border border-qb-border bg-qb-input pl-8 pr-2.5 text-xs text-qb-heading placeholder:text-qb-muted focus:border-amber-500/60 focus:outline-none"
-            />
-          </div>
-
-          <button
-            type="button"
-            onClick={openCreateComposer}
-            className="inline-flex h-[36px] items-center justify-center gap-1.5 rounded-xl bg-amber-500 px-3 text-xs font-bold text-[#070c18] hover:bg-amber-400 transition-colors cursor-pointer whitespace-nowrap shrink-0"
-          >
-            <Plus size={14} />
-            <span>Post Clip / Go Live</span>
-          </button>
+          {renderDesktopToolbarControls("flex-1 min-w-[160px]")}
         </div>
       </div>
 
-      {/* Main Theater + Companion Grid */}
-      {loading ? (
-        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-          <div className="lg:col-span-6 xl:col-span-7 flex h-full min-h-0 justify-center">
-            <div className="h-full w-full max-w-[440px] lg:max-w-[410px] animate-pulse rounded-2xl border border-qb-border bg-qb-surface" />
-          </div>
-          <div className="hidden lg:block lg:col-span-6 xl:col-span-5 h-full animate-pulse rounded-2xl border border-qb-border bg-qb-surface" />
-        </div>
-      ) : filteredReels.length === 0 ? (
-        <div className="flex-1 min-h-0 flex flex-col items-center justify-center rounded-2xl border border-qb-border bg-qb-surface p-8 sm:p-10 text-center space-y-3">
-          <Clapperboard size={28} className="mx-auto text-qb-accent" />
-          <h2 className="text-lg font-bold text-qb-heading">No matching clips or live sessions</h2>
-          <p className="text-xs sm:text-sm text-qb-muted max-w-md mx-auto">
-            Try switching back to All or post a review video / YouTube Live coaching link.
-          </p>
-          <div className="flex items-center justify-center gap-2 pt-2">
-            <button
-              type="button"
-              onClick={() => {
-                setFeedMode("all");
-                setTopicFilter("all");
-                setSearch("");
-                scrollToReelIndex(0, "auto");
-              }}
-              className="rounded-xl border border-qb-border bg-qb-input px-4 py-2 text-xs font-bold text-qb-heading hover:bg-qb-surface-hover cursor-pointer"
-            >
-              Reset Filters
-            </button>
-            <button
-              type="button"
-              onClick={openCreateComposer}
-              className="rounded-xl bg-amber-500 px-4 py-2 text-xs font-bold text-[#070c18] hover:bg-amber-400 cursor-pointer"
-            >
-              Post Clip / Go Live
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5 items-stretch">
-          {/* Left / Center: Native CSS Scroll-Snap Vertical Reels Stage */}
-          <div className="lg:col-span-6 xl:col-span-7 flex h-full min-h-0 justify-center">
+      {/* Main Theater + Right Controls & Companion Grid */}
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5 items-stretch">
+        {/* Left: Full-Height Vertical Reels Stage (or Loading / Empty State) */}
+        <div className="lg:col-span-6 flex h-full min-h-0 justify-center">
+          {loading ? (
+            <div className="h-full w-full max-w-[440px] lg:max-w-[450px] animate-pulse rounded-2xl border border-qb-border bg-qb-surface" />
+          ) : filteredReels.length === 0 ? (
+            <div className="h-full w-full max-w-[440px] lg:max-w-[450px] flex flex-col items-center justify-center rounded-2xl border border-qb-border bg-qb-surface p-8 text-center space-y-3">
+              <Clapperboard size={28} className="mx-auto text-qb-accent" />
+              <h2 className="text-lg font-bold text-qb-heading">No matching clips or live sessions</h2>
+              <p className="text-xs sm:text-sm text-qb-muted max-w-sm mx-auto">
+                Try switching back to All or post a review video / YouTube Live coaching link.
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFeedMode("all");
+                    setTopicFilter("all");
+                    setSearch("");
+                    scrollToReelIndex(0, "auto");
+                  }}
+                  className="rounded-xl border border-qb-border bg-qb-input px-4 py-2 text-xs font-bold text-qb-heading hover:bg-qb-surface-hover cursor-pointer"
+                >
+                  Reset Filters
+                </button>
+                <button
+                  type="button"
+                  onClick={openCreateComposer}
+                  className="rounded-xl bg-amber-500 px-4 py-2 text-xs font-bold text-[#070c18] hover:bg-amber-400 cursor-pointer"
+                >
+                  Post Clip / Go Live
+                </button>
+              </div>
+            </div>
+          ) : (
             <div
               ref={feedScrollRef}
               onScroll={handleFeedScroll}
               aria-label="Vertical study reels feed"
-              className="qb-reels-snap-feed h-full w-full max-w-[440px] lg:max-w-[410px] min-h-0 overflow-y-auto overscroll-y-contain rounded-2xl"
+              className="qb-reels-snap-feed h-full w-full max-w-[440px] lg:max-w-[450px] min-h-0 overflow-y-auto overscroll-y-contain rounded-2xl"
             >
               {filteredReels.map((reel, idx) => (
                 <div
@@ -2453,17 +2460,64 @@ export default function ReelsPage({
                 </div>
               ))}
             </div>
+          )}
+        </div>
+
+        {/* Right Column (Desktop lg+): Top Header & Filters + Companion Panel */}
+        <div className="hidden lg:flex lg:col-span-6 h-full min-h-0 flex-col gap-3">
+          <div className="shrink-0 relative z-30 flex flex-col gap-2.5 border-b border-qb-border pb-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 min-w-0">
+                <h1 className="text-base xl:text-[17px] font-extrabold tracking-tight text-qb-heading whitespace-nowrap">
+                  Micro-Lessons & Live Coaching
+                </h1>
+                <div className="flex items-center gap-1.5 text-xs text-qb-muted whitespace-nowrap">
+                  <span className="tabular-nums">{reels.length} clips</span>
+                  {liveNowCount > 0 && (
+                    <>
+                      <span aria-hidden="true">·</span>
+                      <span className="inline-flex items-center gap-1 font-bold text-rose-400 light:text-rose-600 tabular-nums">
+                        <Radio size={11} aria-hidden="true" />
+                        {liveNowCount} Live
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={openCreateComposer}
+                className="inline-flex h-[36px] items-center justify-center gap-1.5 rounded-xl bg-amber-500 px-3 text-xs font-bold text-[#070c18] hover:bg-amber-400 transition-colors cursor-pointer whitespace-nowrap shrink-0"
+              >
+                <Plus size={14} />
+                <span>Post Clip / Go Live</span>
+              </button>
+            </div>
+
+            {renderDesktopToolbarControls("flex-1 min-w-[130px]")}
           </div>
 
-          {/* Right Companion Panel (Desktop/Tablet Large) */}
           <aside
-            className="hidden lg:flex lg:col-span-6 xl:col-span-5 h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-qb-border bg-qb-surface p-4 sm:p-5"
+            className="flex-1 min-h-0 flex flex-col overflow-hidden rounded-2xl border border-qb-border bg-qb-surface p-4 sm:p-5"
             aria-label="Study companion and live Q&A"
           >
-            {renderCompanionContent()}
+            {loading ? (
+              <div className="h-full w-full animate-pulse rounded-xl bg-qb-input/60" />
+            ) : filteredReels.length === 0 ? (
+              <div className="flex flex-1 flex-col items-center justify-center text-center px-6 space-y-2">
+                <Sparkles size={20} className="text-qb-accent" />
+                <p className="text-sm font-bold text-qb-heading">No active clip selected</p>
+                <p className="text-xs text-qb-muted max-w-xs">
+                  Reset your filters or post a new clip to access Quick Check, Q&A, and Queue here.
+                </p>
+              </div>
+            ) : (
+              renderCompanionContent()
+            )}
           </aside>
         </div>
-      )}
+      </div>
 
       {/* Mobile Bottom Sheet for Quiz / Live Q&A / Queue (Portaled to root so header/sidepanel dim & blur) */}
       {mobileSheetOpen &&
